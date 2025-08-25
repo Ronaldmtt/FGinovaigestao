@@ -2,6 +2,7 @@ from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime
+import httpx
 from app import app, db
 from models import User, Client, Project, Task
 from forms import LoginForm, UserForm, ClientForm, ProjectForm, TaskForm, TranscriptionTaskForm
@@ -162,9 +163,10 @@ def new_project():
         # Tentar processar com IA em segundo plano (sem bloquear)
         success_message = 'Projeto criado com sucesso!'
         
-        if form.transcricao.data:
+        # Processar com IA apenas se há transcrição e não for muito longa
+        if form.transcricao.data and len(form.transcricao.data.strip()) > 10:
             try:
-                # Processar transcrição com IA
+                # Processar transcrição com IA (com timeout)
                 ai_result = process_project_transcription(form.transcricao.data)
                 if ai_result:
                     project.contexto_justificativa = ai_result.get('contexto_justificativa')
@@ -195,7 +197,7 @@ def new_project():
                     
             except Exception as e:
                 print(f"Erro no processamento da IA: {e}")
-                success_message = 'Projeto criado, mas a IA não conseguiu processar a transcrição.'
+                success_message = 'Projeto criado com sucesso! A IA não conseguiu processar a transcrição no momento.'
         
         flash(success_message, 'success')
         return redirect(url_for('projects'))

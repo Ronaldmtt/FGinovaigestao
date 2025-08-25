@@ -1,11 +1,18 @@
 import json
 import os
 from openai import OpenAI
+import httpx
 
 # the newest OpenAI model is "gpt-5" which was released August 7, 2025.
 # do not change this unless explicitly requested by the user
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-openai = OpenAI(api_key=OPENAI_API_KEY)
+
+# Configurar timeout para evitar travamento
+openai = OpenAI(
+    api_key=OPENAI_API_KEY,
+    timeout=30.0,  # Timeout de 30 segundos
+    http_client=httpx.Client(timeout=30.0)
+)
 
 def process_project_transcription(transcription):
     """

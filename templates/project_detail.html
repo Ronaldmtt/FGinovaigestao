@@ -35,6 +35,9 @@
             </div>
             {% if current_user.is_admin or current_user.id == project.responsible_id %}
             <div>
+                <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#editProjectModal">
+                    <i class="fas fa-edit me-1"></i>Editar Projeto
+                </button>
                 <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteProjectModal">
                     <i class="fas fa-trash me-1"></i>Deletar Projeto
                 </button>
@@ -177,8 +180,87 @@
     </div>
 </div>
 
-<!-- Modal de confirmação para deletar projeto -->
+<!-- Modal de edição do projeto -->
 {% if current_user.is_admin or current_user.id == project.responsible_id %}
+<div class="modal fade" id="editProjectModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('edit_project', id=project.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Projeto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nome do Projeto</label>
+                            <input type="text" class="form-control" name="nome" value="{{ project.nome }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Cliente</label>
+                            <select class="form-select" name="client_id" required>
+                                {% for client in clients %}
+                                <option value="{{ client.id }}" {% if client.id == project.client_id %}selected{% endif %}>
+                                    {{ client.nome }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Usuário Responsável</label>
+                            <select class="form-select" name="responsible_id" required>
+                                {% for user in users %}
+                                <option value="{{ user.id }}" {% if user.id == project.responsible_id %}selected{% endif %}>
+                                    {{ user.full_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" name="status" required>
+                                <option value="em_andamento" {% if project.status == 'em_andamento' %}selected{% endif %}>Em Andamento</option>
+                                <option value="pausado" {% if project.status == 'pausado' %}selected{% endif %}>Pausado</option>
+                                <option value="cancelado" {% if project.status == 'cancelado' %}selected{% endif %}>Cancelado</option>
+                                <option value="concluido" {% if project.status == 'concluido' %}selected{% endif %}>Concluído</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Adicionar Membro da Equipe</label>
+                            <select class="form-select" name="team_member_id">
+                                <option value="">Selecione um usuário</option>
+                                {% for user in users %}
+                                <option value="{{ user.id }}">{{ user.full_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    {% if project.team_members %}
+                    <div class="mb-3">
+                        <label class="form-label">Membros da Equipe Atual</label>
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for member in project.team_members %}
+                            <span class="badge bg-secondary">{{ member.full_name }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmação para deletar projeto -->
 <div class="modal fade" id="deleteProjectModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">

@@ -224,7 +224,42 @@ def project_detail(id):
         flash('Você não tem acesso a este projeto.', 'danger')
         return redirect(url_for('projects'))
     
-    return render_template('project_detail.html', project=project)
+    clients = Client.query.all()
+    users = User.query.all()
+    return render_template('project_detail.html', project=project, clients=clients, users=users)
+
+@app.route('/projects/<int:id>/edit', methods=['POST'])
+@login_required
+def edit_project(id):
+    project = Project.query.get_or_404(id)
+    
+    # Verificar se o usuário tem permissão para editar
+    if not current_user.is_admin and current_user.id != project.responsible_id:
+        flash('Você não tem permissão para editar este projeto.', 'danger')
+        return redirect(url_for('project_detail', id=id))
+    
+    # Atualizar dados do projeto
+    project.nome = request.form.get('nome')
+    project.client_id = request.form.get('client_id')
+    project.responsible_id = request.form.get('responsible_id')
+    project.status = request.form.get('status')
+    
+    # Adicionar membro da equipe se selecionado
+    team_member_id = request.form.get('team_member_id')
+    if team_member_id:
+        user = User.query.get(team_member_id)
+        if user and user not in project.team_members:
+            project.team_members.append(user)
+    
+    try:
+        db.session.commit()
+        flash('Projeto atualizado com sucesso!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('Erro ao atualizar o projeto. Tente novamente.', 'danger')
+        print(f"Erro ao editar projeto: {e}")
+    
+    return redirect(url_for('project_detail', id=id))
 
 @app.route('/projects/<int:id>/process-ai', methods=['POST'])
 @login_required

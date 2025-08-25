@@ -276,6 +276,35 @@ def process_project_ai(id):
     
     return redirect(url_for('project_detail', id=id))
 
+@app.route('/projects/<int:id>/delete', methods=['POST'])
+@login_required
+def delete_project(id):
+    project = Project.query.get_or_404(id)
+    
+    # Verificar se o usuário tem permissão para deletar (admin ou responsável)
+    if not current_user.is_admin and current_user.id != project.responsible_id:
+        flash('Você não tem permissão para deletar este projeto.', 'danger')
+        return redirect(url_for('project_detail', id=id))
+    
+    try:
+        # Deletar todas as tarefas relacionadas ao projeto
+        Task.query.filter_by(project_id=id).delete()
+        
+        # Deletar o projeto
+        project_name = project.nome
+        db.session.delete(project)
+        db.session.commit()
+        
+        flash(f'Projeto "{project_name}" foi deletado com sucesso!', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash('Erro ao deletar o projeto. Tente novamente.', 'danger')
+        print(f"Erro ao deletar projeto: {e}")
+        return redirect(url_for('project_detail', id=id))
+    
+    return redirect(url_for('projects'))
+
 # Rotas de Tarefas
 @app.route('/tasks')
 @login_required

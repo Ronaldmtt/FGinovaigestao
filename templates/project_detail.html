@@ -12,12 +12,23 @@
             </ol>
         </nav>
         
-        <h2><i class="fas fa-project-diagram me-2"></i>{{ project.nome }}</h2>
-        <p class="text-muted">
-            Cliente: <strong>{{ project.client.nome }}</strong> | 
-            Responsável: <strong>{{ project.responsible.full_name }}</strong> |
-            Criado em: <strong>{{ project.created_at.strftime('%d/%m/%Y') }}</strong>
-        </p>
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h2><i class="fas fa-project-diagram me-2"></i>{{ project.nome }}</h2>
+                <p class="text-muted">
+                    Cliente: <strong>{{ project.client.nome }}</strong> | 
+                    Responsável: <strong>{{ project.responsible.full_name }}</strong> |
+                    Criado em: <strong>{{ project.created_at.strftime('%d/%m/%Y') }}</strong>
+                </p>
+            </div>
+            {% if current_user.is_admin or current_user.id == project.responsible_id %}
+            <div>
+                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteProjectModal">
+                    <i class="fas fa-trash me-1"></i>Deletar Projeto
+                </button>
+            </div>
+            {% endif %}
+        </div>
     </div>
 </div>
 
@@ -153,4 +164,39 @@
         </div>
     </div>
 </div>
+
+<!-- Modal de confirmação para deletar projeto -->
+{% if current_user.is_admin or current_user.id == project.responsible_id %}
+<div class="modal fade" id="deleteProjectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Exclusão do Projeto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja deletar o projeto <strong>"{{ project.nome }}"</strong>?</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Atenção:</strong> Esta ação é irreversível e irá:
+                    <ul class="mb-0 mt-2">
+                        <li>Deletar permanentemente o projeto</li>
+                        <li>Deletar todas as {{ project.tasks|length }} tarefas associadas</li>
+                        <li>Remover todos os dados e transcrições do projeto</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="POST" action="{{ url_for('delete_project', id=project.id) }}" style="display: inline;">
+                    {{ csrf_token() }}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-1"></i>Sim, Deletar Projeto
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

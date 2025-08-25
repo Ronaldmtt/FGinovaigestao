@@ -1,0 +1,52 @@
+eu preciso que você me ajude a criar uma sistema em flask aonde vou ter o admin e o cadastro de novos usuários. 
+
+Esse cadastro de novos usuários vamos informar o nome, o sobre nome o email e a senha. ?o login sempre sera o email
+
+Somente o admin pode cadastrar novos usuários. 
+
+Na parte voltada pro usuário o usuário vai poder cadastrar clientes e projetos. O projeto sempre que ele cadastrar ele vai ter que informar de que cliente se trata.
+
+Quando ele incluir um novo projeto o usuário vai escolher o cliente que se trata aquele projeto, vai dar um nome pro projeto, vai vincular um usuário responsável e os usuários - equipe - que vai participar do projeto. 
+
+
+além disso o usuário vai poder incluir uma transcrição - campo de texto sem limite - para o projeto. Quando ele incluir isso vamos usar a openai com o chatgpt 5 pra com a base na transcrição que o usuário vai cadastrar junto com o projeto o chatgpt preencha esses campos:
+
+
+🔹 Contexto e Justificativa
+
+Descrição Resumida
+
+Problema/Oportunidade que o projeto resolve
+
+Objetivos Gerais e Específicos
+
+Alinhamento Estratégico (como se conecta à estratégia da empresa)
+
+🔹 Escopo
+
+Escopo do Projeto (o que será entregue)
+
+Fora do Escopo (o que NÃO será feito)
+
+Premissas
+
+Restrições
+
+
+E ai o projeto vai ser salvo. 
+
+
+Alem disso vamos ter tarefas vinculadas ao projeto. Com a transcrição do projeto vamos criar as tarefas e colocar num lista de pendentes. os usuário vao poder ver essas tarefas, vincular o usuário responsável e a data de conclusão da tarefa. 
+
+
+Alem disso vai ter duas partes, uma que o usuário pode lançar tarefas manualmente e uma parte que o usuário vai colocar lançar tarefas com transcrição, aonde vamos colocar um lugar aonde o usuário seleciona a empresa, o projeto e colocar uma transcrição. 
+
+Com o o chatgpt vamos processar novas tarefas para o projeto e colocar como pendente. Vamos ter um lugar aonde os usuários vejam os projetos e um kanban aonde vamos ver essas tarefas. 
+
+O kanban vai ter apenas 3 colunas, pendentes, em andamento e concluída. 
+
+No kanban vamos por filtrar para ver as tarefas por projeto, por empresa, e o usuário vai ter um botão aonde ele vai clicar e vai ver somente as tarefas vinculadas ao usuário dele. 
+
+Consegue criar esse sistema pra mim?
+
+

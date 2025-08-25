@@ -1,0 +1,95 @@
+[2025-08-25 14:40:47 +0000] [3060] [INFO] Handling signal: winch
+[2025-08-25 14:40:47 +0000] [3060] [INFO] Handling signal: winch
+DEBUG:openai._base_client:Request options: {'method': 'post', 'url': '/chat/completions', 'files': None, 'idempotency_key': 'stainless-python-retry-cdb52de8-f309-440f-9e55-496a6f681ddf', 'json_data': {'messages': [{'role': 'user', 'content': '\n        Extraia informações desta transcrição em JSON:\n\n        # SÁ-SQ: Automação Evolução Fiscal\r\n\r\n  Meeting started: 24/07/2025, 09:59:28\r\n  Duration: 31 minutes\r\n  Participants: Aline Helena Salva Terra Rodrigues, ananda costa, felipe gomes, Fireflies.ai Notetaker Hub, Rafael Oliveira, Rafael Spoladore, read.ai meeting notes, Rosimere Kill Queiroz\r\n\r\n  [View original transcript](https://app.tactiq.io/api/2/u/m/r/oNHGRBexoPWmF8xhAPjV?o=txt)\r\n\r\n    \r\n\r\n  \r\n\r\n  \r\n    ## Highlights\r\n\r\n    > 09:13 Rafael Oliveira: That important.\r\n> 14:57 Rafael Spoladore: No. And we\'ll Ponte it was to see busy minister. Okay. So we have, if you feel this is your certificate you know you don\'t also geological scam, same percent assignment. The moment is so along the processors you confirmada in the total\r\n> 29:12 Rosimere Kill Queiroz: Actually here.\r\n\r\n  ## Transcript\r\n\r\n  00:00 Fireflies.ai Notetaker Hub: Talk to Fireflies: (Web-search enabled)\r\n• Say: Hey Fireflies how can you help?\r\n• Type: /ff help\r\nto get started.\r\n\r\nView real-time notes and transcription for this meeting here: https://app.fireflies.ai/live/01K0SMB7EJFYBYEC2DQWZEQ9WV?ref=live_chat\r\n00:47 read.ai meeting notes: João Pedro and Árvore added read.ai meeting notes to the meeting (recording enabled).\r\n\r\nRead will generate a transcript of this meeting. Review our Terms of Service at https://read.ai/tos and Privacy Policy at https://read.ai/pp.\r\n\r\nType "read stop" to disable, or "opt out" to delete meeting data.\r\n\r\nView Read Metrics: https://app.read.ai/dash/01K0Y81985JHE3Q3B1BQ020V3B?src=c\n\n        Formato:\n        {\n            "contexto_justificativa": "contexto breve",\n            "descricao_resumida": "resumo em 1-2 linhas",\n            "problema_oportunidade": "problema principal",\n            "objetivos": "objetivos principais",\n            "alinhamento_estrategico": "alinhamento estratégico",\n            "escopo_projeto": "escopo principal",\n            "fora_escopo": "fora do escopo",\n            "premissas": "premissas principais",\n            "restricoes": "restrições principais"\n        }\n\n        Seja conciso.\n        '}], 'model': 'gpt-5', 'response_format': {'type': 'json_object'}}}
+DEBUG:openai._base_client:Sending HTTP Request: POST https://api.openai.com/v1/chat/completions
+DEBUG:httpcore.connection:connect_tcp.started host='api.openai.com' port=443 local_address=None timeout=15.0 socket_options=None
+DEBUG:httpcore.connection:connect_tcp.complete return_value=<httpcore._backends.sync.SyncStream object at 0x7fd2df6d7bd0>
+DEBUG:httpcore.connection:start_tls.started ssl_context=<ssl.SSLContext object at 0x7fd2df695520> server_hostname='api.openai.com' timeout=15.0
+DEBUG:httpcore.connection:start_tls.complete return_value=<httpcore._backends.sync.SyncStream object at 0x7fd2de875650>
+DEBUG:httpcore.http11:send_request_headers.started request=<Request [b'POST']>
+DEBUG:httpcore.http11:send_request_headers.complete
+DEBUG:httpcore.http11:send_request_body.started request=<Request [b'POST']>
+DEBUG:httpcore.http11:send_request_body.complete
+DEBUG:httpcore.http11:receive_response_headers.started request=<Request [b'POST']>
+[2025-08-25 14:48:28 +0000] [3060] [INFO] Handling signal: winch
+[2025-08-25 14:48:28 +0000] [3060] [INFO] Handling signal: winch
+[2025-08-25 14:48:28 +0000] [3060] [INFO] Handling signal: winch
+[2025-08-25 14:48:28 +0000] [3060] [INFO] Handling signal: winch
+[2025-08-25 14:48:28 +0000] [3060] [INFO] Handling signal: winch
+[2025-08-25 14:48:28 +0000] [3060] [INFO] Handling signal: winch
+[2025-08-25 14:48:28 +0000] [3060] [INFO] Handling signal: winch
+[2025-08-25 14:48:29 +0000] [3060] [INFO] Handling signal: winch
+[2025-08-25 14:48:29 +0000] [3060] [INFO] Handling signal: winch
+[2025-08-25 14:48:29 +0000] [3060] [INFO] Handling signal: winch
+[2025-08-25 14:48:29 +0000] [3060] [INFO] Handling signal: winch
+[2025-08-25 14:48:29 +0000] [3060] [INFO] Handling signal: winch
+[2025-08-25 14:48:29 +0000] [3060] [INFO] Handling signal: winch
+[2025-08-25 14:48:29 +0000] [3060] [INFO] Handling signal: winch
+[2025-08-25 14:48:29 +0000] [3060] [INFO] Handling signal: winch
+[2025-08-25 14:48:29 +0000] [3060] [INFO] Handling signal: winch
+[2025-08-25 14:48:29 +0000] [3060] [INFO] Handling signal: winch
+[2025-08-25 14:48:29 +0000] [3060] [INFO] Handling signal: winch
+DEBUG:httpcore.http11:receive_response_headers.failed exception=ReadTimeout(TimeoutError('The read operation timed out'))
+DEBUG:httpcore.http11:response_closed.started
+DEBUG:httpcore.http11:response_closed.complete
+DEBUG:openai._base_client:Encountered httpx.TimeoutException
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpx/_transports/default.py", line 101, in map_httpcore_exceptions
+    yield
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpx/_transports/default.py", line 250, in handle_request
+    resp = self._pool.handle_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpcore/_sync/connection_pool.py", line 256, in handle_request
+    raise exc from None
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpcore/_sync/connection_pool.py", line 236, in handle_request
+    response = connection.handle_request(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpcore/_sync/connection.py", line 103, in handle_request
+    return self._connection.handle_request(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpcore/_sync/http11.py", line 136, in handle_request
+    raise exc
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpcore/_sync/http11.py", line 106, in handle_request
+    ) = self._receive_response_headers(**kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpcore/_sync/http11.py", line 177, in _receive_response_headers
+    event = self._receive_event(timeout=timeout)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpcore/_sync/http11.py", line 217, in _receive_event
+    data = self._network_stream.read(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpcore/_backends/sync.py", line 126, in read
+    with map_exceptions(exc_map):
+  File "/nix/store/7d088dip86hlzri9sk0h78b63yfmx0a0-python3-3.11.13/lib/python3.11/contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpcore/_exceptions.py", line 14, in map_exceptions
+    raise to_exc(exc) from exc
+httpcore.ReadTimeout: The read operation timed out
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/openai/_base_client.py", line 982, in request
+    response = self._client.send(
+               ^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpx/_client.py", line 914, in send
+    response = self._send_handling_auth(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpx/_client.py", line 942, in _send_handling_auth
+    response = self._send_handling_redirects(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpx/_client.py", line 979, in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpx/_client.py", line 1014, in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpx/_transports/default.py", line 249, in handle_request
+    with map_httpcore_exceptions():
+  File "/nix/store/7d088dip86hlzri9sk0h78b63yfmx0a0-python3-3.11.13/lib/python3.11/contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpx/_transports/default.py", line 118, in map_httpcore_exceptions
+    raise mapped_exc(message) from exc
+httpx.ReadTimeout: The read operation timed out
+DEBUG:openai._base_client:Raising timeout error
+Erro ao processar transcrição do projeto: Request timed out.

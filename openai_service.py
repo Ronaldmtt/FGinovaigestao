@@ -7,12 +7,12 @@ import httpx
 # do not change this unless explicitly requested by the user
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
-# Configurar timeout mais agressivo para evitar travamento
+# Configurar timeout muito agressivo para evitar travamento
 openai = OpenAI(
     api_key=OPENAI_API_KEY,
-    timeout=15.0,  # Timeout de 15 segundos
+    timeout=10.0,  # Timeout de 10 segundos
     max_retries=0,  # Sem retry para evitar timeout do worker
-    http_client=httpx.Client(timeout=15.0)
+    http_client=httpx.Client(timeout=10.0)
 )
 
 def process_project_transcription(transcription):
@@ -20,32 +20,28 @@ def process_project_transcription(transcription):
     Processa a transcrição do projeto usando GPT-5 para preencher os campos estruturados
     """
     try:
-        # Limitar transcrição para resposta mais rápida
-        limited_transcription = transcription[:1500] if len(transcription) > 1500 else transcription
+        # Limitar transcrição drasticamente para resposta mais rápida
+        limited_transcription = transcription[:800] if len(transcription) > 800 else transcription
         
         prompt = f"""
-        Extraia informações desta transcrição em JSON:
-
+        Extraia dados desta transcrição em JSON:
         {limited_transcription}
 
-        Formato:
         {{
-            "contexto_justificativa": "contexto breve",
-            "descricao_resumida": "resumo em 1-2 linhas",
-            "problema_oportunidade": "problema principal",
-            "objetivos": "objetivos principais",
-            "alinhamento_estrategico": "alinhamento estratégico",
-            "escopo_projeto": "escopo principal",
-            "fora_escopo": "fora do escopo",
-            "premissas": "premissas principais",
-            "restricoes": "restrições principais"
+            "contexto_justificativa": "texto",
+            "descricao_resumida": "texto",
+            "problema_oportunidade": "texto",
+            "objetivos": "texto",
+            "alinhamento_estrategico": "texto",
+            "escopo_projeto": "texto",
+            "fora_escopo": "texto",
+            "premissas": "texto",
+            "restricoes": "texto"
         }}
-
-        Seja conciso.
         """
         
         response = openai.chat.completions.create(
-            model="gpt-5",
+            model="gpt-4o",
             messages=[{"role": "user", "content": prompt}],
             response_format={"type": "json_object"}
         )
@@ -65,25 +61,24 @@ def generate_tasks_from_transcription(transcription, project_name):
     Gera tarefas com base na transcrição fornecida
     """
     try:
-        # Limitar transcrição para resposta mais rápida
-        limited_transcription = transcription[:1000] if len(transcription) > 1000 else transcription
+        # Limitar transcrição drasticamente para resposta mais rápida
+        limited_transcription = transcription[:500] if len(transcription) > 500 else transcription
         
         prompt = f"""
-        Gere 3-5 tarefas do projeto "{project_name}":
-
+        Gere 3 tarefas para: {project_name}
         {limited_transcription}
 
-        JSON:
         {{
             "tasks": [
-                {{"titulo": "tarefa 1", "descricao": "descrição breve"}},
-                {{"titulo": "tarefa 2", "descricao": "descrição breve"}}
+                {{"titulo": "texto", "descricao": "texto"}},
+                {{"titulo": "texto", "descricao": "texto"}},
+                {{"titulo": "texto", "descricao": "texto"}}
             ]
         }}
         """
         
         response = openai.chat.completions.create(
-            model="gpt-5",
+            model="gpt-4o",
             messages=[{"role": "user", "content": prompt}],
             response_format={"type": "json_object"}
         )

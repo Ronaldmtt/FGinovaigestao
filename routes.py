@@ -448,6 +448,38 @@ def new_manual_task():
     flash('Tarefa criada manualmente com sucesso!', 'success')
     return redirect(url_for('tasks'))
 
+@app.route('/tasks/new-kanban', methods=['POST'])
+@login_required
+def new_task_kanban():
+    titulo = request.form.get('titulo')
+    descricao = request.form.get('descricao')
+    project_id = request.form.get('project_id')
+    assigned_user_id = request.form.get('assigned_user_id')
+    data_conclusao = request.form.get('data_conclusao')
+    status = request.form.get('status')
+    
+    # Converter data se fornecida
+    data_conclusao_obj = None
+    if data_conclusao:
+        from datetime import datetime
+        data_conclusao_obj = datetime.strptime(data_conclusao, '%Y-%m-%d').date()
+    
+    # Criar tarefa
+    task = Task(
+        titulo=titulo,
+        descricao=descricao,
+        project_id=project_id,
+        assigned_user_id=assigned_user_id if assigned_user_id else None,
+        data_conclusao=data_conclusao_obj,
+        status=status
+    )
+    
+    db.session.add(task)
+    db.session.commit()
+    
+    flash('Tarefa criada com sucesso!', 'success')
+    return redirect(url_for('kanban'))
+
 @app.route('/tasks/transcription', methods=['GET', 'POST'])
 @login_required
 def transcription_task():

@@ -7,9 +7,14 @@
     <div class="col-12">
         <div class="d-flex justify-content-between align-items-center">
             <h2><i class="fas fa-project-diagram me-2"></i>Gerenciar Projetos</h2>
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newProjectModal">
-                <i class="fas fa-plus me-1"></i>Novo Projeto
-            </button>
+            <div>
+                <button type="button" class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#manualProjectModal">
+                    <i class="fas fa-plus me-1"></i>Projeto Manual
+                </button>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newProjectModal">
+                    <i class="fas fa-magic me-1"></i>Projeto com IA
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -109,13 +114,122 @@
     </div>
 </div>
 
-<!-- Modal para novo projeto -->
+<!-- Modal para projeto manual -->
+<div class="modal fade" id="manualProjectModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('new_manual_project') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Criar Projeto Manual</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nome do Projeto</label>
+                            <input type="text" class="form-control" name="nome" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Cliente</label>
+                            <select class="form-select" name="client_id" required>
+                                {% for client in clients %}
+                                <option value="{{ client.id }}">{{ client.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Usuário Responsável</label>
+                            <select class="form-select" name="responsible_id" required>
+                                {% for user in users %}
+                                <option value="{{ user.id }}">{{ user.full_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" name="status" required>
+                                <option value="em_andamento">Em Andamento</option>
+                                <option value="pausado">Pausado</option>
+                                <option value="cancelado">Cancelado</option>
+                                <option value="concluido">Concluído</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Membro da Equipe</label>
+                            <select class="form-select" name="team_member_id">
+                                <option value="">Selecione um membro</option>
+                                {% for user in users %}
+                                <option value="{{ user.id }}">{{ user.full_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <h6 class="mt-4 mb-3">Detalhes do Projeto</h6>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Descrição Resumida</label>
+                            <textarea class="form-control" name="descricao_resumida" rows="3"></textarea>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Problema/Oportunidade</label>
+                            <textarea class="form-control" name="problema_oportunidade" rows="3"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Objetivos</label>
+                            <textarea class="form-control" name="objetivos" rows="3"></textarea>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Alinhamento Estratégico</label>
+                            <textarea class="form-control" name="alinhamento_estrategico" rows="3"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Escopo do Projeto</label>
+                            <textarea class="form-control" name="escopo_projeto" rows="4"></textarea>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Fora do Escopo</label>
+                            <textarea class="form-control" name="fora_escopo" rows="4"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Premissas</label>
+                            <textarea class="form-control" name="premissas" rows="3"></textarea>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Restrições</label>
+                            <textarea class="form-control" name="restricoes" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Criar Projeto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para novo projeto com IA -->
 <div class="modal fade" id="newProjectModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <form method="POST" action="{{ url_for('new_project') }}">
                 <div class="modal-header">
-                    <h5 class="modal-title">Novo Projeto</h5>
+                    <h5 class="modal-title">Criar Projeto com IA</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -157,7 +271,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Criar Projeto</button>
+                    <button type="submit" class="btn btn-primary">Criar Projeto com IA</button>
                 </div>
             </form>
         </div>

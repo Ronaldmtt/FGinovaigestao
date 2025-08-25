@@ -66,3 +66,48 @@ class TranscriptionTaskForm(FlaskForm):
         super(TranscriptionTaskForm, self).__init__(*args, **kwargs)
         self.client_id.choices = [(c.id, c.nome) for c in Client.query.all()]
         self.project_id.choices = [('', 'Selecione um projeto')] + [(p.id, p.nome) for p in Project.query.all()]
+
+class ManualProjectForm(FlaskForm):
+    nome = StringField('Nome do Projeto', validators=[DataRequired(), Length(min=2, max=200)])
+    client_id = SelectField('Cliente', coerce=int, validators=[DataRequired()])
+    responsible_id = SelectField('Usuário Responsável', coerce=int, validators=[DataRequired()])
+    team_members = SelectField('Membro da Equipe', coerce=int, choices=[])
+    status = SelectField('Status', choices=[
+        ('em_andamento', 'Em Andamento'),
+        ('pausado', 'Pausado'),
+        ('cancelado', 'Cancelado'),
+        ('concluido', 'Concluído')
+    ], default='em_andamento', validators=[DataRequired()])
+    
+    # Campos detalhados do projeto
+    descricao_resumida = TextAreaField('Descrição Resumida', render_kw={"rows": 3})
+    problema_oportunidade = TextAreaField('Problema/Oportunidade', render_kw={"rows": 3})
+    objetivos = TextAreaField('Objetivos', render_kw={"rows": 3})
+    alinhamento_estrategico = TextAreaField('Alinhamento Estratégico', render_kw={"rows": 3})
+    escopo_projeto = TextAreaField('Escopo do Projeto', render_kw={"rows": 4})
+    fora_escopo = TextAreaField('Fora do Escopo', render_kw={"rows": 3})
+    premissas = TextAreaField('Premissas', render_kw={"rows": 3})
+    restricoes = TextAreaField('Restrições', render_kw={"rows": 3})
+    
+    def __init__(self, *args, **kwargs):
+        super(ManualProjectForm, self).__init__(*args, **kwargs)
+        self.client_id.choices = [(c.id, c.nome) for c in Client.query.all()]
+        self.responsible_id.choices = [(u.id, u.full_name) for u in User.query.filter_by(is_admin=False).all()]
+        self.team_members.choices = [('', 'Selecione um membro')] + [(u.id, u.full_name) for u in User.query.filter_by(is_admin=False).all()]
+
+class ManualTaskForm(FlaskForm):
+    titulo = StringField('Título da Tarefa', validators=[DataRequired(), Length(min=2, max=200)])
+    descricao = TextAreaField('Descrição Detalhada', validators=[DataRequired()], render_kw={"rows": 4})
+    project_id = SelectField('Projeto', coerce=int, validators=[DataRequired()])
+    assigned_user_id = SelectField('Usuário Responsável', coerce=int)
+    data_conclusao = DateField('Data de Conclusão')
+    status = SelectField('Status', choices=[
+        ('pendente', 'Pendente'),
+        ('em_andamento', 'Em Andamento'),
+        ('concluida', 'Concluída')
+    ], default='pendente', validators=[DataRequired()])
+    
+    def __init__(self, *args, **kwargs):
+        super(ManualTaskForm, self).__init__(*args, **kwargs)
+        self.project_id.choices = [(p.id, f"{p.client.nome} - {p.nome}") for p in Project.query.all()]
+        self.assigned_user_id.choices = [('', 'Selecione um usuário')] + [(u.id, u.full_name) for u in User.query.filter_by(is_admin=False).all()]

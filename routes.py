@@ -212,7 +212,48 @@ def new_project():
         flash(success_message, 'success')
         return redirect(url_for('projects'))
     
-    return render_template('projects.html', form=form)
+    clients = Client.query.all()
+    users = User.query.filter_by(is_admin=False).all()
+    return render_template('projects.html', form=form, clients=clients, users=users)
+
+@app.route('/projects/new-manual', methods=['POST'])
+@login_required
+def new_manual_project():
+    nome = request.form.get('nome')
+    client_id = request.form.get('client_id')
+    responsible_id = request.form.get('responsible_id')
+    status = request.form.get('status')
+    team_member_id = request.form.get('team_member_id')
+    
+    # Criar o projeto
+    project = Project(
+        nome=nome,
+        client_id=client_id,
+        responsible_id=responsible_id,
+        status=status,
+        contexto_justificativa=request.form.get('descricao_resumida'),
+        descricao_resumida=request.form.get('descricao_resumida'),
+        problema_oportunidade=request.form.get('problema_oportunidade'),
+        objetivos=request.form.get('objetivos'),
+        alinhamento_estrategico=request.form.get('alinhamento_estrategico'),
+        escopo_projeto=request.form.get('escopo_projeto'),
+        fora_escopo=request.form.get('fora_escopo'),
+        premissas=request.form.get('premissas'),
+        restricoes=request.form.get('restricoes')
+    )
+    
+    db.session.add(project)
+    db.session.flush()  # Para obter o ID do projeto
+    
+    # Adicionar membro da equipe se selecionado
+    if team_member_id:
+        user = User.query.get(team_member_id)
+        if user:
+            project.team_members.append(user)
+    
+    db.session.commit()
+    flash('Projeto criado manualmente com sucesso!', 'success')
+    return redirect(url_for('projects'))
 
 @app.route('/projects/<int:id>')
 @login_required
@@ -352,7 +393,9 @@ def tasks():
     
     form = TaskForm()
     transcription_form = TranscriptionTaskForm()
-    return render_template('tasks.html', tasks=tasks, form=form, transcription_form=transcription_form)
+    projects = Project.query.all()
+    users = User.query.filter_by(is_admin=False).all()
+    return render_template('tasks.html', tasks=tasks, form=form, transcription_form=transcription_form, projects=projects, users=users)
 
 @app.route('/tasks/new', methods=['GET', 'POST'])
 @login_required
@@ -372,6 +415,38 @@ def new_task():
         return redirect(url_for('tasks'))
     
     return render_template('tasks.html', form=form)
+
+@app.route('/tasks/new-manual', methods=['POST'])
+@login_required 
+def new_manual_task():
+    titulo = request.form.get('titulo')
+    descricao = request.form.get('descricao')
+    project_id = request.form.get('project_id')
+    assigned_user_id = request.form.get('assigned_user_id')
+    data_conclusao = request.form.get('data_conclusao')
+    status = request.form.get('status')
+    
+    # Converter data se fornecida
+    data_conclusao_obj = None
+    if data_conclusao:
+        from datetime import datetime
+        data_conclusao_obj = datetime.strptime(data_conclusao, '%Y-%m-%d').date()
+    
+    # Criar tarefa
+    task = Task(
+        titulo=titulo,
+        descricao=descricao,
+        project_id=project_id,
+        assigned_user_id=assigned_user_id if assigned_user_id else None,
+        data_conclusao=data_conclusao_obj,
+        status=status
+    )
+    
+    db.session.add(task)
+    db.session.commit()
+    
+    flash('Tarefa criada manualmente com sucesso!', 'success')
+    return redirect(url_for('tasks'))
 
 @app.route('/tasks/transcription', methods=['GET', 'POST'])
 @login_required

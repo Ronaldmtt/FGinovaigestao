@@ -65,7 +65,8 @@ def admin_users():
         return redirect(url_for('dashboard'))
     
     users = User.query.all()
-    return render_template('admin/users.html', users=users)
+    form = UserForm()
+    return render_template('admin/users.html', users=users, form=form)
 
 @app.route('/admin/users/new', methods=['GET', 'POST'])
 @login_required
@@ -95,7 +96,8 @@ def admin_new_user():
 @login_required
 def clients():
     clients = Client.query.all()
-    return render_template('clients.html', clients=clients)
+    form = ClientForm()
+    return render_template('clients.html', clients=clients, form=form)
 
 @app.route('/clients/new', methods=['GET', 'POST'])
 @login_required
@@ -129,7 +131,8 @@ def projects():
             (Project.team_members.contains(current_user))
         ).distinct().all()
     
-    return render_template('projects.html', projects=projects)
+    form = ProjectForm()
+    return render_template('projects.html', projects=projects, form=form)
 
 @app.route('/projects/new', methods=['GET', 'POST'])
 @login_required
@@ -205,7 +208,9 @@ def tasks():
     else:
         tasks = Task.query.filter_by(assigned_user_id=current_user.id).all()
     
-    return render_template('tasks.html', tasks=tasks)
+    form = TaskForm()
+    transcription_form = TranscriptionTaskForm()
+    return render_template('tasks.html', tasks=tasks, form=form, transcription_form=transcription_form)
 
 @app.route('/tasks/new', methods=['GET', 'POST'])
 @login_required

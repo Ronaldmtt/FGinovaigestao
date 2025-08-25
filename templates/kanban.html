@@ -234,6 +234,9 @@
                     </div>
                 </div>
                 <div class="modal-footer">
+                    <button type="button" class="btn btn-danger me-auto" onclick="deleteTask()">
+                        <i class="fas fa-trash"></i> Deletar Tarefa
+                    </button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-primary">Salvar Alterações</button>
                 </div>
@@ -416,6 +419,43 @@ function updateColumnCounts() {
             badge.textContent = count;
         }
     });
+}
+
+// Função para deletar tarefa
+function deleteTask() {
+    const taskId = document.getElementById('editTaskId').value;
+    const taskTitle = document.getElementById('editTaskTitulo').value;
+    
+    if (confirm(`Tem certeza que deseja deletar a tarefa "${taskTitle}"? Esta ação não pode ser desfeita.`)) {
+        fetch(`/api/tasks/${taskId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editTaskModal'));
+                modal.hide();
+                
+                // Remover o card da interface
+                const taskCard = document.querySelector(`[data-task-id="${taskId}"]`);
+                if (taskCard) {
+                    taskCard.remove();
+                    updateColumnCounts();
+                }
+                
+                alert('Tarefa deletada com sucesso!');
+            } else {
+                alert('Erro ao deletar tarefa: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao deletar tarefa:', error);
+            alert('Erro ao deletar tarefa');
+        });
+    }
 }
 
 // Permitir adicionar to-do com Enter

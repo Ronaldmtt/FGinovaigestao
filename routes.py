@@ -497,6 +497,25 @@ def api_update_task(task_id):
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Erro ao atualizar tarefa: {str(e)}'})
 
+@app.route('/api/tasks/<int:task_id>', methods=['DELETE'])
+@login_required
+def api_delete_task(task_id):
+    task = Task.query.get_or_404(task_id)
+    
+    try:
+        # Deletar todos os to-do's relacionados primeiro
+        TodoItem.query.filter_by(task_id=task.id).delete()
+        
+        # Deletar a tarefa
+        db.session.delete(task)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Tarefa deletada com sucesso!'})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Erro ao deletar tarefa: {str(e)}'})
+
 @app.route('/api/tasks/<int:task_id>/status', methods=['POST'])
 @login_required
 def update_task_status(task_id):

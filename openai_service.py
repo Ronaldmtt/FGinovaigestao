@@ -20,24 +20,25 @@ def process_project_transcription(transcription):
     Processa a transcrição do projeto usando GPT-5 para preencher os campos estruturados
     """
     try:
-        # Limitar transcrição drasticamente para resposta mais rápida
-        limited_transcription = transcription[:800] if len(transcription) > 800 else transcription
+        # Limitar transcrição para balancear contexto e velocidade
+        limited_transcription = transcription[:2500] if len(transcription) > 2500 else transcription
         
         prompt = f"""
-        Extraia dados desta transcrição e retorne em formato JSON:
+        Analise esta transcrição de reunião/projeto e extraia informações relevantes em formato JSON:
+
         {limited_transcription}
 
-        Retorne um JSON com estes campos:
+        Com base no conteúdo da transcrição, retorne um JSON com estes campos preenchidos de forma coerente:
         {{
-            "contexto_justificativa": "texto",
-            "descricao_resumida": "texto",
-            "problema_oportunidade": "texto",
-            "objetivos": "texto",
-            "alinhamento_estrategico": "texto",
-            "escopo_projeto": "texto",
-            "fora_escopo": "texto",
-            "premissas": "texto",
-            "restricoes": "texto"
+            "contexto_justificativa": "contexto e justificativa do projeto baseado na discussão",
+            "descricao_resumida": "descrição resumida do que foi discutido",
+            "problema_oportunidade": "problema ou oportunidade identificada na conversa",
+            "objetivos": "objetivos mencionados ou inferidos da discussão",
+            "alinhamento_estrategico": "como se alinha com estratégias mencionadas",
+            "escopo_projeto": "escopo identificado na conversa",
+            "fora_escopo": "o que não será incluído",
+            "premissas": "premissas identificadas",
+            "restricoes": "restrições ou limitações mencionadas"
         }}
         """
         
@@ -62,19 +63,20 @@ def generate_tasks_from_transcription(transcription, project_name):
     Gera tarefas com base na transcrição fornecida
     """
     try:
-        # Limitar transcrição drasticamente para resposta mais rápida
-        limited_transcription = transcription[:500] if len(transcription) > 500 else transcription
+        # Limitar transcrição para balancear contexto e velocidade  
+        limited_transcription = transcription[:2000] if len(transcription) > 2000 else transcription
         
         prompt = f"""
-        Gere 3 tarefas para: {project_name}
+        Com base nesta transcrição de reunião sobre o projeto "{project_name}", gere tarefas específicas em formato JSON:
+
         {limited_transcription}
 
-        Retorne um JSON com este formato:
+        Analise o conteúdo da transcrição e crie 3-5 tarefas práticas e relevantes ao que foi discutido:
         {{
             "tasks": [
-                {{"titulo": "texto", "descricao": "texto"}},
-                {{"titulo": "texto", "descricao": "texto"}},
-                {{"titulo": "texto", "descricao": "texto"}}
+                {{"titulo": "título da tarefa baseado na discussão", "descricao": "descrição específica do que fazer"}},
+                {{"titulo": "título da tarefa baseado na discussão", "descricao": "descrição específica do que fazer"}},
+                {{"titulo": "título da tarefa baseado na discussão", "descricao": "descrição específica do que fazer"}}
             ]
         }}
         """

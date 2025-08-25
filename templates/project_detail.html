@@ -189,7 +189,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <form method="POST" action="{{ url_for('delete_project', id=project.id) }}" style="display: inline;">
-                    {{ csrf_token() }}
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}"/>
                     <button type="submit" class="btn btn-danger">
                         <i class="fas fa-trash me-1"></i>Sim, Deletar Projeto
                     </button>

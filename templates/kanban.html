@@ -5,7 +5,17 @@
 {% block content %}
 <div class="row">
     <div class="col-12">
-        <h2><i class="fas fa-columns me-2"></i>Kanban</h2>
+        <div class="d-flex justify-content-between align-items-center">
+            <h2><i class="fas fa-columns me-2"></i>Kanban</h2>
+            <div>
+                <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#transcriptionModal">
+                    <i class="fas fa-microphone me-1"></i>Incluir Transcrição
+                </button>
+                <a href="{{ url_for('new_task') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>Nova Tarefa
+                </a>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -245,6 +255,46 @@
     </div>
 </div>
 
+<!-- Modal de Transcrição -->
+<div class="modal fade" id="transcriptionModal" tabindex="-1" aria-labelledby="transcriptionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="transcriptionModalLabel">
+                    <i class="fas fa-microphone me-2"></i>Incluir Transcrição
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="transcriptionForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="transcriptionProject" class="form-label">Selecionar Projeto</label>
+                        <select class="form-select" id="transcriptionProject" required>
+                            <option value="">Selecione um projeto</option>
+                            {% for project in projects %}
+                            <option value="{{ project.id }}">{{ project.client.nome }} - {{ project.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="transcriptionText" class="form-label">Transcrição</label>
+                        <textarea class="form-control" id="transcriptionText" rows="8" 
+                                  placeholder="Cole aqui a transcrição da reunião ou discussão do projeto..." required></textarea>
+                        <div class="form-text">A IA analisará esta transcrição e gerará tarefas automaticamente para o projeto selecionado.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-magic me-1"></i>Gerar Tarefas
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
 // Função para editar tarefa
 function editTask(taskId) {
@@ -457,6 +507,59 @@ function deleteTask() {
         });
     }
 }
+
+// Função para processar transcrição
+document.getElementById('transcriptionForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const projectId = document.getElementById('transcriptionProject').value;
+    const transcriptionText = document.getElementById('transcriptionText').value;
+    
+    if (!projectId || !transcriptionText.trim()) {
+        alert('Por favor, selecione um projeto e insira uma transcrição.');
+        return;
+    }
+    
+    const submitButton = this.querySelector('button[type="submit"]');
+    const originalText = submitButton.innerHTML;
+    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processando...';
+    submitButton.disabled = true;
+    
+    fetch('/kanban/transcription', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            project_id: projectId,
+            transcription: transcriptionText
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('transcriptionModal'));
+            modal.hide();
+            
+            // Limpar formulário
+            document.getElementById('transcriptionProject').value = '';
+            document.getElementById('transcriptionText').value = '';
+            
+            alert(`${data.tasks_created} tarefas foram geradas com sucesso!`);
+            location.reload(); // Recarregar para mostrar as novas tarefas
+        } else {
+            alert('Erro ao processar transcrição: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao processar transcrição:', error);
+        alert('Erro ao processar transcrição. Tente novamente.');
+    })
+    .finally(() => {
+        submitButton.innerHTML = originalText;
+        submitButton.disabled = false;
+    });
+});
 
 // Permitir adicionar to-do com Enter
 document.addEventListener('keypress', function(e) {

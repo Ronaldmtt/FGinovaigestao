@@ -549,3 +549,47 @@ def get_projects_by_client(client_id):
     projects = Project.query.filter_by(client_id=client_id).all()
     project_list = [{'id': p.id, 'nome': p.nome} for p in projects]
     return jsonify(project_list)
+
+@app.route('/kanban/transcription', methods=['POST'])
+@login_required
+def kanban_transcription():
+    data = request.get_json()
+    
+    try:
+        project_id = data.get('project_id')
+        transcription = data.get('transcription')
+        
+        if not project_id or not transcription:
+            return jsonify({'success': False, 'message': 'Dados incompletos'})
+        
+        project = Project.query.get_or_404(project_id)
+        
+        # Gerar tarefas com IA usando a transcrição
+        auto_tasks = generate_tasks_from_transcription(transcription, project.nome)
+        
+        tasks_created = 0
+        for task_data in auto_tasks:
+            task = Task(
+                titulo=task_data['titulo'],
+                descricao=task_data['descricao'],
+                project_id=project.id,
+                status='pendente'
+            )
+            db.session.add(task)
+            tasks_created += 1
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': f'{tasks_created} tarefas foram geradas com sucesso!',
+            'tasks_created': tasks_created
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Erro ao processar transcrição: {e}")
+        return jsonify({
+            'success': False, 
+            'message': 'Erro ao processar a transcrição. Tente novamente mais tarde.'
+        })

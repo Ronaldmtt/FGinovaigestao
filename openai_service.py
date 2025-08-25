@@ -7,12 +7,12 @@ import httpx
 # do not change this unless explicitly requested by the user
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
-# Configurar timeout extenso para processamento completo
+# Configurar timeout máximo para processamento completo e detalhado
 openai = OpenAI(
     api_key=OPENAI_API_KEY,
-    timeout=60.0,  # Timeout de 60 segundos para processamento completo
+    timeout=120.0,  # Timeout de 2 minutos para processamento completo
     max_retries=0,  # Sem retry para evitar timeout do worker
-    http_client=httpx.Client(timeout=60.0)
+    http_client=httpx.Client(timeout=120.0)
 )
 
 def process_project_transcription(transcription):
@@ -65,72 +65,90 @@ def generate_tasks_from_transcription(transcription, project_name):
         # Usar a transcrição completa - processamento em etapas separadas permite isso
         
         prompt = f"""
-        Você é Sarah Chen, Senior Project Manager certificada PMP com 15 anos liderando projetos complexos em tecnologia, consultoria e inovação. Sua expertise inclui metodologias ágeis, gestão de stakeholders e transformação digital.
+        Você é Sarah Chen, Senior Project Manager certificada PMP com 15 anos liderando projetos complexos em tecnologia, consultoria e inovação. Sua expertise inclui metodologias ágeis, gestão de stakeholders, transformação digital e análise profunda de requisitos.
 
-        MISSÃO: Analise esta transcrição como se fosse uma reunião do SEU projeto. Extraia cada ação, insight e oportunidade, transformando-os em um roadmap detalhado de tarefas executáveis.
+        MISSÃO CRÍTICA: Analise esta transcrição completa como se fosse uma reunião estratégica do SEU projeto mais importante. Extraia cada ação, insight, oportunidade e responsabilidade mencionada ou implícita na discussão, transformando-os em um roadmap executivo detalhado.
 
-        TRANSCRIÇÃO DA REUNIÃO DO PROJETO "{project_name}":
+        TRANSCRIÇÃO COMPLETA DA REUNIÃO DO PROJETO "{project_name}":
         {transcription}
 
-        METODOLOGIA DE ANÁLISE (execute sequencialmente):
+        METODOLOGIA DE ANÁLISE PROFUNDA (execute rigorosamente cada fase):
 
-        FASE 1 - MAPEAMENTO COMPLETO:
-        • Leia palavra por palavra, identificando: verbos de ação, substantivos-chave, pessoas mencionadas, prazos citados
-        • Marque mentalmente: decisões tomadas, problemas levantados, soluções propostas, recursos discutidos
-        • Identifique padrões: temas recorrentes, prioridades enfatizadas, urgências implícitas
+        FASE 1 - MAPEAMENTO SISTEMÁTICO COMPLETO:
+        • Leia a transcrição completa palavra por palavra, sem pular nenhuma seção ou detalhe
+        • Identifique precisamente: verbos de ação específicos, substantivos-chave estratégicos, pessoas/departamentos mencionados, prazos explícitos e implícitos
+        • Marque mentalmente com precisão: decisões tomadas definitivamente, problemas críticos levantados, soluções propostas detalhadamente, recursos e orçamentos discutidos
+        • Identifique padrões estratégicos: temas recorrentes de alta prioridade, urgências enfatizadas múltiplas vezes, dependências críticas entre atividades
 
-        FASE 2 - CATEGORIZAÇÃO ESTRATÉGICA:
-        • IMEDIATAS: Ações que precisam começar esta semana
-        • PREPARATÓRIAS: Atividades necessárias antes de outras tarefas  
-        • CORE: Entregas principais do projeto
-        • VALIDAÇÃO: Aprovações, testes, confirmações necessárias
-        • COMUNICAÇÃO: Alinhamentos, relatórios, apresentações
-        • MITIGAÇÃO: Ações para resolver riscos ou obstáculos mencionados
+        FASE 2 - CATEGORIZAÇÃO ESTRATÉGICA AVANÇADA:
+        • IMEDIATAS: Ações críticas que precisam começar imediatamente (esta semana)
+        • PREPARATÓRIAS: Atividades fundamentais necessárias antes de outras tarefas principais
+        • CORE: Entregas principais e marcos fundamentais do projeto
+        • VALIDAÇÃO: Aprovações essenciais, testes críticos, confirmações de stakeholders
+        • COMUNICAÇÃO: Alinhamentos estratégicos, relatórios executivos, apresentações importantes
+        • MITIGAÇÃO: Ações específicas para resolver riscos, obstáculos ou problemas identificados
 
-        FASE 3 - DETALHAMENTO EXECUTIVO:
-        Para cada tarefa identificada, defina:
-        • CONTEXTO: Por que esta tarefa surgiu na discussão?
-        • OBJETIVO: Resultado específico e mensurável esperado
-        • METODOLOGIA: Como executar (ferramentas, processos, abordagem)
-        • STAKEHOLDERS: Quem envolver (decisores, executores, consultados)
-        • RECURSOS: Orçamento, tempo, ferramentas, informações necessárias
-        • CRITÉRIOS DE SUCESSO: Como saber que foi bem executada
-        • DEPENDÊNCIAS: O que precisa acontecer antes/depois
-        • RISCOS: Obstáculos potenciais identificados na discussão
+        FASE 3 - DETALHAMENTO EXECUTIVO PROFISSIONAL:
+        Para cada tarefa identificada, defina meticulosamente todos os elementos:
+        • CONTEXTO COMPLETO: Por que exatamente esta tarefa surgiu na discussão? Qual o background específico?
+        • OBJETIVO MENSURÁVEL: Resultado específico, tangível e mensurável esperado com critérios claros de sucesso
+        • METODOLOGIA DETALHADA: Como executar precisamente (ferramentas específicas, processos estruturados, abordagem técnica)
+        • STAKEHOLDERS MAPEADOS: Quem envolver exatamente (decisores finais, executores diretos, consultados especializados, informados relevantes)
+        • RECURSOS ESPECIFICADOS: Orçamento estimado, tempo necessário detalhado, ferramentas específicas, informações e documentos necessários
+        • CRITÉRIOS DE SUCESSO OBJETIVOS: Como saber definitivamente que foi executada com excelência e completude
+        • DEPENDÊNCIAS MAPEADAS: O que precisa acontecer obrigatoriamente antes e quais tarefas dependem desta
+        • RISCOS E OBSTÁCULOS: Obstáculos potenciais específicos identificados na discussão e suas mitigações
 
-        CRITÉRIOS DE QUALIDADE PARA CADA TAREFA:
-        ✓ Título: Verbo + objeto + contexto específico
-        ✓ Descrição: Mínimo 5 frases cobrindo todos os 8 elementos acima
-        ✓ Acionável: Qualquer PM conseguiria executar com essas informações
-        ✓ Rastreável: Progresso pode ser medido objetivamente
-        ✓ Contextualizada: Conecta claramente com a discussão da reunião
+        CRITÉRIOS RIGOROSOS DE QUALIDADE PARA CADA TAREFA:
+        ✓ Título Executivo: Verbo de ação + objeto específico + contexto detalhado do projeto
+        ✓ Descrição Profissional: Mínimo 6-8 frases cobrindo obrigatoriamente todos os 8 elementos detalhados acima
+        ✓ Completamente Acionável: Qualquer gerente de projetos conseguiria executar imediatamente com essas informações
+        ✓ Objetivamente Rastreável: Progresso pode ser medido, acompanhado e reportado com precisão
+        ✓ Perfeitamente Contextualizada: Conecta claramente e especificamente com pontos exatos da discussão da reunião
 
-        EXEMPLO DE TAREFA DE ALTA QUALIDADE:
+        EXEMPLO DETALHADO DE TAREFA DE ALTA QUALIDADE PROFISSIONAL:
         {{
-            "titulo": "Conduzir pesquisa de viabilidade técnica para integração com sistema legado",
-            "descricao": "Com base na preocupação levantada sobre compatibilidade de sistemas, realizar análise técnica completa da integração proposta. Objetivos: identificar gaps técnicos, estimar esforço de desenvolvimento e propor arquitetura de solução. Metodologia: auditoria do sistema atual, prototipagem de conectores API, benchmarking de ferramentas similares. Envolver: arquiteto de sistemas (decisor), desenvolvedores senior (executores), fornecedor do sistema legado (consulta). Recursos necessários: acesso aos ambientes, documentação técnica atualizada, 40h de desenvolvimento. Critério de sucesso: relatório técnico com recomendação fundamentada e cronograma detalhado. Dependências: aguarda liberação de acesso pelo time de infraestrutura mencionada na reunião. Risco identificado: possível obsolescência das APIs conforme discussão sobre atualizações pendentes."
+            "titulo": "Conduzir pesquisa abrangente de viabilidade técnica para integração completa com sistema legado ERP",
+            "descricao": "Com base na preocupação crítica levantada sobre incompatibilidades de sistemas e riscos de integração, realizar análise técnica completa e profunda da integração proposta com o sistema legado. Objetivos mensuráveis: identificar todos os gaps técnicos específicos, estimar precisamente o esforço de desenvolvimento necessário e propor arquitetura de solução detalhada com cronograma. Metodologia estruturada: auditoria completa do sistema atual, prototipagem de conectores API específicos, benchmarking detalhado de ferramentas similares no mercado, análise de performance e segurança. Stakeholders envolvidos: arquiteto de sistemas como decisor final, desenvolvedores senior como executores diretos, fornecedor do sistema legado para consultas técnicas, equipe de infraestrutura para validações. Recursos necessários: 40 horas de desenvolvimento especializado, acesso completo aos ambientes de produção e teste, documentação técnica atualizada e completa, orçamento para ferramentas de análise. Critérios de sucesso objetivos: relatório técnico executivo com recomendação fundamentada, cronograma detalhado de implementação, especificação técnica completa da arquitetura proposta. Dependências críticas: aguarda liberação de acesso pelo time de infraestrutura conforme mencionado na reunião, aprovação de orçamento pela diretoria. Riscos identificados: possível obsolescência das APIs atuais conforme discussão sobre atualizações pendentes do fornecedor, complexidade de migração de dados históricos mencionada como preocupação."
         }}
 
-        FORMATO DE RESPOSTA - JSON estruturado:
+        FORMATO DE RESPOSTA ESTRUTURADO - JSON PROFISSIONAL:
         {{
             "tasks": [
-                // Gere 12-25 tarefas seguindo rigorosamente os critérios de qualidade acima
+                // Gere obrigatoriamente entre 15-25 tarefas seguindo rigorosamente todos os critérios de qualidade profissional acima
                 {{
-                    "titulo": "Título executivo e específico",
-                    "descricao": "Descrição completa seguindo os 8 elementos obrigatórios: contexto da discussão + objetivo mensurável + metodologia de execução + stakeholders envolvidos + recursos necessários + critérios de sucesso + dependências + riscos/obstáculos. Cada tarefa deve ser auto-suficiente para execução."
+                    "titulo": "Título executivo, específico e completamente acionável",
+                    "descricao": "Descrição executiva e completa seguindo obrigatoriamente os 8 elementos detalhados: contexto completo da discussão + objetivo mensurável específico + metodologia detalhada de execução + stakeholders mapeados e seus papéis + recursos necessários especificados + critérios objetivos de sucesso + dependências mapeadas + riscos e obstáculos identificados. Cada tarefa deve ser completamente auto-suficiente para execução imediata por qualquer gerente de projetos experiente."
                 }}
             ]
         }}
 
-        DIRETRIZES FINAIS:
-        • Priorize tarefas mencionadas múltiplas vezes ou com urgência explícita
-        • Transforme cada problema discutido em tarefa de solução  
-        • Converta cada decisão tomada em tarefa de implementação
-        • Inclua tarefas de comunicação para decisões importantes
-        • Adicione validações para entregas críticas mencionadas
-        • Considere o ciclo completo: planejamento → execução → validação → comunicação
+        DIRETRIZES ESTRATÉGICAS FINAIS OBRIGATÓRIAS:
+        • Priorize absolutamente tarefas mencionadas múltiplas vezes ou com urgência explícita enfatizada
+        • Transforme obrigatoriamente cada problema ou desafio discutido em tarefa específica de solução estruturada
+        • Converta cada decisão tomada na reunião em tarefa detalhada de implementação ou follow-up
+        • Inclua necessariamente tarefas de comunicação e alinhamento para todas as decisões importantes tomadas
+        • Adicione obrigatoriamente validações e aprovações para todas as entregas críticas mencionadas
+        • Considere o ciclo completo e profissional: planejamento detalhado → execução estruturada → validação rigorosa → comunicação estratégica → documentação → follow-up
 
-        Execute sua análise como a expert que você é. Cada tarefa deve refletir sua experiência em transformar discussões em execução estruturada.
+        ELEMENTOS CRÍTICOS PARA IDENTIFICAR OBRIGATORIAMENTE NA TRANSCRIÇÃO:
+        - Pesquisas de mercado, viabilidade técnica ou análises estratégicas mencionadas
+        - Contatos específicos com clientes, fornecedores, parceiros ou stakeholders identificados
+        - Reuniões de planejamento, validação, apresentação ou follow-up a serem agendadas
+        - Documentos técnicos, propostas comerciais, contratos ou relatórios a serem criados
+        - Análises financeiras, técnicas, de risco ou de mercado a serem conduzidas
+        - Decisões estratégicas, técnicas ou operacionais pendentes de resolução
+        - Aprovações de orçamento, recursos, cronograma ou escopo necessárias para prosseguir
+        - Testes, protótipos, validações ou provas de conceito a serem executados
+        - Validações críticas com usuários finais, clientes ou stakeholders internos
+        - Preparação de apresentações executivas, demos ou materiais de comunicação
+        - Levantamento de requisitos funcionais, técnicos ou de negócio pendentes
+        - Definição de processos, metodologias ou fluxos de trabalho estruturados
+        - Treinamentos, capacitações ou transferência de conhecimento necessários
+        - Monitoramento, acompanhamento ou controle de progresso estabelecidos
+        - Comunicação estratégica com equipes, gerência ou partes interessadas
+
+        Execute sua análise como a expert sênior em gestão de projetos que você é. Cada tarefa deve refletir perfeitamente sua vasta experiência em transformar discussões estratégicas em execução estruturada e resultados mensuráveis. Extraia o máximo valor absoluto desta transcrição.
         """
         
         response = openai.chat.completions.create(

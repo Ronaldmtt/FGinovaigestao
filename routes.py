@@ -139,26 +139,13 @@ def projects():
 def new_project():
     form = ProjectForm()
     if form.validate_on_submit():
+        # Criar projeto primeiro
         project = Project(
             nome=form.nome.data,
             client_id=form.client_id.data,
             responsible_id=form.responsible_id.data,
             transcricao=form.transcricao.data
         )
-        
-        # Processar transcrição com IA se fornecida
-        if form.transcricao.data:
-            ai_result = process_project_transcription(form.transcricao.data)
-            if ai_result:
-                project.contexto_justificativa = ai_result.get('contexto_justificativa')
-                project.descricao_resumida = ai_result.get('descricao_resumida')
-                project.problema_oportunidade = ai_result.get('problema_oportunidade')
-                project.objetivos = ai_result.get('objetivos')
-                project.alinhamento_estrategico = ai_result.get('alinhamento_estrategico')
-                project.escopo_projeto = ai_result.get('escopo_projeto')
-                project.fora_escopo = ai_result.get('fora_escopo')
-                project.premissas = ai_result.get('premissas')
-                project.restricoes = ai_result.get('restricoes')
         
         db.session.add(project)
         db.session.flush()  # Para obter o ID do projeto
@@ -169,20 +156,48 @@ def new_project():
             if team_member:
                 project.team_members.append(team_member)
         
-        # Gerar tarefas automáticas se houver transcrição
-        if form.transcricao.data:
-            auto_tasks = generate_tasks_from_transcription(form.transcricao.data, project.nome)
-            for task_data in auto_tasks:
-                task = Task(
-                    titulo=task_data['titulo'],
-                    descricao=task_data['descricao'],
-                    project_id=project.id,
-                    status='pendente'
-                )
-                db.session.add(task)
-        
+        # Commit inicial para salvar o projeto
         db.session.commit()
-        flash('Projeto criado com sucesso!', 'success')
+        
+        # Tentar processar com IA em segundo plano (sem bloquear)
+        success_message = 'Projeto criado com sucesso!'
+        
+        if form.transcricao.data:
+            try:
+                # Processar transcrição com IA
+                ai_result = process_project_transcription(form.transcricao.data)
+                if ai_result:
+                    project.contexto_justificativa = ai_result.get('contexto_justificativa')
+                    project.descricao_resumida = ai_result.get('descricao_resumida')
+                    project.problema_oportunidade = ai_result.get('problema_oportunidade')
+                    project.objetivos = ai_result.get('objetivos')
+                    project.alinhamento_estrategico = ai_result.get('alinhamento_estrategico')
+                    project.escopo_projeto = ai_result.get('escopo_projeto')
+                    project.fora_escopo = ai_result.get('fora_escopo')
+                    project.premissas = ai_result.get('premissas')
+                    project.restricoes = ai_result.get('restricoes')
+                    
+                    # Gerar tarefas automáticas
+                    auto_tasks = generate_tasks_from_transcription(form.transcricao.data, project.nome)
+                    for task_data in auto_tasks:
+                        task = Task(
+                            titulo=task_data['titulo'],
+                            descricao=task_data['descricao'],
+                            project_id=project.id,
+                            status='pendente'
+                        )
+                        db.session.add(task)
+                    
+                    db.session.commit()
+                    success_message = 'Projeto criado com sucesso e processado pela IA!'
+                else:
+                    success_message = 'Projeto criado, mas houve problema no processamento da IA.'
+                    
+            except Exception as e:
+                print(f"Erro no processamento da IA: {e}")
+                success_message = 'Projeto criado, mas a IA não conseguiu processar a transcrição.'
+        
+        flash(success_message, 'success')
         return redirect(url_for('projects'))
     
     return render_template('projects.html', form=form)
@@ -238,20 +253,28 @@ def transcription_task():
     if form.validate_on_submit():
         project = Project.query.get(form.project_id.data)
         if project:
-            # Gerar tarefas com IA
-            auto_tasks = generate_tasks_from_transcription(form.transcricao.data, project.nome)
+            try:
+                # Gerar tarefas com IA
+                auto_tasks = generate_tasks_from_transcription(form.transcricao.data, project.nome)
+                
+                tasks_created = 0
+                for task_data in auto_tasks:
+                    task = Task(
+                        titulo=task_data['titulo'],
+                        descricao=task_data['descricao'],
+                        project_id=project.id,
+                        status='pendente'
+                    )
+                    db.session.add(task)
+                    tasks_created += 1
+                
+                db.session.commit()
+                flash(f'{tasks_created} tarefas foram geradas automaticamente!', 'success')
+                
+            except Exception as e:
+                print(f"Erro ao gerar tarefas: {e}")
+                flash('Erro ao processar a transcrição. Tente novamente mais tarde.', 'warning')
             
-            for task_data in auto_tasks:
-                task = Task(
-                    titulo=task_data['titulo'],
-                    descricao=task_data['descricao'],
-                    project_id=project.id,
-                    status='pendente'
-                )
-                db.session.add(task)
-            
-            db.session.commit()
-            flash(f'{len(auto_tasks)} tarefas foram geradas automaticamente!', 'success')
             return redirect(url_for('kanban'))
     
     return render_template('tasks.html', transcription_form=form)

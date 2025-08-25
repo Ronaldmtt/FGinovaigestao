@@ -65,18 +65,46 @@ def generate_tasks_from_transcription(transcription, project_name):
         # Usar a transcrição completa - processamento em etapas separadas permite isso
         
         prompt = f"""
-        Com base nesta transcrição de reunião sobre o projeto "{project_name}", gere tarefas específicas em formato JSON:
+        Você é um especialista em gestão de projetos. Analise esta transcrição de reunião sobre o projeto "{project_name}" e extraia TODAS as tarefas, atividades, ações e responsabilidades mencionadas ou implícitas na discussão.
 
+        TRANSCRIÇÃO COMPLETA:
         {transcription}
 
-        Analise o conteúdo da transcrição e crie 3-5 tarefas práticas e relevantes ao que foi discutido:
+        INSTRUÇÕES DETALHADAS:
+        1. Leia cuidadosamente TODA a transcrição - não pule nenhuma parte
+        2. Identifique TODAS as ações, tarefas, deliverables, pesquisas, reuniões, contatos, decisões mencionadas
+        3. Identifique também tarefas IMPLÍCITAS baseadas no contexto da discussão
+        4. Para cada ponto discutido, crie uma tarefa específica e acionável
+        5. Inclua tarefas de preparação, execução, follow-up e validação quando relevante
+        6. Seja específico sobre o QUE fazer, COMO fazer, QUEM envolver, RECURSOS necessários
+        7. Gere entre 8-15 tarefas detalhadas (extraia o máximo da transcrição)
+        8. Priorize tarefas que foram mencionadas MÚLTIPLAS VEZES na discussão
+
+        FORMATO DE RESPOSTA - JSON com tarefas detalhadas:
         {{
             "tasks": [
-                {{"titulo": "título da tarefa baseado na discussão", "descricao": "descrição específica do que fazer"}},
-                {{"titulo": "título da tarefa baseado na discussão", "descricao": "descrição específica do que fazer"}},
-                {{"titulo": "título da tarefa baseado na discussão", "descricao": "descrição específica do que fazer"}}
+                {{
+                    "titulo": "Título claro e específico da tarefa",
+                    "descricao": "Descrição completa e detalhada do que deve ser feito, incluindo contexto da discussão, objetivos específicos, recursos necessários, critérios de sucesso e próximos passos. Mínimo 2-3 frases explicativas."
+                }}
             ]
         }}
+
+        EXEMPLOS do que procurar na transcrição:
+        - Pesquisas a serem realizadas
+        - Contatos a serem feitos
+        - Reuniões a serem agendadas
+        - Documentos a serem criados
+        - Análises a serem conduzidas
+        - Decisões pendentes
+        - Aprovações necessárias
+        - Testes a serem executados
+        - Validações com stakeholders
+        - Preparação de apresentações
+        - Levantamento de requisitos
+        - Definição de processos
+
+        Responda APENAS com o JSON das tarefas, extraindo o máximo de valor da transcrição fornecida.
         """
         
         response = openai.chat.completions.create(

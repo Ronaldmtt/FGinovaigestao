@@ -49,7 +49,7 @@ class TaskForm(FlaskForm):
     def __init__(self, *args, **kwargs):
         super(TaskForm, self).__init__(*args, **kwargs)
         self.project_id.choices = [(p.id, f"{p.client.nome} - {p.nome}") for p in Project.query.all()]
-        self.assigned_user_id.choices = [('', 'Selecione um usuário')] + [(u.id, u.full_name) for u in User.query.filter_by(is_admin=False).all()]
+        self.assigned_user_id.choices = [(0, 'Selecione um usuário')] + [(u.id, u.full_name) for u in User.query.filter_by(is_admin=False).all()]
 
 class TranscriptionTaskForm(FlaskForm):
     client_id = SelectField('Cliente', coerce=int, validators=[DataRequired()])

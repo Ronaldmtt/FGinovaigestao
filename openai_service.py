@@ -20,13 +20,12 @@ def process_project_transcription(transcription):
     Processa a transcrição do projeto usando GPT-5 para preencher os campos estruturados
     """
     try:
-        # Usar contexto substancial mas controlado
-        limited_transcription = transcription[:4000] if len(transcription) > 4000 else transcription
+        # Usar a transcrição completa - processamento em etapas separadas permite isso
         
         prompt = f"""
         Analise esta transcrição de reunião/projeto e extraia informações relevantes em formato JSON:
 
-        {limited_transcription}
+        {transcription}
 
         Com base no conteúdo da transcrição, retorne um JSON com estes campos preenchidos de forma coerente:
         {{
@@ -63,13 +62,12 @@ def generate_tasks_from_transcription(transcription, project_name):
     Gera tarefas com base na transcrição fornecida
     """
     try:
-        # Usar contexto substancial mas controlado
-        limited_transcription = transcription[:3500] if len(transcription) > 3500 else transcription
+        # Usar a transcrição completa - processamento em etapas separadas permite isso
         
         prompt = f"""
         Com base nesta transcrição de reunião sobre o projeto "{project_name}", gere tarefas específicas em formato JSON:
 
-        {limited_transcription}
+        {transcription}
 
         Analise o conteúdo da transcrição e crie 3-5 tarefas práticas e relevantes ao que foi discutido:
         {{

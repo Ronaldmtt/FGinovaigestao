@@ -163,10 +163,11 @@ def new_project():
         # Tentar processar com IA em segundo plano (sem bloquear)
         success_message = 'Projeto criado com sucesso!'
         
-        # Processar com IA automaticamente na criação (otimizado)
+        # Processar com IA automaticamente na criação (em duas etapas separadas)
         if form.transcricao.data and len(form.transcricao.data.strip()) > 10:
             try:
-                # Processar transcrição com IA (timeout otimizado)
+                # Etapa 1: Processar dados do projeto com transcrição completa
+                print("Etapa 1: Processando dados do projeto...")
                 ai_result = process_project_transcription(form.transcricao.data)
                 if ai_result:
                     project.contexto_justificativa = ai_result.get('contexto_justificativa')
@@ -179,7 +180,12 @@ def new_project():
                     project.premissas = ai_result.get('premissas')
                     project.restricoes = ai_result.get('restricoes')
                     
-                    # Gerar tarefas automáticas
+                    # Salvar dados do projeto primeiro
+                    db.session.commit()
+                    print("Dados do projeto processados com sucesso!")
+                    
+                    # Etapa 2: Gerar tarefas com transcrição completa
+                    print("Etapa 2: Gerando tarefas...")
                     auto_tasks = generate_tasks_from_transcription(form.transcricao.data, project.nome)
                     for task_data in auto_tasks:
                         task = Task(
@@ -191,9 +197,10 @@ def new_project():
                         db.session.add(task)
                     
                     db.session.commit()
-                    success_message = 'Projeto criado e processado com IA com sucesso!'
+                    print("Tarefas geradas com sucesso!")
+                    success_message = 'Projeto criado e processado com IA em duas etapas com sucesso!'
                 else:
-                    success_message = 'Projeto criado, mas houve problema no processamento da IA.'
+                    success_message = 'Projeto criado, mas houve problema no processamento dos dados pela IA.'
                     
             except Exception as e:
                 print(f"Erro no processamento da IA: {e}")

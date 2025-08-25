@@ -145,6 +145,7 @@ def new_project():
             nome=form.nome.data,
             client_id=form.client_id.data,
             responsible_id=form.responsible_id.data,
+            status=form.status.data,
             transcricao=form.transcricao.data
         )
         

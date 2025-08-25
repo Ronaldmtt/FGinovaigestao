@@ -18,6 +18,18 @@
                 <p class="text-muted">
                     Cliente: <strong>{{ project.client.nome }}</strong> | 
                     Responsável: <strong>{{ project.responsible.full_name }}</strong> |
+                    Status: 
+                    {% if project.status == 'em_andamento' %}
+                        <span class="badge bg-primary">Em Andamento</span>
+                    {% elif project.status == 'pausado' %}
+                        <span class="badge bg-warning">Pausado</span>
+                    {% elif project.status == 'cancelado' %}
+                        <span class="badge bg-danger">Cancelado</span>
+                    {% elif project.status == 'concluido' %}
+                        <span class="badge bg-success">Concluído</span>
+                    {% else %}
+                        <span class="badge bg-secondary">{{ project.status }}</span>
+                    {% endif %} |
                     Criado em: <strong>{{ project.created_at.strftime('%d/%m/%Y') }}</strong>
                 </p>
             </div>

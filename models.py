@@ -48,6 +48,7 @@ class Project(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(200), nullable=False)
     transcricao = db.Column(db.Text)
+    status = db.Column(db.String(20), default='em_andamento', nullable=False)  # em_andamento, pausado, cancelado, concluido
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Foreign keys

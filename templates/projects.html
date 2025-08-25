@@ -25,6 +25,7 @@
                                 <th>Nome do Projeto</th>
                                 <th>Cliente</th>
                                 <th>Responsável</th>
+                                <th>Status</th>
                                 <th>Equipe</th>
                                 <th>Data</th>
                                 <th>Tarefas</th>
@@ -41,6 +42,19 @@
                                 </td>
                                 <td>{{ project.client.nome }}</td>
                                 <td>{{ project.responsible.full_name }}</td>
+                                <td>
+                                    {% if project.status == 'em_andamento' %}
+                                        <span class="badge bg-primary">Em Andamento</span>
+                                    {% elif project.status == 'pausado' %}
+                                        <span class="badge bg-warning">Pausado</span>
+                                    {% elif project.status == 'cancelado' %}
+                                        <span class="badge bg-danger">Cancelado</span>
+                                    {% elif project.status == 'concluido' %}
+                                        <span class="badge bg-success">Concluído</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ project.status }}</span>
+                                    {% endif %}
+                                </td>
                                 <td>
                                     <span class="badge bg-secondary">{{ project.team_members|length }} membros</span>
                                 </td>
@@ -120,11 +134,15 @@
                     </div>
                     
                     <div class="row">
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             {{ form.responsible_id.label(class="form-label") }}
                             {{ form.responsible_id(class="form-select") }}
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
+                            {{ form.status.label(class="form-label") }}
+                            {{ form.status(class="form-select") }}
+                        </div>
+                        <div class="col-md-4 mb-3">
                             {{ form.team_members.label(class="form-label") }}
                             {{ form.team_members(class="form-select") }}
                         </div>

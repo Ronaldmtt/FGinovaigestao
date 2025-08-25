@@ -31,6 +31,12 @@ class ProjectForm(FlaskForm):
     client_id = SelectField('Cliente', coerce=int, validators=[DataRequired()])
     responsible_id = SelectField('Usuário Responsável', coerce=int, validators=[DataRequired()])
     team_members = SelectField('Membros da Equipe', coerce=int, choices=[])
+    status = SelectField('Status', choices=[
+        ('em_andamento', 'Em Andamento'),
+        ('pausado', 'Pausado'),
+        ('cancelado', 'Cancelado'),
+        ('concluido', 'Concluído')
+    ], default='em_andamento', validators=[DataRequired()])
     transcricao = TextAreaField('Transcrição', widget=TextArea(), render_kw={"rows": 10})
     
     def __init__(self, *args, **kwargs):

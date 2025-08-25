@@ -163,41 +163,12 @@ def new_project():
         # Tentar processar com IA em segundo plano (sem bloquear)
         success_message = 'Projeto criado com sucesso!'
         
-        # Processar com IA apenas se há transcrição e não for muito longa
+        # IA processamento foi temporariamente desabilitado para evitar timeouts
+        # O usuário pode processar com IA posteriormente através da página do projeto
         if form.transcricao.data and len(form.transcricao.data.strip()) > 10:
-            try:
-                # Processar transcrição com IA (com timeout)
-                ai_result = process_project_transcription(form.transcricao.data)
-                if ai_result:
-                    project.contexto_justificativa = ai_result.get('contexto_justificativa')
-                    project.descricao_resumida = ai_result.get('descricao_resumida')
-                    project.problema_oportunidade = ai_result.get('problema_oportunidade')
-                    project.objetivos = ai_result.get('objetivos')
-                    project.alinhamento_estrategico = ai_result.get('alinhamento_estrategico')
-                    project.escopo_projeto = ai_result.get('escopo_projeto')
-                    project.fora_escopo = ai_result.get('fora_escopo')
-                    project.premissas = ai_result.get('premissas')
-                    project.restricoes = ai_result.get('restricoes')
-                    
-                    # Gerar tarefas automáticas
-                    auto_tasks = generate_tasks_from_transcription(form.transcricao.data, project.nome)
-                    for task_data in auto_tasks:
-                        task = Task(
-                            titulo=task_data['titulo'],
-                            descricao=task_data['descricao'],
-                            project_id=project.id,
-                            status='pendente'
-                        )
-                        db.session.add(task)
-                    
-                    db.session.commit()
-                    success_message = 'Projeto criado com sucesso e processado pela IA!'
-                else:
-                    success_message = 'Projeto criado, mas houve problema no processamento da IA.'
-                    
-            except Exception as e:
-                print(f"Erro no processamento da IA: {e}")
-                success_message = 'Projeto criado com sucesso! A IA não conseguiu processar a transcrição no momento.'
+            success_message = 'Projeto criado com sucesso! Você pode processar a transcrição com IA na página do projeto.'
+        else:
+            success_message = 'Projeto criado com sucesso!'
         
         flash(success_message, 'success')
         return redirect(url_for('projects'))
@@ -215,6 +186,57 @@ def project_detail(id):
         return redirect(url_for('projects'))
     
     return render_template('project_detail.html', project=project)
+
+@app.route('/projects/<int:id>/process-ai', methods=['POST'])
+@login_required
+def process_project_ai(id):
+    project = Project.query.get_or_404(id)
+    
+    # Verificar se o usuário tem acesso ao projeto
+    if not current_user.is_admin and current_user.id != project.responsible_id and current_user not in project.team_members:
+        flash('Você não tem acesso a este projeto.', 'danger')
+        return redirect(url_for('projects'))
+    
+    if not project.transcricao:
+        flash('Este projeto não possui transcrição para processar.', 'warning')
+        return redirect(url_for('project_detail', id=id))
+    
+    try:
+        # Processar transcrição com IA
+        ai_result = process_project_transcription(project.transcricao)
+        if ai_result:
+            project.contexto_justificativa = ai_result.get('contexto_justificativa')
+            project.descricao_resumida = ai_result.get('descricao_resumida')
+            project.problema_oportunidade = ai_result.get('problema_oportunidade')
+            project.objetivos = ai_result.get('objetivos')
+            project.alinhamento_estrategico = ai_result.get('alinhamento_estrategico')
+            project.escopo_projeto = ai_result.get('escopo_projeto')
+            project.fora_escopo = ai_result.get('fora_escopo')
+            project.premissas = ai_result.get('premissas')
+            project.restricoes = ai_result.get('restricoes')
+            
+            # Gerar tarefas automáticas se ainda não existem
+            if not project.tasks:
+                auto_tasks = generate_tasks_from_transcription(project.transcricao, project.nome)
+                for task_data in auto_tasks:
+                    task = Task(
+                        titulo=task_data['titulo'],
+                        descricao=task_data['descricao'],
+                        project_id=project.id,
+                        status='pendente'
+                    )
+                    db.session.add(task)
+            
+            db.session.commit()
+            flash('Projeto processado com IA com sucesso!', 'success')
+        else:
+            flash('Houve problema no processamento da IA. Tente novamente mais tarde.', 'warning')
+            
+    except Exception as e:
+        print(f"Erro no processamento da IA: {e}")
+        flash('Erro ao processar com IA. Tente novamente mais tarde.', 'warning')
+    
+    return redirect(url_for('project_detail', id=id))
 
 # Rotas de Tarefas
 @app.route('/tasks')

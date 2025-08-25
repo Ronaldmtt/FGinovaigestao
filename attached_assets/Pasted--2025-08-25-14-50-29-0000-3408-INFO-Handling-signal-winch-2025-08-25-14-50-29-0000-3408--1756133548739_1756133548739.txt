@@ -1,0 +1,68 @@
+[2025-08-25 14:50:29 +0000] [3408] [INFO] Handling signal: winch
+[2025-08-25 14:50:29 +0000] [3408] [INFO] Handling signal: winch
+[2025-08-25 14:50:29 +0000] [3408] [INFO] Handling signal: winch
+DEBUG:openai._base_client:Request options: {'method': 'post', 'url': '/chat/completions', 'files': None, 'idempotency_key': 'stainless-python-retry-bde18345-8058-4c23-8437-552d356d2905', 'json_data': {'messages': [{'role': 'user', 'content': '\n        Extraia dados desta transcrição em JSON:\n        # SÁ-SQ: Automação Evolução Fiscal\r\n\r\n  Meeting started: 24/07/2025, 09:59:28\r\n  Duration: 31 minutes\r\n  Participants: Aline Helena Salva Terra Rodrigues, ananda costa, felipe gomes, Fireflies.ai Notetaker Hub, Rafael Oliveira, Rafael Spoladore, read.ai meeting notes, Rosimere Kill Queiroz\r\n\r\n  [View original transcript](https://app.tactiq.io/api/2/u/m/r/oNHGRBexoPWmF8xhAPjV?o=txt)\r\n\r\n    \r\n\r\n  \r\n\r\n  \r\n    ## Highlights\r\n\r\n    > 09:13 Rafael Oliveira: That important.\r\n> 14:57 Rafael Spoladore: No. And we\'ll Ponte it was to see busy minister. Okay. So we have, if you feel this is your certificate you know you don\'t also geological scam, same percent assignment. The moment is so along the processors you confirmada in the total\r\n> 29:12 Rosimere Kill Queiroz: Actually here.\r\n\r\n  ## Transcript\n\n        {\n            "contexto_justificativa": "texto",\n            "descricao_resumida": "texto",\n            "problema_oportunidade": "texto",\n            "objetivos": "texto",\n            "alinhamento_estrategico": "texto",\n            "escopo_projeto": "texto",\n            "fora_escopo": "texto",\n            "premissas": "texto",\n            "restricoes": "texto"\n        }\n        '}], 'model': 'gpt-4o', 'response_format': {'type': 'json_object'}}}
+DEBUG:openai._base_client:Sending HTTP Request: POST https://api.openai.com/v1/chat/completions
+DEBUG:httpcore.connection:connect_tcp.started host='api.openai.com' port=443 local_address=None timeout=10.0 socket_options=None
+DEBUG:httpcore.connection:connect_tcp.complete return_value=<httpcore._backends.sync.SyncStream object at 0x7f8faa09d250>
+DEBUG:httpcore.connection:start_tls.started ssl_context=<ssl.SSLContext object at 0x7f8faaeb9520> server_hostname='api.openai.com' timeout=10.0
+DEBUG:httpcore.connection:start_tls.complete return_value=<httpcore._backends.sync.SyncStream object at 0x7f8faa09d310>
+DEBUG:httpcore.http11:send_request_headers.started request=<Request [b'POST']>
+DEBUG:httpcore.http11:send_request_headers.complete
+DEBUG:httpcore.http11:send_request_body.started request=<Request [b'POST']>
+DEBUG:httpcore.http11:send_request_body.complete
+DEBUG:httpcore.http11:receive_response_headers.started request=<Request [b'POST']>
+[2025-08-25 14:52:03 +0000] [3408] [INFO] Handling signal: winch
+[2025-08-25 14:52:03 +0000] [3408] [INFO] Handling signal: winch
+[2025-08-25 14:52:03 +0000] [3408] [INFO] Handling signal: winch
+[2025-08-25 14:52:03 +0000] [3408] [INFO] Handling signal: winch
+[2025-08-25 14:52:03 +0000] [3408] [INFO] Handling signal: winch
+[2025-08-25 14:52:03 +0000] [3408] [INFO] Handling signal: winch
+[2025-08-25 14:52:03 +0000] [3408] [INFO] Handling signal: winch
+[2025-08-25 14:52:03 +0000] [3408] [INFO] Handling signal: winch
+[2025-08-25 14:52:03 +0000] [3408] [INFO] Handling signal: winch
+[2025-08-25 14:52:03 +0000] [3408] [INFO] Handling signal: winch
+[2025-08-25 14:52:03 +0000] [3408] [INFO] Handling signal: winch
+[2025-08-25 14:52:03 +0000] [3408] [INFO] Handling signal: winch
+[2025-08-25 14:52:03 +0000] [3408] [INFO] Handling signal: winch
+[2025-08-25 14:52:03 +0000] [3408] [INFO] Handling signal: winch
+[2025-08-25 14:52:03 +0000] [3408] [INFO] Handling signal: winch
+[2025-08-25 14:52:03 +0000] [3408] [INFO] Handling signal: winch
+[2025-08-25 14:52:03 +0000] [3408] [INFO] Handling signal: winch
+[2025-08-25 14:52:04 +0000] [3408] [INFO] Handling signal: winch
+[2025-08-25 14:52:04 +0000] [3408] [INFO] Handling signal: winch
+[2025-08-25 14:52:04 +0000] [3408] [INFO] Handling signal: winch
+[2025-08-25 14:52:04 +0000] [3408] [INFO] Handling signal: winch
+DEBUG:httpcore.http11:receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Date', b'Mon, 25 Aug 2025 14:52:08 GMT'), (b'Content-Type', b'application/json'), (b'Transfer-Encoding', b'chunked'), (b'Connection', b'keep-alive'), (b'access-control-expose-headers', b'X-Request-ID'), (b'openai-organization', b'bizarte'), (b'openai-processing-ms', b'4878'), (b'openai-project', b'proj_O32oivnhvO87YG0DOXMJZcfw'), (b'openai-version', b'2020-10-01'), (b'x-envoy-upstream-service-time', b'4968'), (b'x-ratelimit-limit-requests', b'10000'), (b'x-ratelimit-limit-tokens', b'30000000'), (b'x-ratelimit-remaining-requests', b'9999'), (b'x-ratelimit-remaining-tokens', b'29999684'), (b'x-ratelimit-reset-requests', b'6ms'), (b'x-ratelimit-reset-tokens', b'0s'), (b'x-request-id', b'req_9bf30a54ca4a462ba37402467bc0bfdf'), (b'cf-cache-status', b'DYNAMIC'), (b'Set-Cookie', b'__cf_bm=xMJPCWuNsphYs4r5KRBt1GREzl7ZaxjsaC_7QXbtqm4-1756133528-1.0.1.1-Up1csT90wv6Ob8SeWpUDR1kQY6pzWD4JtRcvCyuj_ScF0WIVYDoWn1weMyp5p7gQ2eMod_veAEqeWYEl0E3reKUn66CoaAU7PvdlK7L0FpE; path=/; expires=Mon, 25-Aug-25 15:22:08 GMT; domain=.api.openai.com; HttpOnly; Secure; SameSite=None'), (b'Strict-Transport-Security', b'max-age=31536000; includeSubDomains; preload'), (b'X-Content-Type-Options', b'nosniff'), (b'Set-Cookie', b'_cfuvid=_2efYNCsBB7AGNohzF17WkiknzFDrxCB29ykhU3ilf0-1756133528340-0.0.1.1-604800000; path=/; domain=.api.openai.com; HttpOnly; Secure; SameSite=None'), (b'Server', b'cloudflare'), (b'CF-RAY', b'974be938ca49f8e5-SEA'), (b'Content-Encoding', b'gzip'), (b'alt-svc', b'h3=":443"; ma=86400')])
+INFO:httpx:HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+DEBUG:httpcore.http11:receive_response_body.started request=<Request [b'POST']>
+DEBUG:httpcore.http11:receive_response_body.complete
+DEBUG:httpcore.http11:response_closed.started
+DEBUG:httpcore.http11:response_closed.complete
+DEBUG:openai._base_client:HTTP Response: POST https://api.openai.com/v1/chat/completions "200 OK" Headers([('date', 'Mon, 25 Aug 2025 14:52:08 GMT'), ('content-type', 'application/json'), ('transfer-encoding', 'chunked'), ('connection', 'keep-alive'), ('access-control-expose-headers', 'X-Request-ID'), ('openai-organization', 'bizarte'), ('openai-processing-ms', '4878'), ('openai-project', 'proj_O32oivnhvO87YG0DOXMJZcfw'), ('openai-version', '2020-10-01'), ('x-envoy-upstream-service-time', '4968'), ('x-ratelimit-limit-requests', '10000'), ('x-ratelimit-limit-tokens', '30000000'), ('x-ratelimit-remaining-requests', '9999'), ('x-ratelimit-remaining-tokens', '29999684'), ('x-ratelimit-reset-requests', '6ms'), ('x-ratelimit-reset-tokens', '0s'), ('x-request-id', 'req_9bf30a54ca4a462ba37402467bc0bfdf'), ('cf-cache-status', 'DYNAMIC'), ('set-cookie', '__cf_bm=xMJPCWuNsphYs4r5KRBt1GREzl7ZaxjsaC_7QXbtqm4-1756133528-1.0.1.1-Up1csT90wv6Ob8SeWpUDR1kQY6pzWD4JtRcvCyuj_ScF0WIVYDoWn1weMyp5p7gQ2eMod_veAEqeWYEl0E3reKUn66CoaAU7PvdlK7L0FpE; path=/; expires=Mon, 25-Aug-25 15:22:08 GMT; domain=.api.openai.com; HttpOnly; Secure; SameSite=None'), ('strict-transport-security', 'max-age=31536000; includeSubDomains; preload'), ('x-content-type-options', 'nosniff'), ('set-cookie', '_cfuvid=_2efYNCsBB7AGNohzF17WkiknzFDrxCB29ykhU3ilf0-1756133528340-0.0.1.1-604800000; path=/; domain=.api.openai.com; HttpOnly; Secure; SameSite=None'), ('server', 'cloudflare'), ('cf-ray', '974be938ca49f8e5-SEA'), ('content-encoding', 'gzip'), ('alt-svc', 'h3=":443"; ma=86400')])
+DEBUG:openai._base_client:request_id: req_9bf30a54ca4a462ba37402467bc0bfdf
+DEBUG:openai._base_client:Request options: {'method': 'post', 'url': '/chat/completions', 'files': None, 'idempotency_key': 'stainless-python-retry-7f6de4a5-e848-4346-9b4a-62e70b254b40', 'json_data': {'messages': [{'role': 'user', 'content': '\n        Gere 3 tarefas para: evolução fiscal\n        # SÁ-SQ: Automação Evolução Fiscal\r\n\r\n  Meeting started: 24/07/2025, 09:59:28\r\n  Duration: 31 minutes\r\n  Participants: Aline Helena Salva Terra Rodrigues, ananda costa, felipe gomes, Fireflies.ai Notetaker Hub, Rafael Oliveira, Rafael Spoladore, read.ai meeting notes, Rosimere Kill Queiroz\r\n\r\n  [View original transcript](https://app.tactiq.io/api/2/u/m/r/oNHGRBexoPWmF8xhAPjV?o=txt)\r\n\r\n    \r\n\r\n  \r\n\r\n  \r\n    ## Highlights\r\n\r\n    > 09:13 Rafael Oliveira: That important.\r\n> 14:57 Rafael Spoladore: N\n\n        {\n            "tasks": [\n                {"titulo": "texto", "descricao": "texto"},\n                {"titulo": "texto", "descricao": "texto"},\n                {"titulo": "texto", "descricao": "texto"}\n            ]\n        }\n        '}], 'model': 'gpt-4o', 'response_format': {'type': 'json_object'}}}
+DEBUG:openai._base_client:Sending HTTP Request: POST https://api.openai.com/v1/chat/completions
+DEBUG:httpcore.http11:send_request_headers.started request=<Request [b'POST']>
+DEBUG:httpcore.http11:send_request_headers.complete
+DEBUG:httpcore.http11:send_request_body.started request=<Request [b'POST']>
+DEBUG:httpcore.http11:send_request_body.complete
+DEBUG:httpcore.http11:receive_response_headers.started request=<Request [b'POST']>
+DEBUG:httpcore.http11:receive_response_headers.complete return_value=(b'HTTP/1.1', 400, b'Bad Request', [(b'Date', b'Mon, 25 Aug 2025 14:52:09 GMT'), (b'Content-Type', b'application/json'), (b'Content-Length', b'219'), (b'Connection', b'keep-alive'), (b'access-control-expose-headers', b'X-Request-ID'), (b'openai-organization', b'bizarte'), (b'openai-processing-ms', b'9'), (b'openai-project', b'proj_O32oivnhvO87YG0DOXMJZcfw'), (b'openai-version', b'2020-10-01'), (b'x-envoy-upstream-service-time', b'68'), (b'x-ratelimit-limit-requests', b'10000'), (b'x-ratelimit-limit-tokens', b'30000000'), (b'x-ratelimit-remaining-requests', b'9999'), (b'x-ratelimit-remaining-tokens', b'29999797'), (b'x-ratelimit-reset-requests', b'6ms'), (b'x-ratelimit-reset-tokens', b'0s'), (b'x-request-id', b'req_dead73fb1cca4840a1ba3251caabc5b6'), (b'cf-cache-status', b'DYNAMIC'), (b'Strict-Transport-Security', b'max-age=31536000; includeSubDomains; preload'), (b'X-Content-Type-Options', b'nosniff'), (b'Server', b'cloudflare'), (b'CF-RAY', b'974be95a7fb6f8e5-SEA'), (b'alt-svc', b'h3=":443"; ma=86400')])
+INFO:httpx:HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 400 Bad Request"
+DEBUG:httpcore.http11:receive_response_body.started request=<Request [b'POST']>
+DEBUG:httpcore.http11:receive_response_body.complete
+DEBUG:httpcore.http11:response_closed.started
+DEBUG:httpcore.http11:response_closed.complete
+DEBUG:openai._base_client:HTTP Response: POST https://api.openai.com/v1/chat/completions "400 Bad Request" Headers({'date': 'Mon, 25 Aug 2025 14:52:09 GMT', 'content-type': 'application/json', 'content-length': '219', 'connection': 'keep-alive', 'access-control-expose-headers': 'X-Request-ID', 'openai-organization': 'bizarte', 'openai-processing-ms': '9', 'openai-project': 'proj_O32oivnhvO87YG0DOXMJZcfw', 'openai-version': '2020-10-01', 'x-envoy-upstream-service-time': '68', 'x-ratelimit-limit-requests': '10000', 'x-ratelimit-limit-tokens': '30000000', 'x-ratelimit-remaining-requests': '9999', 'x-ratelimit-remaining-tokens': '29999797', 'x-ratelimit-reset-requests': '6ms', 'x-ratelimit-reset-tokens': '0s', 'x-request-id': 'req_dead73fb1cca4840a1ba3251caabc5b6', 'cf-cache-status': 'DYNAMIC', 'strict-transport-security': 'max-age=31536000; includeSubDomains; preload', 'x-content-type-options': 'nosniff', 'server': 'cloudflare', 'cf-ray': '974be95a7fb6f8e5-SEA', 'alt-svc': 'h3=":443"; ma=86400'})
+DEBUG:openai._base_client:request_id: req_dead73fb1cca4840a1ba3251caabc5b6
+DEBUG:openai._base_client:Encountered httpx.HTTPStatusError
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/openai/_base_client.py", line 1027, in request
+    response.raise_for_status()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpx/_models.py", line 829, in raise_for_status
+    raise HTTPStatusError(message, request=request, response=self)
+httpx.HTTPStatusError: Client error '400 Bad Request' for url 'https://api.openai.com/v1/chat/completions'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400
+DEBUG:openai._base_client:Re-raising status error
+Erro ao gerar tarefas da transcrição: Error code: 400 - {'error': {'message': "'messages' must contain the word 'json' in some form, to use 'response_format' of type 'json_object'.", 'type': 'invalid_request_error', 'param': 'messages', 'code': None}}

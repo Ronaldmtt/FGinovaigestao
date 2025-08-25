@@ -24,9 +24,10 @@ def process_project_transcription(transcription):
         limited_transcription = transcription[:800] if len(transcription) > 800 else transcription
         
         prompt = f"""
-        Extraia dados desta transcrição em JSON:
+        Extraia dados desta transcrição e retorne em formato JSON:
         {limited_transcription}
 
+        Retorne um JSON com estes campos:
         {{
             "contexto_justificativa": "texto",
             "descricao_resumida": "texto",
@@ -68,6 +69,7 @@ def generate_tasks_from_transcription(transcription, project_name):
         Gere 3 tarefas para: {project_name}
         {limited_transcription}
 
+        Retorne um JSON com este formato:
         {{
             "tasks": [
                 {{"titulo": "texto", "descricao": "texto"}},

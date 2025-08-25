@@ -4,7 +4,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime
 import httpx
 from app import app, db
-from models import User, Client, Project, Task
+from models import User, Client, Project, Task, TodoItem
 from forms import LoginForm, UserForm, ClientForm, ProjectForm, TaskForm, TranscriptionTaskForm
 from openai_service import process_project_transcription, generate_tasks_from_transcription
 
@@ -434,13 +434,16 @@ def kanban():
 def api_get_task(task_id):
     task = Task.query.get_or_404(task_id)
     
+    todos = [{'id': todo.id, 'texto': todo.texto, 'completed': todo.completed} for todo in task.todos]
+    
     return jsonify({
         'id': task.id,
         'titulo': task.titulo,
         'descricao': task.descricao,
         'assigned_user_id': task.assigned_user_id,
         'data_conclusao': task.data_conclusao.isoformat() if task.data_conclusao else None,
-        'status': task.status
+        'status': task.status,
+        'todos': todos
     })
 
 @app.route('/api/tasks/<int:task_id>', methods=['PUT'])
@@ -457,12 +460,35 @@ def api_update_task(task_id):
             task.descricao = data['descricao']
         if 'assigned_user_id' in data:
             task.assigned_user_id = data['assigned_user_id'] if data['assigned_user_id'] else None
+        if 'status' in data:
+            task.status = data['status']
+            # Atualizar data de conclusão baseado no status
+            if data['status'] == 'concluida':
+                task.completed_at = datetime.utcnow()
+            else:
+                task.completed_at = None
         if 'data_conclusao' in data:
             if data['data_conclusao']:
-                from datetime import datetime
                 task.data_conclusao = datetime.strptime(data['data_conclusao'], '%Y-%m-%d').date()
             else:
                 task.data_conclusao = None
+        
+        # Atualizar to-do's
+        if 'todos' in data:
+            # Primeiro, remover todos os to-do's existentes
+            TodoItem.query.filter_by(task_id=task.id).delete()
+            
+            # Adicionar os novos to-do's
+            for todo_data in data['todos']:
+                if todo_data.get('texto', '').strip():  # Só adicionar se houver texto
+                    todo = TodoItem(
+                        texto=todo_data['texto'],
+                        completed=todo_data.get('completed', False),
+                        task_id=task.id
+                    )
+                    if todo_data.get('completed'):
+                        todo.completed_at = datetime.utcnow()
+                    db.session.add(todo)
         
         db.session.commit()
         return jsonify({'success': True, 'message': 'Tarefa atualizada com sucesso!'})

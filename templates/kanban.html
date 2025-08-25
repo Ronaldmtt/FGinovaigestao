@@ -207,8 +207,30 @@
                     </div>
                     
                     <div class="mb-3">
+                        <label for="editTaskStatus" class="form-label">Status</label>
+                        <select class="form-select" id="editTaskStatus" required>
+                            <option value="pendente">Pendente</option>
+                            <option value="em_andamento">Em Andamento</option>
+                            <option value="concluida">Concluída</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
                         <label for="editTaskDataConclusao" class="form-label">Data de Conclusão</label>
                         <input type="date" class="form-control" id="editTaskDataConclusao">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Lista de To-Do's</label>
+                        <div id="todosList" class="border rounded p-2" style="max-height: 200px; overflow-y: auto;">
+                            <!-- To-do's serão carregados aqui -->
+                        </div>
+                        <div class="d-flex mt-2">
+                            <input type="text" class="form-control" id="newTodoText" placeholder="Adicionar novo to-do..." maxlength="300">
+                            <button type="button" class="btn btn-outline-primary ms-2" onclick="addTodo()">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -230,7 +252,11 @@ function editTask(taskId) {
             document.getElementById('editTaskTitulo').value = task.titulo;
             document.getElementById('editTaskDescricao').value = task.descricao || '';
             document.getElementById('editTaskResponsavel').value = task.assigned_user_id || '';
+            document.getElementById('editTaskStatus').value = task.status || 'pendente';
             document.getElementById('editTaskDataConclusao').value = task.data_conclusao || '';
+            
+            // Carregar to-do's
+            loadTodos(task.todos || []);
             
             const modal = new bootstrap.Modal(document.getElementById('editTaskModal'));
             modal.show();
@@ -250,7 +276,9 @@ document.getElementById('editTaskForm').addEventListener('submit', function(e) {
         titulo: document.getElementById('editTaskTitulo').value,
         descricao: document.getElementById('editTaskDescricao').value,
         assigned_user_id: document.getElementById('editTaskResponsavel').value || null,
-        data_conclusao: document.getElementById('editTaskDataConclusao').value || null
+        status: document.getElementById('editTaskStatus').value,
+        data_conclusao: document.getElementById('editTaskDataConclusao').value || null,
+        todos: getCurrentTodos()
     };
     
     fetch(`/api/tasks/${taskId}`, {
@@ -265,7 +293,28 @@ document.getElementById('editTaskForm').addEventListener('submit', function(e) {
         if (data.success) {
             const modal = bootstrap.Modal.getInstance(document.getElementById('editTaskModal'));
             modal.hide();
-            location.reload(); // Recarregar a página para mostrar as alterações
+            
+            // Se o status mudou, mover o card para a coluna correta
+            const taskCard = document.querySelector(`[data-task-id="${taskId}"]`);
+            const newStatus = document.getElementById('editTaskStatus').value;
+            const currentColumn = taskCard.closest('.kanban-column');
+            const targetColumn = document.querySelector(`[data-status="${newStatus}"]`);
+            
+            if (currentColumn.dataset.status !== newStatus) {
+                // Mover card para nova coluna
+                targetColumn.appendChild(taskCard);
+                
+                // Atualizar título da tarefa no card
+                const cardTitle = taskCard.querySelector('.card-title');
+                cardTitle.textContent = document.getElementById('editTaskTitulo').value;
+                
+                // Atualizar contadores das colunas
+                updateColumnCounts();
+            } else {
+                // Apenas atualizar o título se não mudou de coluna
+                const cardTitle = taskCard.querySelector('.card-title');
+                cardTitle.textContent = document.getElementById('editTaskTitulo').value;
+            }
         } else {
             alert('Erro ao salvar alterações: ' + data.message);
         }
@@ -274,6 +323,106 @@ document.getElementById('editTaskForm').addEventListener('submit', function(e) {
         console.error('Erro ao salvar tarefa:', error);
         alert('Erro ao salvar alterações');
     });
+});
+
+// Funções para gerenciar to-do's
+function loadTodos(todos) {
+    const todosList = document.getElementById('todosList');
+    todosList.innerHTML = '';
+    
+    todos.forEach(todo => {
+        const todoDiv = document.createElement('div');
+        todoDiv.className = 'd-flex align-items-center mb-2';
+        todoDiv.innerHTML = `
+            <input type="checkbox" class="form-check-input me-2" ${todo.completed ? 'checked' : ''} onchange="toggleTodo(this, ${todo.id})">
+            <span class="${todo.completed ? 'text-decoration-line-through text-muted' : ''}" style="flex-grow: 1;">${todo.texto}</span>
+            <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="removeTodo(this, ${todo.id})">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+        `;
+        todoDiv.dataset.todoId = todo.id;
+        todoDiv.dataset.todoText = todo.texto;
+        todoDiv.dataset.todoCompleted = todo.completed;
+        todosList.appendChild(todoDiv);
+    });
+}
+
+function addTodo() {
+    const newTodoText = document.getElementById('newTodoText');
+    const text = newTodoText.value.trim();
+    
+    if (text) {
+        const todosList = document.getElementById('todosList');
+        const todoDiv = document.createElement('div');
+        todoDiv.className = 'd-flex align-items-center mb-2';
+        todoDiv.innerHTML = `
+            <input type="checkbox" class="form-check-input me-2" onchange="toggleTodo(this)">
+            <span style="flex-grow: 1;">${text}</span>
+            <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="removeTodo(this)">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+        `;
+        todoDiv.dataset.todoId = 'new-' + Date.now();
+        todoDiv.dataset.todoText = text;
+        todoDiv.dataset.todoCompleted = 'false';
+        
+        todosList.appendChild(todoDiv);
+        newTodoText.value = '';
+    }
+}
+
+function toggleTodo(checkbox, todoId = null) {
+    const todoDiv = checkbox.closest('div');
+    const span = todoDiv.querySelector('span');
+    const isCompleted = checkbox.checked;
+    
+    if (isCompleted) {
+        span.classList.add('text-decoration-line-through', 'text-muted');
+    } else {
+        span.classList.remove('text-decoration-line-through', 'text-muted');
+    }
+    
+    todoDiv.dataset.todoCompleted = isCompleted.toString();
+}
+
+function removeTodo(button, todoId = null) {
+    const todoDiv = button.closest('div');
+    todoDiv.remove();
+}
+
+function getCurrentTodos() {
+    const todosList = document.getElementById('todosList');
+    const todoDivs = todosList.querySelectorAll('[data-todo-id]');
+    const todos = [];
+    
+    todoDivs.forEach(todoDiv => {
+        todos.push({
+            id: todoDiv.dataset.todoId.startsWith('new-') ? null : parseInt(todoDiv.dataset.todoId),
+            texto: todoDiv.dataset.todoText,
+            completed: todoDiv.dataset.todoCompleted === 'true'
+        });
+    });
+    
+    return todos;
+}
+
+function updateColumnCounts() {
+    // Atualizar contadores das colunas
+    const columns = document.querySelectorAll('.kanban-column');
+    columns.forEach(column => {
+        const count = column.querySelectorAll('.task-card').length;
+        const badge = column.parentElement.querySelector('.badge');
+        if (badge) {
+            badge.textContent = count;
+        }
+    });
+}
+
+// Permitir adicionar to-do com Enter
+document.addEventListener('keypress', function(e) {
+    if (e.target.id === 'newTodoText' && e.key === 'Enter') {
+        addTodo();
+    }
 });
 </script>
 {% endblock %}

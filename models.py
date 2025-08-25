@@ -85,5 +85,21 @@ class Task(db.Model):
     project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=False)
     assigned_user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     
+    # Relacionamentos
+    todos = db.relationship('TodoItem', backref='task', lazy=True, cascade='all, delete-orphan')
+    
     def __repr__(self):
         return f'<Task {self.titulo}>'
+
+class TodoItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    texto = db.Column(db.String(300), nullable=False)
+    completed = db.Column(db.Boolean, default=False, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    completed_at = db.Column(db.DateTime)
+    
+    # Foreign key
+    task_id = db.Column(db.Integer, db.ForeignKey('task.id'), nullable=False)
+    
+    def __repr__(self):
+        return f'<TodoItem {self.texto}>'

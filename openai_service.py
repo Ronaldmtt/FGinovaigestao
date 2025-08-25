@@ -65,57 +65,72 @@ def generate_tasks_from_transcription(transcription, project_name):
         # Usar a transcrição completa - processamento em etapas separadas permite isso
         
         prompt = f"""
-        Você é um especialista em gestão de projetos com 15 anos de experiência. Analise minuciosamente esta transcrição de reunião sobre o projeto "{project_name}" e extraia TODAS as tarefas, atividades, ações e responsabilidades mencionadas ou implícitas na discussão.
+        Você é Sarah Chen, Senior Project Manager certificada PMP com 15 anos liderando projetos complexos em tecnologia, consultoria e inovação. Sua expertise inclui metodologias ágeis, gestão de stakeholders e transformação digital.
 
-        TRANSCRIÇÃO COMPLETA PARA ANÁLISE:
+        MISSÃO: Analise esta transcrição como se fosse uma reunião do SEU projeto. Extraia cada ação, insight e oportunidade, transformando-os em um roadmap detalhado de tarefas executáveis.
+
+        TRANSCRIÇÃO DA REUNIÃO DO PROJETO "{project_name}":
         {transcription}
 
-        INSTRUÇÕES DETALHADAS PARA ANÁLISE PROFUNDA:
-        1. Leia cuidadosamente TODA a transcrição palavra por palavra - não pule nenhuma seção
-        2. Identifique TODAS as ações explícitas: tarefas, deliverables, pesquisas, reuniões, contatos, decisões mencionadas
-        3. Identifique tarefas IMPLÍCITAS baseadas no contexto: preparação necessária, validações pendentes, follow-ups obrigatórios
-        4. Para cada ponto discutido ou problema levantado, crie uma tarefa específica e acionável
-        5. Inclua tarefas de diferentes fases: preparação, execução, validação, follow-up e documentação
-        6. Seja extremamente específico sobre O QUE fazer, COMO fazer, QUEM envolver, RECURSOS necessários, CRITÉRIOS de sucesso
-        7. Gere entre 10-20 tarefas detalhadas e abrangentes (extraia o máximo absoluto da transcrição)
-        8. Priorize tarefas que foram mencionadas múltiplas vezes ou enfatizadas na discussão
-        9. Considere dependências entre tarefas e crie etapas lógicas de execução
+        METODOLOGIA DE ANÁLISE (execute sequencialmente):
 
-        FORMATO DE RESPOSTA - JSON com tarefas extremamente detalhadas:
+        FASE 1 - MAPEAMENTO COMPLETO:
+        • Leia palavra por palavra, identificando: verbos de ação, substantivos-chave, pessoas mencionadas, prazos citados
+        • Marque mentalmente: decisões tomadas, problemas levantados, soluções propostas, recursos discutidos
+        • Identifique padrões: temas recorrentes, prioridades enfatizadas, urgências implícitas
+
+        FASE 2 - CATEGORIZAÇÃO ESTRATÉGICA:
+        • IMEDIATAS: Ações que precisam começar esta semana
+        • PREPARATÓRIAS: Atividades necessárias antes de outras tarefas  
+        • CORE: Entregas principais do projeto
+        • VALIDAÇÃO: Aprovações, testes, confirmações necessárias
+        • COMUNICAÇÃO: Alinhamentos, relatórios, apresentações
+        • MITIGAÇÃO: Ações para resolver riscos ou obstáculos mencionados
+
+        FASE 3 - DETALHAMENTO EXECUTIVO:
+        Para cada tarefa identificada, defina:
+        • CONTEXTO: Por que esta tarefa surgiu na discussão?
+        • OBJETIVO: Resultado específico e mensurável esperado
+        • METODOLOGIA: Como executar (ferramentas, processos, abordagem)
+        • STAKEHOLDERS: Quem envolver (decisores, executores, consultados)
+        • RECURSOS: Orçamento, tempo, ferramentas, informações necessárias
+        • CRITÉRIOS DE SUCESSO: Como saber que foi bem executada
+        • DEPENDÊNCIAS: O que precisa acontecer antes/depois
+        • RISCOS: Obstáculos potenciais identificados na discussão
+
+        CRITÉRIOS DE QUALIDADE PARA CADA TAREFA:
+        ✓ Título: Verbo + objeto + contexto específico
+        ✓ Descrição: Mínimo 5 frases cobrindo todos os 8 elementos acima
+        ✓ Acionável: Qualquer PM conseguiria executar com essas informações
+        ✓ Rastreável: Progresso pode ser medido objetivamente
+        ✓ Contextualizada: Conecta claramente com a discussão da reunião
+
+        EXEMPLO DE TAREFA DE ALTA QUALIDADE:
+        {{
+            "titulo": "Conduzir pesquisa de viabilidade técnica para integração com sistema legado",
+            "descricao": "Com base na preocupação levantada sobre compatibilidade de sistemas, realizar análise técnica completa da integração proposta. Objetivos: identificar gaps técnicos, estimar esforço de desenvolvimento e propor arquitetura de solução. Metodologia: auditoria do sistema atual, prototipagem de conectores API, benchmarking de ferramentas similares. Envolver: arquiteto de sistemas (decisor), desenvolvedores senior (executores), fornecedor do sistema legado (consulta). Recursos necessários: acesso aos ambientes, documentação técnica atualizada, 40h de desenvolvimento. Critério de sucesso: relatório técnico com recomendação fundamentada e cronograma detalhado. Dependências: aguarda liberação de acesso pelo time de infraestrutura mencionada na reunião. Risco identificado: possível obsolescência das APIs conforme discussão sobre atualizações pendentes."
+        }}
+
+        FORMATO DE RESPOSTA - JSON estruturado:
         {{
             "tasks": [
+                // Gere 12-25 tarefas seguindo rigorosamente os critérios de qualidade acima
                 {{
-                    "titulo": "Título claro, específico e acionável da tarefa",
-                    "descricao": "Descrição completa e detalhada do que deve ser feito, incluindo: contexto completo da discussão, objetivos específicos e mensuráveis, recursos e ferramentas necessários, pessoas ou departamentos a serem envolvidos, critérios claros de sucesso, próximos passos detalhados, prazos sugeridos quando mencionados, e possíveis riscos ou obstáculos identificados na discussão. Mínimo de 4-6 frases explicativas e contextuais."
+                    "titulo": "Título executivo e específico",
+                    "descricao": "Descrição completa seguindo os 8 elementos obrigatórios: contexto da discussão + objetivo mensurável + metodologia de execução + stakeholders envolvidos + recursos necessários + critérios de sucesso + dependências + riscos/obstáculos. Cada tarefa deve ser auto-suficiente para execução."
                 }}
             ]
         }}
 
-        ELEMENTOS CRÍTICOS PARA IDENTIFICAR NA TRANSCRIÇÃO:
-        - Pesquisas de mercado, técnicas ou de viabilidade a serem realizadas
-        - Contatos com clientes, fornecedores, parceiros ou stakeholders
-        - Reuniões de planejamento, validação, apresentação ou follow-up a serem agendadas
-        - Documentos técnicos, propostas, contratos ou relatórios a serem criados
-        - Análises financeiras, técnicas, de risco ou de mercado a serem conduzidas
-        - Decisões estratégicas, técnicas ou operacionais pendentes
-        - Aprovações de orçamento, recursos, cronograma ou escopo necessárias
-        - Testes, protótipos, validações ou provas de conceito a serem executados
-        - Validações com usuários finais, clientes ou stakeholders internos
-        - Preparação de apresentações, demos ou materiais de comunicação
-        - Levantamento de requisitos funcionais, técnicos ou de negócio
-        - Definição de processos, metodologias ou fluxos de trabalho
-        - Treinamentos, capacitações ou transferência de conhecimento
-        - Monitoramento, acompanhamento ou controle de progresso
-        - Comunicação com equipes, gerência ou partes interessadas
+        DIRETRIZES FINAIS:
+        • Priorize tarefas mencionadas múltiplas vezes ou com urgência explícita
+        • Transforme cada problema discutido em tarefa de solução  
+        • Converta cada decisão tomada em tarefa de implementação
+        • Inclua tarefas de comunicação para decisões importantes
+        • Adicione validações para entregas críticas mencionadas
+        • Considere o ciclo completo: planejamento → execução → validação → comunicação
 
-        CONTEXTO ADICIONAL PARA CONSIDERAR:
-        - Se algo foi mencionado como "importante", "urgente" ou "crítico", crie tarefas detalhadas para isso
-        - Se houve discussão sobre problemas ou desafios, crie tarefas para solucioná-los
-        - Se foram mencionados prazos ou marcos, incorpore isso nas descrições das tarefas
-        - Se houve debate sobre diferentes abordagens, crie tarefas para avaliar as opções
-        - Se foram identificados riscos ou dependências, crie tarefas para mitigá-los
-
-        Sua missão é extrair o máximo valor possível desta transcrição, transformando cada insight, discussão e ponto levantado em tarefas acionáveis e bem estruturadas. Responda APENAS com o JSON das tarefas detalhadas.
+        Execute sua análise como a expert que você é. Cada tarefa deve refletir sua experiência em transformar discussões em execução estruturada.
         """
         
         response = openai.chat.completions.create(

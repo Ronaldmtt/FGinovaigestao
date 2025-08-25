@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Gerenciar Clientes - Sistema de Gerenciamento de Projetos{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2><i class="fas fa-building me-2"></i>Gerenciar Clientes</h2>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newClientModal">
+                <i class="fas fa-plus me-1"></i>Novo Cliente
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Email</th>
+                                <th>Telefone</th>
+                                <th>Criado por</th>
+                                <th>Data</th>
+                                <th>Projetos</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for client in clients %}
+                            <tr>
+                                <td>{{ client.nome }}</td>
+                                <td>{{ client.email or '-' }}</td>
+                                <td>{{ client.telefone or '-' }}</td>
+                                <td>{{ client.creator.full_name }}</td>
+                                <td>{{ client.created_at.strftime('%d/%m/%Y') }}</td>
+                                <td>
+                                    <span class="badge bg-info">{{ client.projects|length }}</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para novo cliente -->
+<div class="modal fade" id="newClientModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('new_client') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Novo Cliente</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    {% if form %}
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="mb-3">
+                        {{ form.nome.label(class="form-label") }}
+                        {{ form.nome(class="form-control") }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.email.label(class="form-label") }}
+                        {{ form.email(class="form-control") }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.telefone.label(class="form-label") }}
+                        {{ form.telefone(class="form-control") }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.endereco.label(class="form-label") }}
+                        {{ form.endereco(class="form-control", rows="3") }}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Cliente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

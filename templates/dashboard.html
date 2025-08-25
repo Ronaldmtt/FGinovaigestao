@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Sistema de Gerenciamento de Projetos{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2>
+            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+            <small class="text-muted">Bem-vindo, {{ current_user.full_name }}!</small>
+        </h2>
+    </div>
+</div>
+
+<div class="row mt-4">
+    {% if current_user.is_admin %}
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-users fa-2x text-primary mb-2"></i>
+                <h4>{{ stats.total_users }}</h4>
+                <p class="card-text">Usuários</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-building fa-2x text-info mb-2"></i>
+                <h4>{{ stats.total_clients }}</h4>
+                <p class="card-text">Clientes</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-project-diagram fa-2x text-success mb-2"></i>
+                <h4>{{ stats.total_projects }}</h4>
+                <p class="card-text">Projetos</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-tasks fa-2x text-warning mb-2"></i>
+                <h4>{{ stats.total_tasks }}</h4>
+                <p class="card-text">Tarefas</p>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-project-diagram fa-2x text-success mb-2"></i>
+                <h4>{{ stats.my_projects }}</h4>
+                <p class="card-text">Meus Projetos</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-tasks fa-2x text-primary mb-2"></i>
+                <h4>{{ stats.my_tasks }}</h4>
+                <p class="card-text">Minhas Tarefas</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-building fa-2x text-info mb-2"></i>
+                <h4>{{ stats.clients_created }}</h4>
+                <p class="card-text">Clientes Criados</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-clock fa-2x text-warning mb-2"></i>
+                <h4>{{ stats.pending_tasks }}</h4>
+                <p class="card-text">Tarefas Pendentes</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <h4>Acesso Rápido</h4>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ url_for('clients') }}" class="btn btn-outline-primary">
+                <i class="fas fa-building me-1"></i>Gerenciar Clientes
+            </a>
+            <a href="{{ url_for('projects') }}" class="btn btn-outline-success">
+                <i class="fas fa-project-diagram me-1"></i>Gerenciar Projetos
+            </a>
+            <a href="{{ url_for('tasks') }}" class="btn btn-outline-warning">
+                <i class="fas fa-tasks me-1"></i>Gerenciar Tarefas
+            </a>
+            <a href="{{ url_for('kanban') }}" class="btn btn-outline-info">
+                <i class="fas fa-columns me-1"></i>Visualizar Kanban
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}Gerenciar Tarefas - Sistema de Gerenciamento de Projetos{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2><i class="fas fa-tasks me-2"></i>Gerenciar Tarefas</h2>
+            <div class="btn-group">
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newTaskModal">
+                    <i class="fas fa-plus me-1"></i>Nova Tarefa
+                </button>
+                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#transcriptionTaskModal">
+                    <i class="fas fa-robot me-1"></i>Gerar com IA
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Título</th>
+                                <th>Projeto</th>
+                                <th>Cliente</th>
+                                <th>Responsável</th>
+                                <th>Status</th>
+                                <th>Data Conclusão</th>
+                                <th>Criada em</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for task in tasks %}
+                            <tr>
+                                <td>{{ task.titulo }}</td>
+                                <td>{{ task.project.nome }}</td>
+                                <td>{{ task.project.client.nome }}</td>
+                                <td>{{ task.assigned_user.full_name if task.assigned_user else '-' }}</td>
+                                <td>
+                                    {% if task.status == 'pendente' %}
+                                    <span class="badge bg-secondary">Pendente</span>
+                                    {% elif task.status == 'em_andamento' %}
+                                    <span class="badge bg-primary">Em Andamento</span>
+                                    {% else %}
+                                    <span class="badge bg-success">Concluída</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ task.data_conclusao.strftime('%d/%m/%Y') if task.data_conclusao else '-' }}</td>
+                                <td>{{ task.created_at.strftime('%d/%m/%Y') }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para nova tarefa -->
+<div class="modal fade" id="newTaskModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('new_task') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nova Tarefa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    {% if form %}
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="mb-3">
+                        {{ form.titulo.label(class="form-label") }}
+                        {{ form.titulo(class="form-control") }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.project_id.label(class="form-label") }}
+                        {{ form.project_id(class="form-select") }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.assigned_user_id.label(class="form-label") }}
+                        {{ form.assigned_user_id(class="form-select") }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.data_conclusao.label(class="form-label") }}
+                        {{ form.data_conclusao(class="form-control", type="date") }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.descricao.label(class="form-label") }}
+                        {{ form.descricao(class="form-control", rows="3") }}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Criar Tarefa</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para gerar tarefas com transcrição -->
+<div class="modal fade" id="transcriptionTaskModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('transcription_task') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Gerar Tarefas com IA</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    {% if transcription_form %}
+                    {{ transcription_form.hidden_tag() }}
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            {{ transcription_form.client_id.label(class="form-label") }}
+                            {{ transcription_form.client_id(class="form-select", id="clientSelect") }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ transcription_form.project_id.label(class="form-label") }}
+                            {{ transcription_form.project_id(class="form-select", id="projectSelect") }}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ transcription_form.transcricao.label(class="form-label") }}
+                        <small class="form-text text-muted">A IA processará esta transcrição para gerar tarefas automaticamente</small>
+                        {{ transcription_form.transcricao(class="form-control") }}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Gerar Tarefas</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Atualizar projetos baseado no cliente selecionado
+document.getElementById('clientSelect')?.addEventListener('change', function() {
+    const clientId = this.value;
+    const projectSelect = document.getElementById('projectSelect');
+    
+    if (clientId) {
+        fetch(`/api/projects/${clientId}`)
+            .then(response => response.json())
+            .then(projects => {
+                projectSelect.innerHTML = '<option value="">Selecione um projeto</option>';
+                projects.forEach(project => {
+                    const option = document.createElement('option');
+                    option.value = project.id;
+                    option.textContent = project.nome;
+                    projectSelect.appendChild(option);
+                });
+            });
+    } else {
+        projectSelect.innerHTML = '<option value="">Selecione um projeto</option>';
+    }
+});
+</script>
+{% endblock %}

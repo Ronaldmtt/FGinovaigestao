@@ -77,7 +77,12 @@
                 {% for task in task_columns.pendente %}
                 <div class="task-card card mb-2" data-task-id="{{ task.id }}" draggable="true">
                     <div class="card-body p-2">
-                        <h6 class="card-title">{{ task.titulo }}</h6>
+                        <div class="d-flex justify-content-between align-items-start">
+                            <h6 class="card-title mb-1">{{ task.titulo }}</h6>
+                            <button class="btn btn-sm btn-outline-primary" onclick="editTask({{ task.id }})" title="Editar tarefa">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </div>
                         <small class="text-muted d-block">{{ task.project.client.nome }} - {{ task.project.nome }}</small>
                         {% if task.assigned_user %}
                         <small class="text-info d-block">
@@ -108,7 +113,12 @@
                 {% for task in task_columns.em_andamento %}
                 <div class="task-card card mb-2" data-task-id="{{ task.id }}" draggable="true">
                     <div class="card-body p-2">
-                        <h6 class="card-title">{{ task.titulo }}</h6>
+                        <div class="d-flex justify-content-between align-items-start">
+                            <h6 class="card-title mb-1">{{ task.titulo }}</h6>
+                            <button class="btn btn-sm btn-outline-primary" onclick="editTask({{ task.id }})" title="Editar tarefa">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </div>
                         <small class="text-muted d-block">{{ task.project.client.nome }} - {{ task.project.nome }}</small>
                         {% if task.assigned_user %}
                         <small class="text-info d-block">
@@ -139,7 +149,12 @@
                 {% for task in task_columns.concluida %}
                 <div class="task-card card mb-2" data-task-id="{{ task.id }}" draggable="true">
                     <div class="card-body p-2">
-                        <h6 class="card-title">{{ task.titulo }}</h6>
+                        <div class="d-flex justify-content-between align-items-start">
+                            <h6 class="card-title mb-1">{{ task.titulo }}</h6>
+                            <button class="btn btn-sm btn-outline-primary" onclick="editTask({{ task.id }})" title="Editar tarefa">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </div>
                         <small class="text-muted d-block">{{ task.project.client.nome }} - {{ task.project.nome }}</small>
                         {% if task.assigned_user %}
                         <small class="text-info d-block">
@@ -158,4 +173,107 @@
         </div>
     </div>
 </div>
+
+<!-- Modal de Edição de Tarefa -->
+<div class="modal fade" id="editTaskModal" tabindex="-1" aria-labelledby="editTaskModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editTaskModalLabel">Editar Tarefa</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editTaskForm">
+                <div class="modal-body">
+                    <input type="hidden" id="editTaskId">
+                    
+                    <div class="mb-3">
+                        <label for="editTaskTitulo" class="form-label">Título da Tarefa</label>
+                        <input type="text" class="form-control" id="editTaskTitulo" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="editTaskDescricao" class="form-label">Descrição</label>
+                        <textarea class="form-control" id="editTaskDescricao" rows="4"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="editTaskResponsavel" class="form-label">Responsável</label>
+                        <select class="form-select" id="editTaskResponsavel">
+                            <option value="">Selecione um usuário</option>
+                            {% for user in all_users %}
+                            <option value="{{ user.id }}">{{ user.full_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="editTaskDataConclusao" class="form-label">Data de Conclusão</label>
+                        <input type="date" class="form-control" id="editTaskDataConclusao">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Função para editar tarefa
+function editTask(taskId) {
+    fetch(`/api/tasks/${taskId}`)
+        .then(response => response.json())
+        .then(task => {
+            document.getElementById('editTaskId').value = task.id;
+            document.getElementById('editTaskTitulo').value = task.titulo;
+            document.getElementById('editTaskDescricao').value = task.descricao || '';
+            document.getElementById('editTaskResponsavel').value = task.assigned_user_id || '';
+            document.getElementById('editTaskDataConclusao').value = task.data_conclusao || '';
+            
+            const modal = new bootstrap.Modal(document.getElementById('editTaskModal'));
+            modal.show();
+        })
+        .catch(error => {
+            console.error('Erro ao carregar dados da tarefa:', error);
+            alert('Erro ao carregar dados da tarefa');
+        });
+}
+
+// Salvar alterações da tarefa
+document.getElementById('editTaskForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const taskId = document.getElementById('editTaskId').value;
+    const formData = {
+        titulo: document.getElementById('editTaskTitulo').value,
+        descricao: document.getElementById('editTaskDescricao').value,
+        assigned_user_id: document.getElementById('editTaskResponsavel').value || null,
+        data_conclusao: document.getElementById('editTaskDataConclusao').value || null
+    };
+    
+    fetch(`/api/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editTaskModal'));
+            modal.hide();
+            location.reload(); // Recarregar a página para mostrar as alterações
+        } else {
+            alert('Erro ao salvar alterações: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao salvar tarefa:', error);
+        alert('Erro ao salvar alterações');
+    });
+});
+</script>
 {% endblock %}

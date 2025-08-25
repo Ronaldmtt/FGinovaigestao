@@ -414,15 +414,62 @@ def kanban():
     projects = Project.query.all()
     clients = Client.query.all()
     
+    # Todos os usuários para o modal de edição
+    all_users = User.query.filter_by(is_admin=False).all()
+    
     return render_template('kanban.html', 
                          task_columns=task_columns, 
                          projects=projects, 
                          clients=clients,
+                         all_users=all_users,
                          current_filters={
                              'project_id': project_filter,
                              'client_id': client_filter,
                              'my_tasks': my_tasks
                          })
+
+# API Routes para tarefas
+@app.route('/api/tasks/<int:task_id>')
+@login_required
+def api_get_task(task_id):
+    task = Task.query.get_or_404(task_id)
+    
+    return jsonify({
+        'id': task.id,
+        'titulo': task.titulo,
+        'descricao': task.descricao,
+        'assigned_user_id': task.assigned_user_id,
+        'data_conclusao': task.data_conclusao.isoformat() if task.data_conclusao else None,
+        'status': task.status
+    })
+
+@app.route('/api/tasks/<int:task_id>', methods=['PUT'])
+@login_required
+def api_update_task(task_id):
+    task = Task.query.get_or_404(task_id)
+    data = request.get_json()
+    
+    try:
+        # Atualizar campos
+        if 'titulo' in data:
+            task.titulo = data['titulo']
+        if 'descricao' in data:
+            task.descricao = data['descricao']
+        if 'assigned_user_id' in data:
+            task.assigned_user_id = data['assigned_user_id'] if data['assigned_user_id'] else None
+        if 'data_conclusao' in data:
+            if data['data_conclusao']:
+                from datetime import datetime
+                task.data_conclusao = datetime.strptime(data['data_conclusao'], '%Y-%m-%d').date()
+            else:
+                task.data_conclusao = None
+        
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Tarefa atualizada com sucesso!'})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Erro ao atualizar tarefa: {str(e)}'})
 
 @app.route('/api/tasks/<int:task_id>/status', methods=['POST'])
 @login_required

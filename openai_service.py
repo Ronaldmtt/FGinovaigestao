@@ -7,12 +7,12 @@ import httpx
 # do not change this unless explicitly requested by the user
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
-# Configurar timeout muito agressivo para evitar travamento
+# Configurar timeout balanceado
 openai = OpenAI(
     api_key=OPENAI_API_KEY,
-    timeout=10.0,  # Timeout de 10 segundos
+    timeout=20.0,  # Timeout de 20 segundos para processar mais contexto
     max_retries=0,  # Sem retry para evitar timeout do worker
-    http_client=httpx.Client(timeout=10.0)
+    http_client=httpx.Client(timeout=20.0)
 )
 
 def process_project_transcription(transcription):
@@ -20,12 +20,13 @@ def process_project_transcription(transcription):
     Processa a transcrição do projeto usando GPT-5 para preencher os campos estruturados
     """
     try:
-        # Usar a transcrição completa para melhor contexto
+        # Usar contexto substancial mas controlado
+        limited_transcription = transcription[:4000] if len(transcription) > 4000 else transcription
         
         prompt = f"""
         Analise esta transcrição de reunião/projeto e extraia informações relevantes em formato JSON:
 
-        {transcription}
+        {limited_transcription}
 
         Com base no conteúdo da transcrição, retorne um JSON com estes campos preenchidos de forma coerente:
         {{
@@ -62,12 +63,13 @@ def generate_tasks_from_transcription(transcription, project_name):
     Gera tarefas com base na transcrição fornecida
     """
     try:
-        # Usar a transcrição completa para melhor contexto
+        # Usar contexto substancial mas controlado
+        limited_transcription = transcription[:3500] if len(transcription) > 3500 else transcription
         
         prompt = f"""
         Com base nesta transcrição de reunião sobre o projeto "{project_name}", gere tarefas específicas em formato JSON:
 
-        {transcription}
+        {limited_transcription}
 
         Analise o conteúdo da transcrição e crie 3-5 tarefas práticas e relevantes ao que foi discutido:
         {{

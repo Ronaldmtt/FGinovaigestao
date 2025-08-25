@@ -7,11 +7,12 @@ import httpx
 # do not change this unless explicitly requested by the user
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
-# Configurar timeout para evitar travamento
+# Configurar timeout mais agressivo para evitar travamento
 openai = OpenAI(
     api_key=OPENAI_API_KEY,
-    timeout=30.0,  # Timeout de 30 segundos
-    http_client=httpx.Client(timeout=30.0)
+    timeout=15.0,  # Timeout de 15 segundos
+    max_retries=0,  # Sem retry para evitar timeout do worker
+    http_client=httpx.Client(timeout=15.0)
 )
 
 def process_project_transcription(transcription):
@@ -19,25 +20,28 @@ def process_project_transcription(transcription):
     Processa a transcrição do projeto usando GPT-5 para preencher os campos estruturados
     """
     try:
+        # Limitar transcrição para resposta mais rápida
+        limited_transcription = transcription[:1500] if len(transcription) > 1500 else transcription
+        
         prompt = f"""
-        Com base na seguinte transcrição de projeto, preencha os campos abaixo de forma estruturada e detalhada:
+        Extraia informações desta transcrição em JSON:
 
-        Transcrição: {transcription}
+        {limited_transcription}
 
-        Por favor, forneça as informações no seguinte formato JSON:
+        Formato:
         {{
-            "contexto_justificativa": "descrição do contexto e justificativa",
-            "descricao_resumida": "descrição resumida do projeto",
-            "problema_oportunidade": "problema ou oportunidade que o projeto resolve",
-            "objetivos": "objetivos gerais e específicos",
-            "alinhamento_estrategico": "como se conecta à estratégia da empresa",
-            "escopo_projeto": "o que será entregue",
-            "fora_escopo": "o que NÃO será feito",
-            "premissas": "premissas do projeto",
-            "restricoes": "restrições do projeto"
+            "contexto_justificativa": "contexto breve",
+            "descricao_resumida": "resumo em 1-2 linhas",
+            "problema_oportunidade": "problema principal",
+            "objetivos": "objetivos principais",
+            "alinhamento_estrategico": "alinhamento estratégico",
+            "escopo_projeto": "escopo principal",
+            "fora_escopo": "fora do escopo",
+            "premissas": "premissas principais",
+            "restricoes": "restrições principais"
         }}
 
-        Seja específico e detalhado em cada campo. Se alguma informação não estiver clara na transcrição, faça inferências razoáveis baseadas no contexto.
+        Seja conciso.
         """
         
         response = openai.chat.completions.create(
@@ -61,27 +65,21 @@ def generate_tasks_from_transcription(transcription, project_name):
     Gera tarefas com base na transcrição fornecida
     """
     try:
+        # Limitar transcrição para resposta mais rápida
+        limited_transcription = transcription[:1000] if len(transcription) > 1000 else transcription
+        
         prompt = f"""
-        Com base na seguinte transcrição sobre o projeto "{project_name}", gere uma lista de tarefas específicas e acionáveis:
+        Gere 3-5 tarefas do projeto "{project_name}":
 
-        Transcrição: {transcription}
+        {limited_transcription}
 
-        Por favor, forneça as tarefas no seguinte formato JSON:
+        JSON:
         {{
             "tasks": [
-                {{
-                    "titulo": "título da tarefa",
-                    "descricao": "descrição detalhada da tarefa"
-                }},
-                {{
-                    "titulo": "título da tarefa 2",
-                    "descricao": "descrição detalhada da tarefa 2"
-                }}
+                {{"titulo": "tarefa 1", "descricao": "descrição breve"}},
+                {{"titulo": "tarefa 2", "descricao": "descrição breve"}}
             ]
         }}
-
-        Gere entre 3 a 8 tarefas. Cada tarefa deve ser específica, acionável e ter um título claro.
-        As descrições devem incluir o que precisa ser feito e, se aplicável, critérios de aceitação.
         """
         
         response = openai.chat.completions.create(

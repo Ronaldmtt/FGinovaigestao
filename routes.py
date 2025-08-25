@@ -163,10 +163,41 @@ def new_project():
         # Tentar processar com IA em segundo plano (sem bloquear)
         success_message = 'Projeto criado com sucesso!'
         
-        # IA processamento foi temporariamente desabilitado para evitar timeouts
-        # O usuário pode processar com IA posteriormente através da página do projeto
+        # Processar com IA automaticamente na criação (otimizado)
         if form.transcricao.data and len(form.transcricao.data.strip()) > 10:
-            success_message = 'Projeto criado com sucesso! Você pode processar a transcrição com IA na página do projeto.'
+            try:
+                # Processar transcrição com IA (timeout otimizado)
+                ai_result = process_project_transcription(form.transcricao.data)
+                if ai_result:
+                    project.contexto_justificativa = ai_result.get('contexto_justificativa')
+                    project.descricao_resumida = ai_result.get('descricao_resumida')
+                    project.problema_oportunidade = ai_result.get('problema_oportunidade')
+                    project.objetivos = ai_result.get('objetivos')
+                    project.alinhamento_estrategico = ai_result.get('alinhamento_estrategico')
+                    project.escopo_projeto = ai_result.get('escopo_projeto')
+                    project.fora_escopo = ai_result.get('fora_escopo')
+                    project.premissas = ai_result.get('premissas')
+                    project.restricoes = ai_result.get('restricoes')
+                    
+                    # Gerar tarefas automáticas
+                    auto_tasks = generate_tasks_from_transcription(form.transcricao.data, project.nome)
+                    for task_data in auto_tasks:
+                        task = Task(
+                            titulo=task_data['titulo'],
+                            descricao=task_data['descricao'],
+                            project_id=project.id,
+                            status='pendente'
+                        )
+                        db.session.add(task)
+                    
+                    db.session.commit()
+                    success_message = 'Projeto criado e processado com IA com sucesso!'
+                else:
+                    success_message = 'Projeto criado, mas houve problema no processamento da IA.'
+                    
+            except Exception as e:
+                print(f"Erro no processamento da IA: {e}")
+                success_message = 'Projeto criado com sucesso! A IA não conseguiu processar a transcrição no momento.'
         else:
             success_message = 'Projeto criado com sucesso!'
         

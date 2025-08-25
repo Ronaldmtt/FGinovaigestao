@@ -7,12 +7,12 @@ import httpx
 # do not change this unless explicitly requested by the user
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
-# Configurar timeout balanceado
+# Configurar timeout extenso para processamento completo
 openai = OpenAI(
     api_key=OPENAI_API_KEY,
-    timeout=20.0,  # Timeout de 20 segundos para processar mais contexto
+    timeout=60.0,  # Timeout de 60 segundos para processamento completo
     max_retries=0,  # Sem retry para evitar timeout do worker
-    http_client=httpx.Client(timeout=20.0)
+    http_client=httpx.Client(timeout=60.0)
 )
 
 def process_project_transcription(transcription):
@@ -65,28 +65,57 @@ def generate_tasks_from_transcription(transcription, project_name):
         # Usar a transcrição completa - processamento em etapas separadas permite isso
         
         prompt = f"""
-        Analise esta transcrição de reunião sobre o projeto "{project_name}" e extraia TODAS as tarefas e ações mencionadas ou implícitas:
+        Você é um especialista em gestão de projetos com 15 anos de experiência. Analise minuciosamente esta transcrição de reunião sobre o projeto "{project_name}" e extraia TODAS as tarefas, atividades, ações e responsabilidades mencionadas ou implícitas na discussão.
 
+        TRANSCRIÇÃO COMPLETA PARA ANÁLISE:
         {transcription}
 
-        INSTRUÇÕES:
-        1. Identifique TODAS as ações, tarefas, pesquisas, reuniões, contatos e decisões mencionadas
-        2. Crie tarefas específicas e acionáveis para cada ponto discutido
-        3. Inclua tarefas implícitas baseadas no contexto (preparação, validação, follow-up)
-        4. Gere 6-12 tarefas detalhadas com descrições completas
-        5. Cada descrição deve ter pelo menos 2 frases explicando contexto e objetivos
+        INSTRUÇÕES DETALHADAS PARA ANÁLISE PROFUNDA:
+        1. Leia cuidadosamente TODA a transcrição palavra por palavra - não pule nenhuma seção
+        2. Identifique TODAS as ações explícitas: tarefas, deliverables, pesquisas, reuniões, contatos, decisões mencionadas
+        3. Identifique tarefas IMPLÍCITAS baseadas no contexto: preparação necessária, validações pendentes, follow-ups obrigatórios
+        4. Para cada ponto discutido ou problema levantado, crie uma tarefa específica e acionável
+        5. Inclua tarefas de diferentes fases: preparação, execução, validação, follow-up e documentação
+        6. Seja extremamente específico sobre O QUE fazer, COMO fazer, QUEM envolver, RECURSOS necessários, CRITÉRIOS de sucesso
+        7. Gere entre 10-20 tarefas detalhadas e abrangentes (extraia o máximo absoluto da transcrição)
+        8. Priorize tarefas que foram mencionadas múltiplas vezes ou enfatizadas na discussão
+        9. Considere dependências entre tarefas e crie etapas lógicas de execução
 
-        Procure na transcrição: pesquisas, contatos, reuniões, documentos, análises, decisões, aprovações, testes, validações, apresentações, levantamentos.
-
-        JSON esperado:
+        FORMATO DE RESPOSTA - JSON com tarefas extremamente detalhadas:
         {{
             "tasks": [
                 {{
-                    "titulo": "Título específico da tarefa",
-                    "descricao": "Descrição detalhada do que fazer, incluindo contexto e objetivos específicos. Explicação clara dos próximos passos e critérios de sucesso."
+                    "titulo": "Título claro, específico e acionável da tarefa",
+                    "descricao": "Descrição completa e detalhada do que deve ser feito, incluindo: contexto completo da discussão, objetivos específicos e mensuráveis, recursos e ferramentas necessários, pessoas ou departamentos a serem envolvidos, critérios claros de sucesso, próximos passos detalhados, prazos sugeridos quando mencionados, e possíveis riscos ou obstáculos identificados na discussão. Mínimo de 4-6 frases explicativas e contextuais."
                 }}
             ]
         }}
+
+        ELEMENTOS CRÍTICOS PARA IDENTIFICAR NA TRANSCRIÇÃO:
+        - Pesquisas de mercado, técnicas ou de viabilidade a serem realizadas
+        - Contatos com clientes, fornecedores, parceiros ou stakeholders
+        - Reuniões de planejamento, validação, apresentação ou follow-up a serem agendadas
+        - Documentos técnicos, propostas, contratos ou relatórios a serem criados
+        - Análises financeiras, técnicas, de risco ou de mercado a serem conduzidas
+        - Decisões estratégicas, técnicas ou operacionais pendentes
+        - Aprovações de orçamento, recursos, cronograma ou escopo necessárias
+        - Testes, protótipos, validações ou provas de conceito a serem executados
+        - Validações com usuários finais, clientes ou stakeholders internos
+        - Preparação de apresentações, demos ou materiais de comunicação
+        - Levantamento de requisitos funcionais, técnicos ou de negócio
+        - Definição de processos, metodologias ou fluxos de trabalho
+        - Treinamentos, capacitações ou transferência de conhecimento
+        - Monitoramento, acompanhamento ou controle de progresso
+        - Comunicação com equipes, gerência ou partes interessadas
+
+        CONTEXTO ADICIONAL PARA CONSIDERAR:
+        - Se algo foi mencionado como "importante", "urgente" ou "crítico", crie tarefas detalhadas para isso
+        - Se houve discussão sobre problemas ou desafios, crie tarefas para solucioná-los
+        - Se foram mencionados prazos ou marcos, incorpore isso nas descrições das tarefas
+        - Se houve debate sobre diferentes abordagens, crie tarefas para avaliar as opções
+        - Se foram identificados riscos ou dependências, crie tarefas para mitigá-los
+
+        Sua missão é extrair o máximo valor possível desta transcrição, transformando cada insight, discussão e ponto levantado em tarefas acionáveis e bem estruturadas. Responda APENAS com o JSON das tarefas detalhadas.
         """
         
         response = openai.chat.completions.create(

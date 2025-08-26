@@ -553,6 +553,83 @@ def public_project_details(project_id, code):
         'project': project_data
     })
 
+@app.route('/projects/<int:id>/data')
+@login_required
+def get_project_data(id):
+    project = Project.query.get_or_404(id)
+    
+    # Verificar se o usuário tem acesso ao projeto
+    if not current_user.is_admin and current_user.id != project.responsible_id:
+        return jsonify({'success': False, 'message': 'Acesso negado'}), 403
+    
+    # Buscar dados necessários para o formulário
+    clients = Client.query.all()
+    users = User.query.filter_by(is_admin=False).all()
+    
+    # Preparar dados do projeto
+    project_data = {
+        'id': project.id,
+        'nome': project.nome,
+        'client_id': project.client_id,
+        'responsible_id': project.responsible_id,
+        'status': project.status,
+        'team_members': [member.id for member in project.team_members],
+        'descricao_resumida': project.descricao_resumida,
+        'problema_oportunidade': project.problema_oportunidade,
+        'objetivos': project.objetivos,
+        'alinhamento_estrategico': project.alinhamento_estrategico,
+        'escopo_projeto': project.escopo_projeto,
+        'fora_escopo': project.fora_escopo,
+        'premissas': project.premissas,
+        'restricoes': project.restricoes
+    }
+    
+    clients_data = [{'id': c.id, 'nome': c.nome} for c in clients]
+    users_data = [{'id': u.id, 'full_name': u.full_name} for u in users]
+    
+    return jsonify({
+        'success': True,
+        'project': project_data,
+        'clients': clients_data,
+        'users': users_data
+    })
+
+@app.route('/projects/<int:id>/edit', methods=['POST'])
+@login_required
+def update_project(id):
+    project = Project.query.get_or_404(id)
+    
+    # Verificar se o usuário tem acesso ao projeto
+    if not current_user.is_admin and current_user.id != project.responsible_id:
+        flash('Você não tem permissão para editar este projeto.', 'danger')
+        return redirect(url_for('projects'))
+    
+    # Atualizar dados do projeto
+    project.nome = request.form.get('nome')
+    project.client_id = request.form.get('client_id')
+    project.responsible_id = request.form.get('responsible_id')
+    project.status = request.form.get('status')
+    project.descricao_resumida = request.form.get('descricao_resumida')
+    project.problema_oportunidade = request.form.get('problema_oportunidade')
+    project.objetivos = request.form.get('objetivos')
+    project.alinhamento_estrategico = request.form.get('alinhamento_estrategico')
+    project.escopo_projeto = request.form.get('escopo_projeto')
+    project.fora_escopo = request.form.get('fora_escopo')
+    project.premissas = request.form.get('premissas')
+    project.restricoes = request.form.get('restricoes')
+    
+    # Limpar membros atuais da equipe e adicionar novo se selecionado
+    project.team_members.clear()
+    team_member_id = request.form.get('team_member_id')
+    if team_member_id:
+        user = User.query.get(team_member_id)
+        if user:
+            project.team_members.append(user)
+    
+    db.session.commit()
+    flash('Projeto atualizado com sucesso!', 'success')
+    return redirect(url_for('projects'))
+
 @app.route('/tasks/new-kanban', methods=['POST'])
 @login_required
 def new_task_kanban():

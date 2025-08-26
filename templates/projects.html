@@ -68,11 +68,14 @@
                                     <span class="badge bg-info">{{ project.tasks|length }}</span>
                                 </td>
                                 <td>
-                                    <a href="{{ url_for('project_detail', id=project.id) }}" class="btn btn-sm btn-outline-primary me-1">
+                                    <a href="{{ url_for('project_detail', id=project.id) }}" class="btn btn-sm btn-outline-primary me-1" title="Ver detalhes">
                                         <i class="fas fa-eye"></i>
                                     </a>
                                     {% if current_user.is_admin or current_user.id == project.responsible_id %}
-                                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ project.id }}">
+                                    <button type="button" class="btn btn-sm btn-outline-info me-1" onclick="editProject({{ project.id }})" title="Editar projeto">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ project.id }}" title="Deletar projeto">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                     {% endif %}
@@ -279,4 +282,175 @@
         </div>
     </div>
 </div>
+
+<!-- Modal para editar projeto -->
+<div class="modal fade" id="editProjectModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <form id="editProjectForm" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Projeto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="editProjectContent">
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Carregando...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentProjectId = null;
+
+function editProject(projectId) {
+    currentProjectId = projectId;
+    const modal = new bootstrap.Modal(document.getElementById('editProjectModal'));
+    const content = document.getElementById('editProjectContent');
+    const form = document.getElementById('editProjectForm');
+    
+    // Definir action do formulário
+    form.action = `/projects/${projectId}/edit`;
+    
+    // Mostrar loading
+    content.innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+        </div>
+    `;
+    
+    modal.show();
+    
+    // Buscar dados do projeto
+    fetch(`/projects/${projectId}/data`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                content.innerHTML = buildEditProjectHTML(data.project, data.clients, data.users);
+            } else {
+                content.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Erro ao carregar dados do projeto.
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            content.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Erro ao carregar dados do projeto.
+                </div>
+            `;
+        });
+}
+
+function buildEditProjectHTML(project, clients, users) {
+    return `
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Nome do Projeto</label>
+                <input type="text" class="form-control" name="nome" value="${project.nome || ''}" required>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Cliente</label>
+                <select class="form-select" name="client_id" required>
+                    ${clients.map(client => 
+                        `<option value="${client.id}" ${client.id === project.client_id ? 'selected' : ''}>${client.nome}</option>`
+                    ).join('')}
+                </select>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Usuário Responsável</label>
+                <select class="form-select" name="responsible_id" required>
+                    ${users.map(user => 
+                        `<option value="${user.id}" ${user.id === project.responsible_id ? 'selected' : ''}>${user.full_name}</option>`
+                    ).join('')}
+                </select>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Status</label>
+                <select class="form-select" name="status" required>
+                    <option value="em_andamento" ${project.status === 'em_andamento' ? 'selected' : ''}>Em Andamento</option>
+                    <option value="pausado" ${project.status === 'pausado' ? 'selected' : ''}>Pausado</option>
+                    <option value="cancelado" ${project.status === 'cancelado' ? 'selected' : ''}>Cancelado</option>
+                    <option value="concluido" ${project.status === 'concluido' ? 'selected' : ''}>Concluído</option>
+                </select>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Membro da Equipe</label>
+                <select class="form-select" name="team_member_id">
+                    <option value="">Selecione um membro</option>
+                    ${users.map(user => 
+                        `<option value="${user.id}" ${project.team_members && project.team_members.includes(user.id) ? 'selected' : ''}>${user.full_name}</option>`
+                    ).join('')}
+                </select>
+            </div>
+        </div>
+        
+        <h6 class="mt-4 mb-3">Detalhes do Projeto</h6>
+        
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Descrição Resumida</label>
+                <textarea class="form-control" name="descricao_resumida" rows="3">${project.descricao_resumida || ''}</textarea>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Problema/Oportunidade</label>
+                <textarea class="form-control" name="problema_oportunidade" rows="3">${project.problema_oportunidade || ''}</textarea>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Objetivos</label>
+                <textarea class="form-control" name="objetivos" rows="3">${project.objetivos || ''}</textarea>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Alinhamento Estratégico</label>
+                <textarea class="form-control" name="alinhamento_estrategico" rows="3">${project.alinhamento_estrategico || ''}</textarea>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Escopo do Projeto</label>
+                <textarea class="form-control" name="escopo_projeto" rows="4">${project.escopo_projeto || ''}</textarea>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Fora do Escopo</label>
+                <textarea class="form-control" name="fora_escopo" rows="4">${project.fora_escopo || ''}</textarea>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Premissas</label>
+                <textarea class="form-control" name="premissas" rows="3">${project.premissas || ''}</textarea>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Restrições</label>
+                <textarea class="form-control" name="restricoes" rows="3">${project.restricoes || ''}</textarea>
+            </div>
+        </div>
+    `;
+}
+</script>
 {% endblock %}

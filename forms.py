@@ -65,7 +65,7 @@ class TranscriptionTaskForm(FlaskForm):
     def __init__(self, *args, **kwargs):
         super(TranscriptionTaskForm, self).__init__(*args, **kwargs)
         self.client_id.choices = [(c.id, c.nome) for c in Client.query.all()]
-        self.project_id.choices = [('', 'Selecione um projeto')] + [(p.id, p.nome) for p in Project.query.all()]
+        self.project_id.choices = [(0, 'Selecione um projeto')] + [(p.id, p.nome) for p in Project.query.all()]
 
 class ManualProjectForm(FlaskForm):
     nome = StringField('Nome do Projeto', validators=[DataRequired(), Length(min=2, max=200)])
@@ -129,3 +129,6 @@ class ChangePasswordForm(FlaskForm):
         DataRequired(),
         EqualTo('new_password', message="As senhas devem ser iguais.")
     ])
+
+class ImportDataForm(FlaskForm):
+    data_file = StringField('Arquivo JSON', validators=[DataRequired()])

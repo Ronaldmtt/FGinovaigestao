@@ -5,9 +5,11 @@ from datetime import datetime, timedelta
 import httpx
 import secrets
 import string
+import json
+import os
 from app import app, db
 from models import User, Client, Project, Task, TodoItem
-from forms import LoginForm, UserForm, ClientForm, ProjectForm, TaskForm, TranscriptionTaskForm, ManualProjectForm, ManualTaskForm, ForgotPasswordForm, ResetPasswordForm, ChangePasswordForm
+from forms import LoginForm, UserForm, ClientForm, ProjectForm, TaskForm, TranscriptionTaskForm, ManualProjectForm, ManualTaskForm, ForgotPasswordForm, ResetPasswordForm, ChangePasswordForm, ImportDataForm
 from openai_service import process_project_transcription, generate_tasks_from_transcription
 
 @app.route('/')
@@ -1063,3 +1065,243 @@ def change_password():
         return redirect(url_for('dashboard'))
     
     return render_template('change_password.html', form=form)
+
+# Rotas para exportar/importar dados
+@app.route('/admin/export-data')
+@login_required
+def export_database():
+    """Exporta todos os dados do banco para download"""
+    if not current_user.is_admin:
+        flash('Acesso negado. Apenas administradores podem exportar dados.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    try:
+        export_data = {
+            'export_date': datetime.now().isoformat(),
+            'exported_by': current_user.email,
+            'users': [],
+            'clients': [],
+            'projects': [],
+            'tasks': [],
+            'todos': []
+        }
+        
+        # Exportar usuários
+        users = User.query.all()
+        for user in users:
+            export_data['users'].append({
+                'id': user.id,
+                'nome': user.nome,
+                'sobrenome': user.sobrenome,
+                'email': user.email,
+                'password_hash': user.password_hash,
+                'is_admin': user.is_admin,
+                'created_at': user.created_at.isoformat() if user.created_at else None
+            })
+        
+        # Exportar clientes
+        clients = Client.query.all()
+        for client in clients:
+            export_data['clients'].append({
+                'id': client.id,
+                'nome': client.nome,
+                'email': client.email,
+                'telefone': client.telefone,
+                'endereco': client.endereco,
+                'public_code': client.public_code,
+                'creator_id': client.creator_id,
+                'created_at': client.created_at.isoformat() if client.created_at else None
+            })
+        
+        # Exportar projetos
+        projects = Project.query.all()
+        for project in projects:
+            team_member_ids = [member.id for member in project.team_members]
+            export_data['projects'].append({
+                'id': project.id,
+                'nome': project.nome,
+                'transcricao': project.transcricao,
+                'status': project.status,
+                'client_id': project.client_id,
+                'responsible_id': project.responsible_id,
+                'team_member_ids': team_member_ids,
+                'contexto_justificativa': project.contexto_justificativa,
+                'descricao_resumida': project.descricao_resumida,
+                'problema_oportunidade': project.problema_oportunidade,
+                'objetivos': project.objetivos,
+                'alinhamento_estrategico': project.alinhamento_estrategico,
+                'escopo_projeto': project.escopo_projeto,
+                'fora_escopo': project.fora_escopo,
+                'premissas': project.premissas,
+                'restricoes': project.restricoes,
+                'created_at': project.created_at.isoformat() if project.created_at else None
+            })
+        
+        # Exportar tarefas
+        tasks = Task.query.all()
+        for task in tasks:
+            export_data['tasks'].append({
+                'id': task.id,
+                'titulo': task.titulo,
+                'descricao': task.descricao,
+                'status': task.status,
+                'project_id': task.project_id,
+                'assigned_user_id': task.assigned_user_id,
+                'data_conclusao': task.data_conclusao.isoformat() if task.data_conclusao else None,
+                'created_at': task.created_at.isoformat() if task.created_at else None,
+                'completed_at': task.completed_at.isoformat() if task.completed_at else None
+            })
+        
+        # Exportar todos
+        todos = TodoItem.query.all()
+        for todo in todos:
+            export_data['todos'].append({
+                'id': todo.id,
+                'texto': todo.texto,
+                'completed': todo.completed,
+                'task_id': todo.task_id,
+                'created_at': todo.created_at.isoformat() if todo.created_at else None,
+                'completed_at': todo.completed_at.isoformat() if todo.completed_at else None
+            })
+        
+        # Criar resposta JSON para download
+        response = jsonify(export_data)
+        response.headers['Content-Disposition'] = f'attachment; filename=database_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json'
+        response.headers['Content-Type'] = 'application/json'
+        
+        flash(f'Dados exportados com sucesso! {len(export_data["users"])} usuários, {len(export_data["clients"])} clientes, {len(export_data["projects"])} projetos, {len(export_data["tasks"])} tarefas.', 'success')
+        
+        return response
+        
+    except Exception as e:
+        flash(f'Erro ao exportar dados: {str(e)}', 'danger')
+        return redirect(url_for('dashboard'))
+
+@app.route('/admin/import-data', methods=['GET', 'POST'])
+@login_required
+def import_database():
+    """Página para importar dados"""
+    if not current_user.is_admin:
+        flash('Acesso negado. Apenas administradores podem importar dados.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    if request.method == 'POST':
+        if 'data_file' not in request.files:
+            flash('Nenhum arquivo foi selecionado.', 'danger')
+            return render_template('import_data.html')
+        
+        file = request.files['data_file']
+        if file.filename == '':
+            flash('Nenhum arquivo foi selecionado.', 'danger')
+            return render_template('import_data.html')
+        
+        if file and file.filename.endswith('.json'):
+            try:
+                # Ler conteúdo do arquivo
+                content = file.read().decode('utf-8')
+                data = json.loads(content)
+                
+                # Validar estrutura básica
+                required_keys = ['users', 'clients', 'projects', 'tasks', 'todos']
+                if not all(key in data for key in required_keys):
+                    flash('Arquivo JSON inválido. Estrutura incorreta.', 'danger')
+                    return render_template('import_data.html')
+                
+                # Importar dados
+                user_id_map = {}
+                client_id_map = {}
+                project_id_map = {}
+                task_id_map = {}
+                
+                stats = {'users': 0, 'clients': 0, 'projects': 0, 'tasks': 0, 'todos': 0}
+                
+                # Importar usuários
+                for user_data in data['users']:
+                    existing_user = User.query.filter_by(email=user_data['email']).first()
+                    if not existing_user:
+                        user = User(
+                            nome=user_data['nome'],
+                            sobrenome=user_data['sobrenome'],
+                            email=user_data['email'],
+                            password_hash=user_data['password_hash'],
+                            is_admin=user_data['is_admin'],
+                            created_at=datetime.fromisoformat(user_data['created_at']) if user_data['created_at'] else datetime.now()
+                        )
+                        db.session.add(user)
+                        db.session.flush()
+                        stats['users'] += 1
+                        user_id_map[user_data['id']] = user.id
+                    else:
+                        user_id_map[user_data['id']] = existing_user.id
+                
+                # Importar clientes
+                for client_data in data['clients']:
+                    existing_client = Client.query.filter_by(nome=client_data['nome']).first()
+                    if not existing_client:
+                        client = Client(
+                            nome=client_data['nome'],
+                            email=client_data['email'],
+                            telefone=client_data['telefone'],
+                            endereco=client_data['endereco'],
+                            public_code=client_data['public_code'],
+                            creator_id=user_id_map.get(client_data['creator_id'], current_user.id),
+                            created_at=datetime.fromisoformat(client_data['created_at']) if client_data['created_at'] else datetime.now()
+                        )
+                        db.session.add(client)
+                        db.session.flush()
+                        stats['clients'] += 1
+                        client_id_map[client_data['id']] = client.id
+                    else:
+                        client_id_map[client_data['id']] = existing_client.id
+                
+                # Importar projetos (simplified para economizar espaço)
+                for project_data in data['projects']:
+                    existing_project = Project.query.filter_by(nome=project_data['nome']).first()
+                    if not existing_project and client_id_map.get(project_data['client_id']):
+                        project = Project(
+                            nome=project_data['nome'],
+                            transcricao=project_data.get('transcricao'),
+                            status=project_data['status'],
+                            client_id=client_id_map[project_data['client_id']],
+                            responsible_id=user_id_map.get(project_data['responsible_id']),
+                            contexto_justificativa=project_data.get('contexto_justificativa'),
+                            descricao_resumida=project_data.get('descricao_resumida'),
+                            problema_oportunidade=project_data.get('problema_oportunidade'),
+                            objetivos=project_data.get('objetivos'),
+                            alinhamento_estrategico=project_data.get('alinhamento_estrategico'),
+                            escopo_projeto=project_data.get('escopo_projeto'),
+                            fora_escopo=project_data.get('fora_escopo'),
+                            premissas=project_data.get('premissas'),
+                            restricoes=project_data.get('restricoes'),
+                            created_at=datetime.fromisoformat(project_data['created_at']) if project_data['created_at'] else datetime.now()
+                        )
+                        db.session.add(project)
+                        db.session.flush()
+                        
+                        # Adicionar membros da equipe
+                        for old_member_id in project_data.get('team_member_ids', []):
+                            new_member_id = user_id_map.get(old_member_id)
+                            if new_member_id:
+                                member = User.query.get(new_member_id)
+                                if member:
+                                    project.team_members.append(member)
+                        
+                        stats['projects'] += 1
+                        project_id_map[project_data['id']] = project.id
+                    elif existing_project:
+                        project_id_map[project_data['id']] = existing_project.id
+                
+                db.session.commit()
+                
+                flash(f'Importação concluída! {stats["users"]} usuários, {stats["clients"]} clientes, {stats["projects"]} projetos importados.', 'success')
+                return redirect(url_for('dashboard'))
+                
+            except json.JSONDecodeError:
+                flash('Erro: arquivo JSON inválido.', 'danger')
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Erro ao importar dados: {str(e)}', 'danger')
+        else:
+            flash('Por favor, selecione um arquivo JSON válido.', 'danger')
+    
+    return render_template('import_data.html')

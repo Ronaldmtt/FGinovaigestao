@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Importar Dados - Sistema de Gerenciamento de Projetos{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-header d-flex align-items-center">
+                <i class="fas fa-upload me-2 text-primary"></i>
+                <h4 class="mb-0">Importar Dados do Sistema</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Instruções:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>Selecione um arquivo JSON exportado anteriormente</li>
+                        <li>O sistema importará: usuários, clientes, projetos, tarefas e todos</li>
+                        <li>Dados existentes não serão duplicados</li>
+                        <li>⚠️ Esta operação pode demorar alguns segundos</li>
+                    </ul>
+                </div>
+
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="data_file" class="form-label">
+                            <i class="fas fa-file-code me-1"></i>Arquivo de Dados (JSON)
+                        </label>
+                        <input type="file" 
+                               class="form-control" 
+                               id="data_file" 
+                               name="data_file" 
+                               accept=".json"
+                               required>
+                        <div class="form-text">Apenas arquivos JSON são aceitos</div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success flex-fill">
+                            <i class="fas fa-upload me-1"></i>Importar Dados
+                        </button>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                            <i class="fas fa-times me-1"></i>Cancelar
+                        </a>
+                    </div>
+                </form>
+
+                <hr>
+                
+                <div class="text-center">
+                    <h6 class="text-muted">Precisa exportar dados?</h6>
+                    <a href="{{ url_for('export_database') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-download me-1"></i>Exportar Dados Atuais
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

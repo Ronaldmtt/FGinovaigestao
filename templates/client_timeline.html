@@ -210,7 +210,7 @@
                     {% if all_tasks %}
                     <div class="timeline mt-4">
                         {% for task_data in all_tasks %}
-                        <div class="timeline-item status-{{ task_data.task.status }}" data-project-id="{{ task_data.project.id }}">
+                        <div class="timeline-item status-{{ task_data.task.status }}" data-project-id="{{ task_data.project.id }}" style="display: block;">
                             <div class="timeline-icon">
                                 {% if task_data.task.status == 'pendente' %}
                                     <i class="fas fa-clock"></i>
@@ -475,34 +475,47 @@
         
         // Funções para filtrar timeline por projeto
         function filterByProject(projectId, projectName) {
+            console.log('Filtrando projeto:', projectId, projectName);
+            
             // Destacar o projeto selecionado
             document.querySelectorAll('.project-card-item').forEach(card => {
                 card.classList.remove('border-primary');
                 card.style.opacity = '0.6';
             });
             
-            const selectedCard = document.querySelector(`[data-project-id="${projectId}"]`);
+            const selectedCard = document.querySelector(`.project-card-item[data-project-id="${projectId}"]`);
             if (selectedCard) {
                 selectedCard.classList.add('border-primary');
                 selectedCard.style.opacity = '1';
             }
             
             // Filtrar itens do timeline
-            document.querySelectorAll('.timeline-item').forEach(item => {
+            const timelineItems = document.querySelectorAll('.timeline-item');
+            console.log('Total de itens encontrados:', timelineItems.length);
+            
+            let visibleCount = 0;
+            timelineItems.forEach(item => {
                 const itemProjectId = item.getAttribute('data-project-id');
+                console.log('Item projeto ID:', itemProjectId, 'Filtro ID:', projectId);
+                
                 if (itemProjectId == projectId) {
                     item.style.display = 'block';
+                    visibleCount++;
                 } else {
                     item.style.display = 'none';
                 }
             });
             
+            console.log('Itens visíveis após filtro:', visibleCount);
+            
             // Mostrar informação do filtro
-            document.getElementById('currentFilter').textContent = `Projeto: ${projectName}`;
+            document.getElementById('currentFilter').textContent = `Projeto: ${projectName} (${visibleCount} atividades)`;
             document.getElementById('filterInfo').classList.remove('d-none');
             
             // Scroll para o timeline
-            document.querySelector('.timeline').scrollIntoView({ behavior: 'smooth' });
+            setTimeout(() => {
+                document.querySelector('.timeline').scrollIntoView({ behavior: 'smooth' });
+            }, 100);
         }
         
         function clearFilter() {

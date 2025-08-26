@@ -28,6 +28,7 @@
                                 <th>Criado por</th>
                                 <th>Data</th>
                                 <th>Projetos</th>
+                                <th>Ações</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -40,6 +41,11 @@
                                 <td>{{ client.created_at.strftime('%d/%m/%Y') }}</td>
                                 <td>
                                     <span class="badge bg-info">{{ client.projects|length }}</span>
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-outline-success me-1" onclick="generatePublicLink({{ client.id }}, '{{ client.nome }}')" title="Gerar Link Público">
+                                        <i class="fas fa-link"></i>
+                                    </button>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -93,4 +99,93 @@
         </div>
     </div>
 </div>
+
+<!-- Modal para exibir link público -->
+<div class="modal fade" id="publicLinkModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Link Público do Cliente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Este link permite que o cliente <strong id="clientName"></strong> acompanhe seus projetos usando o código de acesso.
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Link de Acesso Público:</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="publicUrl" readonly>
+                        <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('publicUrl')">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Código de Acesso:</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="publicCode" readonly style="font-family: monospace; font-size: 1.2em; text-align: center;">
+                        <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('publicCode')">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Importante:</strong> Compartilhe o código de acesso apenas com o cliente. Ele será necessário para visualizar os projetos.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function generatePublicLink(clientId, clientName) {
+    fetch(`/clients/${clientId}/generate-public-link`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('clientName').textContent = clientName;
+            document.getElementById('publicUrl').value = data.public_url;
+            document.getElementById('publicCode').value = data.public_code;
+            
+            const modal = new bootstrap.Modal(document.getElementById('publicLinkModal'));
+            modal.show();
+        } else {
+            alert('Erro ao gerar link público.');
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao gerar link público.');
+    });
+}
+
+function copyToClipboard(elementId) {
+    const element = document.getElementById(elementId);
+    element.select();
+    element.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(element.value);
+    
+    // Feedback visual
+    const button = element.nextElementSibling;
+    const originalIcon = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-check text-success"></i>';
+    setTimeout(() => {
+        button.innerHTML = originalIcon;
+    }, 2000);
+}
+</script>
 {% endblock %}

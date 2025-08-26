@@ -3,6 +3,8 @@ from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime
 import httpx
+import secrets
+import string
 from app import app, db
 from models import User, Client, Project, Task, TodoItem
 from forms import LoginForm, UserForm, ClientForm, ProjectForm, TaskForm, TranscriptionTaskForm
@@ -118,6 +120,30 @@ def new_client():
         return redirect(url_for('clients'))
     
     return render_template('clients.html', form=form)
+
+@app.route('/clients/<int:id>/generate-public-link', methods=['POST'])
+@login_required
+def generate_public_link(id):
+    client = Client.query.get_or_404(id)
+    
+    # Verificar se usuário tem acesso
+    if not current_user.is_admin and client.creator_id != current_user.id:
+        flash('Você não tem permissão para gerar link para este cliente.', 'danger')
+        return redirect(url_for('clients'))
+    
+    # Gerar código único
+    if not client.public_code:
+        # Gerar código de 8 caracteres alfanuméricos
+        alphabet = string.ascii_uppercase + string.digits
+        client.public_code = ''.join(secrets.choice(alphabet) for _ in range(8))
+        db.session.commit()
+    
+    # Retornar dados do link
+    return jsonify({
+        'success': True,
+        'public_code': client.public_code,
+        'public_url': url_for('public_access', _external=True)
+    })
 
 # Rotas de Projetos
 @app.route('/projects')
@@ -449,6 +475,52 @@ def new_manual_task():
     
     flash('Tarefa criada manualmente com sucesso!', 'success')
     return redirect(url_for('tasks'))
+
+# Rotas públicas para clientes
+@app.route('/public')
+def public_access():
+    return render_template('public_access.html')
+
+@app.route('/public/verify', methods=['POST'])
+def verify_public_code():
+    code = request.form.get('code', '').strip().upper()
+    
+    if not code:
+        flash('Por favor, insira o código de acesso.', 'danger')
+        return redirect(url_for('public_access'))
+    
+    client = Client.query.filter_by(public_code=code).first()
+    
+    if not client:
+        flash('Código de acesso inválido.', 'danger')
+        return redirect(url_for('public_access'))
+    
+    # Redirecionar para timeline do cliente
+    return redirect(url_for('client_timeline', code=code))
+
+@app.route('/public/timeline/<code>')
+def client_timeline(code):
+    client = Client.query.filter_by(public_code=code).first_or_404()
+    
+    # Buscar todos os projetos do cliente
+    projects = Project.query.filter_by(client_id=client.id).order_by(Project.created_at.desc()).all()
+    
+    # Buscar todas as tarefas dos projetos do cliente
+    all_tasks = []
+    for project in projects:
+        for task in project.tasks:
+            all_tasks.append({
+                'task': task,
+                'project': project
+            })
+    
+    # Ordenar tarefas por data de criação
+    all_tasks.sort(key=lambda x: x['task'].created_at, reverse=True)
+    
+    return render_template('client_timeline.html', 
+                         client=client, 
+                         projects=projects, 
+                         all_tasks=all_tasks)
 
 @app.route('/tasks/new-kanban', methods=['POST'])
 @login_required

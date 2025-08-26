@@ -35,6 +35,7 @@ class Client(db.Model):
     email = db.Column(db.String(120))
     telefone = db.Column(db.String(20))
     endereco = db.Column(db.Text)
+    public_code = db.Column(db.String(32), unique=True)  # Código único para acesso público
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     

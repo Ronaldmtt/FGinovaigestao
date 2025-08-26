@@ -239,12 +239,12 @@
                     </p>
                 </div>
                 <div class="col-lg-4 text-lg-end">
-                    <div class="d-inline-block bg-white bg-opacity-20 rounded-4 px-4 py-3">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-chart-line fs-3 me-3"></i>
+                    <div class="d-inline-block bg-dark bg-opacity-75 border border-light border-opacity-25 rounded-4 px-4 py-3">
+                        <div class="d-flex align-items-center text-white">
+                            <i class="fas fa-chart-line fs-3 me-3 text-warning"></i>
                             <div>
-                                <div class="fs-2 fw-bold">{{ projects|length }}</div>
-                                <div class="small opacity-90">Projeto{{ 's' if projects|length != 1 else '' }} Ativo{{ 's' if projects|length != 1 else '' }}</div>
+                                <div class="fs-2 fw-bold text-white">{{ projects|length }}</div>
+                                <div class="small text-light opacity-90">Projeto{{ 's' if projects|length != 1 else '' }} Ativo{{ 's' if projects|length != 1 else '' }}</div>
                             </div>
                         </div>
                     </div>

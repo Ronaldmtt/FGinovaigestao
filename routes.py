@@ -553,6 +553,38 @@ def public_project_details(project_id, code):
         'project': project_data
     })
 
+@app.route('/public/project-tasks/<int:project_id>/<code>')
+def public_project_tasks(project_id, code):
+    # Verificar se o código é válido
+    client = Client.query.filter_by(public_code=code).first_or_404()
+    
+    # Verificar se o projeto pertence ao cliente
+    project = Project.query.filter_by(id=project_id, client_id=client.id).first_or_404()
+    
+    # Buscar apenas as tarefas deste projeto
+    tasks = Task.query.filter_by(project_id=project.id).order_by(Task.created_at.desc()).all()
+    
+    # Preparar dados das tarefas
+    tasks_data = []
+    for task in tasks:
+        task_info = {
+            'id': task.id,
+            'titulo': task.titulo,
+            'descricao': task.descricao,
+            'status': task.status,
+            'created_at': task.created_at.strftime('%d/%m/%Y às %H:%M'),
+            'data_conclusao': task.data_conclusao.strftime('%d/%m/%Y') if task.data_conclusao else None,
+            'assigned_user': task.assigned_user.full_name if task.assigned_user else None,
+            'todos': [{'texto': todo.texto, 'completed': todo.completed} for todo in task.todos]
+        }
+        tasks_data.append(task_info)
+    
+    return jsonify({
+        'success': True,
+        'project_name': project.nome,
+        'tasks': tasks_data
+    })
+
 @app.route('/projects/<int:id>/data')
 @login_required
 def get_project_data(id):

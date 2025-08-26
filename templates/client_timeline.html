@@ -473,10 +473,8 @@
             return new Date(dateString).toLocaleDateString('pt-BR');
         }
         
-        // Funções para filtrar timeline por projeto
+        // Função para mostrar tarefas de um projeto específico
         function filterByProject(projectId, projectName) {
-            console.log('Filtrando projeto:', projectId, projectName);
-            
             // Destacar o projeto selecionado
             document.querySelectorAll('.project-card-item').forEach(card => {
                 card.classList.remove('border-primary');
@@ -489,33 +487,128 @@
                 selectedCard.style.opacity = '1';
             }
             
-            // Filtrar itens do timeline
-            const timelineItems = document.querySelectorAll('.timeline-item');
-            console.log('Total de itens encontrados:', timelineItems.length);
+            // Mostrar loading no timeline
+            const timelineContainer = document.querySelector('.timeline');
+            timelineContainer.innerHTML = `
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Carregando tarefas...</span>
+                    </div>
+                    <p class="text-muted mt-2">Carregando atividades do projeto...</p>
+                </div>
+            `;
             
-            let visibleCount = 0;
-            timelineItems.forEach(item => {
-                const itemProjectId = item.getAttribute('data-project-id');
-                console.log('Item projeto ID:', itemProjectId, 'Filtro ID:', projectId);
-                
-                if (itemProjectId == projectId) {
-                    item.style.display = 'block';
-                    visibleCount++;
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-            
-            console.log('Itens visíveis após filtro:', visibleCount);
-            
-            // Mostrar informação do filtro
-            document.getElementById('currentFilter').textContent = `Projeto: ${projectName} (${visibleCount} atividades)`;
-            document.getElementById('filterInfo').classList.remove('d-none');
+            // Buscar tarefas do projeto
+            fetch(`/public/project-tasks/${projectId}/{{ client.public_code }}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        buildProjectTimeline(data.tasks, data.project_name);
+                        
+                        // Mostrar informação do filtro
+                        document.getElementById('currentFilter').textContent = `Projeto: ${projectName} (${data.tasks.length} atividades)`;
+                        document.getElementById('filterInfo').classList.remove('d-none');
+                    } else {
+                        timelineContainer.innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Erro ao carregar tarefas do projeto.
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    timelineContainer.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Erro ao carregar tarefas do projeto.
+                        </div>
+                    `;
+                });
             
             // Scroll para o timeline
             setTimeout(() => {
                 document.querySelector('.timeline').scrollIntoView({ behavior: 'smooth' });
             }, 100);
+        }
+        
+        function buildProjectTimeline(tasks, projectName) {
+            const timelineContainer = document.querySelector('.timeline');
+            
+            if (tasks.length === 0) {
+                timelineContainer.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-tasks text-muted" style="font-size: 4rem;"></i>
+                        <h4 class="text-muted mt-3">Nenhuma atividade encontrada</h4>
+                        <p class="text-muted">Este projeto ainda não possui tarefas cadastradas.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let timelineHTML = '';
+            tasks.forEach(task => {
+                timelineHTML += `
+                    <div class="timeline-item status-${task.status}">
+                        <div class="timeline-icon">
+                            ${task.status === 'pendente' ? '<i class="fas fa-clock"></i>' : 
+                              task.status === 'em_andamento' ? '<i class="fas fa-play"></i>' : 
+                              '<i class="fas fa-check"></i>'}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <h5 class="mb-1">${task.titulo}</h5>
+                                <small class="text-muted">
+                                    <i class="fas fa-project-diagram me-1"></i>
+                                    ${projectName}
+                                </small>
+                            </div>
+                            <div class="text-end">
+                                <small class="text-muted">${task.created_at}</small>
+                            </div>
+                        </div>
+                        
+                        ${task.descricao ? `<p class="text-muted mb-2">${task.descricao}</p>` : ''}
+                        
+                        ${task.assigned_user ? `
+                        <div class="mb-2">
+                            <small class="text-info">
+                                <i class="fas fa-user me-1"></i>
+                                Responsável: ${task.assigned_user}
+                            </small>
+                        </div>
+                        ` : ''}
+                        
+                        ${task.data_conclusao ? `
+                        <div class="mb-2">
+                            <small class="text-warning">
+                                <i class="fas fa-calendar-alt me-1"></i>
+                                Prazo: ${task.data_conclusao}
+                            </small>
+                        </div>
+                        ` : ''}
+                        
+                        ${task.todos && task.todos.length > 0 ? `
+                        <div class="mt-3">
+                            <h6 class="text-muted mb-2">
+                                <i class="fas fa-list-check me-1"></i>
+                                Lista de Ações (${task.todos.filter(todo => todo.completed).length}/${task.todos.length})
+                            </h6>
+                            ${task.todos.map(todo => `
+                                <div class="todo-item ${todo.completed ? 'completed' : ''}">
+                                    <i class="fas fa-${todo.completed ? 'check-square' : 'square'} me-2 ${todo.completed ? 'text-success' : 'text-muted'}"></i>
+                                    ${todo.texto}
+                                </div>
+                            `).join('')}
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+            
+            timelineContainer.innerHTML = timelineHTML;
         }
         
         function clearFilter() {
@@ -525,13 +618,8 @@
                 card.style.opacity = '1';
             });
             
-            // Mostrar todos os itens do timeline
-            document.querySelectorAll('.timeline-item').forEach(item => {
-                item.style.display = 'block';
-            });
-            
-            // Esconder informação do filtro
-            document.getElementById('filterInfo').classList.add('d-none');
+            // Recarregar timeline completo
+            location.reload();
         }
     </script>
 </body>

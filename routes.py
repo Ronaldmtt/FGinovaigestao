@@ -536,8 +536,8 @@ def public_project_details(project_id, code):
         'nome': project.nome,
         'status': project.status,
         'created_at': project.created_at.isoformat(),
-        'data_inicio': project.data_inicio.strftime('%d/%m/%Y') if project.data_inicio else None,
-        'data_fim': project.data_fim.strftime('%d/%m/%Y') if project.data_fim else None,
+        'data_inicio': project.created_at.strftime('%d/%m/%Y') if project.created_at else None,
+        'data_fim': None,  # Campo não existe no modelo atual
         'responsible_name': project.responsible.full_name if project.responsible else 'Não definido',
         'team_members': [member.full_name for member in project.team_members],
         'descricao_resumida': project.descricao_resumida,

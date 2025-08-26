@@ -124,7 +124,7 @@
                     <div class="card mb-3 bg-dark border-secondary project-card-item" data-project-id="{{ project.id }}">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start">
-                                <h5 class="card-title mb-2" style="cursor: pointer;" onclick="filterByProject({{ project.id }}, '{{ project.nome }}')">
+                                <h5 class="card-title mb-2 project-title" style="cursor: pointer;" data-project-id="{{ project.id }}" data-project-name="{{ project.nome }}">
                                     {{ project.nome }}
                                     <i class="fas fa-arrow-right ms-2 text-muted" style="font-size: 0.8rem;"></i>
                                 </h5>
@@ -614,13 +614,26 @@
         // Armazenar o timeline original
         let originalTimelineHTML = '';
         
-        // Salvar o timeline original quando a página carrega
+        // Salvar o timeline original e configurar event listeners quando a página carrega
         document.addEventListener('DOMContentLoaded', function() {
             const timelineContainer = document.querySelector('.timeline');
             if (timelineContainer) {
                 originalTimelineHTML = timelineContainer.innerHTML;
             }
+            
+            // Configurar event listeners para os títulos dos projetos
+            setupProjectClickListeners();
         });
+        
+        function setupProjectClickListeners() {
+            document.querySelectorAll('.project-title').forEach(title => {
+                title.addEventListener('click', function() {
+                    const projectId = this.getAttribute('data-project-id');
+                    const projectName = this.getAttribute('data-project-name');
+                    filterByProject(projectId, projectName);
+                });
+            });
+        }
         
         function clearFilter() {
             // Remover destaque dos projetos
@@ -637,6 +650,9 @@
             
             // Esconder informação do filtro
             document.getElementById('filterInfo').classList.add('d-none');
+            
+            // Reconfigurar event listeners após restaurar o HTML
+            setupProjectClickListeners();
         }
     </script>
 </body>

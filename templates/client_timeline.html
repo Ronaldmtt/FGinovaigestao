@@ -158,6 +158,71 @@
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        
+        /* Timeline View Styles */
+        .timeline-view {
+            position: relative;
+            padding-left: 2rem;
+        }
+        
+        .timeline-view::before {
+            content: '';
+            position: absolute;
+            left: 0.75rem;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, #3b82f6, #6b7280);
+        }
+        
+        .timeline-task {
+            position: relative;
+            margin-bottom: 2rem;
+            padding-left: 2rem;
+        }
+        
+        .timeline-task::before {
+            content: '';
+            position: absolute;
+            left: -0.5rem;
+            top: 1rem;
+            width: 1rem;
+            height: 1rem;
+            border-radius: 50%;
+            border: 3px solid #1f2937;
+        }
+        
+        .timeline-task.pending::before {
+            background: #f59e0b;
+        }
+        
+        .timeline-task.in-progress::before {
+            background: #3b82f6;
+            animation: pulse 2s infinite;
+        }
+        
+        .timeline-task.completed::before {
+            background: #10b981;
+        }
+        
+        .timeline-task-card {
+            background: #111827;
+            border: 1px solid #374151;
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .timeline-task-card:hover {
+            border-color: #6b7280;
+            transform: translateX(8px);
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
     </style>
 </head>
 <body>
@@ -281,9 +346,20 @@
                     <i class="fas fa-tasks me-2 text-primary"></i>
                     <span id="selectedProjectName">Projeto Selecionado</span>
                 </h3>
-                <button class="btn btn-outline-light" onclick="clearSelection()">
-                    <i class="fas fa-arrow-left me-2"></i>Voltar aos Projetos
-                </button>
+                <div class="d-flex gap-2">
+                    <!-- View Toggle Buttons -->
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary active" id="kanbanViewBtn" onclick="switchView('kanban')">
+                            <i class="fas fa-columns me-2"></i>Kanban
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" id="timelineViewBtn" onclick="switchView('timeline')">
+                            <i class="fas fa-clock me-2"></i>Timeline
+                        </button>
+                    </div>
+                    <button class="btn btn-outline-light" onclick="clearSelection()">
+                        <i class="fas fa-arrow-left me-2"></i>Voltar aos Projetos
+                    </button>
+                </div>
             </div>
             
             <div id="taskContent">
@@ -402,8 +478,25 @@
                 });
         }
         
+        // Variáveis globais
+        let currentTasks = [];
+        let currentView = 'kanban';
+        
+        // Função para alternar visualização
+        function switchView(view) {
+            currentView = view;
+            
+            // Atualizar botões
+            document.getElementById('kanbanViewBtn').classList.toggle('active', view === 'kanban');
+            document.getElementById('timelineViewBtn').classList.toggle('active', view === 'timeline');
+            
+            // Atualizar visualização
+            displayTasks(currentTasks, '');
+        }
+        
         // Função para exibir tarefas
         function displayTasks(tasks, projectName) {
+            currentTasks = tasks; // Armazenar para alternância de views
             const taskContent = document.getElementById('taskContent');
             
             if (tasks.length === 0) {
@@ -417,6 +510,20 @@
                 return;
             }
             
+            let html = '';
+            
+            if (currentView === 'kanban') {
+                html = displayKanbanView(tasks);
+            } else {
+                html = displayTimelineView(tasks);
+            }
+            
+            taskContent.innerHTML = html;
+            taskContent.classList.add('fade-in');
+        }
+        
+        // Função para exibir visualização Kanban
+        function displayKanbanView(tasks) {
             // Agrupar tarefas por status
             const tasksByStatus = {
                 'pendente': tasks.filter(t => t.status === 'pendente'),
@@ -424,7 +531,7 @@
                 'concluida': tasks.filter(t => t.status === 'concluida')
             };
             
-            let html = `
+            return `
                 <div class="row g-4">
                     <div class="col-lg-4">
                         <div class="mb-3">
@@ -463,9 +570,90 @@
                     </div>
                 </div>
             `;
+        }
+        
+        // Função para exibir visualização Timeline
+        function displayTimelineView(tasks) {
+            // Ordenar tarefas por data de criação (mais recentes primeiro)
+            const sortedTasks = [...tasks].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
             
-            taskContent.innerHTML = html;
-            taskContent.classList.add('fade-in');
+            return `
+                <div class="timeline-view">
+                    ${sortedTasks.map(task => createTimelineTaskCard(task)).join('')}
+                </div>
+            `;
+        }
+        
+        // Função para criar card de tarefa na timeline
+        function createTimelineTaskCard(task) {
+            const todos = task.todos || [];
+            const completedTodos = todos.filter(todo => todo.completed).length;
+            
+            return `
+                <div class="timeline-task ${task.status === 'concluida' ? 'completed' : task.status === 'em_andamento' ? 'in-progress' : 'pending'}">
+                    <div class="timeline-task-card">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <h5 class="text-white mb-0">${task.titulo}</h5>
+                            <div class="d-flex gap-2 align-items-center">
+                                <span class="status-badge status-${task.status === 'concluida' ? 'completed' : task.status === 'em_andamento' ? 'progress' : 'pending'}">
+                                    ${task.status === 'concluida' ? 'Concluída' : task.status === 'em_andamento' ? 'Em Andamento' : 'Pendente'}
+                                </span>
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    ${formatDate(task.created_at)}
+                                </small>
+                            </div>
+                        </div>
+                        
+                        ${task.descricao ? `
+                            <p class="text-light mb-3">${task.descricao}</p>
+                        ` : ''}
+                        
+                        ${todos.length > 0 ? `
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="text-muted mb-0">
+                                        <i class="fas fa-list-check me-2"></i>Subtarefas
+                                    </h6>
+                                    <small class="text-muted">${completedTodos}/${todos.length} concluídas</small>
+                                </div>
+                                <div class="progress-bar mb-3" style="height: 4px;">
+                                    <div class="progress-fill" style="width: ${todos.length > 0 ? (completedTodos / todos.length * 100) : 0}%"></div>
+                                </div>
+                                <div class="row g-2">
+                                    ${todos.map(todo => `
+                                        <div class="col-md-6">
+                                            <div class="d-flex align-items-center p-2 bg-dark rounded">
+                                                <i class="fas ${todo.completed ? 'fa-check-square text-success' : 'fa-square text-muted'} me-2"></i>
+                                                <span class="text-light small ${todo.completed ? 'text-decoration-line-through opacity-75' : ''}">${todo.text}</span>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        <div class="d-flex justify-content-between align-items-center pt-3 border-top border-secondary">
+                            <div class="text-muted small">
+                                <i class="fas fa-clock me-1"></i>
+                                Criada em ${formatDate(task.created_at)}
+                            </div>
+                            ${task.assigned_user ? `
+                                <div class="text-muted small">
+                                    <i class="fas fa-user me-1"></i>
+                                    ${task.assigned_user}
+                                </div>
+                            ` : ''}
+                            ${task.data_conclusao ? `
+                                <div class="text-success small">
+                                    <i class="fas fa-check-circle me-1"></i>
+                                    Finalizada em ${task.data_conclusao}
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
         }
         
         // Função para criar card de tarefa
@@ -592,7 +780,6 @@
         
         // Função para mostrar detalhes do projeto
         function showProjectDetails(projectId) {
-            // Implementation remains the same
             const modal = new bootstrap.Modal(document.getElementById('projectDetailsModal'));
             const content = document.getElementById('projectDetailsContent');
             
@@ -614,69 +801,120 @@
                         content.innerHTML = `
                             <div class="row">
                                 <div class="col-md-8">
-                                    <h4 class="text-primary mb-3">${project.nome}</h4>
+                                    <h4 class="text-primary mb-4">${project.nome}</h4>
                                     
-                                    ${project.descricao ? `
+                                    ${project.descricao_resumida ? `
                                     <div class="mb-4">
-                                        <h6 class="text-muted">Descrição</h6>
-                                        <p class="text-light">${project.descricao}</p>
+                                        <h6 class="text-warning mb-2"><i class="fas fa-file-text me-2"></i>Descrição Resumida</h6>
+                                        <p class="text-light">${project.descricao_resumida}</p>
+                                    </div>
+                                    ` : ''}
+                                    
+                                    ${project.problema_oportunidade ? `
+                                    <div class="mb-4">
+                                        <h6 class="text-info mb-2"><i class="fas fa-search me-2"></i>Problema/Oportunidade</h6>
+                                        <p class="text-light">${project.problema_oportunidade}</p>
                                     </div>
                                     ` : ''}
                                     
                                     ${project.objetivos ? `
                                     <div class="mb-4">
-                                        <h6 class="text-muted">Objetivos</h6>
+                                        <h6 class="text-success mb-2"><i class="fas fa-bullseye me-2"></i>Objetivos</h6>
                                         <p class="text-light">${project.objetivos}</p>
                                     </div>
                                     ` : ''}
                                     
-                                    ${project.escopo ? `
+                                    ${project.alinhamento_estrategico ? `
                                     <div class="mb-4">
-                                        <h6 class="text-muted">Escopo</h6>
-                                        <p class="text-light">${project.escopo}</p>
+                                        <h6 class="text-primary mb-2"><i class="fas fa-compass me-2"></i>Alinhamento Estratégico</h6>
+                                        <p class="text-light">${project.alinhamento_estrategico}</p>
                                     </div>
                                     ` : ''}
                                     
-                                    ${project.restricoes ? `
-                                    <div class="mb-4">
-                                        <h6 class="text-muted">Restrições</h6>
-                                        <p class="text-light">${project.restricoes}</p>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            ${project.escopo_projeto ? `
+                                            <div class="mb-4">
+                                                <h6 class="text-warning mb-2"><i class="fas fa-check-circle me-2"></i>Escopo do Projeto</h6>
+                                                <p class="text-light small">${project.escopo_projeto}</p>
+                                            </div>
+                                            ` : ''}
+                                        </div>
+                                        <div class="col-md-6">
+                                            ${project.fora_escopo ? `
+                                            <div class="mb-4">
+                                                <h6 class="text-danger mb-2"><i class="fas fa-times-circle me-2"></i>Fora do Escopo</h6>
+                                                <p class="text-light small">${project.fora_escopo}</p>
+                                            </div>
+                                            ` : ''}
+                                        </div>
                                     </div>
-                                    ` : ''}
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            ${project.premissas ? `
+                                            <div class="mb-4">
+                                                <h6 class="text-info mb-2"><i class="fas fa-lightbulb me-2"></i>Premissas</h6>
+                                                <p class="text-light small">${project.premissas}</p>
+                                            </div>
+                                            ` : ''}
+                                        </div>
+                                        <div class="col-md-6">
+                                            ${project.restricoes ? `
+                                            <div class="mb-4">
+                                                <h6 class="text-warning mb-2"><i class="fas fa-exclamation-triangle me-2"></i>Restrições</h6>
+                                                <p class="text-light small">${project.restricoes}</p>
+                                            </div>
+                                            ` : ''}
+                                        </div>
+                                    </div>
                                 </div>
                                 
                                 <div class="col-md-4">
-                                    <div class="card bg-secondary border-0">
+                                    <div class="card bg-secondary border-0 mb-3">
                                         <div class="card-body">
-                                            <h6 class="card-title">Informações do Projeto</h6>
+                                            <h6 class="card-title text-primary">Informações Básicas</h6>
                                             
                                             <div class="mb-3">
-                                                <strong>Status:</strong><br>
+                                                <strong class="text-light">Status:</strong><br>
                                                 <span class="badge ${getStatusBadgeClass(project.status)}">${getStatusText(project.status)}</span>
                                             </div>
                                             
                                             ${project.data_inicio ? `
                                             <div class="mb-3">
-                                                <strong>Data de Início:</strong><br>
-                                                <span class="text-muted">${formatDate(project.data_inicio)}</span>
+                                                <strong class="text-light">Data de Início:</strong><br>
+                                                <span class="text-muted"><i class="fas fa-calendar-alt me-1"></i>${formatDate(project.data_inicio)}</span>
                                             </div>
                                             ` : ''}
                                             
                                             ${project.data_fim ? `
                                             <div class="mb-3">
-                                                <strong>Previsão de Término:</strong><br>
-                                                <span class="text-muted">${formatDate(project.data_fim)}</span>
+                                                <strong class="text-light">Previsão de Término:</strong><br>
+                                                <span class="text-muted"><i class="fas fa-flag-checkered me-1"></i>${formatDate(project.data_fim)}</span>
                                             </div>
                                             ` : ''}
                                             
-                                            ${project.responsavel ? `
+                                            ${project.responsible_name ? `
                                             <div class="mb-3">
-                                                <strong>Responsável:</strong><br>
-                                                <span class="text-muted">${project.responsavel}</span>
+                                                <strong class="text-light">Responsável:</strong><br>
+                                                <span class="text-muted"><i class="fas fa-user me-1"></i>${project.responsible_name}</span>
                                             </div>
                                             ` : ''}
                                         </div>
                                     </div>
+                                    
+                                    ${project.team_members && project.team_members.length > 0 ? `
+                                    <div class="card bg-secondary border-0">
+                                        <div class="card-body">
+                                            <h6 class="card-title text-primary">Equipe do Projeto</h6>
+                                            <div class="d-flex flex-wrap gap-2">
+                                                ${project.team_members.map(member => `
+                                                    <span class="badge bg-primary">${member}</span>
+                                                `).join('')}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    ` : ''}
                                 </div>
                             </div>
                         `;

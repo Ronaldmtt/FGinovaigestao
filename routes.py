@@ -530,22 +530,24 @@ def public_project_details(project_id, code):
     # Verificar se o projeto pertence ao cliente
     project = Project.query.filter_by(id=project_id, client_id=client.id).first_or_404()
     
-    # Preparar dados do projeto
+    # Preparar dados completos do projeto
     project_data = {
         'id': project.id,
         'nome': project.nome,
         'status': project.status,
         'created_at': project.created_at.isoformat(),
+        'data_inicio': project.data_inicio.strftime('%d/%m/%Y') if project.data_inicio else None,
+        'data_fim': project.data_fim.strftime('%d/%m/%Y') if project.data_fim else None,
         'responsible_name': project.responsible.full_name if project.responsible else 'Não definido',
-        'equipe': [member.full_name for member in project.team_members],
+        'team_members': [member.full_name for member in project.team_members],
         'descricao_resumida': project.descricao_resumida,
-        'objetivos': project.objetivos,
-        'escopo_projeto': project.escopo_projeto,
         'problema_oportunidade': project.problema_oportunidade,
-        'premissas': project.premissas,
-        'restricoes': project.restricoes,
+        'objetivos': project.objetivos,
         'alinhamento_estrategico': project.alinhamento_estrategico,
-        'fora_escopo': project.fora_escopo
+        'escopo_projeto': project.escopo_projeto,
+        'fora_escopo': project.fora_escopo,
+        'premissas': project.premissas,
+        'restricoes': project.restricoes
     }
     
     return jsonify({

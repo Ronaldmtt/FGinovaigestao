@@ -611,6 +611,17 @@
             timelineContainer.innerHTML = timelineHTML;
         }
         
+        // Armazenar o timeline original
+        let originalTimelineHTML = '';
+        
+        // Salvar o timeline original quando a página carrega
+        document.addEventListener('DOMContentLoaded', function() {
+            const timelineContainer = document.querySelector('.timeline');
+            if (timelineContainer) {
+                originalTimelineHTML = timelineContainer.innerHTML;
+            }
+        });
+        
         function clearFilter() {
             // Remover destaque dos projetos
             document.querySelectorAll('.project-card-item').forEach(card => {
@@ -618,8 +629,14 @@
                 card.style.opacity = '1';
             });
             
-            // Recarregar timeline completo
-            location.reload();
+            // Restaurar timeline original
+            const timelineContainer = document.querySelector('.timeline');
+            if (timelineContainer && originalTimelineHTML) {
+                timelineContainer.innerHTML = originalTimelineHTML;
+            }
+            
+            // Esconder informação do filtro
+            document.getElementById('filterInfo').classList.add('d-none');
         }
     </script>
 </body>

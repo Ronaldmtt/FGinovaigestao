@@ -111,7 +111,12 @@
                     {% for project in projects %}
                     <div class="card mb-3 bg-dark border-secondary">
                         <div class="card-body">
-                            <h5 class="card-title">{{ project.nome }}</h5>
+                            <div class="d-flex justify-content-between align-items-start">
+                                <h5 class="card-title mb-2">{{ project.nome }}</h5>
+                                <button class="btn btn-sm btn-outline-primary" onclick="showProjectDetails({{ project.id }})">
+                                    <i class="fas fa-info-circle me-1"></i>Detalhes
+                                </button>
+                            </div>
                             
                             <!-- Status do projeto -->
                             <div class="mb-2">
@@ -268,6 +273,182 @@
         </div>
     </div>
     
+    <!-- Modal para detalhes do projeto -->
+    <div class="modal fade" id="projectDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Detalhes do Projeto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="projectDetailsContent">
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Carregando...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function showProjectDetails(projectId) {
+            const modal = new bootstrap.Modal(document.getElementById('projectDetailsModal'));
+            const content = document.getElementById('projectDetailsContent');
+            
+            // Mostrar loading
+            content.innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                </div>
+            `;
+            
+            modal.show();
+            
+            // Buscar detalhes do projeto
+            fetch(`/public/project-details/${projectId}/{{ client.public_code }}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        content.innerHTML = buildProjectDetailsHTML(data.project);
+                    } else {
+                        content.innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Erro ao carregar detalhes do projeto.
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    content.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Erro ao carregar detalhes do projeto.
+                        </div>
+                    `;
+                });
+        }
+        
+        function buildProjectDetailsHTML(project) {
+            return `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h4 class="text-primary mb-3">
+                            <i class="fas fa-project-diagram me-2"></i>
+                            ${project.nome}
+                        </h4>
+                        
+                        <div class="mb-3">
+                            <strong>Status:</strong>
+                            <span class="badge ${getStatusBadgeClass(project.status)} ms-2">${getStatusText(project.status)}</span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <strong>Responsável:</strong> ${project.responsible_name}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <strong>Data de Criação:</strong> ${formatDate(project.created_at)}
+                        </div>
+                        
+                        ${project.equipe && project.equipe.length > 0 ? `
+                        <div class="mb-3">
+                            <strong>Equipe:</strong>
+                            <div class="mt-1">
+                                ${project.equipe.map(member => `<span class="badge bg-secondary me-1">${member}</span>`).join('')}
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h5 class="text-secondary mb-3">Informações do Projeto</h5>
+                        
+                        ${project.descricao_resumida ? `
+                        <div class="mb-3">
+                            <strong>Descrição:</strong>
+                            <p class="text-muted mt-1">${project.descricao_resumida}</p>
+                        </div>
+                        ` : ''}
+                        
+                        ${project.objetivos ? `
+                        <div class="mb-3">
+                            <strong>Objetivos:</strong>
+                            <p class="text-muted mt-1">${project.objetivos}</p>
+                        </div>
+                        ` : ''}
+                        
+                        ${project.escopo_projeto ? `
+                        <div class="mb-3">
+                            <strong>Escopo:</strong>
+                            <p class="text-muted mt-1">${project.escopo_projeto}</p>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+                
+                ${project.problema_oportunidade || project.premissas || project.restricoes ? `
+                <hr class="my-4">
+                <div class="row">
+                    ${project.problema_oportunidade ? `
+                    <div class="col-md-4">
+                        <h6 class="text-warning">Problema/Oportunidade</h6>
+                        <p class="text-muted small">${project.problema_oportunidade}</p>
+                    </div>
+                    ` : ''}
+                    
+                    ${project.premissas ? `
+                    <div class="col-md-4">
+                        <h6 class="text-info">Premissas</h6>
+                        <p class="text-muted small">${project.premissas}</p>
+                    </div>
+                    ` : ''}
+                    
+                    ${project.restricoes ? `
+                    <div class="col-md-4">
+                        <h6 class="text-danger">Restrições</h6>
+                        <p class="text-muted small">${project.restricoes}</p>
+                    </div>
+                    ` : ''}
+                </div>
+                ` : ''}
+            `;
+        }
+        
+        function getStatusBadgeClass(status) {
+            switch(status) {
+                case 'em_andamento': return 'bg-primary';
+                case 'pausado': return 'bg-warning';
+                case 'cancelado': return 'bg-danger';
+                case 'concluido': return 'bg-success';
+                default: return 'bg-secondary';
+            }
+        }
+        
+        function getStatusText(status) {
+            switch(status) {
+                case 'em_andamento': return 'Em Andamento';
+                case 'pausado': return 'Pausado';
+                case 'cancelado': return 'Cancelado';
+                case 'concluido': return 'Concluído';
+                default: return status;
+            }
+        }
+        
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('pt-BR');
+        }
+    </script>
 </body>
 </html>

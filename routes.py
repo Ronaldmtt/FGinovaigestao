@@ -522,6 +522,37 @@ def client_timeline(code):
                          projects=projects, 
                          all_tasks=all_tasks)
 
+@app.route('/public/project-details/<int:project_id>/<code>')
+def public_project_details(project_id, code):
+    # Verificar se o código é válido
+    client = Client.query.filter_by(public_code=code).first_or_404()
+    
+    # Verificar se o projeto pertence ao cliente
+    project = Project.query.filter_by(id=project_id, client_id=client.id).first_or_404()
+    
+    # Preparar dados do projeto
+    project_data = {
+        'id': project.id,
+        'nome': project.nome,
+        'status': project.status,
+        'created_at': project.created_at.isoformat(),
+        'responsible_name': project.responsible.full_name if project.responsible else 'Não definido',
+        'equipe': [member.full_name for member in project.team_members],
+        'descricao_resumida': project.descricao_resumida,
+        'objetivos': project.objetivos,
+        'escopo_projeto': project.escopo_projeto,
+        'problema_oportunidade': project.problema_oportunidade,
+        'premissas': project.premissas,
+        'restricoes': project.restricoes,
+        'alinhamento_estrategico': project.alinhamento_estrategico,
+        'fora_escopo': project.fora_escopo
+    }
+    
+    return jsonify({
+        'success': True,
+        'project': project_data
+    })
+
 @app.route('/tasks/new-kanban', methods=['POST'])
 @login_required
 def new_task_kanban():

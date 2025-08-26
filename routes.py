@@ -1169,7 +1169,7 @@ def export_database():
         response.headers['Content-Disposition'] = f'attachment; filename=database_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json'
         response.headers['Content-Type'] = 'application/json'
         
-        flash(f'Dados exportados com sucesso! {len(export_data["users"])} usuários, {len(export_data["clients"])} clientes, {len(export_data["projects"])} projetos, {len(export_data["tasks"])} tarefas.', 'success')
+        flash(f'Dados exportados com sucesso! {len(export_data["users"])} usuários, {len(export_data["clients"])} clientes, {len(export_data["projects"])} projetos, {len(export_data["tasks"])} tarefas e {len(export_data["todos"])} todos.', 'success')
         
         return response
         
@@ -1254,7 +1254,7 @@ def import_database():
                     else:
                         client_id_map[client_data['id']] = existing_client.id
                 
-                # Importar projetos (simplified para economizar espaço)
+                # Importar projetos
                 for project_data in data['projects']:
                     existing_project = Project.query.filter_by(nome=project_data['nome']).first()
                     if not existing_project and client_id_map.get(project_data['client_id']):
@@ -1291,9 +1291,58 @@ def import_database():
                     elif existing_project:
                         project_id_map[project_data['id']] = existing_project.id
                 
+                # Importar tarefas
+                for task_data in data['tasks']:
+                    project_id = project_id_map.get(task_data['project_id'])
+                    if project_id:
+                        # Verificar se tarefa já existe
+                        existing_task = Task.query.filter_by(
+                            titulo=task_data['titulo'], 
+                            project_id=project_id
+                        ).first()
+                        
+                        if not existing_task:
+                            task = Task(
+                                titulo=task_data['titulo'],
+                                descricao=task_data['descricao'],
+                                status=task_data['status'],
+                                project_id=project_id,
+                                assigned_user_id=user_id_map.get(task_data['assigned_user_id']) if task_data['assigned_user_id'] else None,
+                                data_conclusao=datetime.fromisoformat(task_data['data_conclusao']).date() if task_data['data_conclusao'] else None,
+                                created_at=datetime.fromisoformat(task_data['created_at']) if task_data['created_at'] else datetime.now(),
+                                completed_at=datetime.fromisoformat(task_data['completed_at']) if task_data['completed_at'] else None
+                            )
+                            db.session.add(task)
+                            db.session.flush()
+                            stats['tasks'] += 1
+                            task_id_map[task_data['id']] = task.id
+                        else:
+                            task_id_map[task_data['id']] = existing_task.id
+                
+                # Importar todos (to-do items)
+                for todo_data in data['todos']:
+                    task_id = task_id_map.get(todo_data['task_id'])
+                    if task_id:
+                        # Verificar se todo já existe
+                        existing_todo = TodoItem.query.filter_by(
+                            texto=todo_data['texto'], 
+                            task_id=task_id
+                        ).first()
+                        
+                        if not existing_todo:
+                            todo = TodoItem(
+                                texto=todo_data['texto'],
+                                completed=todo_data['completed'],
+                                task_id=task_id,
+                                created_at=datetime.fromisoformat(todo_data['created_at']) if todo_data['created_at'] else datetime.now(),
+                                completed_at=datetime.fromisoformat(todo_data['completed_at']) if todo_data['completed_at'] else None
+                            )
+                            db.session.add(todo)
+                            stats['todos'] += 1
+                
                 db.session.commit()
                 
-                flash(f'Importação concluída! {stats["users"]} usuários, {stats["clients"]} clientes, {stats["projects"]} projetos importados.', 'success')
+                flash(f'Importação concluída! {stats["users"]} usuários, {stats["clients"]} clientes, {stats["projects"]} projetos, {stats["tasks"]} tarefas e {stats["todos"]} todos importados.', 'success')
                 return redirect(url_for('dashboard'))
                 
             except json.JSONDecodeError:

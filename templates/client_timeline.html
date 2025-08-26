@@ -1,334 +1,603 @@
 <!DOCTYPE html>
-<html lang="pt-BR" data-bs-theme="dark">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ client.nome }} - Acompanhamento de Projetos</title>
+    <title>{{ client.nome }} - Portal do Cliente</title>
     <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        .timeline {
-            position: relative;
-            padding-left: 3rem;
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card-bg: linear-gradient(135deg, #1a1d23 0%, #2d3748 100%);
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --info-color: #3b82f6;
         }
-        .timeline::before {
-            content: '';
-            position: absolute;
-            left: 1rem;
-            top: 0;
-            bottom: 0;
-            width: 2px;
-            background: linear-gradient(to bottom, #007bff, #28a745);
+        
+        body {
+            background: #0f1419;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
-        .timeline-item {
-            position: relative;
-            margin-bottom: 2rem;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            padding: 1.5rem;
-            border-left: 4px solid;
-        }
-        .timeline-item.status-pendente {
-            border-left-color: #ffc107;
-        }
-        .timeline-item.status-em_andamento {
-            border-left-color: #007bff;
-        }
-        .timeline-item.status-concluida {
-            border-left-color: #28a745;
-        }
-        .timeline-icon {
-            position: absolute;
-            left: -2.5rem;
-            width: 2rem;
-            height: 2rem;
-            border-radius: 50%;
+        
+        .hero-section {
+            background: var(--primary-gradient);
+            min-height: 200px;
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-size: 0.8rem;
+            position: relative;
+            overflow: hidden;
         }
-        .status-pendente .timeline-icon {
-            background-color: #ffc107;
-            color: #000;
+        
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="%23ffffff" opacity="0.1"/></pattern></defs><rect width="100%" height="100%" fill="url(%23grain)"/></svg>');
         }
-        .status-em_andamento .timeline-icon {
-            background-color: #007bff;
-            color: #fff;
+        
+        .project-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
         }
-        .status-concluida .timeline-icon {
-            background-color: #28a745;
-            color: #fff;
-        }
+        
         .project-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        .project-card-item {
-            transition: all 0.3s ease;
+            background: var(--card-bg);
+            border: 1px solid #374151;
+            border-radius: 16px;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: pointer;
         }
-        .project-card-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+        
+        .project-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            border-color: #3b82f6;
         }
-        .project-card-item.border-primary {
-            border-color: #0d6efd !important;
-            box-shadow: 0 0 15px rgba(13, 110, 253, 0.4);
+        
+        .project-card.active {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
         }
-        .header-gradient {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 15px 15px 0 0;
+        
+        .progress-bar {
+            height: 6px;
+            background: #374151;
+            border-radius: 3px;
+            overflow: hidden;
         }
-        .todo-item {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 5px;
-            padding: 0.5rem 0.75rem;
-            margin-bottom: 0.5rem;
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981, #34d399);
+            border-radius: 3px;
+            transition: width 0.6s ease;
         }
-        .todo-item.completed {
-            text-decoration: line-through;
-            opacity: 0.6;
+        
+        .task-view {
+            background: #1f2937;
+            border-radius: 16px;
+            border: 1px solid #374151;
+            min-height: 500px;
+        }
+        
+        .task-item {
+            background: #111827;
+            border: 1px solid #374151;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+        }
+        
+        .task-item:hover {
+            border-color: #6b7280;
+            transform: translateX(4px);
+        }
+        
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .status-pending { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+        .status-progress { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+        .status-completed { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+        
+        .floating-stats {
+            position: fixed;
+            top: 50%;
+            right: 2rem;
+            transform: translateY(-50%);
+            background: rgba(31, 41, 55, 0.9);
+            backdrop-filter: blur(20px);
+            border: 1px solid #374151;
+            border-radius: 16px;
+            padding: 1.5rem;
+            min-width: 250px;
+            z-index: 1000;
+        }
+        
+        @media (max-width: 768px) {
+            .floating-stats {
+                position: static;
+                transform: none;
+                margin-bottom: 2rem;
+            }
+            .project-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #6b7280;
+        }
+        
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
 <body>
-    <div class="container-fluid py-4">
-        <!-- Header -->
-        <div class="project-card mb-4">
-            <div class="header-gradient p-4 text-white">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h1><i class="fas fa-building me-3"></i>{{ client.nome }}</h1>
-                        <p class="mb-0 lead">Acompanhamento de Projetos em Tempo Real</p>
-                    </div>
-                    <div class="text-end">
-                        <div class="badge bg-light text-dark fs-6 px-3 py-2">
-                            <i class="fas fa-project-diagram me-1"></i>
-                            {{ projects|length }} Projeto{{ 's' if projects|length != 1 else '' }}
+    <!-- Hero Section -->
+    <div class="hero-section text-white position-relative">
+        <div class="container position-relative z-3">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <h1 class="display-4 fw-bold mb-3">
+                        <i class="fas fa-building me-3"></i>{{ client.nome }}
+                    </h1>
+                    <p class="fs-5 mb-0 opacity-90">
+                        Portal do Cliente - Acompanhe seus projetos em tempo real
+                    </p>
+                </div>
+                <div class="col-lg-4 text-lg-end">
+                    <div class="d-inline-block bg-white bg-opacity-20 rounded-4 px-4 py-3">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-chart-line fs-3 me-3"></i>
+                            <div>
+                                <div class="fs-2 fw-bold">{{ projects|length }}</div>
+                                <div class="small opacity-90">Projeto{{ 's' if projects|length != 1 else '' }} Ativo{{ 's' if projects|length != 1 else '' }}</div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <div class="row">
-            <!-- Resumo dos Projetos -->
-            <div class="col-lg-4 mb-4">
-                <div class="project-card p-4">
-                    <h3><i class="fas fa-chart-pie me-2 text-primary"></i>Resumo</h3>
-                    
-                    {% for project in projects %}
-                    <div class="card mb-3 bg-dark border-secondary project-card-item" data-project-id="{{ project.id }}">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <h5 class="card-title mb-2" style="cursor: pointer;" onclick="filterByProject({{ project.id }}, '{{ project.nome|replace('\'', '\\\'') }}')">
-                                    {{ project.nome }}
-                                    <i class="fas fa-arrow-right ms-2 text-muted" style="font-size: 0.8rem;"></i>
-                                </h5>
-                                <button class="btn btn-sm btn-outline-primary" onclick="showProjectDetails({{ project.id }})">
-                                    <i class="fas fa-info-circle me-1"></i>Detalhes
-                                </button>
-                            </div>
-                            
-                            <!-- Status do projeto -->
-                            <div class="mb-2">
+    <!-- Main Content -->
+    <div class="container my-5">
+        <!-- Project Selection -->
+        <div class="mb-4" id="projectSelection">
+            <h2 class="text-white mb-4">
+                <i class="fas fa-folder-open me-2 text-primary"></i>
+                Selecione um Projeto
+            </h2>
+            
+            <div class="project-grid" id="projectGrid">
+                {% for project in projects %}
+                <div class="project-card" onclick="selectProject({{ project.id }}, '{{ project.nome|replace('\'', '\\\'') }}')"
+                     data-project-id="{{ project.id }}">
+                    <div class="p-4">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h4 class="text-white mb-2 fw-bold">{{ project.nome }}</h4>
                                 {% if project.status == 'em_andamento' %}
-                                    <span class="badge bg-primary">Em Andamento</span>
+                                    <span class="status-badge status-progress">Em Andamento</span>
                                 {% elif project.status == 'pausado' %}
-                                    <span class="badge bg-warning">Pausado</span>
+                                    <span class="status-badge status-pending">Pausado</span>
                                 {% elif project.status == 'cancelado' %}
-                                    <span class="badge bg-danger">Cancelado</span>
+                                    <span class="status-badge" style="background: rgba(239, 68, 68, 0.2); color: #ef4444;">Cancelado</span>
                                 {% elif project.status == 'concluido' %}
-                                    <span class="badge bg-success">Concluído</span>
+                                    <span class="status-badge status-completed">Concluído</span>
                                 {% endif %}
                             </div>
-                            
-                            <!-- Estatísticas das tarefas -->
-                            <div class="row text-center">
-                                <div class="col-4">
-                                    <div class="text-warning">
-                                        <i class="fas fa-clock"></i>
-                                        <div class="small">{{ project.tasks|selectattr('status', 'equalto', 'pendente')|list|length }}</div>
-                                        <div class="text-muted small">Pendente</div>
-                                    </div>
-                                </div>
-                                <div class="col-4">
-                                    <div class="text-primary">
-                                        <i class="fas fa-play"></i>
-                                        <div class="small">{{ project.tasks|selectattr('status', 'equalto', 'em_andamento')|list|length }}</div>
-                                        <div class="text-muted small">Andamento</div>
-                                    </div>
-                                </div>
-                                <div class="col-4">
-                                    <div class="text-success">
-                                        <i class="fas fa-check"></i>
-                                        <div class="small">{{ project.tasks|selectattr('status', 'equalto', 'concluida')|list|length }}</div>
-                                        <div class="text-muted small">Concluída</div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Responsável -->
-                            {% if project.responsible %}
-                            <div class="mt-2">
-                                <small class="text-muted">
-                                    <i class="fas fa-user me-1"></i>
-                                    Responsável: {{ project.responsible.full_name }}
-                                </small>
-                            </div>
-                            {% endif %}
-                            
-                            <!-- Data de criação -->
-                            <div class="mt-1">
-                                <small class="text-muted">
-                                    <i class="fas fa-calendar me-1"></i>
-                                    Iniciado: {{ project.created_at.strftime('%d/%m/%Y') }}
-                                </small>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <!-- Timeline das Atividades -->
-            <div class="col-lg-8">
-                <div class="project-card p-4">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h3><i class="fas fa-history me-2 text-primary"></i>Timeline de Atividades</h3>
-                        <div id="filterInfo" class="d-none">
-                            <span class="badge bg-primary me-2" id="currentFilter"></span>
-                            <button class="btn btn-sm btn-outline-secondary" onclick="clearFilter()">
-                                <i class="fas fa-times me-1"></i>Ver Todos
+                            <button class="btn btn-outline-light btn-sm" onclick="event.stopPropagation(); showProjectDetails({{ project.id }})">
+                                <i class="fas fa-info-circle"></i>
                             </button>
                         </div>
-                    </div>
-                    
-                    {% if all_tasks %}
-                    <div class="timeline mt-4">
-                        {% for task_data in all_tasks %}
-                        <div class="timeline-item status-{{ task_data.task.status }}" data-project-id="{{ task_data.project.id }}" style="display: block;">
-                            <div class="timeline-icon">
-                                {% if task_data.task.status == 'pendente' %}
-                                    <i class="fas fa-clock"></i>
-                                {% elif task_data.task.status == 'em_andamento' %}
-                                    <i class="fas fa-play"></i>
-                                {% elif task_data.task.status == 'concluida' %}
-                                    <i class="fas fa-check"></i>
+                        
+                        {% set total_tasks = project.tasks|length %}
+                        {% set completed_tasks = project.tasks|selectattr('status', 'equalto', 'concluida')|list|length %}
+                        {% set progress_percent = ((completed_tasks / total_tasks * 100)|round|int) if total_tasks > 0 else 0 %}
+                        
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-light small">Progresso</span>
+                                <span class="text-light small fw-bold">{{ progress_percent }}%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: {{ progress_percent }}%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="row g-3 text-center">
+                            <div class="col">
+                                <div class="text-warning">
+                                    <i class="fas fa-hourglass-half d-block mb-1"></i>
+                                    <div class="fw-bold">{{ project.tasks|selectattr('status', 'equalto', 'pendente')|list|length }}</div>
+                                    <div class="small text-muted">Pendentes</div>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="text-info">
+                                    <i class="fas fa-play-circle d-block mb-1"></i>
+                                    <div class="fw-bold">{{ project.tasks|selectattr('status', 'equalto', 'em_andamento')|list|length }}</div>
+                                    <div class="small text-muted">Em Andamento</div>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="text-success">
+                                    <i class="fas fa-check-circle d-block mb-1"></i>
+                                    <div class="fw-bold">{{ completed_tasks }}</div>
+                                    <div class="small text-muted">Concluídas</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if project.data_inicio %}
+                        <div class="mt-3 pt-3 border-top border-secondary">
+                            <div class="d-flex justify-content-between text-muted small">
+                                <span><i class="fas fa-calendar-alt me-1"></i>Início: {{ project.data_inicio.strftime('%d/%m/%Y') }}</span>
+                                {% if project.data_fim %}
+                                <span><i class="fas fa-flag-checkered me-1"></i>Fim: {{ project.data_fim.strftime('%d/%m/%Y') }}</span>
                                 {% endif %}
                             </div>
-                            
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <div>
-                                    <h5 class="mb-1">{{ task_data.task.titulo }}</h5>
-                                    <small class="text-muted">
-                                        <i class="fas fa-project-diagram me-1"></i>
-                                        {{ task_data.project.nome }}
-                                    </small>
-                                </div>
-                                <div class="text-end">
-                                    <small class="text-muted">
-                                        {{ task_data.task.created_at.strftime('%d/%m/%Y às %H:%M') }}
-                                    </small>
-                                </div>
-                            </div>
-                            
-                            {% if task_data.task.descricao %}
-                            <p class="text-muted mb-2">{{ task_data.task.descricao }}</p>
-                            {% endif %}
-                            
-                            {% if task_data.task.assigned_user %}
-                            <div class="mb-2">
-                                <small class="text-info">
-                                    <i class="fas fa-user me-1"></i>
-                                    Responsável: {{ task_data.task.assigned_user.full_name }}
-                                </small>
-                            </div>
-                            {% endif %}
-                            
-                            {% if task_data.task.data_conclusao %}
-                            <div class="mb-2">
-                                <small class="text-warning">
-                                    <i class="fas fa-calendar-alt me-1"></i>
-                                    Prazo: {{ task_data.task.data_conclusao.strftime('%d/%m/%Y') }}
-                                </small>
-                            </div>
-                            {% endif %}
-                            
-                            <!-- To-do's da tarefa -->
-                            {% if task_data.task.todos %}
-                            <div class="mt-3">
-                                <h6 class="text-muted mb-2">
-                                    <i class="fas fa-list-check me-1"></i>
-                                    Lista de Ações ({{ task_data.task.todos|selectattr('completed', 'equalto', true)|list|length }}/{{ task_data.task.todos|length }})
-                                </h6>
-                                {% for todo in task_data.task.todos %}
-                                <div class="todo-item {{ 'completed' if todo.completed else '' }}">
-                                    <i class="fas fa-{{ 'check-square' if todo.completed else 'square' }} me-2 {{ 'text-success' if todo.completed else 'text-muted' }}"></i>
-                                    {{ todo.texto }}
-                                </div>
-                                {% endfor %}
-                            </div>
-                            {% endif %}
                         </div>
-                        {% endfor %}
+                        {% endif %}
                     </div>
-                    {% else %}
-                    <div class="text-center py-5">
-                        <i class="fas fa-tasks text-muted" style="font-size: 4rem;"></i>
-                        <h4 class="text-muted mt-3">Nenhuma atividade encontrada</h4>
-                        <p class="text-muted">As atividades dos seus projetos aparecerão aqui conforme forem criadas.</p>
-                    </div>
-                    {% endif %}
                 </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Task View -->
+        <div id="taskView" class="task-view p-4" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3 class="text-white mb-0">
+                    <i class="fas fa-tasks me-2 text-primary"></i>
+                    <span id="selectedProjectName">Projeto Selecionado</span>
+                </h3>
+                <button class="btn btn-outline-light" onclick="clearSelection()">
+                    <i class="fas fa-arrow-left me-2"></i>Voltar aos Projetos
+                </button>
+            </div>
+            
+            <div id="taskContent">
+                <!-- Tasks will be loaded here -->
             </div>
         </div>
         
-        <!-- Footer -->
-        <div class="text-center mt-4 text-muted">
-            <p>
-                <i class="fas fa-shield-alt me-1"></i>
-                Acesso seguro e atualizado em tempo real
-            </p>
+        <!-- Floating Stats -->
+        <div class="floating-stats d-none" id="floatingStats">
+            <h6 class="text-white mb-3">
+                <i class="fas fa-chart-pie me-2 text-primary"></i>
+                Resumo do Projeto
+            </h6>
+            <div id="statsContent">
+                <!-- Stats will be loaded here -->
+            </div>
         </div>
     </div>
-    
+
     <!-- Modal para detalhes do projeto -->
     <div class="modal fade" id="projectDetailsModal" tabindex="-1">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Detalhes do Projeto</h5>
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content bg-dark border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title text-white">Detalhes do Projeto</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
-                    <div id="projectDetailsContent">
-                        <div class="text-center">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Carregando...</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                <div class="modal-body" id="projectDetailsContent">
+                    <!-- Conteúdo será carregado via AJAX -->
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        let selectedProjectId = null;
+        
+        // Função para selecionar um projeto
+        function selectProject(projectId, projectName) {
+            selectedProjectId = projectId;
+            
+            // Esconder seleção de projetos
+            document.getElementById('projectSelection').style.display = 'none';
+            
+            // Mostrar view de tarefas
+            document.getElementById('taskView').style.display = 'block';
+            document.getElementById('selectedProjectName').textContent = projectName;
+            
+            // Carregar tarefas
+            loadProjectTasks(projectId, projectName);
+            
+            // Mostrar stats flutuantes
+            showFloatingStats(projectId);
+        }
+        
+        // Função para limpar seleção
+        function clearSelection() {
+            selectedProjectId = null;
+            
+            // Mostrar seleção de projetos
+            document.getElementById('projectSelection').style.display = 'block';
+            
+            // Esconder view de tarefas
+            document.getElementById('taskView').style.display = 'none';
+            
+            // Esconder stats flutuantes
+            document.getElementById('floatingStats').classList.add('d-none');
+        }
+        
+        // Função para carregar tarefas do projeto
+        function loadProjectTasks(projectId, projectName) {
+            const taskContent = document.getElementById('taskContent');
+            
+            // Mostrar loading
+            taskContent.innerHTML = `
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                    <p class="text-muted mt-3">Carregando atividades do projeto...</p>
+                </div>
+            `;
+            
+            // Buscar tarefas
+            fetch(`/public/project-tasks/${projectId}/{{ client.public_code }}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayTasks(data.tasks, data.project_name);
+                    } else {
+                        taskContent.innerHTML = `
+                            <div class="empty-state">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <h4>Erro ao carregar tarefas</h4>
+                                <p>Não foi possível carregar as tarefas do projeto.</p>
+                                <button class="btn btn-outline-primary" onclick="loadProjectTasks(${projectId}, '${projectName}')">
+                                    <i class="fas fa-refresh me-2"></i>Tentar novamente
+                                </button>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    taskContent.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <h4>Erro de conexão</h4>
+                            <p>Verifique sua conexão e tente novamente.</p>
+                            <button class="btn btn-outline-primary" onclick="loadProjectTasks(${projectId}, '${projectName}')">
+                                <i class="fas fa-refresh me-2"></i>Tentar novamente
+                            </button>
+                        </div>
+                    `;
+                });
+        }
+        
+        // Função para exibir tarefas
+        function displayTasks(tasks, projectName) {
+            const taskContent = document.getElementById('taskContent');
+            
+            if (tasks.length === 0) {
+                taskContent.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-tasks"></i>
+                        <h4>Nenhuma tarefa encontrada</h4>
+                        <p>Este projeto ainda não possui tarefas cadastradas.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Agrupar tarefas por status
+            const tasksByStatus = {
+                'pendente': tasks.filter(t => t.status === 'pendente'),
+                'em_andamento': tasks.filter(t => t.status === 'em_andamento'),
+                'concluida': tasks.filter(t => t.status === 'concluida')
+            };
+            
+            let html = `
+                <div class="row g-4">
+                    <div class="col-lg-4">
+                        <div class="mb-3">
+                            <h5 class="text-warning">
+                                <i class="fas fa-hourglass-half me-2"></i>
+                                Pendentes (${tasksByStatus.pendente.length})
+                            </h5>
+                        </div>
+                        <div class="d-flex flex-column gap-3">
+                            ${tasksByStatus.pendente.map(task => createTaskCard(task, 'warning')).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-4">
+                        <div class="mb-3">
+                            <h5 class="text-info">
+                                <i class="fas fa-play-circle me-2"></i>
+                                Em Andamento (${tasksByStatus.em_andamento.length})
+                            </h5>
+                        </div>
+                        <div class="d-flex flex-column gap-3">
+                            ${tasksByStatus.em_andamento.map(task => createTaskCard(task, 'info')).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-4">
+                        <div class="mb-3">
+                            <h5 class="text-success">
+                                <i class="fas fa-check-circle me-2"></i>
+                                Concluídas (${tasksByStatus.concluida.length})
+                            </h5>
+                        </div>
+                        <div class="d-flex flex-column gap-3">
+                            ${tasksByStatus.concluida.map(task => createTaskCard(task, 'success')).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            taskContent.innerHTML = html;
+            taskContent.classList.add('fade-in');
+        }
+        
+        // Função para criar card de tarefa
+        function createTaskCard(task, colorClass) {
+            const todos = task.todos || [];
+            const completedTodos = todos.filter(todo => todo.completed).length;
+            
+            return `
+                <div class="task-item p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="text-white mb-0">${task.titulo}</h6>
+                        <span class="status-badge status-${task.status === 'concluida' ? 'completed' : task.status === 'em_andamento' ? 'progress' : 'pending'}">
+                            ${task.status === 'concluida' ? 'Concluída' : task.status === 'em_andamento' ? 'Em Andamento' : 'Pendente'}
+                        </span>
+                    </div>
+                    
+                    ${task.descricao ? `<p class="text-muted small mb-3">${task.descricao}</p>` : ''}
+                    
+                    ${todos.length > 0 ? `
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <small class="text-muted">Subtarefas</small>
+                                <small class="text-muted">${completedTodos}/${todos.length}</small>
+                            </div>
+                            <div class="progress-bar mb-2" style="height: 4px;">
+                                <div class="progress-fill" style="width: ${todos.length > 0 ? (completedTodos / todos.length * 100) : 0}%"></div>
+                            </div>
+                            <div class="small">
+                                ${todos.map(todo => `
+                                    <div class="d-flex align-items-center mb-1">
+                                        <i class="fas ${todo.completed ? 'fa-check-square text-success' : 'fa-square text-muted'} me-2"></i>
+                                        <span class="text-muted ${todo.completed ? 'text-decoration-line-through' : ''}">${todo.text}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="d-flex justify-content-between align-items-center text-muted small">
+                        <span>
+                            <i class="fas fa-calendar me-1"></i>
+                            ${formatDate(task.created_at)}
+                        </span>
+                        ${task.completed_at ? `
+                            <span class="text-success">
+                                <i class="fas fa-check-circle me-1"></i>
+                                Finalizada
+                            </span>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Função para mostrar stats flutuantes
+        function showFloatingStats(projectId) {
+            // Buscar dados do projeto
+            fetch(`/public/project-stats/${projectId}/{{ client.public_code }}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const stats = data.stats;
+                        const statsContent = document.getElementById('statsContent');
+                        
+                        statsContent.innerHTML = `
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="small text-muted">Progresso Geral</span>
+                                <span class="small text-white fw-bold">${stats.progress_percent}%</span>
+                            </div>
+                            <div class="progress-bar mb-3">
+                                <div class="progress-fill" style="width: ${stats.progress_percent}%"></div>
+                            </div>
+                            
+                            <div class="row g-2 text-center mb-3">
+                                <div class="col-4">
+                                    <div class="text-warning small">
+                                        <div class="fw-bold fs-5">${stats.pending}</div>
+                                        <div>Pendentes</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="text-info small">
+                                        <div class="fw-bold fs-5">${stats.in_progress}</div>
+                                        <div>Em Andamento</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="text-success small">
+                                        <div class="fw-bold fs-5">${stats.completed}</div>
+                                        <div>Concluídas</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="border-top border-secondary pt-3">
+                                <div class="small text-muted">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span>Total de Tarefas:</span>
+                                        <span class="text-white">${stats.total_tasks}</span>
+                                    </div>
+                                    ${stats.start_date ? `
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span>Data de Início:</span>
+                                            <span class="text-white">${formatDate(stats.start_date)}</span>
+                                        </div>
+                                    ` : ''}
+                                    ${stats.end_date ? `
+                                        <div class="d-flex justify-content-between">
+                                            <span>Previsão:</span>
+                                            <span class="text-white">${formatDate(stats.end_date)}</span>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        `;
+                        
+                        document.getElementById('floatingStats').classList.remove('d-none');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar stats:', error);
+                });
+        }
+        
+        // Função para mostrar detalhes do projeto
         function showProjectDetails(projectId) {
+            // Implementation remains the same
             const modal = new bootstrap.Modal(document.getElementById('projectDetailsModal'));
             const content = document.getElementById('projectDetailsContent');
             
-            // Mostrar loading
             content.innerHTML = `
-                <div class="text-center">
+                <div class="text-center py-4">
                     <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Carregando...</span>
                     </div>
@@ -337,12 +606,80 @@
             
             modal.show();
             
-            // Buscar detalhes do projeto
             fetch(`/public/project-details/${projectId}/{{ client.public_code }}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        content.innerHTML = buildProjectDetailsHTML(data.project);
+                        const project = data.project;
+                        content.innerHTML = `
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <h4 class="text-primary mb-3">${project.nome}</h4>
+                                    
+                                    ${project.descricao ? `
+                                    <div class="mb-4">
+                                        <h6 class="text-muted">Descrição</h6>
+                                        <p class="text-light">${project.descricao}</p>
+                                    </div>
+                                    ` : ''}
+                                    
+                                    ${project.objetivos ? `
+                                    <div class="mb-4">
+                                        <h6 class="text-muted">Objetivos</h6>
+                                        <p class="text-light">${project.objetivos}</p>
+                                    </div>
+                                    ` : ''}
+                                    
+                                    ${project.escopo ? `
+                                    <div class="mb-4">
+                                        <h6 class="text-muted">Escopo</h6>
+                                        <p class="text-light">${project.escopo}</p>
+                                    </div>
+                                    ` : ''}
+                                    
+                                    ${project.restricoes ? `
+                                    <div class="mb-4">
+                                        <h6 class="text-muted">Restrições</h6>
+                                        <p class="text-light">${project.restricoes}</p>
+                                    </div>
+                                    ` : ''}
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <div class="card bg-secondary border-0">
+                                        <div class="card-body">
+                                            <h6 class="card-title">Informações do Projeto</h6>
+                                            
+                                            <div class="mb-3">
+                                                <strong>Status:</strong><br>
+                                                <span class="badge ${getStatusBadgeClass(project.status)}">${getStatusText(project.status)}</span>
+                                            </div>
+                                            
+                                            ${project.data_inicio ? `
+                                            <div class="mb-3">
+                                                <strong>Data de Início:</strong><br>
+                                                <span class="text-muted">${formatDate(project.data_inicio)}</span>
+                                            </div>
+                                            ` : ''}
+                                            
+                                            ${project.data_fim ? `
+                                            <div class="mb-3">
+                                                <strong>Previsão de Término:</strong><br>
+                                                <span class="text-muted">${formatDate(project.data_fim)}</span>
+                                            </div>
+                                            ` : ''}
+                                            
+                                            ${project.responsavel ? `
+                                            <div class="mb-3">
+                                                <strong>Responsável:</strong><br>
+                                                <span class="text-muted">${project.responsavel}</span>
+                                            </div>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
                     } else {
                         content.innerHTML = `
                             <div class="alert alert-danger">
@@ -363,90 +700,9 @@
                 });
         }
         
-        function buildProjectDetailsHTML(project) {
-            return `
-                <div class="row">
-                    <div class="col-md-6">
-                        <h4 class="text-primary mb-3">
-                            <i class="fas fa-project-diagram me-2"></i>
-                            ${project.nome}
-                        </h4>
-                        
-                        <div class="mb-3">
-                            <strong>Status:</strong>
-                            <span class="badge ${getStatusBadgeClass(project.status)} ms-2">${getStatusText(project.status)}</span>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <strong>Responsável:</strong> ${project.responsible_name}
-                        </div>
-                        
-                        <div class="mb-3">
-                            <strong>Data de Criação:</strong> ${formatDate(project.created_at)}
-                        </div>
-                        
-                        ${project.equipe && project.equipe.length > 0 ? `
-                        <div class="mb-3">
-                            <strong>Equipe:</strong>
-                            <div class="mt-1">
-                                ${project.equipe.map(member => `<span class="badge bg-secondary me-1">${member}</span>`).join('')}
-                            </div>
-                        </div>
-                        ` : ''}
-                    </div>
-                    
-                    <div class="col-md-6">
-                        <h5 class="text-secondary mb-3">Informações do Projeto</h5>
-                        
-                        ${project.descricao_resumida ? `
-                        <div class="mb-3">
-                            <strong>Descrição:</strong>
-                            <p class="text-muted mt-1">${project.descricao_resumida}</p>
-                        </div>
-                        ` : ''}
-                        
-                        ${project.objetivos ? `
-                        <div class="mb-3">
-                            <strong>Objetivos:</strong>
-                            <p class="text-muted mt-1">${project.objetivos}</p>
-                        </div>
-                        ` : ''}
-                        
-                        ${project.escopo_projeto ? `
-                        <div class="mb-3">
-                            <strong>Escopo:</strong>
-                            <p class="text-muted mt-1">${project.escopo_projeto}</p>
-                        </div>
-                        ` : ''}
-                    </div>
-                </div>
-                
-                ${project.problema_oportunidade || project.premissas || project.restricoes ? `
-                <hr class="my-4">
-                <div class="row">
-                    ${project.problema_oportunidade ? `
-                    <div class="col-md-4">
-                        <h6 class="text-warning">Problema/Oportunidade</h6>
-                        <p class="text-muted small">${project.problema_oportunidade}</p>
-                    </div>
-                    ` : ''}
-                    
-                    ${project.premissas ? `
-                    <div class="col-md-4">
-                        <h6 class="text-info">Premissas</h6>
-                        <p class="text-muted small">${project.premissas}</p>
-                    </div>
-                    ` : ''}
-                    
-                    ${project.restricoes ? `
-                    <div class="col-md-4">
-                        <h6 class="text-danger">Restrições</h6>
-                        <p class="text-muted small">${project.restricoes}</p>
-                    </div>
-                    ` : ''}
-                </div>
-                ` : ''}
-            `;
+        // Funções utilitárias
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('pt-BR');
         }
         
         function getStatusBadgeClass(status) {
@@ -467,187 +723,6 @@
                 case 'concluido': return 'Concluído';
                 default: return status;
             }
-        }
-        
-        function formatDate(dateString) {
-            return new Date(dateString).toLocaleDateString('pt-BR');
-        }
-        
-        // Função para mostrar tarefas de um projeto específico
-        function filterByProject(projectId, projectName) {
-            console.log('filterByProject chamado:', projectId, projectName);
-            
-            // Destacar o projeto selecionado
-            document.querySelectorAll('.project-card-item').forEach(card => {
-                card.classList.remove('border-primary');
-                card.style.opacity = '0.6';
-            });
-            
-            const selectedCard = document.querySelector(`.project-card-item[data-project-id="${projectId}"]`);
-            if (selectedCard) {
-                selectedCard.classList.add('border-primary');
-                selectedCard.style.opacity = '1';
-            }
-            
-            // Mostrar loading no timeline
-            const timelineContainer = document.querySelector('.timeline');
-            if (!timelineContainer) {
-                console.error('Timeline container não encontrado!');
-                return;
-            }
-            
-            timelineContainer.innerHTML = `
-                <div class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Carregando tarefas...</span>
-                    </div>
-                    <p class="text-muted mt-2">Carregando atividades do projeto...</p>
-                </div>
-            `;
-            
-            // Buscar tarefas do projeto
-            fetch(`/public/project-tasks/${projectId}/{{ client.public_code }}`)
-                .then(response => {
-                    console.log('Response status:', response.status);
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('Data received:', data);
-                    if (data.success) {
-                        buildProjectTimeline(data.tasks, data.project_name);
-                        
-                        // Mostrar informação do filtro
-                        document.getElementById('currentFilter').textContent = `Projeto: ${projectName} (${data.tasks.length} atividades)`;
-                        document.getElementById('filterInfo').classList.remove('d-none');
-                    } else {
-                        timelineContainer.innerHTML = `
-                            <div class="alert alert-danger">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                Erro ao carregar tarefas do projeto.
-                            </div>
-                        `;
-                    }
-                })
-                .catch(error => {
-                    console.error('Erro completo:', error);
-                    timelineContainer.innerHTML = `
-                        <div class="alert alert-danger">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            Erro ao carregar tarefas do projeto: ${error.message}
-                        </div>
-                    `;
-                });
-            
-            // Scroll para o timeline
-            setTimeout(() => {
-                document.querySelector('.timeline').scrollIntoView({ behavior: 'smooth' });
-            }, 100);
-        }
-        
-        function buildProjectTimeline(tasks, projectName) {
-            const timelineContainer = document.querySelector('.timeline');
-            
-            if (tasks.length === 0) {
-                timelineContainer.innerHTML = `
-                    <div class="text-center py-5">
-                        <i class="fas fa-tasks text-muted" style="font-size: 4rem;"></i>
-                        <h4 class="text-muted mt-3">Nenhuma atividade encontrada</h4>
-                        <p class="text-muted">Este projeto ainda não possui tarefas cadastradas.</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            let timelineHTML = '';
-            tasks.forEach(task => {
-                timelineHTML += `
-                    <div class="timeline-item status-${task.status}">
-                        <div class="timeline-icon">
-                            ${task.status === 'pendente' ? '<i class="fas fa-clock"></i>' : 
-                              task.status === 'em_andamento' ? '<i class="fas fa-play"></i>' : 
-                              '<i class="fas fa-check"></i>'}
-                        </div>
-                        
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <div>
-                                <h5 class="mb-1">${task.titulo}</h5>
-                                <small class="text-muted">
-                                    <i class="fas fa-project-diagram me-1"></i>
-                                    ${projectName}
-                                </small>
-                            </div>
-                            <div class="text-end">
-                                <small class="text-muted">${task.created_at}</small>
-                            </div>
-                        </div>
-                        
-                        ${task.descricao ? `<p class="text-muted mb-2">${task.descricao}</p>` : ''}
-                        
-                        ${task.assigned_user ? `
-                        <div class="mb-2">
-                            <small class="text-info">
-                                <i class="fas fa-user me-1"></i>
-                                Responsável: ${task.assigned_user}
-                            </small>
-                        </div>
-                        ` : ''}
-                        
-                        ${task.data_conclusao ? `
-                        <div class="mb-2">
-                            <small class="text-warning">
-                                <i class="fas fa-calendar-alt me-1"></i>
-                                Prazo: ${task.data_conclusao}
-                            </small>
-                        </div>
-                        ` : ''}
-                        
-                        ${task.todos && task.todos.length > 0 ? `
-                        <div class="mt-3">
-                            <h6 class="text-muted mb-2">
-                                <i class="fas fa-list-check me-1"></i>
-                                Lista de Ações (${task.todos.filter(todo => todo.completed).length}/${task.todos.length})
-                            </h6>
-                            ${task.todos.map(todo => `
-                                <div class="todo-item ${todo.completed ? 'completed' : ''}">
-                                    <i class="fas fa-${todo.completed ? 'check-square' : 'square'} me-2 ${todo.completed ? 'text-success' : 'text-muted'}"></i>
-                                    ${todo.texto}
-                                </div>
-                            `).join('')}
-                        </div>
-                        ` : ''}
-                    </div>
-                `;
-            });
-            
-            timelineContainer.innerHTML = timelineHTML;
-        }
-        
-        // Armazenar o timeline original
-        let originalTimelineHTML = '';
-        
-        // Salvar o timeline original quando a página carrega
-        document.addEventListener('DOMContentLoaded', function() {
-            const timelineContainer = document.querySelector('.timeline');
-            if (timelineContainer) {
-                originalTimelineHTML = timelineContainer.innerHTML;
-            }
-        });
-        
-        function clearFilter() {
-            // Remover destaque dos projetos
-            document.querySelectorAll('.project-card-item').forEach(card => {
-                card.classList.remove('border-primary');
-                card.style.opacity = '1';
-            });
-            
-            // Restaurar timeline original
-            const timelineContainer = document.querySelector('.timeline');
-            if (timelineContainer && originalTimelineHTML) {
-                timelineContainer.innerHTML = originalTimelineHTML;
-            }
-            
-            // Esconder informação do filtro
-            document.getElementById('filterInfo').classList.add('d-none');
         }
     </script>
 </body>

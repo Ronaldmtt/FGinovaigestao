@@ -575,7 +575,7 @@ def public_project_tasks(project_id, code):
             'created_at': task.created_at.strftime('%d/%m/%Y às %H:%M'),
             'data_conclusao': task.data_conclusao.strftime('%d/%m/%Y') if task.data_conclusao else None,
             'assigned_user': task.assigned_user.full_name if task.assigned_user else None,
-            'todos': [{'texto': todo.texto, 'completed': todo.completed} for todo in task.todos]
+            'todos': [{'text': todo.texto, 'completed': todo.completed} for todo in task.todos]
         }
         tasks_data.append(task_info)
     
@@ -584,6 +584,46 @@ def public_project_tasks(project_id, code):
         'project_name': project.nome,
         'tasks': tasks_data
     })
+
+
+@app.route('/public/project-stats/<int:project_id>/<code>')
+def public_project_stats(project_id, code):
+    try:
+        # Verificar se o código é válido
+        client = Client.query.filter_by(public_code=code).first_or_404()
+        
+        # Verificar se o projeto pertence ao cliente
+        project = Project.query.filter_by(id=project_id, client_id=client.id).first_or_404()
+        
+        # Calcular estatísticas
+        tasks = Task.query.filter_by(project_id=project.id).all()
+        total_tasks = len(tasks)
+        
+        pending_tasks = len([t for t in tasks if t.status == 'pendente'])
+        in_progress_tasks = len([t for t in tasks if t.status == 'em_andamento'])
+        completed_tasks = len([t for t in tasks if t.status == 'concluida'])
+        
+        progress_percent = round((completed_tasks / total_tasks * 100)) if total_tasks > 0 else 0
+        
+        stats_data = {
+            'total_tasks': total_tasks,
+            'pending': pending_tasks,
+            'in_progress': in_progress_tasks,
+            'completed': completed_tasks,
+            'progress_percent': progress_percent,
+            'start_date': project.data_inicio.strftime('%d/%m/%Y') if project.data_inicio else None,
+            'end_date': project.data_fim.strftime('%d/%m/%Y') if project.data_fim else None
+        }
+        
+        return jsonify({
+            'success': True,
+            'stats': stats_data
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
 
 @app.route('/projects/<int:id>/data')
 @login_required

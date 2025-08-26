@@ -1354,3 +1354,213 @@ def import_database():
             flash('Por favor, selecione um arquivo JSON válido.', 'danger')
     
     return render_template('import_data.html')
+
+# Rotas específicas para tarefas
+@app.route('/admin/export-tasks')
+@login_required
+def export_tasks():
+    """Exporta apenas tarefas e todos para download"""
+    if not current_user.is_admin:
+        flash('Acesso negado. Apenas administradores podem exportar tarefas.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    try:
+        export_data = {
+            'export_date': datetime.now().isoformat(),
+            'exported_by': current_user.email,
+            'export_type': 'tasks_only',
+            'tasks': [],
+            'todos': [],
+            'projects_reference': [],
+            'users_reference': []
+        }
+        
+        # Exportar tarefas
+        tasks = Task.query.all()
+        for task in tasks:
+            export_data['tasks'].append({
+                'id': task.id,
+                'titulo': task.titulo,
+                'descricao': task.descricao,
+                'status': task.status,
+                'project_id': task.project_id,
+                'project_name': task.project.nome if task.project else None,
+                'client_name': task.project.client.nome if task.project and task.project.client else None,
+                'assigned_user_id': task.assigned_user_id,
+                'assigned_user_name': task.assigned_user.full_name if task.assigned_user else None,
+                'data_conclusao': task.data_conclusao.isoformat() if task.data_conclusao else None,
+                'created_at': task.created_at.isoformat() if task.created_at else None,
+                'completed_at': task.completed_at.isoformat() if task.completed_at else None
+            })
+        
+        # Exportar todos
+        todos = TodoItem.query.all()
+        for todo in todos:
+            export_data['todos'].append({
+                'id': todo.id,
+                'texto': todo.texto,
+                'completed': todo.completed,
+                'task_id': todo.task_id,
+                'task_title': todo.task.titulo if todo.task else None,
+                'created_at': todo.created_at.isoformat() if todo.created_at else None,
+                'completed_at': todo.completed_at.isoformat() if todo.completed_at else None
+            })
+        
+        # Adicionar projetos e usuários como referência para importação
+        projects = Project.query.all()
+        for project in projects:
+            export_data['projects_reference'].append({
+                'id': project.id,
+                'nome': project.nome,
+                'client_name': project.client.nome if project.client else None
+            })
+        
+        users = User.query.filter_by(is_admin=False).all()
+        for user in users:
+            export_data['users_reference'].append({
+                'id': user.id,
+                'nome': user.full_name,
+                'email': user.email
+            })
+        
+        # Criar resposta JSON para download
+        response = jsonify(export_data)
+        response.headers['Content-Disposition'] = f'attachment; filename=tasks_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json'
+        response.headers['Content-Type'] = 'application/json'
+        
+        flash(f'Tarefas exportadas com sucesso! {len(export_data["tasks"])} tarefas e {len(export_data["todos"])} todos.', 'success')
+        
+        return response
+        
+    except Exception as e:
+        flash(f'Erro ao exportar tarefas: {str(e)}', 'danger')
+        return redirect(url_for('dashboard'))
+
+@app.route('/admin/import-tasks', methods=['GET', 'POST'])
+@login_required
+def import_tasks():
+    """Página para importar apenas tarefas"""
+    if not current_user.is_admin:
+        flash('Acesso negado. Apenas administradores podem importar tarefas.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    if request.method == 'POST':
+        if 'data_file' not in request.files:
+            flash('Nenhum arquivo foi selecionado.', 'danger')
+            return render_template('import_tasks.html')
+        
+        file = request.files['data_file']
+        if file.filename == '':
+            flash('Nenhum arquivo foi selecionado.', 'danger')
+            return render_template('import_tasks.html')
+        
+        if file and file.filename.endswith('.json'):
+            try:
+                # Ler conteúdo do arquivo
+                content = file.read().decode('utf-8')
+                data = json.loads(content)
+                
+                # Validar se é arquivo de tarefas
+                if data.get('export_type') != 'tasks_only':
+                    flash('Este arquivo não é um export específico de tarefas. Use a importação completa de dados.', 'warning')
+                    return render_template('import_tasks.html')
+                
+                # Validar estrutura básica
+                required_keys = ['tasks', 'todos']
+                if not all(key in data for key in required_keys):
+                    flash('Arquivo JSON inválido. Estrutura incorreta para importação de tarefas.', 'danger')
+                    return render_template('import_tasks.html')
+                
+                # Mapear IDs para importação
+                task_id_map = {}
+                stats = {'tasks': 0, 'todos': 0, 'skipped_tasks': 0}
+                
+                # Importar tarefas
+                for task_data in data['tasks']:
+                    # Verificar se o projeto existe
+                    project = None
+                    if task_data.get('project_id'):
+                        project = Project.query.get(task_data['project_id'])
+                    
+                    # Se projeto não existe, tentar encontrar por nome
+                    if not project and task_data.get('project_name'):
+                        project = Project.query.filter_by(nome=task_data['project_name']).first()
+                    
+                    if not project:
+                        stats['skipped_tasks'] += 1
+                        continue
+                    
+                    # Verificar se tarefa já existe
+                    existing_task = Task.query.filter_by(
+                        titulo=task_data['titulo'], 
+                        project_id=project.id
+                    ).first()
+                    
+                    if not existing_task:
+                        # Encontrar usuário responsável
+                        assigned_user = None
+                        if task_data.get('assigned_user_id'):
+                            assigned_user = User.query.get(task_data['assigned_user_id'])
+                        elif task_data.get('assigned_user_name'):
+                            # Tentar encontrar por nome
+                            for user in User.query.filter_by(is_admin=False).all():
+                                if user.full_name == task_data['assigned_user_name']:
+                                    assigned_user = user
+                                    break
+                        
+                        task = Task(
+                            titulo=task_data['titulo'],
+                            descricao=task_data['descricao'],
+                            status=task_data['status'],
+                            project_id=project.id,
+                            assigned_user_id=assigned_user.id if assigned_user else None,
+                            data_conclusao=datetime.fromisoformat(task_data['data_conclusao']).date() if task_data['data_conclusao'] else None,
+                            created_at=datetime.fromisoformat(task_data['created_at']) if task_data['created_at'] else datetime.now(),
+                            completed_at=datetime.fromisoformat(task_data['completed_at']) if task_data['completed_at'] else None
+                        )
+                        db.session.add(task)
+                        db.session.flush()
+                        stats['tasks'] += 1
+                        task_id_map[task_data['id']] = task.id
+                    else:
+                        task_id_map[task_data['id']] = existing_task.id
+                
+                # Importar todos (to-do items)
+                for todo_data in data['todos']:
+                    task_id = task_id_map.get(todo_data['task_id'])
+                    if task_id:
+                        # Verificar se todo já existe
+                        existing_todo = TodoItem.query.filter_by(
+                            texto=todo_data['texto'], 
+                            task_id=task_id
+                        ).first()
+                        
+                        if not existing_todo:
+                            todo = TodoItem(
+                                texto=todo_data['texto'],
+                                completed=todo_data['completed'],
+                                task_id=task_id,
+                                created_at=datetime.fromisoformat(todo_data['created_at']) if todo_data['created_at'] else datetime.now(),
+                                completed_at=datetime.fromisoformat(todo_data['completed_at']) if todo_data['completed_at'] else None
+                            )
+                            db.session.add(todo)
+                            stats['todos'] += 1
+                
+                db.session.commit()
+                
+                message = f'Importação de tarefas concluída! {stats["tasks"]} tarefas e {stats["todos"]} todos importados.'
+                if stats['skipped_tasks'] > 0:
+                    message += f' {stats["skipped_tasks"]} tarefas foram ignoradas (projeto não encontrado).'
+                
+                flash(message, 'success')
+                return redirect(url_for('dashboard'))
+                
+            except json.JSONDecodeError:
+                flash('Erro: arquivo JSON inválido.', 'danger')
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Erro ao importar tarefas: {str(e)}', 'danger')
+        else:
+            flash('Por favor, selecione um arquivo JSON válido.', 'danger')
+    
+    return render_template('import_tasks.html')

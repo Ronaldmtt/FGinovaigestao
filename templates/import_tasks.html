@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Importar Tarefas - Sistema de Gerenciamento de Projetos{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-header d-flex align-items-center">
+                <i class="fas fa-tasks me-2 text-warning"></i>
+                <h4 class="mb-0">Importar Tarefas</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Instruções:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>Selecione um arquivo JSON de tarefas exportado anteriormente</li>
+                        <li>O sistema importará apenas tarefas e todos (to-dos)</li>
+                        <li>Projetos e usuários devem já existir no sistema</li>
+                        <li>Tarefas existentes não serão duplicadas</li>
+                        <li>⚠️ Use apenas arquivos exportados pela função "Exportar Tarefas"</li>
+                    </ul>
+                </div>
+
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="data_file" class="form-label">
+                            <i class="fas fa-file-code me-1"></i>Arquivo de Tarefas (JSON)
+                        </label>
+                        <input type="file" 
+                               class="form-control" 
+                               id="data_file" 
+                               name="data_file" 
+                               accept=".json"
+                               required>
+                        <div class="form-text">Apenas arquivos JSON de tarefas são aceitos</div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-warning flex-fill">
+                            <i class="fas fa-upload me-1"></i>Importar Tarefas
+                        </button>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                            <i class="fas fa-times me-1"></i>Cancelar
+                        </a>
+                    </div>
+                </form>
+
+                <hr>
+                
+                <div class="text-center">
+                    <h6 class="text-muted">Outras opções</h6>
+                    <div class="d-flex gap-2 justify-content-center">
+                        <a href="{{ url_for('export_tasks') }}" class="btn btn-outline-warning btn-sm">
+                            <i class="fas fa-download me-1"></i>Exportar Tarefas
+                        </a>
+                        <a href="{{ url_for('import_database') }}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-database me-1"></i>Importação Completa
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

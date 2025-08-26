@@ -120,6 +120,12 @@
             <a href="{{ url_for('import_database') }}" class="btn btn-outline-warning">
                 <i class="fas fa-upload me-1"></i>Importar Dados
             </a>
+            <a href="{{ url_for('export_tasks') }}" class="btn btn-outline-primary">
+                <i class="fas fa-tasks me-1"></i>Exportar Tarefas
+            </a>
+            <a href="{{ url_for('import_tasks') }}" class="btn btn-outline-info">
+                <i class="fas fa-tasks me-1"></i>Importar Tarefas
+            </a>
             {% endif %}
         </div>
     </div>
@@ -136,14 +142,27 @@
                 <p class="mb-3">Como administrador, você pode exportar e importar todos os dados do sistema:</p>
                 
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-md-6 mb-3">
                         <div class="d-flex align-items-start">
                             <i class="fas fa-download text-success fa-2x me-3 mt-1"></i>
                             <div>
-                                <h6>Exportar Dados</h6>
+                                <h6>Exportar Dados Completos</h6>
                                 <p class="text-muted small mb-2">Baixe um arquivo JSON com todos os usuários, clientes, projetos e tarefas do sistema.</p>
                                 <a href="{{ url_for('export_database') }}" class="btn btn-success btn-sm">
-                                    <i class="fas fa-download me-1"></i>Exportar Agora
+                                    <i class="fas fa-download me-1"></i>Exportar Tudo
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex align-items-start">
+                            <i class="fas fa-upload text-primary fa-2x me-3 mt-1"></i>
+                            <div>
+                                <h6>Importar Dados Completos</h6>
+                                <p class="text-muted small mb-2">Carregue dados completos de um arquivo JSON exportado anteriormente.</p>
+                                <a href="{{ url_for('import_database') }}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-upload me-1"></i>Importar Tudo
                                 </a>
                             </div>
                         </div>
@@ -151,12 +170,25 @@
                     
                     <div class="col-md-6">
                         <div class="d-flex align-items-start">
-                            <i class="fas fa-upload text-primary fa-2x me-3 mt-1"></i>
+                            <i class="fas fa-tasks text-warning fa-2x me-3 mt-1"></i>
                             <div>
-                                <h6>Importar Dados</h6>
-                                <p class="text-muted small mb-2">Carregue dados de um arquivo JSON exportado anteriormente.</p>
-                                <a href="{{ url_for('import_database') }}" class="btn btn-primary btn-sm">
-                                    <i class="fas fa-upload me-1"></i>Importar Dados
+                                <h6>Exportar Apenas Tarefas</h6>
+                                <p class="text-muted small mb-2">Baixe apenas as tarefas e todos (to-dos) do sistema em formato JSON.</p>
+                                <a href="{{ url_for('export_tasks') }}" class="btn btn-warning btn-sm">
+                                    <i class="fas fa-tasks me-1"></i>Exportar Tarefas
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-start">
+                            <i class="fas fa-tasks text-info fa-2x me-3 mt-1"></i>
+                            <div>
+                                <h6>Importar Apenas Tarefas</h6>
+                                <p class="text-muted small mb-2">Carregue tarefas de um arquivo JSON específico de tarefas.</p>
+                                <a href="{{ url_for('import_tasks') }}" class="btn btn-info btn-sm">
+                                    <i class="fas fa-tasks me-1"></i>Importar Tarefas
                                 </a>
                             </div>
                         </div>

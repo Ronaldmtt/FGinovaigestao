@@ -1,13 +1,13 @@
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
-from datetime import datetime
+from datetime import datetime, timedelta
 import httpx
 import secrets
 import string
 from app import app, db
 from models import User, Client, Project, Task, TodoItem
-from forms import LoginForm, UserForm, ClientForm, ProjectForm, TaskForm, TranscriptionTaskForm
+from forms import LoginForm, UserForm, ClientForm, ProjectForm, TaskForm, TranscriptionTaskForm, ManualProjectForm, ManualTaskForm, ForgotPasswordForm, ResetPasswordForm, ChangePasswordForm
 from openai_service import process_project_transcription, generate_tasks_from_transcription
 
 @app.route('/')
@@ -992,3 +992,74 @@ def kanban_transcription():
             'success': False, 
             'message': 'Erro ao processar a transcrição. Tente novamente mais tarde.'
         })
+
+# Rotas para redefinição de senha
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    
+    form = ForgotPasswordForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data).first()
+        if user:
+            # Gerar token de reset
+            token = secrets.token_urlsafe(32)
+            user.reset_token = token
+            user.reset_token_expires = datetime.utcnow() + timedelta(hours=1)  # Token expira em 1 hora
+            db.session.commit()
+            
+            # Por enquanto vamos apenas mostrar uma mensagem de confirmação
+            # Em uma implementação real, aqui seria enviado um email
+            flash(f'Um link de redefinição de senha foi gerado. Use este link para redefinir sua senha: /reset-password/{token}', 'info')
+        else:
+            # Por segurança, não revelamos se o email existe ou não
+            flash('Se o email estiver cadastrado, você receberá instruções para redefinir sua senha.', 'info')
+        
+        return redirect(url_for('login'))
+    
+    return render_template('forgot_password.html', form=form)
+
+@app.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    
+    # Encontrar usuário pelo token
+    user = User.query.filter(
+        User.reset_token == token,
+        User.reset_token_expires > datetime.utcnow()
+    ).first()
+    
+    if not user:
+        flash('Token de redefinição inválido ou expirado.', 'danger')
+        return redirect(url_for('forgot_password'))
+    
+    form = ResetPasswordForm()
+    if form.validate_on_submit():
+        user.password_hash = generate_password_hash(form.password.data)
+        user.reset_token = None
+        user.reset_token_expires = None
+        db.session.commit()
+        
+        flash('Sua senha foi redefinida com sucesso! Faça login com sua nova senha.', 'success')
+        return redirect(url_for('login'))
+    
+    return render_template('reset_password.html', form=form)
+
+@app.route('/change-password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    form = ChangePasswordForm()
+    if form.validate_on_submit():
+        if not check_password_hash(current_user.password_hash, form.current_password.data):
+            flash('Senha atual incorreta.', 'danger')
+            return render_template('change_password.html', form=form)
+        
+        current_user.password_hash = generate_password_hash(form.new_password.data)
+        db.session.commit()
+        
+        flash('Sua senha foi alterada com sucesso!', 'success')
+        return redirect(url_for('dashboard'))
+    
+    return render_template('change_password.html', form=form)

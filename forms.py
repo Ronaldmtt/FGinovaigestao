@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SelectField, TextAreaField, DateField, BooleanField
-from wtforms.validators import DataRequired, Email, Length, ValidationError
+from wtforms.validators import DataRequired, Email, Length, ValidationError, EqualTo
 from wtforms.widgets import TextArea
 from models import User, Client, Project
 
@@ -111,3 +111,21 @@ class ManualTaskForm(FlaskForm):
         super(ManualTaskForm, self).__init__(*args, **kwargs)
         self.project_id.choices = [(p.id, f"{p.client.nome} - {p.nome}") for p in Project.query.all()]
         self.assigned_user_id.choices = [('', 'Selecione um usuário')] + [(u.id, u.full_name) for u in User.query.filter_by(is_admin=False).all()]
+
+class ForgotPasswordForm(FlaskForm):
+    email = StringField('Email', validators=[DataRequired(), Email(message="Por favor, digite um email válido.")])
+
+class ResetPasswordForm(FlaskForm):
+    password = PasswordField('Nova Senha', validators=[DataRequired(), Length(min=6, message="A senha deve ter pelo menos 6 caracteres.")])
+    confirm_password = PasswordField('Confirmar Nova Senha', validators=[
+        DataRequired(),
+        EqualTo('password', message="As senhas devem ser iguais.")
+    ])
+
+class ChangePasswordForm(FlaskForm):
+    current_password = PasswordField('Senha Atual', validators=[DataRequired()])
+    new_password = PasswordField('Nova Senha', validators=[DataRequired(), Length(min=6, message="A senha deve ter pelo menos 6 caracteres.")])
+    confirm_password = PasswordField('Confirmar Nova Senha', validators=[
+        DataRequired(),
+        EqualTo('new_password', message="As senhas devem ser iguais.")
+    ])

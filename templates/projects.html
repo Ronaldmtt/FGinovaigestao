@@ -132,6 +132,7 @@
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Cliente</label>
                             <select class="form-select" name="client_id" required>
+                                <option value="">Selecione um cliente</option>
                                 {% for client in clients %}
                                 <option value="{{ client.id }}">{{ client.nome }}</option>
                                 {% endfor %}
@@ -143,6 +144,7 @@
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Usuário Responsável</label>
                             <select class="form-select" name="responsible_id" required>
+                                <option value="">Selecione um responsável</option>
                                 {% for user in users %}
                                 <option value="{{ user.id }}">{{ user.full_name }}</option>
                                 {% endfor %}

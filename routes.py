@@ -133,7 +133,9 @@ def projects():
         ).distinct().all()
     
     form = ProjectForm()
-    return render_template('projects.html', projects=projects, form=form)
+    clients = Client.query.all()
+    users = User.query.filter_by(is_admin=False).all()
+    return render_template('projects.html', projects=projects, form=form, clients=clients, users=users)
 
 @app.route('/projects/new', methods=['GET', 'POST'])
 @login_required

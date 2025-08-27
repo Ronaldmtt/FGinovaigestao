@@ -20,6 +20,23 @@ class UserForm(FlaskForm):
         if user:
             raise ValidationError('Este email já está em uso.')
 
+class EditUserForm(FlaskForm):
+    nome = StringField('Nome', validators=[DataRequired(), Length(min=2, max=100)])
+    sobrenome = StringField('Sobrenome', validators=[DataRequired(), Length(min=2, max=100)])
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    password = PasswordField('Nova Senha', validators=[Length(min=6)])  # Senha opcional para edição
+    is_admin = BooleanField('Administrador')
+    
+    def __init__(self, original_email, *args, **kwargs):
+        super(EditUserForm, self).__init__(*args, **kwargs)
+        self.original_email = original_email
+    
+    def validate_email(self, email):
+        if email.data != self.original_email:
+            user = User.query.filter_by(email=email.data).first()
+            if user:
+                raise ValidationError('Este email já está em uso.')
+
 class ClientForm(FlaskForm):
     nome = StringField('Nome do Cliente', validators=[DataRequired(), Length(min=2, max=200)])
     email = StringField('Email')

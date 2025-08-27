@@ -9,7 +9,7 @@ import json
 import os
 from app import app, db
 from models import User, Client, Project, Task, TodoItem
-from forms import LoginForm, UserForm, ClientForm, ProjectForm, TaskForm, TranscriptionTaskForm, ManualProjectForm, ManualTaskForm, ForgotPasswordForm, ResetPasswordForm, ChangePasswordForm, ImportDataForm
+from forms import LoginForm, UserForm, EditUserForm, ClientForm, ProjectForm, TaskForm, TranscriptionTaskForm, ManualProjectForm, ManualTaskForm, ForgotPasswordForm, ResetPasswordForm, ChangePasswordForm, ImportDataForm
 from openai_service import process_project_transcription, generate_tasks_from_transcription
 
 @app.route('/')
@@ -95,6 +95,56 @@ def admin_new_user():
         return redirect(url_for('admin_users'))
     
     return render_template('admin/users.html', form=form)
+
+@app.route('/admin/users/edit/<int:user_id>', methods=['GET', 'POST'])
+@login_required
+def admin_edit_user(user_id):
+    if not current_user.is_admin:
+        flash('Acesso negado.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    user = User.query.get_or_404(user_id)
+    form = EditUserForm(original_email=user.email, obj=user)
+    
+    if form.validate_on_submit():
+        user.nome = form.nome.data
+        user.sobrenome = form.sobrenome.data
+        user.email = form.email.data
+        user.is_admin = form.is_admin.data
+        
+        # Só atualiza a senha se uma nova foi fornecida
+        if form.password.data:
+            user.password_hash = generate_password_hash(form.password.data)
+        
+        db.session.commit()
+        flash('Usuário atualizado com sucesso!', 'success')
+        return redirect(url_for('admin_users'))
+    
+    return render_template('admin/edit_user.html', form=form, user=user)
+
+@app.route('/admin/users/delete/<int:user_id>', methods=['POST'])
+@login_required
+def admin_delete_user(user_id):
+    if not current_user.is_admin:
+        flash('Acesso negado.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    user = User.query.get_or_404(user_id)
+    
+    # Não permitir que o admin delete a si mesmo
+    if user.id == current_user.id:
+        flash('Você não pode deletar sua própria conta.', 'danger')
+        return redirect(url_for('admin_users'))
+    
+    # Verificar se o usuário tem projetos ou tarefas associadas
+    if user.projects_responsible.count() > 0 or user.assigned_tasks.count() > 0:
+        flash('Não é possível deletar este usuário pois ele tem projetos ou tarefas associadas.', 'danger')
+        return redirect(url_for('admin_users'))
+    
+    db.session.delete(user)
+    db.session.commit()
+    flash('Usuário removido com sucesso!', 'success')
+    return redirect(url_for('admin_users'))
 
 # Rotas de Clientes
 @app.route('/clients')

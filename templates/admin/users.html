@@ -43,9 +43,17 @@
                                 </td>
                                 <td>{{ user.created_at.strftime('%d/%m/%Y') }}</td>
                                 <td>
-                                    <button class="btn btn-sm btn-outline-secondary">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ url_for('admin_edit_user', user_id=user.id) }}" class="btn btn-sm btn-outline-primary" title="Editar usuário">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        {% if user.id != current_user.id %}
+                                        <button type="button" class="btn btn-sm btn-outline-danger" title="Excluir usuário" 
+                                                onclick="confirmDelete('{{ user.full_name }}', {{ user.id }})">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                        {% endif %}
+                                    </div>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -104,4 +112,36 @@
         </div>
     </div>
 </div>
+
+<!-- Modal de confirmação para exclusão -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir o usuário <strong id="deleteUserName"></strong>?</p>
+                <p class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i>Esta ação não pode ser desfeita.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="POST" style="display: inline;" id="deleteUserForm">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-1"></i>Excluir Usuário
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete(userName, userId) {
+    document.getElementById('deleteUserName').textContent = userName;
+    document.getElementById('deleteUserForm').action = `/admin/users/delete/${userId}`;
+    new bootstrap.Modal(document.getElementById('deleteUserModal')).show();
+}
+</script>
 {% endblock %}

@@ -197,6 +197,50 @@ def generate_public_link(id):
         'public_url': url_for('public_access', _external=True)
     })
 
+@app.route('/clients/edit/<int:client_id>', methods=['GET', 'POST'])
+@login_required
+def edit_client(client_id):
+    client = Client.query.get_or_404(client_id)
+    
+    # Verificar permissão: admin ou criador do cliente
+    if not current_user.is_admin and client.creator_id != current_user.id:
+        flash('Você não tem permissão para editar este cliente.', 'danger')
+        return redirect(url_for('clients'))
+    
+    form = ClientForm(obj=client)
+    
+    if form.validate_on_submit():
+        client.nome = form.nome.data
+        client.email = form.email.data
+        client.telefone = form.telefone.data
+        client.endereco = form.endereco.data
+        
+        db.session.commit()
+        flash('Cliente atualizado com sucesso!', 'success')
+        return redirect(url_for('clients'))
+    
+    return render_template('edit_client.html', form=form, client=client)
+
+@app.route('/clients/delete/<int:client_id>', methods=['POST'])
+@login_required
+def delete_client(client_id):
+    client = Client.query.get_or_404(client_id)
+    
+    # Verificar permissão: admin ou criador do cliente
+    if not current_user.is_admin and client.creator_id != current_user.id:
+        flash('Você não tem permissão para excluir este cliente.', 'danger')
+        return redirect(url_for('clients'))
+    
+    # Verificar se o cliente tem projetos associados
+    if client.projects:
+        flash('Não é possível excluir este cliente pois ele tem projetos associados.', 'danger')
+        return redirect(url_for('clients'))
+    
+    db.session.delete(client)
+    db.session.commit()
+    flash('Cliente removido com sucesso!', 'success')
+    return redirect(url_for('clients'))
+
 # Rotas de Projetos
 @app.route('/projects')
 @login_required

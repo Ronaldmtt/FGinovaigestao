@@ -202,11 +202,6 @@ def generate_public_link(id):
 def edit_client(client_id):
     client = Client.query.get_or_404(client_id)
     
-    # Verificar permissão: admin ou criador do cliente
-    if not current_user.is_admin and client.creator_id != current_user.id:
-        flash('Você não tem permissão para editar este cliente.', 'danger')
-        return redirect(url_for('clients'))
-    
     form = ClientForm(obj=client)
     
     if form.validate_on_submit():
@@ -225,11 +220,6 @@ def edit_client(client_id):
 @login_required
 def delete_client(client_id):
     client = Client.query.get_or_404(client_id)
-    
-    # Verificar permissão: admin ou criador do cliente
-    if not current_user.is_admin and client.creator_id != current_user.id:
-        flash('Você não tem permissão para excluir este cliente.', 'danger')
-        return redirect(url_for('clients'))
     
     # Verificar se o cliente tem projetos associados
     if client.projects:

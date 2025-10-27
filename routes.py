@@ -236,13 +236,13 @@ def delete_client(client_id):
 @login_required
 def projects():
     if current_user.is_admin:
-        projects = Project.query.order_by(Project.nome).all()
+        projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
     else:
         # Usuários veem apenas projetos que criaram ou são responsáveis ou fazem parte da equipe
-        projects = Project.query.filter(
+        projects = Project.query.join(Client).filter(
             (Project.responsible_id == current_user.id) |
             (Project.team_members.contains(current_user))
-        ).order_by(Project.nome).distinct().all()
+        ).order_by(Client.nome, Project.nome).distinct().all()
     
     form = ProjectForm()
     clients = Client.query.order_by(Client.nome).all()
@@ -510,7 +510,7 @@ def tasks():
     
     form = TaskForm()
     transcription_form = TranscriptionTaskForm()
-    projects = Project.query.order_by(Project.nome).all()
+    projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
     users = User.query.filter_by(is_admin=False).all()
     return render_template('tasks.html', tasks=tasks, form=form, transcription_form=transcription_form, projects=projects, users=users)
 
@@ -899,7 +899,7 @@ def kanban():
         task_columns[task.status].append(task)
     
     # Para os filtros
-    projects = Project.query.order_by(Project.nome).all()
+    projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
     clients = Client.query.order_by(Client.nome).all()
     
     # Todos os usuários para o modal de edição

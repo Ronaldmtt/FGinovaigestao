@@ -236,13 +236,13 @@ def delete_client(client_id):
 @login_required
 def projects():
     if current_user.is_admin:
-        projects = Project.query.all()
+        projects = Project.query.order_by(Project.nome).all()
     else:
         # Usuários veem apenas projetos que criaram ou são responsáveis ou fazem parte da equipe
         projects = Project.query.filter(
             (Project.responsible_id == current_user.id) |
             (Project.team_members.contains(current_user))
-        ).distinct().all()
+        ).distinct().order_by(Project.nome).all()
     
     form = ProjectForm()
     clients = Client.query.all()
@@ -510,7 +510,7 @@ def tasks():
     
     form = TaskForm()
     transcription_form = TranscriptionTaskForm()
-    projects = Project.query.all()
+    projects = Project.query.order_by(Project.nome).all()
     users = User.query.filter_by(is_admin=False).all()
     return render_template('tasks.html', tasks=tasks, form=form, transcription_form=transcription_form, projects=projects, users=users)
 
@@ -899,7 +899,7 @@ def kanban():
         task_columns[task.status].append(task)
     
     # Para os filtros
-    projects = Project.query.all()
+    projects = Project.query.order_by(Project.nome).all()
     clients = Client.query.all()
     
     # Todos os usuários para o modal de edição
@@ -1201,7 +1201,7 @@ def export_database():
             })
         
         # Exportar projetos
-        projects = Project.query.all()
+        projects = Project.query.order_by(Project.nome).all()
         for project in projects:
             team_member_ids = [member.id for member in project.team_members]
             export_data['projects'].append({
@@ -1494,7 +1494,7 @@ def export_tasks():
             })
         
         # Adicionar projetos e usuários como referência para importação
-        projects = Project.query.all()
+        projects = Project.query.order_by(Project.nome).all()
         for project in projects:
             export_data['projects_reference'].append({
                 'id': project.id,

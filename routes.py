@@ -150,7 +150,7 @@ def admin_delete_user(user_id):
 @app.route('/clients')
 @login_required
 def clients():
-    clients = Client.query.order_by(Client.nome).all()
+    clients = Client.query.all()
     form = ClientForm()
     return render_template('clients.html', clients=clients, form=form)
 
@@ -236,18 +236,16 @@ def delete_client(client_id):
 @login_required
 def projects():
     if current_user.is_admin:
-        projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
+        projects = Project.query.all()
     else:
         # Usuários veem apenas projetos que criaram ou são responsáveis ou fazem parte da equipe
         projects = Project.query.filter(
             (Project.responsible_id == current_user.id) |
             (Project.team_members.contains(current_user))
         ).distinct().all()
-        # Ordenar em Python para evitar erro com DISTINCT
-        projects = sorted(projects, key=lambda p: (p.client.nome if p.client else '', p.nome))
     
     form = ProjectForm()
-    clients = Client.query.order_by(Client.nome).all()
+    clients = Client.query.all()
     users = User.query.filter_by(is_admin=False).all()
     return render_template('projects.html', projects=projects, form=form, clients=clients, users=users)
 
@@ -328,7 +326,7 @@ def new_project():
         flash(success_message, 'success')
         return redirect(url_for('projects'))
     
-    clients = Client.query.order_by(Client.nome).all()
+    clients = Client.query.all()
     users = User.query.filter_by(is_admin=False).all()
     return render_template('projects.html', form=form, clients=clients, users=users)
 
@@ -382,7 +380,7 @@ def project_detail(id):
         flash('Você não tem acesso a este projeto.', 'danger')
         return redirect(url_for('projects'))
     
-    clients = Client.query.order_by(Client.nome).all()
+    clients = Client.query.all()
     users = User.query.all()
     return render_template('project_detail.html', project=project, clients=clients, users=users)
 
@@ -512,7 +510,7 @@ def tasks():
     
     form = TaskForm()
     transcription_form = TranscriptionTaskForm()
-    projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
+    projects = Project.query.all()
     users = User.query.filter_by(is_admin=False).all()
     return render_template('tasks.html', tasks=tasks, form=form, transcription_form=transcription_form, projects=projects, users=users)
 
@@ -728,7 +726,7 @@ def get_project_data(id):
         return jsonify({'success': False, 'message': 'Acesso negado'}), 403
     
     # Buscar dados necessários para o formulário
-    clients = Client.query.order_by(Client.nome).all()
+    clients = Client.query.all()
     users = User.query.filter_by(is_admin=False).all()
     
     # Preparar dados do projeto
@@ -901,8 +899,8 @@ def kanban():
         task_columns[task.status].append(task)
     
     # Para os filtros
-    projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
-    clients = Client.query.order_by(Client.nome).all()
+    projects = Project.query.all()
+    clients = Client.query.all()
     
     # Todos os usuários para o modal de edição
     all_users = User.query.filter_by(is_admin=False).all()

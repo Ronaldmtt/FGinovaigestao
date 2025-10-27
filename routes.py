@@ -239,10 +239,12 @@ def projects():
         projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
     else:
         # Usuários veem apenas projetos que criaram ou são responsáveis ou fazem parte da equipe
-        projects = Project.query.join(Client).filter(
+        projects = Project.query.filter(
             (Project.responsible_id == current_user.id) |
             (Project.team_members.contains(current_user))
-        ).order_by(Client.nome, Project.nome).distinct().all()
+        ).distinct().all()
+        # Ordenar em Python para evitar erro com DISTINCT
+        projects = sorted(projects, key=lambda p: (p.client.nome if p.client else '', p.nome))
     
     form = ProjectForm()
     clients = Client.query.order_by(Client.nome).all()

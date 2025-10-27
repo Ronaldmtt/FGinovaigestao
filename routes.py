@@ -510,7 +510,7 @@ def tasks():
     
     form = TaskForm()
     transcription_form = TranscriptionTaskForm()
-    projects = Project.query.order_by(Project.nome).all()
+    projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
     users = User.query.filter_by(is_admin=False).all()
     return render_template('tasks.html', tasks=tasks, form=form, transcription_form=transcription_form, projects=projects, users=users)
 
@@ -899,7 +899,7 @@ def kanban():
         task_columns[task.status].append(task)
     
     # Para os filtros
-    projects = Project.query.order_by(Project.nome).all()
+    projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
     clients = Client.query.all()
     
     # Todos os usuários para o modal de edição
@@ -1034,7 +1034,7 @@ def update_task_status(task_id):
 @app.route('/api/projects/<int:client_id>')
 @login_required
 def get_projects_by_client(client_id):
-    projects = Project.query.filter_by(client_id=client_id).all()
+    projects = Project.query.filter_by(client_id=client_id).order_by(Project.nome).all()
     project_list = [{'id': p.id, 'nome': p.nome} for p in projects]
     return jsonify(project_list)
 

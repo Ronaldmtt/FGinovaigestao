@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SelectField, TextAreaField, DateField, BooleanField
+from wtforms import StringField, PasswordField, SelectField, SelectMultipleField, TextAreaField, DateField, BooleanField
 from wtforms.validators import DataRequired, Email, Length, ValidationError, EqualTo
 from wtforms.widgets import TextArea
 from models import User, Client, Project
@@ -88,7 +88,7 @@ class ManualProjectForm(FlaskForm):
     nome = StringField('Nome do Projeto', validators=[DataRequired(), Length(min=2, max=200)])
     client_id = SelectField('Cliente', coerce=int, validators=[DataRequired()])
     responsible_id = SelectField('Usuário Responsável', coerce=int, validators=[DataRequired()])
-    team_members = SelectField('Membro da Equipe', coerce=int, choices=[])
+    team_members = SelectMultipleField('Membros da Equipe', coerce=int, choices=[])
     status = SelectField('Status', choices=[
         ('em_andamento', 'Em Andamento'),
         ('pausado', 'Pausado'),

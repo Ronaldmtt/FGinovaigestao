@@ -229,26 +229,17 @@
                             </select>
                         </div>
                         <div class="col-md-4 mb-3">
-                            <label class="form-label">Adicionar Membro da Equipe</label>
-                            <select class="form-select" name="team_member_id">
-                                <option value="">Selecione um usuário</option>
+                            <label class="form-label">Membros da Equipe</label>
+                            <select class="form-select" name="team_member_ids" multiple size="5" style="height: auto;">
                                 {% for user in users %}
-                                <option value="{{ user.id }}">{{ user.full_name }}</option>
+                                <option value="{{ user.id }}" {% if user in project.team_members %}selected{% endif %}>
+                                    {{ user.full_name }}
+                                </option>
                                 {% endfor %}
                             </select>
+                            <small class="form-text text-muted">Segure Ctrl/Cmd para selecionar múltiplos usuários</small>
                         </div>
                     </div>
-                    
-                    {% if project.team_members %}
-                    <div class="mb-3">
-                        <label class="form-label">Membros da Equipe Atual</label>
-                        <div class="d-flex flex-wrap gap-2">
-                            {% for member in project.team_members %}
-                            <span class="badge bg-secondary">{{ member.full_name }}</span>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    {% endif %}
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>

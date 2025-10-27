@@ -337,7 +337,7 @@ def new_manual_project():
     client_id = request.form.get('client_id')
     responsible_id = request.form.get('responsible_id')
     status = request.form.get('status')
-    team_member_id = request.form.get('team_member_id')
+    team_member_ids = request.form.getlist('team_member_ids')  # Múltiplos membros
     
     # Criar o projeto
     project = Project(
@@ -359,11 +359,12 @@ def new_manual_project():
     db.session.add(project)
     db.session.flush()  # Para obter o ID do projeto
     
-    # Adicionar membro da equipe se selecionado
-    if team_member_id:
-        user = User.query.get(team_member_id)
-        if user:
-            project.team_members.append(user)
+    # Adicionar múltiplos membros da equipe
+    if team_member_ids:
+        for member_id in team_member_ids:
+            user = User.query.get(int(member_id))
+            if user:
+                project.team_members.append(user)
     
     db.session.commit()
     flash('Projeto criado manualmente com sucesso!', 'success')
@@ -399,12 +400,14 @@ def edit_project(id):
     project.responsible_id = request.form.get('responsible_id')
     project.status = request.form.get('status')
     
-    # Adicionar membro da equipe se selecionado
-    team_member_id = request.form.get('team_member_id')
-    if team_member_id:
-        user = User.query.get(team_member_id)
-        if user and user not in project.team_members:
-            project.team_members.append(user)
+    # Atualizar membros da equipe (limpar e adicionar novos)
+    team_member_ids = request.form.getlist('team_member_ids')  # Múltiplos membros
+    project.team_members.clear()  # Limpar membros atuais
+    if team_member_ids:
+        for member_id in team_member_ids:
+            user = User.query.get(int(member_id))
+            if user:
+                project.team_members.append(user)
     
     try:
         db.session.commit()

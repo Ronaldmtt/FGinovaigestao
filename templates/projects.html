@@ -163,13 +163,13 @@
                             </select>
                         </div>
                         <div class="col-md-4 mb-3">
-                            <label class="form-label">Membro da Equipe</label>
-                            <select class="form-select" name="team_member_id">
-                                <option value="">Selecione um membro</option>
+                            <label class="form-label">Membros da Equipe</label>
+                            <select class="form-select" name="team_member_ids" multiple size="5" style="height: auto;">
                                 {% for user in users %}
                                 <option value="{{ user.id }}">{{ user.full_name }}</option>
                                 {% endfor %}
                             </select>
+                            <small class="form-text text-muted">Segure Ctrl/Cmd para selecionar múltiplos</small>
                         </div>
                     </div>
                     
@@ -395,13 +395,13 @@ function buildEditProjectHTML(project, clients, users) {
                 </select>
             </div>
             <div class="col-md-4 mb-3">
-                <label class="form-label">Membro da Equipe</label>
-                <select class="form-select" name="team_member_id">
-                    <option value="">Selecione um membro</option>
+                <label class="form-label">Membros da Equipe</label>
+                <select class="form-select" name="team_member_ids" multiple size="5" style="height: auto;">
                     ${users.map(user => 
-                        `<option value="${user.id}" ${project.team_members && project.team_members.includes(user.id) ? 'selected' : ''}>${user.full_name}</option>`
+                        `<option value="${user.id}" ${project.team_members && project.team_members.some(m => m.id === user.id) ? 'selected' : ''}>${user.full_name}</option>`
                     ).join('')}
                 </select>
+                <small class="form-text text-muted">Segure Ctrl/Cmd para selecionar múltiplos</small>
             </div>
         </div>
         

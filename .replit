@@ -35,11 +35,15 @@ externalPort = 80
 
 [[ports]]
 localPort = 34839
-externalPort = 3001
+externalPort = 3002
 
 [[ports]]
 localPort = 39465
 externalPort = 3000
+
+[[ports]]
+localPort = 44719
+externalPort = 3001
 
 [agent]
 integrations = ["styling_replit==1.0.0", "flask_authentication==1.0.0", "python_openai==1.0.0", "python_database==1.0.0"]

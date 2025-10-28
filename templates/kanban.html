@@ -608,6 +608,7 @@ document.addEventListener('keypress', function(e) {
 
 // ====== DRAG AND DROP FUNCTIONALITY ======
 let draggedCard = null;
+let dragInProgress = false;
 
 // Quando começa a arrastar um card
 document.addEventListener('dragstart', function(e) {
@@ -615,9 +616,11 @@ document.addEventListener('dragstart', function(e) {
     const card = e.target.closest('.task-card');
     if (card) {
         draggedCard = card;
+        dragInProgress = true;
         card.style.opacity = '0.4';
         card.classList.add('dragging');
         e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', card.innerHTML);
     }
 });
 
@@ -633,7 +636,11 @@ document.addEventListener('dragend', function(e) {
             col.classList.remove('drag-over');
         });
         
-        draggedCard = null;
+        // Esperar um pouco antes de limpar para garantir que o drop foi processado
+        setTimeout(() => {
+            draggedCard = null;
+            dragInProgress = false;
+        }, 100);
     }
 });
 
@@ -642,7 +649,7 @@ document.addEventListener('dragover', function(e) {
     e.preventDefault();
     
     const column = e.target.closest('.kanban-column');
-    if (column && draggedCard) {
+    if (column && dragInProgress) {
         e.dataTransfer.dropEffect = 'move';
         
         // Adicionar destaque visual na coluna
@@ -656,22 +663,27 @@ document.addEventListener('dragover', function(e) {
 // Quando solta o card na coluna
 document.addEventListener('drop', function(e) {
     e.preventDefault();
+    e.stopPropagation();
     
     const column = e.target.closest('.kanban-column');
     
     // Verificar se temos um card válido e uma coluna válida
-    if (column && draggedCard && draggedCard instanceof HTMLElement) {
+    if (column && draggedCard && draggedCard instanceof HTMLElement && dragInProgress) {
         const newStatus = column.dataset.status;
         const taskId = draggedCard.dataset.taskId;
         const currentColumn = draggedCard.closest('.kanban-column');
         
+        // Remover destaque imediatamente
+        column.classList.remove('drag-over');
+        
         // Só atualizar se mudou de coluna e temos um status válido
         if (currentColumn && currentColumn.dataset.status !== newStatus) {
-            // Salvar referência da coluna original
+            // Salvar referência da coluna original e do card
             const originalColumn = currentColumn;
+            const cardToMove = draggedCard;
             
             // Mover card visualmente
-            column.appendChild(draggedCard);
+            column.appendChild(cardToMove);
             
             // Atualizar status no backend automaticamente
             fetch(`/api/tasks/${taskId}`, {
@@ -691,8 +703,8 @@ document.addEventListener('drop', function(e) {
                     updateColumnCounts();
                 } else {
                     // Se falhar, mover de volta
-                    if (originalColumn && draggedCard) {
-                        originalColumn.appendChild(draggedCard);
+                    if (originalColumn && cardToMove && originalColumn instanceof HTMLElement) {
+                        originalColumn.appendChild(cardToMove);
                     }
                     alert('Erro ao atualizar status: ' + data.message);
                 }
@@ -700,14 +712,12 @@ document.addEventListener('drop', function(e) {
             .catch(error => {
                 console.error('Erro ao atualizar status:', error);
                 // Se falhar, mover de volta
-                if (originalColumn && draggedCard) {
-                    originalColumn.appendChild(draggedCard);
+                if (originalColumn && cardToMove && originalColumn instanceof HTMLElement) {
+                    originalColumn.appendChild(cardToMove);
                 }
                 alert('Erro ao atualizar status da tarefa');
             });
         }
-        
-        column.classList.remove('drag-over');
     }
 });
 </script>

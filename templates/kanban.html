@@ -605,7 +605,116 @@ document.addEventListener('keypress', function(e) {
         addTodo();
     }
 });
+
+// ====== DRAG AND DROP FUNCTIONALITY ======
+let draggedCard = null;
+
+// Quando começa a arrastar um card
+document.addEventListener('dragstart', function(e) {
+    if (e.target.classList.contains('task-card')) {
+        draggedCard = e.target;
+        e.target.style.opacity = '0.4';
+        e.target.classList.add('dragging');
+    }
+});
+
+// Quando termina de arrastar
+document.addEventListener('dragend', function(e) {
+    if (e.target.classList.contains('task-card')) {
+        e.target.style.opacity = '1';
+        e.target.classList.remove('dragging');
+        
+        // Remover destaque de todas as colunas
+        document.querySelectorAll('.kanban-column').forEach(col => {
+            col.classList.remove('drag-over');
+        });
+    }
+});
+
+// Permitir drop nas colunas
+document.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    
+    const column = e.target.closest('.kanban-column');
+    if (column && draggedCard) {
+        // Adicionar destaque visual na coluna
+        document.querySelectorAll('.kanban-column').forEach(col => {
+            col.classList.remove('drag-over');
+        });
+        column.classList.add('drag-over');
+    }
+});
+
+// Quando solta o card na coluna
+document.addEventListener('drop', function(e) {
+    e.preventDefault();
+    
+    const column = e.target.closest('.kanban-column');
+    if (column && draggedCard) {
+        const newStatus = column.dataset.status;
+        const taskId = draggedCard.dataset.taskId;
+        const currentColumn = draggedCard.closest('.kanban-column');
+        
+        // Só atualizar se mudou de coluna
+        if (currentColumn.dataset.status !== newStatus) {
+            // Mover card visualmente
+            column.appendChild(draggedCard);
+            
+            // Atualizar status no backend automaticamente
+            fetch(`/api/tasks/${taskId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    status: newStatus
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Atualizar o card com os novos dados
+                    updateTaskCard(data.task);
+                    updateColumnCounts();
+                } else {
+                    // Se falhar, mover de volta
+                    currentColumn.appendChild(draggedCard);
+                    alert('Erro ao atualizar status: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao atualizar status:', error);
+                // Se falhar, mover de volta
+                currentColumn.appendChild(draggedCard);
+                alert('Erro ao atualizar status da tarefa');
+            });
+        }
+        
+        column.classList.remove('drag-over');
+    }
+});
 </script>
+
+<style>
+.kanban-column.drag-over {
+    background-color: rgba(13, 110, 253, 0.1);
+    border: 2px dashed #0d6efd;
+    border-radius: 5px;
+}
+
+.task-card.dragging {
+    opacity: 0.4;
+}
+
+.task-card {
+    cursor: move;
+    transition: opacity 0.2s;
+}
+
+.task-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+</style>
 
 <!-- Modal para Nova Tarefa no Kanban -->
 <div class="modal fade" id="newTaskKanbanModal" tabindex="-1">

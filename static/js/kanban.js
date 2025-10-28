@@ -23,12 +23,11 @@ document.addEventListener('DOMContentLoaded', function() {
         draggedTask = this;
         this.style.opacity = '0.5';
         e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/html', this.outerHTML);
     }
     
     function handleDragEnd(e) {
         this.style.opacity = '1';
-        draggedTask = null;
+        // NÃO zerar draggedTask aqui - será zerado após o drop processar
     }
     
     function handleDragOver(e) {
@@ -55,8 +54,24 @@ document.addEventListener('DOMContentLoaded', function() {
         this.classList.remove('drag-over');
         
         if (draggedTask !== this) {
-            const taskId = draggedTask.dataset.taskId;
+            // CAPTURAR REFERÊNCIA DO CARD ANTES DO FETCH ASSÍNCRONO
+            const cardEl = draggedTask;
+            const targetColumn = this;
+            
+            // Validar que temos um card válido
+            if (!(cardEl instanceof HTMLElement)) {
+                console.error('Erro: card não é um HTMLElement válido');
+                return false;
+            }
+            
+            const taskId = cardEl.dataset.taskId;
             const newStatus = this.dataset.status;
+            
+            // Validar que temos um taskId
+            if (!taskId) {
+                console.error('Erro: taskId não encontrado no card');
+                return false;
+            }
             
             // Update task status via API
             fetch(`/api/tasks/${taskId}/status`, {
@@ -69,8 +84,11 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Move the task card to the new column
-                    this.appendChild(draggedTask);
+                    // USAR A REFERÊNCIA CAPTURADA (não draggedTask)
+                    targetColumn.appendChild(cardEl);
+                    
+                    // Limpar draggedTask após sucesso
+                    draggedTask = null;
                     
                     // Update badge counts
                     updateColumnCounts();
@@ -79,10 +97,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     showMessage('Tarefa movida com sucesso!', 'success');
                 } else {
                     showMessage('Erro ao mover tarefa: ' + (data.error || 'Erro desconhecido'), 'danger');
+                    draggedTask = null;
                 }
             })
             .catch(error => {
                 showMessage('Erro ao mover tarefa: ' + error.message, 'danger');
+                draggedTask = null;
             });
         }
         

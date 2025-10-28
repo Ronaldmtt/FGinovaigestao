@@ -698,8 +698,7 @@ document.addEventListener('drop', function(e) {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Atualizar o card com os novos dados
-                    updateTaskCard(data.task);
+                    // Apenas atualizar os contadores, não tocar no card
                     updateColumnCounts();
                 } else {
                     // Se falhar, mover de volta

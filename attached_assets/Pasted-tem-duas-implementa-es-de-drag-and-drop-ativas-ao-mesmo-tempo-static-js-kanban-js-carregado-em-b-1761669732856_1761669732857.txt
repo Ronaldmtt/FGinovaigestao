@@ -1,0 +1,80 @@
+tem duas implementações de drag-and-drop ativas ao mesmo tempo:
+
+static/js/kanban.js (carregado em base.html)
+
+Um <script> grande inline dentro de templates/kanban.html
+
+Além disso, no kanban.js existe um bug de timing: você guarda o card em draggedTask no dragstart, mas no dragend você zera essa variável (draggedTask = null). O drop faz uma chamada fetch(...) e só depois (no .then(...)) tenta fazer this.appendChild(draggedTask). Como o dragend já rodou e limpou a variável, o código tenta appendChild(null) — daí o erro:
+
+Failed to execute 'appendChild' on 'Node': parameter 1 is not of type 'Node'.
+
+Como corrigir (2 passos)
+1) Mantenha apenas uma implementação de DnD
+
+Escolha entre:
+
+Usar o script inline de kanban.html (ele já tem “otimismo com rollback” e está mais robusto); ou
+
+Migrar esse inline para static/js/kanban.js e remover o inline.
+
+O jeito mais simples agora é remover o include global de kanban.js só para a página do Kanban:
+
+Em templates/base.html, comente/remova esta linha (ou condicione para não carregar nessa rota):
+
+<script src="{{ url_for('static', filename='js/kanban.js') }}"></script>
+
+
+Se preferir manter o kanban.js, então apague o <script> inline do kanban.html que trata DnD, para não duplicar handlers.
+
+2) Corrija a perda da referência ao card (se usar kanban.js)
+
+No kanban.js, dentro do handleDrop, capture o card antes de assíncrono e use a referência capturada no .then(...):
+
+function handleDrop(e) {
+  if (e.stopPropagation) e.stopPropagation();
+  this.classList.remove('drag-over');
+
+  if (draggedTask !== this) {
+    // PEGUE A REFERÊNCIA ANTES DO FETCH
+    const cardEl = draggedTask;                 // <— snapshot
+    const taskId = cardEl?.dataset.taskId;      // use a ref segura
+    const newStatus = this.dataset.status;
+
+    fetch(`/api/tasks/${taskId}/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        // USE A REFERÊNCIA CAPTURADA (não use draggedTask)
+        this.appendChild(cardEl);
+        updateColumnCounts();
+        showMessage('Tarefa movida com sucesso!', 'success');
+      } else {
+        showMessage('Erro ao mover tarefa: ' + (data.error || 'Erro desconhecido'), 'danger');
+      }
+    })
+    .catch(error => {
+      showMessage('Erro ao mover tarefa: ' + error.message, 'danger');
+    });
+  }
+
+  return false;
+}
+
+
+E você pode manter o dragend como está (zerando draggedTask), porque agora você usará a cópia cardEl.
+
+Dica extra: a sua linha e.dataTransfer.setData('text/html', this.outerHTML) não é usada por esse fluxo; pode remover para evitar confusão.
+
+Opcional (melhorias rápidas)
+
+Prefira e.currentTarget (ou closest('.kanban-column')) como destino do drop para não cair num filho (ícone, texto) ao soltar.
+
+Garanta que os listeners são registrados uma única vez (com a duplicidade atual, cada drop pode disparar mais de um handler).
+
+Antes de appendChild, valide:
+
+if (!(cardEl instanceof HTMLElement)) { /* logar e abortar */ }

@@ -979,7 +979,25 @@ def api_update_task(task_id):
                     db.session.add(todo)
         
         db.session.commit()
-        return jsonify({'success': True, 'message': 'Tarefa atualizada com sucesso!'})
+        
+        # Retornar dados completos da tarefa atualizada para atualizar o card
+        response_data = {
+            'success': True,
+            'message': 'Tarefa atualizada com sucesso!',
+            'task': {
+                'id': task.id,
+                'titulo': task.titulo,
+                'status': task.status,
+                'assigned_user_id': task.assigned_user_id,
+                'assigned_user_name': task.assigned_user.full_name if task.assigned_user else None,
+                'data_conclusao': task.data_conclusao.strftime('%d/%m/%Y') if task.data_conclusao else None,
+                'data_conclusao_iso': task.data_conclusao.isoformat() if task.data_conclusao else None,
+                'completed_at': task.completed_at.strftime('%d/%m/%Y às %H:%M') if task.completed_at else None,
+                'project_client_name': task.project.client.nome if task.project and task.project.client else None,
+                'project_name': task.project.nome if task.project else None
+            }
+        }
+        return jsonify(response_data)
         
     except Exception as e:
         db.session.rollback()

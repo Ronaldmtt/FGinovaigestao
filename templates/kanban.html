@@ -320,6 +320,51 @@ function editTask(taskId) {
         });
 }
 
+// Função para atualizar card em tempo real
+function updateTaskCard(taskData) {
+    const taskCard = document.querySelector(`[data-task-id="${taskData.id}"]`);
+    if (!taskCard) return;
+    
+    const cardBody = taskCard.querySelector('.card-body');
+    
+    // Atualizar o conteúdo do card
+    let newContent = `
+        <div class="d-flex justify-content-between align-items-start">
+            <h6 class="card-title mb-1">${taskData.titulo}</h6>
+            <button class="btn btn-sm btn-outline-primary" onclick="editTask(${taskData.id})" title="Editar tarefa">
+                <i class="fas fa-edit"></i>
+            </button>
+        </div>
+        <small class="text-muted d-block">${taskData.project_client_name} - ${taskData.project_name}</small>
+    `;
+    
+    // Adicionar responsável se existir
+    if (taskData.assigned_user_name) {
+        newContent += `
+        <small class="text-info d-block">
+            <i class="fas fa-user me-1"></i>${taskData.assigned_user_name}
+        </small>
+        `;
+    }
+    
+    // Adicionar data de conclusão ou completed_at dependendo do status
+    if (taskData.status === 'concluida' && taskData.completed_at) {
+        newContent += `
+        <small class="text-success d-block">
+            <i class="fas fa-check-circle me-1"></i>${taskData.completed_at}
+        </small>
+        `;
+    } else if (taskData.data_conclusao) {
+        newContent += `
+        <small class="text-warning d-block">
+            <i class="fas fa-calendar me-1"></i>${taskData.data_conclusao}
+        </small>
+        `;
+    }
+    
+    cardBody.innerHTML = newContent;
+}
+
 // Salvar alterações da tarefa
 document.getElementById('editTaskForm').addEventListener('submit', function(e) {
     e.preventDefault();
@@ -347,27 +392,20 @@ document.getElementById('editTaskForm').addEventListener('submit', function(e) {
             const modal = bootstrap.Modal.getInstance(document.getElementById('editTaskModal'));
             modal.hide();
             
-            // Se o status mudou, mover o card para a coluna correta
+            // Atualizar card em tempo real
             const taskCard = document.querySelector(`[data-task-id="${taskId}"]`);
-            const newStatus = document.getElementById('editTaskStatus').value;
             const currentColumn = taskCard.closest('.kanban-column');
-            const targetColumn = document.querySelector(`[data-status="${newStatus}"]`);
+            const targetColumn = document.querySelector(`[data-status="${data.task.status}"]`);
             
-            if (currentColumn.dataset.status !== newStatus) {
-                // Mover card para nova coluna
+            // Se mudou de coluna, mover o card
+            if (currentColumn.dataset.status !== data.task.status) {
                 targetColumn.appendChild(taskCard);
-                
-                // Atualizar título da tarefa no card
-                const cardTitle = taskCard.querySelector('.card-title');
-                cardTitle.textContent = document.getElementById('editTaskTitulo').value;
-                
-                // Atualizar contadores das colunas
                 updateColumnCounts();
-            } else {
-                // Apenas atualizar o título se não mudou de coluna
-                const cardTitle = taskCard.querySelector('.card-title');
-                cardTitle.textContent = document.getElementById('editTaskTitulo').value;
             }
+            
+            // Atualizar o conteúdo do card
+            updateTaskCard(data.task);
+            
         } else {
             alert('Erro ao salvar alterações: ' + data.message);
         }

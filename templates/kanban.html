@@ -99,13 +99,26 @@
             </div>
             <div class="card-body kanban-column" data-status="pendente" style="min-height: 400px;">
                 {% for task in task_columns.pendente %}
-                <div class="task-card card mb-2" data-task-id="{{ task.id }}" draggable="true">
+                <div class="task-card card mb-2 {% if task.disparada %}border-danger{% endif %}" data-task-id="{{ task.id }}" draggable="true">
                     <div class="card-body p-2">
                         <div class="d-flex justify-content-between align-items-start">
-                            <h6 class="card-title mb-1">{{ task.titulo }}</h6>
-                            <button class="btn btn-sm btn-outline-primary" onclick="editTask({{ task.id }})" title="Editar tarefa">
-                                <i class="fas fa-edit"></i>
-                            </button>
+                            <h6 class="card-title mb-1">
+                                {% if task.disparada %}<i class="fas fa-paper-plane text-danger me-1" title="Tarefa disparada"></i>{% endif %}
+                                {{ task.titulo }}
+                            </h6>
+                            <div class="btn-group">
+                                {% if current_user.is_admin %}
+                                <button class="btn btn-sm {% if task.disparada %}btn-danger{% else %}btn-outline-secondary{% endif %}" 
+                                        onclick="dispatchTask({{ task.id }})" 
+                                        title="{% if task.disparada %}Cancelar disparo{% else %}Disparar tarefa{% endif %}"
+                                        id="dispatch-btn-{{ task.id }}">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                                {% endif %}
+                                <button class="btn btn-sm btn-outline-primary" onclick="editTask({{ task.id }})" title="Editar tarefa">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
                         </div>
                         <small class="text-muted d-block">{{ task.project.client.nome }} - {{ task.project.nome }}</small>
                         {% if task.assigned_user %}
@@ -116,6 +129,11 @@
                         {% if task.data_conclusao %}
                         <small class="text-warning d-block">
                             <i class="fas fa-calendar me-1"></i>{{ task.data_conclusao.strftime('%d/%m/%Y') }}
+                        </small>
+                        {% endif %}
+                        {% if task.disparada and task.disparada_at %}
+                        <small class="text-danger d-block">
+                            <i class="fas fa-paper-plane me-1"></i>Disparada em {{ task.disparada_at.strftime('%d/%m/%Y %H:%M') }}
                         </small>
                         {% endif %}
                     </div>
@@ -135,13 +153,26 @@
             </div>
             <div class="card-body kanban-column" data-status="em_andamento" style="min-height: 400px;">
                 {% for task in task_columns.em_andamento %}
-                <div class="task-card card mb-2" data-task-id="{{ task.id }}" draggable="true">
+                <div class="task-card card mb-2 {% if task.disparada %}border-danger{% endif %}" data-task-id="{{ task.id }}" draggable="true">
                     <div class="card-body p-2">
                         <div class="d-flex justify-content-between align-items-start">
-                            <h6 class="card-title mb-1">{{ task.titulo }}</h6>
-                            <button class="btn btn-sm btn-outline-primary" onclick="editTask({{ task.id }})" title="Editar tarefa">
-                                <i class="fas fa-edit"></i>
-                            </button>
+                            <h6 class="card-title mb-1">
+                                {% if task.disparada %}<i class="fas fa-paper-plane text-danger me-1" title="Tarefa disparada"></i>{% endif %}
+                                {{ task.titulo }}
+                            </h6>
+                            <div class="btn-group">
+                                {% if current_user.is_admin %}
+                                <button class="btn btn-sm {% if task.disparada %}btn-danger{% else %}btn-outline-secondary{% endif %}" 
+                                        onclick="dispatchTask({{ task.id }})" 
+                                        title="{% if task.disparada %}Cancelar disparo{% else %}Disparar tarefa{% endif %}"
+                                        id="dispatch-btn-{{ task.id }}">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                                {% endif %}
+                                <button class="btn btn-sm btn-outline-primary" onclick="editTask({{ task.id }})" title="Editar tarefa">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
                         </div>
                         <small class="text-muted d-block">{{ task.project.client.nome }} - {{ task.project.nome }}</small>
                         {% if task.assigned_user %}
@@ -152,6 +183,11 @@
                         {% if task.data_conclusao %}
                         <small class="text-warning d-block">
                             <i class="fas fa-calendar me-1"></i>{{ task.data_conclusao.strftime('%d/%m/%Y') }}
+                        </small>
+                        {% endif %}
+                        {% if task.disparada and task.disparada_at %}
+                        <small class="text-danger d-block">
+                            <i class="fas fa-paper-plane me-1"></i>Disparada em {{ task.disparada_at.strftime('%d/%m/%Y %H:%M') }}
                         </small>
                         {% endif %}
                     </div>
@@ -171,13 +207,26 @@
             </div>
             <div class="card-body kanban-column" data-status="concluida" style="min-height: 400px;">
                 {% for task in task_columns.concluida %}
-                <div class="task-card card mb-2" data-task-id="{{ task.id }}" draggable="true">
+                <div class="task-card card mb-2 {% if task.disparada %}border-danger{% endif %}" data-task-id="{{ task.id }}" draggable="true">
                     <div class="card-body p-2">
                         <div class="d-flex justify-content-between align-items-start">
-                            <h6 class="card-title mb-1">{{ task.titulo }}</h6>
-                            <button class="btn btn-sm btn-outline-primary" onclick="editTask({{ task.id }})" title="Editar tarefa">
-                                <i class="fas fa-edit"></i>
-                            </button>
+                            <h6 class="card-title mb-1">
+                                {% if task.disparada %}<i class="fas fa-paper-plane text-danger me-1" title="Tarefa disparada"></i>{% endif %}
+                                {{ task.titulo }}
+                            </h6>
+                            <div class="btn-group">
+                                {% if current_user.is_admin %}
+                                <button class="btn btn-sm {% if task.disparada %}btn-danger{% else %}btn-outline-secondary{% endif %}" 
+                                        onclick="dispatchTask({{ task.id }})" 
+                                        title="{% if task.disparada %}Cancelar disparo{% else %}Disparar tarefa{% endif %}"
+                                        id="dispatch-btn-{{ task.id }}">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                                {% endif %}
+                                <button class="btn btn-sm btn-outline-primary" onclick="editTask({{ task.id }})" title="Editar tarefa">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
                         </div>
                         <small class="text-muted d-block">{{ task.project.client.nome }} - {{ task.project.nome }}</small>
                         {% if task.assigned_user %}
@@ -188,6 +237,11 @@
                         {% if task.completed_at %}
                         <small class="text-success d-block">
                             <i class="fas fa-check me-1"></i>{{ task.completed_at.strftime('%d/%m/%Y') }}
+                        </small>
+                        {% endif %}
+                        {% if task.disparada and task.disparada_at %}
+                        <small class="text-danger d-block">
+                            <i class="fas fa-paper-plane me-1"></i>Disparada em {{ task.disparada_at.strftime('%d/%m/%Y %H:%M') }}
                         </small>
                         {% endif %}
                     </div>
@@ -619,6 +673,49 @@ document.addEventListener('keypress', function(e) {
         addTodo();
     }
 });
+
+// Função para disparar tarefa
+function dispatchTask(taskId) {
+    if (!confirm('Deseja disparar/cancelar o disparo desta tarefa?')) {
+        return;
+    }
+    
+    fetch(`/api/tasks/${taskId}/dispatch`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const button = document.getElementById(`dispatch-btn-${taskId}`);
+            const card = document.querySelector(`[data-task-id="${taskId}"]`);
+            
+            if (data.disparada) {
+                button.classList.remove('btn-outline-secondary');
+                button.classList.add('btn-danger');
+                button.title = 'Cancelar disparo';
+                card.classList.add('border-danger');
+                alert('Tarefa disparada com sucesso!');
+            } else {
+                button.classList.remove('btn-danger');
+                button.classList.add('btn-outline-secondary');
+                button.title = 'Disparar tarefa';
+                card.classList.remove('border-danger');
+                alert('Disparo cancelado com sucesso!');
+            }
+            
+            location.reload();
+        } else {
+            alert('Erro ao disparar tarefa: ' + (data.error || 'Erro desconhecido'));
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao disparar tarefa:', error);
+        alert('Erro ao disparar tarefa. Tente novamente.');
+    });
+}
 </script>
 
 <!-- Modal para Nova Tarefa no Kanban -->

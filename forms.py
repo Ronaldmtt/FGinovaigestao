@@ -15,6 +15,12 @@ class UserForm(FlaskForm):
     password = PasswordField('Senha', validators=[DataRequired(), Length(min=6)])
     is_admin = BooleanField('Administrador')
     
+    acesso_clientes = BooleanField('Acesso a Clientes', default=True)
+    acesso_projetos = BooleanField('Acesso a Projetos', default=True)
+    acesso_tarefas = BooleanField('Acesso a Tarefas', default=True)
+    acesso_kanban = BooleanField('Acesso ao Kanban', default=True)
+    acesso_portal = BooleanField('Acesso ao Portal Público', default=True)
+    
     def validate_email(self, email):
         user = User.query.filter_by(email=email.data).first()
         if user:
@@ -26,6 +32,12 @@ class EditUserForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])
     password = PasswordField('Nova Senha', validators=[Length(min=6)])  # Senha opcional para edição
     is_admin = BooleanField('Administrador')
+    
+    acesso_clientes = BooleanField('Acesso a Clientes', default=True)
+    acesso_projetos = BooleanField('Acesso a Projetos', default=True)
+    acesso_tarefas = BooleanField('Acesso a Tarefas', default=True)
+    acesso_kanban = BooleanField('Acesso ao Kanban', default=True)
+    acesso_portal = BooleanField('Acesso ao Portal Público', default=True)
     
     def __init__(self, original_email, *args, **kwargs):
         super(EditUserForm, self).__init__(*args, **kwargs)

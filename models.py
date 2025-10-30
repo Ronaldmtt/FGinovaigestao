@@ -19,6 +19,13 @@ class User(UserMixin, db.Model):
     reset_token_expires = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
+    # Permissões de acesso às abas
+    acesso_clientes = db.Column(db.Boolean, default=True, nullable=False)
+    acesso_projetos = db.Column(db.Boolean, default=True, nullable=False)
+    acesso_tarefas = db.Column(db.Boolean, default=True, nullable=False)
+    acesso_kanban = db.Column(db.Boolean, default=True, nullable=False)
+    acesso_portal = db.Column(db.Boolean, default=True, nullable=False)
+    
     # Relacionamentos
     created_clients = db.relationship('Client', backref='creator', lazy=True)
     responsible_projects = db.relationship('Project', backref='responsible', lazy=True, foreign_keys='Project.responsible_id')

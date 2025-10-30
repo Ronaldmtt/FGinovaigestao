@@ -503,16 +503,53 @@ def delete_project(id):
 @app.route('/tasks')
 @login_required
 def tasks():
-    if current_user.is_admin:
-        tasks = Task.query.all()
-    else:
-        tasks = Task.query.filter_by(assigned_user_id=current_user.id).all()
+    # Filtros
+    project_filter = request.args.get('project_id', type=int)
+    client_filter = request.args.get('client_id', type=int)
+    user_filter = request.args.get('user_id', type=int)
+    status_filter = request.args.get('status')
+    
+    # Query base
+    query = Task.query
+    
+    # Filtro de permissões
+    if not current_user.is_admin:
+        query = query.filter_by(assigned_user_id=current_user.id)
+    
+    # Aplicar filtros
+    if project_filter:
+        query = query.filter_by(project_id=project_filter)
+    
+    if client_filter:
+        query = query.join(Project).filter(Project.client_id == client_filter)
+    
+    if user_filter:
+        query = query.filter_by(assigned_user_id=user_filter)
+    
+    if status_filter:
+        query = query.filter_by(status=status_filter)
+    
+    tasks = query.all()
     
     form = TaskForm()
     transcription_form = TranscriptionTaskForm()
-    projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
-    users = User.query.filter_by(is_admin=False).all()
-    return render_template('tasks.html', tasks=tasks, form=form, transcription_form=transcription_form, projects=projects, users=users)
+    all_projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
+    all_clients = Client.query.order_by(Client.nome).all()
+    all_users = User.query.filter_by(is_admin=False).all()
+    
+    return render_template('tasks.html', 
+                         tasks=tasks, 
+                         form=form, 
+                         transcription_form=transcription_form, 
+                         all_projects=all_projects,
+                         all_clients=all_clients,
+                         all_users=all_users,
+                         current_filters={
+                             'project_id': project_filter,
+                             'client_id': client_filter,
+                             'user_id': user_filter,
+                             'status': status_filter
+                         })
 
 @app.route('/tasks/new', methods=['GET', 'POST'])
 @login_required

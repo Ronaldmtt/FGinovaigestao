@@ -623,6 +623,20 @@ def new_task():
     
     return render_template('tasks.html', form=form)
 
+@app.route('/tasks/<int:task_id>/edit', methods=['GET'])
+@login_required
+def edit_task(task_id):
+    task = Task.query.get_or_404(task_id)
+    
+    # Verificar permissão
+    if not current_user.is_admin and task.assigned_user_id != current_user.id:
+        project = task.project
+        if current_user.id != project.responsible_id and current_user not in project.team_members:
+            flash('Sem permissão para editar esta tarefa.', 'danger')
+            return redirect(url_for('tasks'))
+    
+    return redirect(url_for('kanban') + f'#task-{task_id}')
+
 @app.route('/tasks/new-manual', methods=['POST'])
 @login_required 
 def new_manual_task():

@@ -113,7 +113,7 @@
                         </thead>
                         <tbody>
                             {% for task in tasks %}
-                            <tr {% if task.disparada %}class="table-danger"{% endif %}>
+                            <tr {% if task.disparada %}class="table-danger"{% endif %} onclick="editTask({{ task.id }})" style="cursor: pointer;">
                                 <td>
                                     {% if task.disparada %}<i class="fas fa-paper-plane text-danger me-1" title="Tarefa disparada"></i>{% endif %}
                                     {{ task.titulo }}
@@ -136,7 +136,7 @@
                                 <td>{{ task.data_conclusao.strftime('%d/%m/%Y') if task.data_conclusao else '-' }}</td>
                                 <td>{{ task.created_at.strftime('%d/%m/%Y') }}</td>
                                 {% if current_user.is_admin %}
-                                <td>
+                                <td onclick="event.stopPropagation();">
                                     <button class="btn btn-sm {% if task.disparada %}btn-danger{% else %}btn-outline-secondary{% endif %}" 
                                             onclick="dispatchTask({{ task.id }})" 
                                             title="{% if task.disparada %}Cancelar disparo{% else %}Disparar tarefa{% endif %}"
@@ -357,6 +357,11 @@ function dispatchTask(taskId) {
         console.error('Erro ao disparar tarefa:', error);
         alert('Erro ao disparar tarefa. Tente novamente.');
     });
+}
+
+// Função para editar tarefa
+function editTask(taskId) {
+    window.location.href = `/tasks/${taskId}/edit`;
 }
 </script>
 {% endblock %}

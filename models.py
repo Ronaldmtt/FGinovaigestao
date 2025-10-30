@@ -24,7 +24,6 @@ class User(UserMixin, db.Model):
     acesso_projetos = db.Column(db.Boolean, default=True, nullable=False)
     acesso_tarefas = db.Column(db.Boolean, default=True, nullable=False)
     acesso_kanban = db.Column(db.Boolean, default=True, nullable=False)
-    acesso_portal = db.Column(db.Boolean, default=True, nullable=False)
     
     # Relacionamentos
     created_clients = db.relationship('Client', backref='creator', lazy=True)

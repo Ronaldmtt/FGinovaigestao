@@ -107,8 +107,7 @@ def admin_new_user():
             acesso_clientes=form.acesso_clientes.data,
             acesso_projetos=form.acesso_projetos.data,
             acesso_tarefas=form.acesso_tarefas.data,
-            acesso_kanban=form.acesso_kanban.data,
-            acesso_portal=form.acesso_portal.data
+            acesso_kanban=form.acesso_kanban.data
         )
         db.session.add(user)
         db.session.commit()
@@ -136,7 +135,6 @@ def admin_edit_user(user_id):
         user.acesso_projetos = form.acesso_projetos.data
         user.acesso_tarefas = form.acesso_tarefas.data
         user.acesso_kanban = form.acesso_kanban.data
-        user.acesso_portal = form.acesso_portal.data
         
         # Só atualiza a senha se uma nova foi fornecida
         if form.password.data:
@@ -705,8 +703,6 @@ def new_manual_task():
 
 # Rotas públicas para clientes
 @app.route('/public')
-@login_required
-@requires_permission('acesso_portal')
 def public_access():
     return render_template('public_access.html')
 

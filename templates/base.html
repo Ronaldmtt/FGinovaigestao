@@ -67,14 +67,6 @@
                         </a>
                     </li>
                     {% endif %}
-                    
-                    {% if current_user.is_admin or current_user.acesso_portal %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('public_access') }}">
-                            <i class="fas fa-globe me-1"></i>Portal Público
-                        </a>
-                    </li>
-                    {% endif %}
                 </ul>
                 
                 <ul class="navbar-nav">

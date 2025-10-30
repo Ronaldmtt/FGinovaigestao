@@ -36,29 +36,45 @@
                     </li>
                     {% endif %}
                     
+                    {% if current_user.is_admin or current_user.acesso_clientes %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('clients') }}">
                             <i class="fas fa-building me-1"></i>Clientes
                         </a>
                     </li>
+                    {% endif %}
                     
+                    {% if current_user.is_admin or current_user.acesso_projetos %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('projects') }}">
                             <i class="fas fa-project-diagram me-1"></i>Projetos
                         </a>
                     </li>
+                    {% endif %}
                     
+                    {% if current_user.is_admin or current_user.acesso_tarefas %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('tasks') }}">
                             <i class="fas fa-tasks me-1"></i>Tarefas
                         </a>
                     </li>
+                    {% endif %}
                     
+                    {% if current_user.is_admin or current_user.acesso_kanban %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('kanban') }}">
                             <i class="fas fa-columns me-1"></i>Kanban
                         </a>
                     </li>
+                    {% endif %}
+                    
+                    {% if current_user.is_admin or current_user.acesso_portal %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('public_access') }}">
+                            <i class="fas fa-globe me-1"></i>Portal Público
+                        </a>
+                    </li>
+                    {% endif %}
                 </ul>
                 
                 <ul class="navbar-nav">

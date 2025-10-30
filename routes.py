@@ -1144,6 +1144,30 @@ def update_task_status(task_id):
     
     return jsonify({'error': 'Status inválido'}), 400
 
+@app.route('/api/tasks/<int:task_id>/dispatch', methods=['POST'])
+@login_required
+def dispatch_task(task_id):
+    # Apenas admin pode disparar tarefas
+    if not current_user.is_admin:
+        return jsonify({'error': 'Sem permissão'}), 403
+    
+    task = Task.query.get_or_404(task_id)
+    
+    # Alternar estado de disparada
+    task.disparada = not task.disparada
+    if task.disparada:
+        task.disparada_at = datetime.utcnow()
+    else:
+        task.disparada_at = None
+    
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'disparada': task.disparada,
+        'disparada_at': task.disparada_at.strftime('%d/%m/%Y %H:%M') if task.disparada_at else None
+    })
+
 @app.route('/api/projects/<int:client_id>')
 @login_required
 def get_projects_by_client(client_id):

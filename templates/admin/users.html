@@ -102,6 +102,34 @@
                         {{ form.is_admin(class="form-check-input") }}
                         {{ form.is_admin.label(class="form-check-label") }}
                     </div>
+                    
+                    <hr class="my-3">
+                    <h6 class="mb-3">Permissões de Acesso</h6>
+                    
+                    <div class="mb-2 form-check">
+                        {{ form.acesso_clientes(class="form-check-input", checked=true) }}
+                        {{ form.acesso_clientes.label(class="form-check-label") }}
+                    </div>
+                    
+                    <div class="mb-2 form-check">
+                        {{ form.acesso_projetos(class="form-check-input", checked=true) }}
+                        {{ form.acesso_projetos.label(class="form-check-label") }}
+                    </div>
+                    
+                    <div class="mb-2 form-check">
+                        {{ form.acesso_tarefas(class="form-check-input", checked=true) }}
+                        {{ form.acesso_tarefas.label(class="form-check-label") }}
+                    </div>
+                    
+                    <div class="mb-2 form-check">
+                        {{ form.acesso_kanban(class="form-check-input", checked=true) }}
+                        {{ form.acesso_kanban.label(class="form-check-label") }}
+                    </div>
+                    
+                    <div class="mb-2 form-check">
+                        {{ form.acesso_portal(class="form-check-input", checked=true) }}
+                        {{ form.acesso_portal.label(class="form-check-label") }}
+                    </div>
                     {% endif %}
                 </div>
                 <div class="modal-footer">

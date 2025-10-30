@@ -87,7 +87,12 @@ def admin_new_user():
             sobrenome=form.sobrenome.data,
             email=form.email.data,
             password_hash=generate_password_hash(form.password.data) if form.password.data else "",
-            is_admin=form.is_admin.data
+            is_admin=form.is_admin.data,
+            acesso_clientes=form.acesso_clientes.data,
+            acesso_projetos=form.acesso_projetos.data,
+            acesso_tarefas=form.acesso_tarefas.data,
+            acesso_kanban=form.acesso_kanban.data,
+            acesso_portal=form.acesso_portal.data
         )
         db.session.add(user)
         db.session.commit()
@@ -111,6 +116,11 @@ def admin_edit_user(user_id):
         user.sobrenome = form.sobrenome.data
         user.email = form.email.data
         user.is_admin = form.is_admin.data
+        user.acesso_clientes = form.acesso_clientes.data
+        user.acesso_projetos = form.acesso_projetos.data
+        user.acesso_tarefas = form.acesso_tarefas.data
+        user.acesso_kanban = form.acesso_kanban.data
+        user.acesso_portal = form.acesso_portal.data
         
         # Só atualiza a senha se uma nova foi fornecida
         if form.password.data:

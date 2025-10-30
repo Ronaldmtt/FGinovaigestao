@@ -106,12 +106,18 @@
                                 <th>Status</th>
                                 <th>Data Conclusão</th>
                                 <th>Criada em</th>
+                                {% if current_user.is_admin %}
+                                <th>Ações</th>
+                                {% endif %}
                             </tr>
                         </thead>
                         <tbody>
                             {% for task in tasks %}
-                            <tr>
-                                <td>{{ task.titulo }}</td>
+                            <tr {% if task.disparada %}class="table-danger"{% endif %}>
+                                <td>
+                                    {% if task.disparada %}<i class="fas fa-paper-plane text-danger me-1" title="Tarefa disparada"></i>{% endif %}
+                                    {{ task.titulo }}
+                                </td>
                                 <td>{{ task.project.nome }}</td>
                                 <td>{{ task.project.client.nome }}</td>
                                 <td>{{ task.assigned_user.full_name if task.assigned_user else '-' }}</td>
@@ -123,9 +129,22 @@
                                     {% else %}
                                     <span class="badge bg-success">Concluída</span>
                                     {% endif %}
+                                    {% if task.disparada %}
+                                    <span class="badge bg-danger ms-1">Disparada</span>
+                                    {% endif %}
                                 </td>
                                 <td>{{ task.data_conclusao.strftime('%d/%m/%Y') if task.data_conclusao else '-' }}</td>
                                 <td>{{ task.created_at.strftime('%d/%m/%Y') }}</td>
+                                {% if current_user.is_admin %}
+                                <td>
+                                    <button class="btn btn-sm {% if task.disparada %}btn-danger{% else %}btn-outline-secondary{% endif %}" 
+                                            onclick="dispatchTask({{ task.id }})" 
+                                            title="{% if task.disparada %}Cancelar disparo{% else %}Disparar tarefa{% endif %}"
+                                            id="dispatch-btn-{{ task.id }}">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </button>
+                                </td>
+                                {% endif %}
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -313,5 +332,31 @@ document.getElementById('clientSelect')?.addEventListener('change', function() {
         projectSelect.innerHTML = '<option value="">Selecione um projeto</option>';
     }
 });
+
+// Função para disparar tarefa
+function dispatchTask(taskId) {
+    if (!confirm('Deseja disparar/cancelar o disparo desta tarefa?')) {
+        return;
+    }
+    
+    fetch(`/api/tasks/${taskId}/dispatch`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Erro ao disparar tarefa: ' + (data.error || 'Erro desconhecido'));
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao disparar tarefa:', error);
+        alert('Erro ao disparar tarefa. Tente novamente.');
+    });
+}
 </script>
 {% endblock %}

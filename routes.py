@@ -235,19 +235,47 @@ def delete_client(client_id):
 @app.route('/projects')
 @login_required
 def projects():
+    # Filtros
+    client_filter = request.args.get('client_id', type=int)
+    responsible_filter = request.args.get('responsible_id', type=int)
+    status_filter = request.args.get('status')
+    
+    # Query base
     if current_user.is_admin:
-        projects = Project.query.order_by(Project.nome).all()
+        query = Project.query
     else:
         # Usuários veem apenas projetos que criaram ou são responsáveis ou fazem parte da equipe
-        projects = Project.query.filter(
+        query = Project.query.filter(
             (Project.responsible_id == current_user.id) |
             (Project.team_members.contains(current_user))
-        ).distinct().order_by(Project.nome).all()
+        ).distinct()
+    
+    # Aplicar filtros
+    if client_filter:
+        query = query.filter_by(client_id=client_filter)
+    
+    if responsible_filter:
+        query = query.filter_by(responsible_id=responsible_filter)
+    
+    if status_filter:
+        query = query.filter_by(status=status_filter)
+    
+    projects = query.order_by(Project.nome).all()
     
     form = ProjectForm()
-    clients = Client.query.all()
-    users = User.query.filter_by(is_admin=False).all()
-    return render_template('projects.html', projects=projects, form=form, clients=clients, users=users)
+    all_clients = Client.query.order_by(Client.nome).all()
+    all_users = User.query.filter_by(is_admin=False).all()
+    
+    return render_template('projects.html', 
+                         projects=projects, 
+                         form=form, 
+                         all_clients=all_clients,
+                         all_users=all_users,
+                         current_filters={
+                             'client_id': client_filter,
+                             'responsible_id': responsible_filter,
+                             'status': status_filter
+                         })
 
 @app.route('/projects/new', methods=['GET', 'POST'])
 @login_required

@@ -84,6 +84,8 @@ class Task(db.Model):
     data_conclusao = db.Column(db.Date)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     completed_at = db.Column(db.DateTime)
+    disparada = db.Column(db.Boolean, default=False, nullable=False)
+    disparada_at = db.Column(db.DateTime)
     
     # Foreign keys
     project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=False)

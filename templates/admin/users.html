@@ -16,10 +16,29 @@
 
 <div class="row mt-4">
     <div class="col-12">
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Buscar por Nome</label>
+                        <input type="text" id="searchUser" class="form-control" placeholder="Digite o nome do usuário...">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Filtrar por Tipo</label>
+                        <select id="filterType" class="form-select">
+                            <option value="all">Todos</option>
+                            <option value="admin">Administrador</option>
+                            <option value="user">Usuário</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <div class="card">
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table table-striped">
+                    <table class="table table-striped" id="usersTable">
                         <thead>
                             <tr>
                                 <th>Nome</th>
@@ -166,5 +185,33 @@ function confirmDelete(userName, userId) {
     document.getElementById('deleteUserForm').action = `/admin/users/delete/${userId}`;
     new bootstrap.Modal(document.getElementById('deleteUserModal')).show();
 }
+
+// Filtro de usuários
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchUser');
+    const filterType = document.getElementById('filterType');
+    const table = document.getElementById('usersTable');
+    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+    
+    function filterUsers() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const typeFilter = filterType.value;
+        
+        Array.from(rows).forEach(row => {
+            const userName = row.cells[0].textContent.toLowerCase();
+            const userType = row.cells[2].querySelector('.badge').textContent.toLowerCase();
+            
+            const matchesSearch = userName.includes(searchTerm);
+            const matchesType = typeFilter === 'all' || 
+                              (typeFilter === 'admin' && userType.includes('administrador')) ||
+                              (typeFilter === 'user' && userType.includes('usuário'));
+            
+            row.style.display = (matchesSearch && matchesType) ? '' : 'none';
+        });
+    }
+    
+    searchInput.addEventListener('keyup', filterUsers);
+    filterType.addEventListener('change', filterUsers);
+});
 </script>
 {% endblock %}

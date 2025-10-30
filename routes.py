@@ -2,6 +2,7 @@ from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime, timedelta
+from functools import wraps
 import httpx
 import secrets
 import string
@@ -11,6 +12,21 @@ from app import app, db
 from models import User, Client, Project, Task, TodoItem
 from forms import LoginForm, UserForm, EditUserForm, ClientForm, ProjectForm, TaskForm, TranscriptionTaskForm, ManualProjectForm, ManualTaskForm, ForgotPasswordForm, ResetPasswordForm, ChangePasswordForm, ImportDataForm
 from openai_service import process_project_transcription, generate_tasks_from_transcription
+
+def requires_permission(permission_field):
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not current_user.is_authenticated:
+                return redirect(url_for('login'))
+            if current_user.is_admin:
+                return f(*args, **kwargs)
+            if not getattr(current_user, permission_field, False):
+                flash('Você não tem permissão para acessar esta página.', 'danger')
+                return redirect(url_for('dashboard'))
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
 
 @app.route('/')
 def index():
@@ -159,6 +175,7 @@ def admin_delete_user(user_id):
 # Rotas de Clientes
 @app.route('/clients')
 @login_required
+@requires_permission('acesso_clientes')
 def clients():
     # Filtros
     search_term = request.args.get('search', '')
@@ -191,6 +208,7 @@ def clients():
 
 @app.route('/clients/new', methods=['GET', 'POST'])
 @login_required
+@requires_permission('acesso_clientes')
 def new_client():
     form = ClientForm()
     if form.validate_on_submit():
@@ -210,6 +228,7 @@ def new_client():
 
 @app.route('/clients/<int:id>/generate-public-link', methods=['POST'])
 @login_required
+@requires_permission('acesso_clientes')
 def generate_public_link(id):
     client = Client.query.get_or_404(id)
     
@@ -234,6 +253,7 @@ def generate_public_link(id):
 
 @app.route('/clients/edit/<int:client_id>', methods=['GET', 'POST'])
 @login_required
+@requires_permission('acesso_clientes')
 def edit_client(client_id):
     client = Client.query.get_or_404(client_id)
     
@@ -253,6 +273,7 @@ def edit_client(client_id):
 
 @app.route('/clients/delete/<int:client_id>', methods=['POST'])
 @login_required
+@requires_permission('acesso_clientes')
 def delete_client(client_id):
     client = Client.query.get_or_404(client_id)
     
@@ -269,6 +290,7 @@ def delete_client(client_id):
 # Rotas de Projetos
 @app.route('/projects')
 @login_required
+@requires_permission('acesso_projetos')
 def projects():
     # Filtros
     client_filter = request.args.get('client_id', type=int)
@@ -314,6 +336,7 @@ def projects():
 
 @app.route('/projects/new', methods=['GET', 'POST'])
 @login_required
+@requires_permission('acesso_projetos')
 def new_project():
     form = ProjectForm()
     if form.validate_on_submit():
@@ -565,6 +588,7 @@ def delete_project(id):
 # Rotas de Tarefas
 @app.route('/tasks')
 @login_required
+@requires_permission('acesso_tarefas')
 def tasks():
     # Filtros
     project_filter = request.args.get('project_id', type=int)
@@ -681,6 +705,8 @@ def new_manual_task():
 
 # Rotas públicas para clientes
 @app.route('/public')
+@login_required
+@requires_permission('acesso_portal')
 def public_access():
     return render_template('public_access.html')
 
@@ -975,6 +1001,7 @@ def transcription_task():
 # Kanban
 @app.route('/kanban')
 @login_required
+@requires_permission('acesso_kanban')
 def kanban():
     # Filtros
     project_filter = request.args.get('project_id', type=int)

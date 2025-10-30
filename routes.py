@@ -150,9 +150,34 @@ def admin_delete_user(user_id):
 @app.route('/clients')
 @login_required
 def clients():
-    clients = Client.query.all()
+    # Filtros
+    search_term = request.args.get('search', '')
+    creator_filter = request.args.get('creator_id', type=int)
+    
+    # Query base
+    query = Client.query
+    
+    # Aplicar filtros
+    if search_term:
+        query = query.filter(
+            (Client.nome.ilike(f'%{search_term}%')) |
+            (Client.email.ilike(f'%{search_term}%'))
+        )
+    
+    if creator_filter:
+        query = query.filter_by(created_by=creator_filter)
+    
+    clients = query.order_by(Client.nome).all()
+    
     form = ClientForm()
-    return render_template('clients.html', clients=clients, form=form)
+    all_users = User.query.filter_by(is_admin=False).all()
+    
+    return render_template('clients.html', 
+                         clients=clients, 
+                         form=form,
+                         all_users=all_users,
+                         current_search=search_term,
+                         current_creator_id=creator_filter)
 
 @app.route('/clients/new', methods=['GET', 'POST'])
 @login_required

@@ -865,6 +865,7 @@ def kanban():
     # Filtros
     project_filter = request.args.get('project_id', type=int)
     client_filter = request.args.get('client_id', type=int)
+    user_filter = request.args.get('user_id', type=int)
     my_tasks = request.args.get('my_tasks', type=bool)
     
     query = Task.query
@@ -886,6 +887,9 @@ def kanban():
     if client_filter:
         query = query.join(Project).filter(Project.client_id == client_filter)
     
+    if user_filter:
+        query = query.filter_by(assigned_user_id=user_filter)
+    
     tasks = query.all()
     
     # Organizar tarefas por status
@@ -902,7 +906,7 @@ def kanban():
     projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
     clients = Client.query.all()
     
-    # Todos os usuários para o modal de edição
+    # Todos os usuários para o modal de edição e filtros
     all_users = User.query.filter_by(is_admin=False).all()
     
     return render_template('kanban.html', 
@@ -913,6 +917,7 @@ def kanban():
                          current_filters={
                              'project_id': project_filter,
                              'client_id': client_filter,
+                             'user_id': user_filter,
                              'my_tasks': my_tasks
                          })
 

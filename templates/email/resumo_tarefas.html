@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resumo de Tarefas</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .greeting {
+            font-size: 16px;
+            margin-bottom: 20px;
+            color: #555;
+        }
+        .task-section {
+            margin-bottom: 25px;
+        }
+        .task-section h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #667eea;
+            margin: 0 0 15px 0;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .task-card {
+            background: #f9f9f9;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 12px;
+            border-radius: 4px;
+        }
+        .task-card.em-andamento {
+            border-left-color: #ffa726;
+        }
+        .task-card.concluida {
+            border-left-color: #66bb6a;
+        }
+        .task-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #333;
+            margin: 0 0 8px 0;
+        }
+        .task-info {
+            font-size: 13px;
+            color: #666;
+            margin: 4px 0;
+        }
+        .task-info strong {
+            color: #444;
+        }
+        .task-description {
+            font-size: 13px;
+            color: #555;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #e0e0e0;
+        }
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge.pendente {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        .badge.em-andamento {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+        .badge.concluida {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+        .summary {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .summary-item {
+            display: inline-block;
+            margin-right: 20px;
+            font-size: 14px;
+        }
+        .summary-item strong {
+            color: #667eea;
+            font-size: 18px;
+        }
+        .footer {
+            background: #f9f9f9;
+            padding: 20px 30px;
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+            border-top: 1px solid #e0e0e0;
+        }
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            margin-top: 15px;
+        }
+        .no-tasks {
+            text-align: center;
+            padding: 30px;
+            color: #999;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 Resumo de Tarefas</h1>
+            <p>Suas tarefas organizadas por status</p>
+        </div>
+        
+        <div class="content">
+            <div class="greeting">
+                Olá <strong>{{ usuario_nome }}</strong>,
+            </div>
+            
+            <p>Aqui está um resumo das suas tarefas{{ filtro_info }}:</p>
+            
+            {% if total_tarefas > 0 %}
+            <div class="summary">
+                <div class="summary-item">
+                    <strong>{{ total_tarefas }}</strong> {{ 'tarefa' if total_tarefas == 1 else 'tarefas' }} no total
+                </div>
+                <div class="summary-item">
+                    <strong>{{ tarefas_pendentes|length }}</strong> pendentes
+                </div>
+                <div class="summary-item">
+                    <strong>{{ tarefas_em_andamento|length }}</strong> em andamento
+                </div>
+                <div class="summary-item">
+                    <strong>{{ tarefas_concluidas|length }}</strong> concluídas
+                </div>
+            </div>
+            
+            {% if tarefas_pendentes %}
+            <div class="task-section">
+                <h3>⏳ Tarefas Pendentes ({{ tarefas_pendentes|length }})</h3>
+                {% for tarefa in tarefas_pendentes %}
+                <div class="task-card">
+                    <div class="task-title">{{ tarefa.titulo }}</div>
+                    <div class="task-info">
+                        <strong>Projeto:</strong> {{ tarefa.project.client.nome }} - {{ tarefa.project.nome }}
+                    </div>
+                    {% if tarefa.data_conclusao %}
+                    <div class="task-info">
+                        <strong>Prazo:</strong> {{ tarefa.data_conclusao.strftime('%d/%m/%Y') }}
+                    </div>
+                    {% endif %}
+                    {% if tarefa.descricao %}
+                    <div class="task-description">{{ tarefa.descricao }}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            {% if tarefas_em_andamento %}
+            <div class="task-section">
+                <h3>🔄 Tarefas Em Andamento ({{ tarefas_em_andamento|length }})</h3>
+                {% for tarefa in tarefas_em_andamento %}
+                <div class="task-card em-andamento">
+                    <div class="task-title">{{ tarefa.titulo }}</div>
+                    <div class="task-info">
+                        <strong>Projeto:</strong> {{ tarefa.project.client.nome }} - {{ tarefa.project.nome }}
+                    </div>
+                    {% if tarefa.data_conclusao %}
+                    <div class="task-info">
+                        <strong>Prazo:</strong> {{ tarefa.data_conclusao.strftime('%d/%m/%Y') }}
+                    </div>
+                    {% endif %}
+                    {% if tarefa.descricao %}
+                    <div class="task-description">{{ tarefa.descricao }}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            {% if tarefas_concluidas %}
+            <div class="task-section">
+                <h3>✅ Tarefas Concluídas ({{ tarefas_concluidas|length }})</h3>
+                {% for tarefa in tarefas_concluidas %}
+                <div class="task-card concluida">
+                    <div class="task-title">{{ tarefa.titulo }}</div>
+                    <div class="task-info">
+                        <strong>Projeto:</strong> {{ tarefa.project.client.nome }} - {{ tarefa.project.nome }}
+                    </div>
+                    {% if tarefa.data_conclusao %}
+                    <div class="task-info">
+                        <strong>Concluída em:</strong> {{ tarefa.data_conclusao.strftime('%d/%m/%Y') }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            {% else %}
+            <div class="no-tasks">
+                Você não possui tarefas{{ filtro_info }}.
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="footer">
+            <p>Este é um email automático do Sistema de Gerenciamento de Projetos.</p>
+            <p>Para visualizar e gerenciar suas tarefas, acesse o sistema.</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1206,6 +1206,33 @@ def update_task_status(task_id):
     
     return jsonify({'error': 'Status inválido'}), 400
 
+@app.route('/api/todos/<int:todo_id>', methods=['PUT'])
+@login_required
+def api_update_todo(todo_id):
+    """Atualizar o texto de um to-do específico"""
+    todo = TodoItem.query.get_or_404(todo_id)
+    
+    # Verificar permissão (usuário deve ter acesso à tarefa)
+    task = todo.task
+    if not current_user.is_admin and task.assigned_user_id != current_user.id:
+        project = task.project
+        if current_user.id != project.responsible_id and current_user not in project.team_members:
+            return jsonify({'error': 'Sem permissão'}), 403
+    
+    data = request.get_json()
+    novo_texto = data.get('texto', '').strip()
+    
+    if not novo_texto:
+        return jsonify({'success': False, 'message': 'Texto não pode ser vazio'}), 400
+    
+    try:
+        todo.texto = novo_texto
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'To-do atualizado com sucesso!'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Erro ao atualizar: {str(e)}'}), 500
+
 @app.route('/api/tasks/<int:task_id>/dispatch', methods=['POST'])
 @login_required
 def dispatch_task(task_id):

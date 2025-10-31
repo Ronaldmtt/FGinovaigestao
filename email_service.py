@@ -201,3 +201,57 @@ Este é um email automático. Você pode desativar notificações nas configura�
     except Exception as e:
         logger.error(f"Erro ao enviar email para {usuario.email}: {str(e)}")
         return False
+
+
+def enviar_email_resumo_tarefas(usuario, tarefas, filtro_info=""):
+    """
+    Envia email com resumo de tarefas organizadas por status
+    """
+    if not usuario or not usuario.email or not usuario.receber_notificacoes:
+        return False
+    
+    try:
+        # Organizar tarefas por status
+        tarefas_pendentes = [t for t in tarefas if t.status == 'pendente']
+        tarefas_em_andamento = [t for t in tarefas if t.status == 'em_andamento']
+        tarefas_concluidas = [t for t in tarefas if t.status == 'concluida']
+        
+        msg = Message(
+            subject=f'Resumo de Tarefas - {len(tarefas)} tarefas',
+            recipients=[usuario.email],
+            sender=app.config['MAIL_DEFAULT_SENDER']
+        )
+        
+        msg.html = render_template('email/resumo_tarefas.html',
+                                   usuario_nome=usuario.full_name,
+                                   tarefas_pendentes=tarefas_pendentes,
+                                   tarefas_em_andamento=tarefas_em_andamento,
+                                   tarefas_concluidas=tarefas_concluidas,
+                                   total_tarefas=len(tarefas),
+                                   filtro_info=filtro_info)
+        
+        msg.body = f"""
+Olá {usuario.nome},
+
+Aqui está um resumo das suas tarefas{filtro_info}:
+
+Total de tarefas: {len(tarefas)}
+- Pendentes: {len(tarefas_pendentes)}
+- Em Andamento: {len(tarefas_em_andamento)}
+- Concluídas: {len(tarefas_concluidas)}
+
+Acesse o sistema para visualizar os detalhes completos.
+
+---
+Este é um email automático. Você pode desativar notificações nas configurações do seu perfil.
+        """
+        
+        with app.app_context():
+            mail.send(msg)
+        
+        logger.info(f"Email de resumo enviado para {usuario.email} - {len(tarefas)} tarefas")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Erro ao enviar email de resumo para {usuario.email}: {str(e)}")
+        return False

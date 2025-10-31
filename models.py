@@ -26,6 +26,9 @@ class User(UserMixin, db.Model):
     acesso_kanban = db.Column(db.Boolean, default=True, nullable=False)
     acesso_crm = db.Column(db.Boolean, default=True, nullable=False)
     
+    # Notificações por email
+    receber_notificacoes = db.Column(db.Boolean, default=True, nullable=False)
+    
     # Relacionamentos
     created_clients = db.relationship('Client', backref='creator', lazy=True)
     responsible_projects = db.relationship('Project', backref='responsible', lazy=True, foreign_keys='Project.responsible_id')

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nova Tarefa Atribuída</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .greeting {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .task-card {
+            background-color: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .task-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        .task-detail {
+            margin: 10px 0;
+            font-size: 14px;
+            color: #555;
+        }
+        .task-detail strong {
+            color: #333;
+            display: inline-block;
+            min-width: 120px;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #777;
+            border-top: 1px solid #e0e0e0;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            margin: 20px 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✅ Nova Tarefa Atribuída</h1>
+        </div>
+        <div class="content">
+            <p class="greeting">Olá {{ usuario.nome }},</p>
+            <p>Você recebeu uma nova tarefa no sistema de gerenciamento de projetos!</p>
+            
+            <div class="task-card">
+                <div class="task-title">{{ tarefa.titulo }}</div>
+                <div class="task-detail">
+                    <strong>Projeto:</strong> {{ projeto.nome }}
+                </div>
+                <div class="task-detail">
+                    <strong>Cliente:</strong> {{ projeto.client.nome }}
+                </div>
+                {% if tarefa.descricao %}
+                <div class="task-detail">
+                    <strong>Descrição:</strong> {{ tarefa.descricao }}
+                </div>
+                {% endif %}
+                {% if tarefa.data_conclusao %}
+                <div class="task-detail">
+                    <strong>Data de Conclusão:</strong> {{ tarefa.data_conclusao.strftime('%d/%m/%Y') }}
+                </div>
+                {% endif %}
+            </div>
+            
+            <center>
+                <a href="#" class="btn">Acessar Sistema</a>
+            </center>
+        </div>
+        <div class="footer">
+            <p>Este é um email automático do Sistema de Gerenciamento de Projetos.</p>
+            <p>Você pode desativar as notificações por email nas configurações do seu perfil.</p>
+        </div>
+    </div>
+</body>
+</html>

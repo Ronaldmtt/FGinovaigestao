@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data de Conclusão Alterada</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .greeting {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .task-card {
+            background-color: #f8f9fa;
+            border-left: 4px solid #4facfe;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .task-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #4facfe;
+            margin-bottom: 15px;
+        }
+        .task-detail {
+            margin: 10px 0;
+            font-size: 14px;
+            color: #555;
+        }
+        .task-detail strong {
+            color: #333;
+            display: inline-block;
+            min-width: 120px;
+        }
+        .date-change {
+            background-color: #e7f3ff;
+            border: 1px solid #4facfe;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .date-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin: 0 10px;
+            background-color: white;
+            color: #4facfe;
+            border: 2px solid #4facfe;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #777;
+            border-top: 1px solid #e0e0e0;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            margin: 20px 0;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📅 Data de Conclusão Alterada</h1>
+        </div>
+        <div class="content">
+            <p class="greeting">Olá {{ usuario.nome }},</p>
+            <p>A data de conclusão de uma tarefa atribuída a você foi alterada!</p>
+            
+            <div class="task-card">
+                <div class="task-title">{{ tarefa.titulo }}</div>
+                <div class="task-detail">
+                    <strong>Projeto:</strong> {{ projeto.nome }}
+                </div>
+                <div class="task-detail">
+                    <strong>Cliente:</strong> {{ projeto.client.nome }}
+                </div>
+            </div>
+            
+            <div class="date-change">
+                <span class="date-badge">{{ data_antiga }}</span>
+                <span style="font-size: 24px; color: #4facfe;">→</span>
+                <span class="date-badge">{{ data_nova }}</span>
+            </div>
+            
+            <center>
+                <a href="#" class="btn">Acessar Sistema</a>
+            </center>
+        </div>
+        <div class="footer">
+            <p>Este é um email automático do Sistema de Gerenciamento de Projetos.</p>
+            <p>Você pode desativar as notificações por email nas configurações do seu perfil.</p>
+        </div>
+    </div>
+</body>
+</html>

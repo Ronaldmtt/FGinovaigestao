@@ -105,6 +105,7 @@ def admin_new_user():
         app.logger.debug(f"acesso_projetos: {form.acesso_projetos.data}")
         app.logger.debug(f"acesso_tarefas: {form.acesso_tarefas.data}")
         app.logger.debug(f"acesso_kanban: {form.acesso_kanban.data}")
+        app.logger.debug(f"acesso_crm: {form.acesso_crm.data}")
         
         user = User(
             nome=form.nome.data,
@@ -115,7 +116,8 @@ def admin_new_user():
             acesso_clientes=form.acesso_clientes.data,
             acesso_projetos=form.acesso_projetos.data,
             acesso_tarefas=form.acesso_tarefas.data,
-            acesso_kanban=form.acesso_kanban.data
+            acesso_kanban=form.acesso_kanban.data,
+            acesso_crm=form.acesso_crm.data
         )
         db.session.add(user)
         db.session.commit()
@@ -147,6 +149,7 @@ def admin_edit_user(user_id):
         user.acesso_projetos = form.acesso_projetos.data
         user.acesso_tarefas = form.acesso_tarefas.data
         user.acesso_kanban = form.acesso_kanban.data
+        user.acesso_crm = form.acesso_crm.data
         
         # Só atualiza a senha se uma nova foi fornecida
         if form.password.data:

@@ -19,6 +19,7 @@ class UserForm(FlaskForm):
     acesso_projetos = BooleanField('Acesso a Projetos', default=True)
     acesso_tarefas = BooleanField('Acesso a Tarefas', default=True)
     acesso_kanban = BooleanField('Acesso ao Kanban', default=True)
+    acesso_crm = BooleanField('Acesso ao CRM', default=True)
     
     def validate_email(self, email):
         user = User.query.filter_by(email=email.data).first()
@@ -36,6 +37,7 @@ class EditUserForm(FlaskForm):
     acesso_projetos = BooleanField('Acesso a Projetos', default=True)
     acesso_tarefas = BooleanField('Acesso a Tarefas', default=True)
     acesso_kanban = BooleanField('Acesso ao Kanban', default=True)
+    acesso_crm = BooleanField('Acesso ao CRM', default=True)
     
     def __init__(self, original_email, *args, **kwargs):
         super(EditUserForm, self).__init__(*args, **kwargs)

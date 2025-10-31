@@ -98,6 +98,14 @@ def admin_new_user():
     
     form = UserForm()
     if form.validate_on_submit():
+        # Debug: Log dos valores recebidos
+        app.logger.debug(f"=== DEBUG CRIAÇÃO DE USUÁRIO ===")
+        app.logger.debug(f"is_admin checkbox: {form.is_admin.data}")
+        app.logger.debug(f"acesso_clientes: {form.acesso_clientes.data}")
+        app.logger.debug(f"acesso_projetos: {form.acesso_projetos.data}")
+        app.logger.debug(f"acesso_tarefas: {form.acesso_tarefas.data}")
+        app.logger.debug(f"acesso_kanban: {form.acesso_kanban.data}")
+        
         user = User(
             nome=form.nome.data,
             sobrenome=form.sobrenome.data,
@@ -111,6 +119,10 @@ def admin_new_user():
         )
         db.session.add(user)
         db.session.commit()
+        
+        # Debug: Confirmar o que foi salvo
+        app.logger.debug(f"Usuário salvo - is_admin: {user.is_admin}, acesso_tarefas: {user.acesso_tarefas}, acesso_kanban: {user.acesso_kanban}")
+        
         flash('Usuário criado com sucesso!', 'success')
         return redirect(url_for('admin_users'))
     

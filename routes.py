@@ -13,7 +13,7 @@ from app import app, db
 from models import User, Client, Project, Task, TodoItem
 from forms import LoginForm, UserForm, EditUserForm, ClientForm, ProjectForm, TaskForm, TranscriptionTaskForm, ManualProjectForm, ManualTaskForm, ForgotPasswordForm, ResetPasswordForm, ChangePasswordForm, ImportDataForm
 from openai_service import process_project_transcription, generate_tasks_from_transcription
-from email_service import enviar_email_nova_tarefa, enviar_email_mudanca_status, enviar_email_alteracao_data, enviar_email_tarefa_editada
+from email_service import enviar_email_nova_tarefa, enviar_email_mudanca_status, enviar_email_alteracao_data, enviar_email_tarefa_editada, enviar_email_resumo_tarefas
 
 def requires_permission(permission_field):
     def decorator(f):
@@ -1324,6 +1324,80 @@ def dispatch_task(task_id):
         'disparada': task.disparada,
         'disparada_at': task.disparada_at.strftime('%d/%m/%Y %H:%M') if task.disparada_at else None
     })
+
+@app.route('/api/disparar-tarefas', methods=['POST'])
+@login_required
+def disparar_tarefas_filtradas():
+    """Dispara emails de resumo de tarefas baseado nos filtros"""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+    
+    try:
+        data = request.get_json()
+        project_id = data.get('project_id')
+        client_id = data.get('client_id')
+        user_id = data.get('user_id')
+        my_tasks = data.get('my_tasks', False)
+        
+        # Aplicar os mesmos filtros do Kanban
+        query = Task.query
+        
+        if project_id:
+            query = query.filter_by(project_id=project_id)
+        
+        if client_id:
+            query = query.join(Project).filter(Project.client_id == client_id)
+        
+        if user_id:
+            query = query.filter_by(assigned_user_id=user_id)
+        
+        tasks = query.all()
+        
+        # Agrupar tarefas por usuário
+        tarefas_por_usuario = {}
+        for task in tasks:
+            if task.assigned_user_id:
+                if task.assigned_user_id not in tarefas_por_usuario:
+                    tarefas_por_usuario[task.assigned_user_id] = []
+                tarefas_por_usuario[task.assigned_user_id].append(task)
+        
+        # Construir informação sobre filtros aplicados
+        filtro_info = ""
+        if project_id:
+            projeto = Project.query.get(project_id)
+            filtro_info = f" do projeto '{projeto.nome}'"
+        elif client_id:
+            cliente = Client.query.get(client_id)
+            filtro_info = f" do cliente '{cliente.nome}'"
+        
+        # Enviar emails
+        emails_enviados = 0
+        usuarios_notificados = []
+        
+        for usuario_id, tarefas in tarefas_por_usuario.items():
+            usuario = User.query.get(usuario_id)
+            if usuario and enviar_email_resumo_tarefas(usuario, tarefas, filtro_info):
+                emails_enviados += 1
+                usuarios_notificados.append(usuario.full_name)
+        
+        if emails_enviados == 0:
+            return jsonify({
+                'success': False,
+                'message': 'Nenhum email foi enviado. Verifique se os usuários têm notificações ativadas.'
+            })
+        
+        return jsonify({
+            'success': True,
+            'message': f'{emails_enviados} email(s) enviado(s) com sucesso!',
+            'emails_enviados': emails_enviados,
+            'usuarios': usuarios_notificados
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Erro ao enviar emails: {str(e)}'
+        }), 500
 
 @app.route('/api/projects/<int:client_id>')
 @login_required

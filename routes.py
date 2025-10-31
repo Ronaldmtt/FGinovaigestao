@@ -426,7 +426,7 @@ def new_project():
         return redirect(url_for('projects'))
     
     clients = Client.query.all()
-    users = User.query.filter_by(is_admin=False).all()
+    users = User.query.filter_by(is_admin=False).order_by(User.nome, User.sobrenome).all()
     return render_template('projects.html', form=form, clients=clients, users=users)
 
 @app.route('/projects/new-manual', methods=['POST'])
@@ -635,7 +635,7 @@ def tasks():
     transcription_form = TranscriptionTaskForm()
     all_projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
     all_clients = Client.query.order_by(Client.nome).all()
-    all_users = User.query.filter_by(is_admin=False).all()
+    all_users = User.query.filter_by(is_admin=False).order_by(User.nome, User.sobrenome).all()
     
     return render_template('tasks.html', 
                          tasks=tasks, 
@@ -878,7 +878,7 @@ def get_project_data(id):
     
     # Buscar dados necessários para o formulário
     clients = Client.query.all()
-    users = User.query.filter_by(is_admin=False).all()
+    users = User.query.filter_by(is_admin=False).order_by(User.nome, User.sobrenome).all()
     
     # Preparar dados do projeto
     project_data = {
@@ -1059,7 +1059,7 @@ def kanban():
     clients = Client.query.all()
     
     # Todos os usuários para o modal de edição e filtros
-    all_users = User.query.filter_by(is_admin=False).all()
+    all_users = User.query.filter_by(is_admin=False).order_by(User.nome, User.sobrenome).all()
     
     return render_template('kanban.html', 
                          task_columns=task_columns, 

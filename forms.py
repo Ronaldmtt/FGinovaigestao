@@ -38,6 +38,7 @@ class EditUserForm(FlaskForm):
     acesso_tarefas = BooleanField('Acesso a Tarefas', default=True)
     acesso_kanban = BooleanField('Acesso ao Kanban', default=True)
     acesso_crm = BooleanField('Acesso ao CRM', default=True)
+    receber_notificacoes = BooleanField('Receber Notificações por Email', default=True)
     
     def __init__(self, original_email, *args, **kwargs):
         super(EditUserForm, self).__init__(*args, **kwargs)

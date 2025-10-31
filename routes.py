@@ -13,6 +13,7 @@ from app import app, db
 from models import User, Client, Project, Task, TodoItem
 from forms import LoginForm, UserForm, EditUserForm, ClientForm, ProjectForm, TaskForm, TranscriptionTaskForm, ManualProjectForm, ManualTaskForm, ForgotPasswordForm, ResetPasswordForm, ChangePasswordForm, ImportDataForm
 from openai_service import process_project_transcription, generate_tasks_from_transcription
+from email_service import enviar_email_nova_tarefa, enviar_email_mudanca_status, enviar_email_alteracao_data, enviar_email_tarefa_editada
 
 def requires_permission(permission_field):
     def decorator(f):
@@ -151,6 +152,7 @@ def admin_edit_user(user_id):
         user.acesso_tarefas = form.acesso_tarefas.data
         user.acesso_kanban = form.acesso_kanban.data
         user.acesso_crm = form.acesso_crm.data
+        user.receber_notificacoes = form.receber_notificacoes.data
         
         # Só atualiza a senha se uma nova foi fornecida
         if form.password.data:
@@ -714,6 +716,16 @@ def new_manual_task():
     db.session.add(task)
     db.session.commit()
     
+    # Enviar notificação por email se houver usuário atribuído
+    if task.assigned_user_id:
+        usuario = User.query.get(task.assigned_user_id)
+        projeto = Project.query.get(task.project_id)
+        if usuario and projeto:
+            try:
+                enviar_email_nova_tarefa(usuario, task, projeto)
+            except Exception as e:
+                app.logger.error(f"Erro ao enviar email de nova tarefa: {e}")
+    
     flash('Tarefa criada manualmente com sucesso!', 'success')
     return redirect(url_for('tasks'))
 
@@ -1098,15 +1110,32 @@ def api_update_task(task_id):
     task = Task.query.get_or_404(task_id)
     data = request.get_json()
     
+    # Guardar valores antigos para comparação
+    status_antigo = task.status
+    data_antigo = task.data_conclusao
+    titulo_antigo = task.titulo
+    descricao_antiga = task.descricao
+    
     try:
         # Atualizar campos
+        titulo_mudou = False
+        descricao_mudou = False
+        status_mudou = False
+        data_mudou = False
+        
         if 'titulo' in data:
+            if task.titulo != data['titulo']:
+                titulo_mudou = True
             task.titulo = data['titulo']
         if 'descricao' in data:
+            if task.descricao != data['descricao']:
+                descricao_mudou = True
             task.descricao = data['descricao']
         if 'assigned_user_id' in data:
             task.assigned_user_id = data['assigned_user_id'] if data['assigned_user_id'] else None
         if 'status' in data:
+            if task.status != data['status']:
+                status_mudou = True
             task.status = data['status']
             # Atualizar data de conclusão baseado no status
             if data['status'] == 'concluida':
@@ -1114,10 +1143,13 @@ def api_update_task(task_id):
             else:
                 task.completed_at = None
         if 'data_conclusao' in data:
+            nova_data = None
             if data['data_conclusao']:
-                task.data_conclusao = datetime.strptime(data['data_conclusao'], '%Y-%m-%d').date()
-            else:
-                task.data_conclusao = None
+                nova_data = datetime.strptime(data['data_conclusao'], '%Y-%m-%d').date()
+            
+            if task.data_conclusao != nova_data:
+                data_mudou = True
+            task.data_conclusao = nova_data
         
         # Atualizar to-do's
         if 'todos' in data:
@@ -1137,6 +1169,28 @@ def api_update_task(task_id):
                     db.session.add(todo)
         
         db.session.commit()
+        
+        # Enviar notificações por email conforme apropriado
+        if task.assigned_user_id:
+            usuario = User.query.get(task.assigned_user_id)
+            projeto = task.project
+            
+            if usuario and projeto:
+                try:
+                    # Notificar sobre mudança de status
+                    if status_mudou:
+                        enviar_email_mudanca_status(usuario, task, projeto, status_antigo, task.status)
+                    
+                    # Notificar sobre mudança de data
+                    elif data_mudou:
+                        enviar_email_alteracao_data(usuario, task, projeto, data_antigo, task.data_conclusao)
+                    
+                    # Notificar sobre edição geral (título ou descrição)
+                    elif titulo_mudou or descricao_mudou:
+                        enviar_email_tarefa_editada(usuario, task, projeto)
+                        
+                except Exception as e:
+                    app.logger.error(f"Erro ao enviar email de atualização: {e}")
         
         # Retornar dados completos da tarefa atualizada para atualizar o card
         response_data = {
@@ -1195,6 +1249,7 @@ def update_task_status(task_id):
     new_status = data.get('status')
     
     if new_status in ['pendente', 'em_andamento', 'concluida']:
+        status_antigo = task.status
         task.status = new_status
         
         if new_status == 'concluida':
@@ -1203,6 +1258,18 @@ def update_task_status(task_id):
             task.completed_at = None
             
         db.session.commit()
+        
+        # Enviar notificação de mudança de status
+        if task.assigned_user_id and status_antigo != new_status:
+            usuario = User.query.get(task.assigned_user_id)
+            projeto = task.project
+            
+            if usuario and projeto:
+                try:
+                    enviar_email_mudanca_status(usuario, task, projeto, status_antigo, new_status)
+                except Exception as e:
+                    app.logger.error(f"Erro ao enviar email de mudança de status: {e}")
+        
         return jsonify({'success': True})
     
     return jsonify({'error': 'Status inválido'}), 400

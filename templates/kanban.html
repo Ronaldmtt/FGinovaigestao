@@ -76,9 +76,14 @@
                                     Apenas minhas tarefas
                                 </label>
                             </div>
-                            <a href="{{ url_for('kanban') }}" class="btn btn-outline-secondary">
-                                <i class="fas fa-times me-1"></i>Limpar Filtros
-                            </a>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-success" onclick="dispatchFilteredTasks()">
+                                    <i class="fas fa-paper-plane me-1"></i>Disparar Tarefas
+                                </button>
+                                <a href="{{ url_for('kanban') }}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times me-1"></i>Limpar Filtros
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </form>

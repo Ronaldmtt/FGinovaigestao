@@ -788,6 +788,51 @@ function dispatchTask(taskId) {
         alert('Erro ao disparar tarefa. Tente novamente.');
     });
 }
+
+// Função para disparar tarefas filtradas
+function dispatchFilteredTasks() {
+    const projectId = document.querySelector('select[name="project_id"]').value;
+    const clientId = document.querySelector('select[name="client_id"]').value;
+    const userId = document.querySelector('select[name="user_id"]').value;
+    const myTasks = document.querySelector('input[name="my_tasks"]').checked;
+    
+    let confirmMessage = 'Deseja enviar emails de resumo de tarefas ';
+    if (userId) {
+        const userName = document.querySelector('select[name="user_id"] option:checked').text;
+        confirmMessage += `para ${userName}?`;
+    } else {
+        confirmMessage += 'para todos os usuários com tarefas atribuídas?';
+    }
+    
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+    
+    fetch('/api/disparar-tarefas', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            project_id: projectId || null,
+            client_id: clientId || null,
+            user_id: userId || null,
+            my_tasks: myTasks
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`✓ ${data.message}\n\nUsuários notificados:\n${data.usuarios.join('\n')}`);
+        } else {
+            alert('⚠ ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao disparar tarefas:', error);
+        alert('Erro ao enviar emails. Tente novamente.');
+    });
+}
 </script>
 
 <!-- Modal para Nova Tarefa no Kanban -->

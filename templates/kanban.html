@@ -479,7 +479,10 @@ function loadTodos(todos) {
         todoDiv.className = 'd-flex align-items-center mb-2';
         todoDiv.innerHTML = `
             <input type="checkbox" class="form-check-input me-2" ${todo.completed ? 'checked' : ''} onchange="toggleTodo(this, ${todo.id})">
-            <span class="${todo.completed ? 'text-decoration-line-through text-muted' : ''}" style="flex-grow: 1;">${todo.texto}</span>
+            <span class="todo-text ${todo.completed ? 'text-decoration-line-through text-muted' : ''}" 
+                  style="flex-grow: 1; cursor: pointer;" 
+                  data-todo-id="${todo.id}"
+                  onclick="enableTodoEdit(this)">${todo.texto}</span>
             <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="removeTodo(this, ${todo.id})">
                 <i class="fas fa-trash-alt"></i>
             </button>
@@ -488,6 +491,85 @@ function loadTodos(todos) {
         todoDiv.dataset.todoText = todo.texto;
         todoDiv.dataset.todoCompleted = todo.completed;
         todosList.appendChild(todoDiv);
+    });
+}
+
+// Função para habilitar edição inline do to-do (estilo Trello)
+function enableTodoEdit(span) {
+    if (span.querySelector('input')) return; // Já está editando
+    
+    const todoId = span.dataset.todoId;
+    const currentText = span.textContent;
+    
+    // Criar input de edição
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'form-control form-control-sm';
+    input.value = currentText;
+    input.style.flexGrow = '1';
+    
+    // Substituir span por input
+    span.textContent = '';
+    span.appendChild(input);
+    input.focus();
+    input.select();
+    
+    // Função para salvar
+    const saveTodo = async () => {
+        const newText = input.value.trim();
+        
+        if (!newText) {
+            input.value = currentText; // Restaurar texto original se vazio
+            return;
+        }
+        
+        if (newText === currentText) {
+            // Sem mudanças, apenas restaurar
+            span.textContent = currentText;
+            return;
+        }
+        
+        // Salvar no backend
+        try {
+            const response = await fetch(`/api/todos/${todoId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ texto: newText })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                span.textContent = newText;
+                // Atualizar dataset
+                const todoDiv = span.closest('[data-todo-id]');
+                if (todoDiv) {
+                    todoDiv.dataset.todoText = newText;
+                }
+            } else {
+                alert('Erro ao atualizar: ' + data.message);
+                span.textContent = currentText;
+            }
+        } catch (error) {
+            console.error('Erro ao atualizar to-do:', error);
+            alert('Erro ao atualizar to-do');
+            span.textContent = currentText;
+        }
+    };
+    
+    // Salvar ao pressionar Enter ou perder foco
+    input.addEventListener('blur', saveTodo);
+    input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            input.blur();
+        }
+    });
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            span.textContent = currentText; // Cancelar edição
+        }
     });
 }
 
@@ -501,7 +583,7 @@ function addTodo() {
         todoDiv.className = 'd-flex align-items-center mb-2';
         todoDiv.innerHTML = `
             <input type="checkbox" class="form-check-input me-2" onchange="toggleTodo(this)">
-            <span style="flex-grow: 1;">${text}</span>
+            <span class="todo-text" style="flex-grow: 1; cursor: pointer;" data-todo-id="new-${Date.now()}" onclick="enableTodoEdit(this)">${text}</span>
             <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="removeTodo(this)">
                 <i class="fas fa-trash-alt"></i>
             </button>

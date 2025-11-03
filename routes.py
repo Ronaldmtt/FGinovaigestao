@@ -627,7 +627,7 @@ def tasks():
         query = query.join(Project).filter(Project.client_id == client_filter)
     
     if user_filter:
-        query = query.filter_by(assigned_user_id=user_filter)
+        query = query.filter(Task.assigned_user_id == user_filter)
     
     if status_filter:
         query = query.filter_by(status=status_filter)
@@ -1053,7 +1053,7 @@ def kanban():
         query = query.join(Project).filter(Project.client_id == client_filter)
     
     if user_filter:
-        query = query.filter_by(assigned_user_id=user_filter)
+        query = query.filter(Task.assigned_user_id == user_filter)
     
     tasks = query.all()
     

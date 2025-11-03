@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SelectField, SelectMultipleField, TextAreaField, DateField, BooleanField
-from wtforms.validators import DataRequired, Email, Length, ValidationError, EqualTo
+from wtforms.validators import DataRequired, Email, Length, ValidationError, EqualTo, Optional
 from wtforms.widgets import TextArea
 from models import User, Client, Project
 
@@ -30,7 +30,7 @@ class EditUserForm(FlaskForm):
     nome = StringField('Nome', validators=[DataRequired(), Length(min=2, max=100)])
     sobrenome = StringField('Sobrenome', validators=[DataRequired(), Length(min=2, max=100)])
     email = StringField('Email', validators=[DataRequired(), Email()])
-    password = PasswordField('Nova Senha', validators=[Length(min=6)])  # Senha opcional para edição
+    password = PasswordField('Nova Senha', validators=[Optional(), Length(min=6)])  # Senha opcional para edição
     is_admin = BooleanField('Administrador')
     
     acesso_clientes = BooleanField('Acesso a Clientes', default=True)

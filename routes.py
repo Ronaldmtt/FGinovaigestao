@@ -336,14 +336,14 @@ def projects():
     projects = query.order_by(Project.nome).all()
     
     form = ProjectForm()
-    all_clients = Client.query.order_by(Client.nome).all()
-    all_users = User.query.filter_by(is_admin=False).all()
+    clients = Client.query.order_by(Client.nome).all()
+    users = User.query.filter_by(is_admin=False).all()
     
     return render_template('projects.html', 
                          projects=projects, 
                          form=form, 
-                         all_clients=all_clients,
-                         all_users=all_users,
+                         clients=clients,
+                         users=users,
                          current_filters={
                              'client_id': client_filter,
                              'responsible_id': responsible_filter,

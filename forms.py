@@ -60,7 +60,7 @@ class ProjectForm(FlaskForm):
     nome = StringField('Nome do Projeto', validators=[DataRequired(), Length(min=2, max=200)])
     client_id = SelectField('Cliente', coerce=int, validators=[DataRequired()])
     responsible_id = SelectField('Usuário Responsável', coerce=int, validators=[DataRequired()])
-    team_members = SelectField('Membros da Equipe', coerce=int, choices=[])
+    team_members = SelectMultipleField('Membros da Equipe', coerce=int, choices=[])
     status = SelectField('Status', choices=[
         ('em_andamento', 'Em Andamento'),
         ('pausado', 'Pausado'),
@@ -123,7 +123,7 @@ class ManualProjectForm(FlaskForm):
         super(ManualProjectForm, self).__init__(*args, **kwargs)
         self.client_id.choices = [(c.id, c.nome) for c in Client.query.all()]
         self.responsible_id.choices = [(u.id, u.full_name) for u in User.query.filter_by(is_admin=False).all()]
-        self.team_members.choices = [('', 'Selecione um membro')] + [(u.id, u.full_name) for u in User.query.filter_by(is_admin=False).all()]
+        self.team_members.choices = [(u.id, u.full_name) for u in User.query.filter_by(is_admin=False).all()]
 
 class ManualTaskForm(FlaskForm):
     titulo = StringField('Título da Tarefa', validators=[DataRequired(), Length(min=2, max=200)])

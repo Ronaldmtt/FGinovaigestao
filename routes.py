@@ -370,9 +370,10 @@ def new_project():
         
         # Adicionar membros da equipe
         if form.team_members.data:
-            team_member = User.query.get(form.team_members.data)
-            if team_member:
-                project.team_members.append(team_member)
+            for member_id in form.team_members.data:
+                team_member = User.query.get(member_id)
+                if team_member:
+                    project.team_members.append(team_member)
         
         # Commit inicial para salvar o projeto
         db.session.commit()

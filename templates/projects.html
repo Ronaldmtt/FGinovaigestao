@@ -321,7 +321,8 @@
                         </div>
                         <div class="col-md-4 mb-3">
                             {{ form.team_members.label(class="form-label") }}
-                            {{ form.team_members(class="form-select") }}
+                            {{ form.team_members(class="form-select", multiple=True, size=3) }}
+                            <small class="form-text text-muted">Segure CTRL/Cmd para selecionar múltiplos</small>
                         </div>
                     </div>
                     

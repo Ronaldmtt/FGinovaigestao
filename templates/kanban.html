@@ -77,9 +77,11 @@
                                 </label>
                             </div>
                             <div class="d-flex gap-2">
+                                {% if current_user.is_admin %}
                                 <button type="button" class="btn btn-success" onclick="dispatchFilteredTasks()">
                                     <i class="fas fa-paper-plane me-1"></i>Disparar Tarefas
                                 </button>
+                                {% endif %}
                                 <a href="{{ url_for('kanban') }}" class="btn btn-outline-secondary">
                                     <i class="fas fa-times me-1"></i>Limpar Filtros
                                 </a>

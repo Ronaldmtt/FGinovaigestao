@@ -3,6 +3,7 @@ from wtforms import StringField, PasswordField, SelectField, SelectMultipleField
 from wtforms.validators import DataRequired, Email, Length, ValidationError, EqualTo, Optional
 from wtforms.widgets import TextArea
 from models import User, Client, Project
+from sqlalchemy import func
 
 class LoginForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])
@@ -71,9 +72,9 @@ class ProjectForm(FlaskForm):
     
     def __init__(self, *args, **kwargs):
         super(ProjectForm, self).__init__(*args, **kwargs)
-        self.client_id.choices = [(c.id, c.nome) for c in Client.query.all()]
-        self.responsible_id.choices = [(u.id, u.full_name) for u in User.query.filter_by(is_admin=False).all()]
-        self.team_members.choices = [(u.id, u.full_name) for u in User.query.filter_by(is_admin=False).all()]
+        self.client_id.choices = [(c.id, c.nome) for c in Client.query.order_by(Client.nome).all()]
+        self.responsible_id.choices = [(u.id, u.full_name) for u in User.query.filter_by(is_admin=False).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()]
+        self.team_members.choices = [(u.id, u.full_name) for u in User.query.filter_by(is_admin=False).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()]
 
 class TaskForm(FlaskForm):
     titulo = StringField('Título da Tarefa', validators=[DataRequired(), Length(min=2, max=200)])
@@ -84,8 +85,8 @@ class TaskForm(FlaskForm):
     
     def __init__(self, *args, **kwargs):
         super(TaskForm, self).__init__(*args, **kwargs)
-        self.project_id.choices = [(p.id, f"{p.client.nome} - {p.nome}") for p in Project.query.all()]
-        self.assigned_user_id.choices = [(0, 'Selecione um usuário')] + [(u.id, u.full_name) for u in User.query.filter_by(is_admin=False).all()]
+        self.project_id.choices = [(p.id, f"{p.client.nome} - {p.nome}") for p in Project.query.join(Client).order_by(Client.nome, Project.nome).all()]
+        self.assigned_user_id.choices = [(0, 'Selecione um usuário')] + [(u.id, u.full_name) for u in User.query.filter_by(is_admin=False).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()]
 
 class TranscriptionTaskForm(FlaskForm):
     client_id = SelectField('Cliente', coerce=int, validators=[DataRequired()])
@@ -94,8 +95,8 @@ class TranscriptionTaskForm(FlaskForm):
     
     def __init__(self, *args, **kwargs):
         super(TranscriptionTaskForm, self).__init__(*args, **kwargs)
-        self.client_id.choices = [(c.id, c.nome) for c in Client.query.all()]
-        self.project_id.choices = [(0, 'Selecione um projeto')] + [(p.id, p.nome) for p in Project.query.all()]
+        self.client_id.choices = [(c.id, c.nome) for c in Client.query.order_by(Client.nome).all()]
+        self.project_id.choices = [(0, 'Selecione um projeto')] + [(p.id, p.nome) for p in Project.query.order_by(Project.nome).all()]
 
 class ManualProjectForm(FlaskForm):
     nome = StringField('Nome do Projeto', validators=[DataRequired(), Length(min=2, max=200)])
@@ -121,9 +122,9 @@ class ManualProjectForm(FlaskForm):
     
     def __init__(self, *args, **kwargs):
         super(ManualProjectForm, self).__init__(*args, **kwargs)
-        self.client_id.choices = [(c.id, c.nome) for c in Client.query.all()]
-        self.responsible_id.choices = [(u.id, u.full_name) for u in User.query.filter_by(is_admin=False).all()]
-        self.team_members.choices = [(u.id, u.full_name) for u in User.query.filter_by(is_admin=False).all()]
+        self.client_id.choices = [(c.id, c.nome) for c in Client.query.order_by(Client.nome).all()]
+        self.responsible_id.choices = [(u.id, u.full_name) for u in User.query.filter_by(is_admin=False).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()]
+        self.team_members.choices = [(u.id, u.full_name) for u in User.query.filter_by(is_admin=False).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()]
 
 class ManualTaskForm(FlaskForm):
     titulo = StringField('Título da Tarefa', validators=[DataRequired(), Length(min=2, max=200)])
@@ -139,8 +140,8 @@ class ManualTaskForm(FlaskForm):
     
     def __init__(self, *args, **kwargs):
         super(ManualTaskForm, self).__init__(*args, **kwargs)
-        self.project_id.choices = [(p.id, f"{p.client.nome} - {p.nome}") for p in Project.query.all()]
-        self.assigned_user_id.choices = [('', 'Selecione um usuário')] + [(u.id, u.full_name) for u in User.query.filter_by(is_admin=False).all()]
+        self.project_id.choices = [(p.id, f"{p.client.nome} - {p.nome}") for p in Project.query.join(Client).order_by(Client.nome, Project.nome).all()]
+        self.assigned_user_id.choices = [('', 'Selecione um usuário')] + [(u.id, u.full_name) for u in User.query.filter_by(is_admin=False).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()]
 
 class ForgotPasswordForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email(message="Por favor, digite um email válido.")])

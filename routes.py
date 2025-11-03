@@ -213,7 +213,7 @@ def clients():
     clients = query.order_by(Client.nome).all()
     
     form = ClientForm()
-    all_users = User.query.filter_by(is_admin=False).all()
+    all_users = User.query.filter_by(is_admin=False).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
     
     return render_template('clients.html', 
                          clients=clients, 
@@ -337,7 +337,7 @@ def projects():
     
     form = ProjectForm()
     clients = Client.query.order_by(Client.nome).all()
-    users = User.query.filter_by(is_admin=False).all()
+    users = User.query.filter_by(is_admin=False).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
     
     return render_template('projects.html', 
                          projects=projects, 
@@ -429,7 +429,7 @@ def new_project():
         flash(success_message, 'success')
         return redirect(url_for('projects'))
     
-    clients = Client.query.all()
+    clients = Client.query.order_by(Client.nome).all()
     users = User.query.filter_by(is_admin=False).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
     return render_template('projects.html', form=form, clients=clients, users=users)
 
@@ -483,7 +483,7 @@ def project_detail(id):
         flash('Você não tem acesso a este projeto.', 'danger')
         return redirect(url_for('projects'))
     
-    clients = Client.query.all()
+    clients = Client.query.order_by(Client.nome).all()
     users = User.query.all()
     return render_template('project_detail.html', project=project, clients=clients, users=users)
 
@@ -891,7 +891,7 @@ def get_project_data(id):
         return jsonify({'success': False, 'message': 'Acesso negado'}), 403
     
     # Buscar dados necessários para o formulário
-    clients = Client.query.all()
+    clients = Client.query.order_by(Client.nome).all()
     users = User.query.filter_by(is_admin=False).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
     
     # Preparar dados do projeto
@@ -1070,7 +1070,7 @@ def kanban():
     
     # Para os filtros
     projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
-    clients = Client.query.all()
+    clients = Client.query.order_by(Client.nome).all()
     
     # Todos os usuários para o modal de edição e filtros
     all_users = User.query.filter_by(is_admin=False).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
@@ -1556,7 +1556,7 @@ def export_database():
             })
         
         # Exportar clientes
-        clients = Client.query.all()
+        clients = Client.query.order_by(Client.nome).all()
         for client in clients:
             export_data['clients'].append({
                 'id': client.id,
@@ -1871,7 +1871,7 @@ def export_tasks():
                 'client_name': project.client.nome if project.client else None
             })
         
-        users = User.query.filter_by(is_admin=False).all()
+        users = User.query.filter_by(is_admin=False).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
         for user in users:
             export_data['users_reference'].append({
                 'id': user.id,

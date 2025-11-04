@@ -60,24 +60,103 @@ def logout():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    # Estatísticas básicas
-    stats = {}
+    # Estatísticas personalizadas por usuário
     if current_user.is_admin:
+        # Admin vê estatísticas gerais
         stats = {
             'total_users': User.query.count(),
             'total_clients': Client.query.count(),
             'total_projects': Project.query.count(),
             'total_tasks': Task.query.count()
         }
+        # Atividades recentes (últimas 10)
+        recent_activities = []
+        
+        # Tarefas recentes completadas
+        recent_completed = Task.query.filter_by(status='concluida').order_by(Task.completed_at.desc()).limit(5).all()
+        for task in recent_completed:
+            if task.completed_at:
+                recent_activities.append({
+                    'type': 'task_completed',
+                    'icon': 'fa-check-circle',
+                    'color': 'success',
+                    'title': f'Tarefa "{task.titulo}" foi concluída',
+                    'description': f'No projeto "{task.project.nome}"' if task.project else '',
+                    'time': task.completed_at
+                })
+        
+        # Clientes criados recentemente
+        recent_clients = Client.query.order_by(Client.created_at.desc()).limit(5).all()
+        for client in recent_clients:
+            if hasattr(client, 'created_at') and client.created_at:
+                recent_activities.append({
+                    'type': 'client_created',
+                    'icon': 'fa-user-plus',
+                    'color': 'info',
+                    'title': f'Novo cliente "{client.nome}" foi adicionado',
+                    'description': f'Adicionado por {client.creator.full_name}' if client.creator else 'Adicionado ao sistema',
+                    'time': client.created_at
+                })
     else:
+        # Usuário vê suas próprias estatísticas
+        my_projects = Project.query.filter(
+            (Project.responsible_id == current_user.id) |
+            (Project.team_members.contains(current_user))
+        ).distinct().count()
+        
         stats = {
-            'my_projects': Project.query.filter_by(responsible_id=current_user.id).count(),
+            'my_projects': my_projects,
             'my_tasks': Task.query.filter_by(assigned_user_id=current_user.id).count(),
             'clients_created': Client.query.filter_by(creator_id=current_user.id).count(),
             'pending_tasks': Task.query.filter_by(assigned_user_id=current_user.id, status='pendente').count()
         }
+        
+        # Atividades recentes do usuário
+        recent_activities = []
+        
+        # Minhas tarefas completadas recentemente
+        my_completed = Task.query.filter_by(assigned_user_id=current_user.id, status='concluida').order_by(Task.completed_at.desc()).limit(3).all()
+        for task in my_completed:
+            if task.completed_at:
+                recent_activities.append({
+                    'type': 'task_completed',
+                    'icon': 'fa-check-circle',
+                    'color': 'success',
+                    'title': f'Você completou a tarefa "{task.titulo}"',
+                    'description': f'No projeto "{task.project.nome}"' if task.project else '',
+                    'time': task.completed_at
+                })
+        
+        # Minhas tarefas criadas recentemente
+        my_created_tasks = Task.query.filter_by(assigned_user_id=current_user.id).order_by(Task.created_at.desc()).limit(3).all()
+        for task in my_created_tasks:
+            if task.status == 'pendente' and task.created_at:
+                recent_activities.append({
+                    'type': 'task_created',
+                    'icon': 'fa-file-alt',
+                    'color': 'warning',
+                    'title': f'Você criou a tarefa "{task.titulo}"',
+                    'description': f'No projeto "{task.project.nome}"' if task.project else '',
+                    'time': task.created_at
+                })
+        
+        # Clientes que criei
+        my_clients = Client.query.filter_by(creator_id=current_user.id).order_by(Client.created_at.desc()).limit(3).all()
+        for client in my_clients:
+            if hasattr(client, 'created_at') and client.created_at:
+                recent_activities.append({
+                    'type': 'client_created',
+                    'icon': 'fa-user-plus',
+                    'color': 'info',
+                    'title': f'Novo cliente "{client.nome}" foi adicionado',
+                    'description': 'Adicionado por você',
+                    'time': client.created_at
+                })
     
-    return render_template('dashboard.html', stats=stats)
+    # Ordenar atividades por data
+    recent_activities = sorted(recent_activities, key=lambda x: x['time'], reverse=True)[:10]
+    
+    return render_template('dashboard.html', stats=stats, recent_activities=recent_activities)
 
 # Rotas de Administração
 @app.route('/admin/users')

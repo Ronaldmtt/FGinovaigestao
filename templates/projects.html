@@ -6,154 +6,176 @@
 <div class="container-fluid">
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0"><i class="fas fa-project-diagram me-2"></i>Gerenciar Projetos</h2>
-        <div>
-            <button type="button" class="btn btn-outline-light me-2" data-bs-toggle="modal" data-bs-target="#manualProjectModal">
-                <i class="fas fa-plus me-1"></i>Projeto Manual
+        <h2 class="mb-0">Projetos</h2>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-icon" type="button" data-bs-toggle="collapse" data-bs-target="#advancedFilters">
+                <i class="fas fa-filter"></i>
+            </button>
+            <button class="btn btn-outline-secondary btn-icon">
+                <i class="fas fa-calendar-alt"></i>
             </button>
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newProjectModal">
-                <i class="fas fa-magic me-1"></i>Projeto com IA
+                <i class="fas fa-plus me-2"></i>Criar Novo Projeto
             </button>
         </div>
     </div>
 
-    <!-- Filtros -->
-    <div class="card bg-dark border-secondary mb-4">
-        <div class="card-body">
-            <form method="GET" class="row g-3 align-items-end">
-                <div class="col-md-3">
-                    <label class="form-label small text-muted">Filtrar por Cliente</label>
-                    <select name="client_id" class="form-select bg-dark text-light border-secondary">
-                        <option value="">Todos os clientes</option>
-                        {% for client in clients %}
-                        <option value="{{ client.id }}" {% if current_filters.client_id == client.id %}selected{% endif %}>
-                            {{ client.nome }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                
-                <div class="col-md-3">
-                    <label class="form-label small text-muted">Filtrar por Responsável</label>
-                    <select name="responsible_id" class="form-select bg-dark text-light border-secondary">
-                        <option value="">Todos</option>
-                        {% for user in users %}
-                        <option value="{{ user.id }}" {% if current_filters.responsible_id == user.id %}selected{% endif %}>
-                            {{ user.full_name }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                
-                <div class="col-md-3">
-                    <label class="form-label small text-muted">Status</label>
-                    <select name="status" class="form-select bg-dark text-light border-secondary">
-                        <option value="">Todos</option>
-                        <option value="em_andamento" {% if current_filters.status == 'em_andamento' %}selected{% endif %}>Em Andamento</option>
-                        <option value="pausado" {% if current_filters.status == 'pausado' %}selected{% endif %}>Pausado</option>
-                        <option value="cancelado" {% if current_filters.status == 'cancelado' %}selected{% endif %}>Cancelado</option>
-                        <option value="concluido" {% if current_filters.status == 'concluido' %}selected{% endif %}>Concluído</option>
-                    </select>
-                </div>
-                
-                <div class="col-md-3">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-filter me-1"></i>Filtrar
-                    </button>
-                </div>
-            </form>
-            
-            {% if current_filters.client_id or current_filters.responsible_id or current_filters.status %}
-            <div class="mt-3">
-                <a href="{{ url_for('projects') }}" class="btn btn-sm btn-outline-secondary">
-                    <i class="fas fa-times me-1"></i>Limpar Filtros
-                </a>
+    <!-- Filtros Avançados (Colapsável) -->
+    <div class="collapse mb-3" id="advancedFilters">
+        <div class="card bg-dark border-secondary">
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label small">Cliente</label>
+                        <select name="client_id" class="form-select form-select-sm bg-dark text-light border-secondary">
+                            <option value="">Todos os clientes</option>
+                            {% for client in clients %}
+                            <option value="{{ client.id }}" {% if current_filters.client_id == client.id %}selected{% endif %}>
+                                {{ client.nome }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small">Responsável</label>
+                        <select name="responsible_id" class="form-select form-select-sm bg-dark text-light border-secondary">
+                            <option value="">Todos</option>
+                            {% for user in users %}
+                            <option value="{{ user.id }}" {% if current_filters.responsible_id == user.id %}selected{% endif %}>
+                                {{ user.full_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-sm btn-primary me-2">Aplicar</button>
+                        <a href="{{ url_for('projects') }}" class="btn btn-sm btn-outline-secondary">Limpar</a>
+                    </div>
+                </form>
             </div>
-            {% endif %}
+        </div>
+    </div>
+
+    <!-- Pills de Status -->
+    <div class="mb-4">
+        <div class="btn-group status-pills" role="group">
+            <a href="{{ url_for('projects') }}" class="btn btn-pill {% if not current_filters.status %}active{% endif %}">
+                Todos ({{ status_counts.todos }})
+            </a>
+            <a href="{{ url_for('projects', status='em_andamento') }}" class="btn btn-pill {% if current_filters.status == 'em_andamento' %}active{% endif %}">
+                Ativos ({{ status_counts.em_andamento }})
+            </a>
+            <a href="{{ url_for('projects', status='concluido') }}" class="btn btn-pill {% if current_filters.status == 'concluido' %}active{% endif %}">
+                Concluídos ({{ status_counts.concluido }})
+            </a>
+            <a href="{{ url_for('projects', status='pausado') }}" class="btn btn-pill {% if current_filters.status == 'pausado' %}active{% endif %}">
+                Em Espera ({{ status_counts.pausado }})
+            </a>
         </div>
     </div>
 
     <!-- Tabela de Projetos -->
-    <div class="card bg-dark border-secondary">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-dark table-hover mb-0">
-                    <thead>
-                        <tr class="border-secondary">
-                            <th class="border-0 py-3 ps-4">Nome do Projeto</th>
-                            <th class="border-0 py-3">Cliente</th>
-                            <th class="border-0 py-3">Responsável</th>
-                            <th class="border-0 py-3">Status</th>
-                            <th class="border-0 py-3">Equipe</th>
-                            <th class="border-0 py-3">Data</th>
-                            <th class="border-0 py-3">Tarefas</th>
-                            <th class="border-0 py-3 pe-4">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% if projects %}
-                        {% for project in projects %}
-                        <tr class="border-secondary">
-                            <td class="ps-4">
-                                <a href="{{ url_for('project_detail', id=project.id) }}" class="text-decoration-none text-primary fw-bold">
-                                    {{ project.nome }}
-                                </a>
-                            </td>
-                            <td class="text-light">{{ project.client.nome }}</td>
-                            <td class="text-light">{{ project.responsible.full_name }}</td>
-                            <td>
-                                {% if project.status == 'em_andamento' %}
-                                    <span class="badge bg-primary">Em Andamento</span>
-                                {% elif project.status == 'pausado' %}
-                                    <span class="badge bg-warning text-dark">Pausado</span>
-                                {% elif project.status == 'cancelado' %}
-                                    <span class="badge bg-danger">Cancelado</span>
-                                {% elif project.status == 'concluido' %}
-                                    <span class="badge bg-success">Concluído</span>
-                                {% else %}
-                                    <span class="badge bg-secondary">{{ project.status }}</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <span class="badge bg-info text-dark">{{ project.team_members|length }}</span>
-                            </td>
-                            <td class="text-muted">{{ project.created_at.strftime('%d/%m/%Y') }}</td>
-                            <td>
-                                <span class="badge bg-secondary">{{ project.tasks|length }}</span>
-                            </td>
-                            <td class="pe-4">
-                                <div class="btn-group" role="group">
-                                    <a href="{{ url_for('project_detail', id=project.id) }}" class="btn btn-sm btn-outline-primary" title="Ver detalhes">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    {% if current_user.is_admin or current_user.id == project.responsible_id %}
-                                    <button type="button" class="btn btn-sm btn-outline-info" onclick="editProject({{ project.id }})" title="Editar projeto">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ project.id }}" title="Deletar projeto">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
+    <div class="card bg-dark border-0" style="border-radius: 12px; overflow: hidden;">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 projects-table">
+                <thead>
+                    <tr class="border-0">
+                        <th class="border-0 py-3 ps-4 text-muted text-uppercase small">Nome do Projeto</th>
+                        <th class="border-0 py-3 text-muted text-uppercase small">Líder do Projeto</th>
+                        <th class="border-0 py-3 text-muted text-uppercase small">Status</th>
+                        <th class="border-0 py-3 text-muted text-uppercase small">Prazo</th>
+                        <th class="border-0 py-3 text-muted text-uppercase small">Progresso</th>
+                        <th class="border-0 py-3 pe-4 text-muted text-uppercase small">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if projects %}
+                    {% for project in projects %}
+                    <tr class="border-0">
+                        <td class="ps-4 py-3">
+                            <a href="{{ url_for('project_detail', id=project.id) }}" class="text-decoration-none text-light fw-semibold">
+                                {{ project.nome }}
+                            </a>
+                        </td>
+                        <td class="py-3 text-light">{{ project.responsible.full_name }}</td>
+                        <td class="py-3">
+                            {% if project.status == 'em_andamento' %}
+                                <span class="badge-status badge-ativo">Ativo</span>
+                            {% elif project.status == 'pausado' %}
+                                <span class="badge-status badge-espera">Em Espera</span>
+                            {% elif project.status == 'cancelado' %}
+                                <span class="badge-status badge-atrasado">Cancelado</span>
+                            {% elif project.status == 'concluido' %}
+                                <span class="badge-status badge-concluido">Concluído</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 text-muted">
+                            {% if project.prazo %}
+                                {{ project.prazo.strftime('%d/%m/%Y') }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td class="py-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress flex-grow-1" style="height: 8px; width: 100px;">
+                                    {% set progress = project.progress_percent or 0 %}
+                                    {% if progress <= 25 %}
+                                        {% set progress_color = 'bg-danger' %}
+                                    {% elif progress <= 75 %}
+                                        {% set progress_color = 'bg-warning' %}
+                                    {% else %}
+                                        {% set progress_color = 'bg-success' %}
                                     {% endif %}
+                                    <div class="progress-bar {{ progress_color }}" role="progressbar" style="width: {{ progress }}%;" aria-valuenow="{{ progress }}" aria-valuemin="0" aria-valuemax="100"></div>
                                 </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                        {% else %}
-                        <tr>
-                            <td colspan="8" class="text-center py-5 text-muted">
-                                <i class="fas fa-folder-open fa-3x mb-3 d-block"></i>
-                                <p class="mb-0">Nenhum projeto encontrado</p>
-                            </td>
-                        </tr>
-                        {% endif %}
-                    </tbody>
-                </table>
-            </div>
+                                <span class="text-muted small">{{ progress }}%</span>
+                            </div>
+                        </td>
+                        <td class="pe-4 py-3">
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-icon-only" type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end bg-dark border-secondary">
+                                    <li>
+                                        <a class="dropdown-item text-light" href="{{ url_for('project_detail', id=project.id) }}">
+                                            <i class="fas fa-eye me-2"></i>Ver detalhes
+                                        </a>
+                                    </li>
+                                    {% if current_user.is_admin or current_user.id == project.responsible_id %}
+                                    <li>
+                                        <button class="dropdown-item text-light" onclick="editProject({{ project.id }})">
+                                            <i class="fas fa-edit me-2"></i>Editar
+                                        </button>
+                                    </li>
+                                    <li><hr class="dropdown-divider border-secondary"></li>
+                                    <li>
+                                        <button class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ project.id }}">
+                                            <i class="fas fa-trash me-2"></i>Deletar
+                                        </button>
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5">
+                            <i class="fas fa-folder-open fa-3x text-muted mb-3 d-block"></i>
+                            <p class="text-muted mb-0">Nenhum projeto encontrado</p>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
 
-<!-- Modais de confirmação de exclusão -->
+<!-- Modais de exclusão -->
 {% for project in projects %}
 {% if current_user.is_admin or current_user.id == project.responsible_id %}
 <div class="modal fade" id="deleteModal{{ project.id }}" tabindex="-1">
@@ -165,13 +187,13 @@
             </div>
             <div class="modal-body">
                 <p>Tem certeza que deseja deletar o projeto <strong>"{{ project.nome }}"</strong>?</p>
-                <p class="text-warning"><i class="fas fa-exclamation-triangle me-2"></i>Esta ação não pode ser desfeita e todas as tarefas do projeto também serão deletadas.</p>
+                <p class="text-warning"><i class="fas fa-exclamation-triangle me-2"></i>Esta ação não pode ser desfeita.</p>
             </div>
             <div class="modal-footer border-secondary">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <form method="POST" action="{{ url_for('delete_project', id=project.id) }}" style="display: inline;">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}"/>
-                    <button type="submit" class="btn btn-danger">Deletar Projeto</button>
+                    <button type="submit" class="btn btn-danger">Deletar</button>
                 </form>
             </div>
         </div>
@@ -180,107 +202,62 @@
 {% endif %}
 {% endfor %}
 
-<!-- Modal para projeto manual -->
-<div class="modal fade" id="manualProjectModal" tabindex="-1">
-    <div class="modal-dialog modal-xl">
+<!-- Modal para novo projeto com IA -->
+<div class="modal fade" id="newProjectModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content bg-dark text-light">
-            <form method="POST" action="{{ url_for('new_manual_project') }}">
+            <form method="POST" action="{{ url_for('new_project') }}">
                 <div class="modal-header border-secondary">
-                    <h5 class="modal-title">Criar Projeto Manual</h5>
+                    <h5 class="modal-title">Criar Novo Projeto</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Nome do Projeto</label>
-                            <input type="text" class="form-control bg-dark text-light border-secondary" name="nome" required>
+                    {% if form %}
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            {{ form.nome.label(class="form-label") }}
+                            {{ form.nome(class="form-control bg-dark text-light border-secondary") }}
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Cliente</label>
-                            <select class="form-select bg-dark text-light border-secondary" name="client_id" required>
-                                <option value="">Selecione um cliente</option>
-                                {% for client in clients %}
-                                <option value="{{ client.id }}">{{ client.nome }}</option>
-                                {% endfor %}
-                            </select>
+                        <div class="col-md-6">
+                            {{ form.client_id.label(class="form-label") }}
+                            {{ form.client_id(class="form-select bg-dark text-light border-secondary") }}
                         </div>
                     </div>
                     
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Usuário Responsável</label>
-                            <select class="form-select bg-dark text-light border-secondary" name="responsible_id" required>
-                                <option value="">Selecione um responsável</option>
-                                {% for user in users %}
-                                <option value="{{ user.id }}">{{ user.full_name }}</option>
-                                {% endfor %}
-                            </select>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            {{ form.responsible_id.label(class="form-label") }}
+                            {{ form.responsible_id(class="form-select bg-dark text-light border-secondary") }}
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Status</label>
-                            <select class="form-select bg-dark text-light border-secondary" name="status" required>
-                                <option value="em_andamento">Em Andamento</option>
-                                <option value="pausado">Pausado</option>
-                                <option value="cancelado">Cancelado</option>
-                                <option value="concluido">Concluído</option>
-                            </select>
+                        <div class="col-md-4">
+                            {{ form.status.label(class="form-label") }}
+                            {{ form.status(class="form-select bg-dark text-light border-secondary") }}
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Membros da Equipe</label>
-                            <select class="form-select bg-dark text-light border-secondary" name="team_member_ids" multiple size="5" style="height: auto;">
-                                {% for user in users %}
-                                <option value="{{ user.id }}">{{ user.full_name }}</option>
-                                {% endfor %}
-                            </select>
-                            <small class="form-text text-muted">Segure Ctrl/Cmd para selecionar múltiplos</small>
+                        <div class="col-md-4">
+                            {{ form.team_members.label(class="form-label") }}
+                            {{ form.team_members(class="form-select bg-dark text-light border-secondary", multiple=True, size=3) }}
                         </div>
                     </div>
                     
-                    <h6 class="mt-4 mb-3 text-primary">Detalhes do Projeto</h6>
-                    
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Descrição Resumida</label>
-                            <textarea class="form-control bg-dark text-light border-secondary" name="descricao_resumida" rows="3"></textarea>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            {{ form.prazo.label(class="form-label") }}
+                            {{ form.prazo(class="form-control bg-dark text-light border-secondary") }}
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Problema/Oportunidade</label>
-                            <textarea class="form-control bg-dark text-light border-secondary" name="problema_oportunidade" rows="3"></textarea>
+                        <div class="col-md-6">
+                            {{ form.progress_percent.label(class="form-label") }}
+                            {{ form.progress_percent(class="form-control bg-dark text-light border-secondary", placeholder="0-100") }}
                         </div>
                     </div>
                     
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Objetivos</label>
-                            <textarea class="form-control bg-dark text-light border-secondary" name="objetivos" rows="3"></textarea>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Alinhamento Estratégico</label>
-                            <textarea class="form-control bg-dark text-light border-secondary" name="alinhamento_estrategico" rows="3"></textarea>
-                        </div>
+                    <div class="mb-3">
+                        {{ form.transcricao.label(class="form-label") }}
+                        <small class="form-text text-muted d-block mb-2">A IA processará esta transcrição para gerar detalhes do projeto</small>
+                        {{ form.transcricao(class="form-control bg-dark text-light border-secondary") }}
                     </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Escopo do Projeto</label>
-                            <textarea class="form-control bg-dark text-light border-secondary" name="escopo_projeto" rows="4"></textarea>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Fora do Escopo</label>
-                            <textarea class="form-control bg-dark text-light border-secondary" name="fora_escopo" rows="4"></textarea>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Premissas</label>
-                            <textarea class="form-control bg-dark text-light border-secondary" name="premissas" rows="3"></textarea>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Restrições</label>
-                            <textarea class="form-control bg-dark text-light border-secondary" name="restricoes" rows="3"></textarea>
-                        </div>
-                    </div>
+                    {% endif %}
                 </div>
                 <div class="modal-footer border-secondary">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -291,65 +268,9 @@
     </div>
 </div>
 
-<!-- Modal para novo projeto com IA -->
-<div class="modal fade" id="newProjectModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content bg-dark text-light">
-            <form method="POST" action="{{ url_for('new_project') }}">
-                <div class="modal-header border-secondary">
-                    <h5 class="modal-title">Criar Projeto com IA</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    {% if form %}
-                    {{ form.hidden_tag() }}
-                    
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            {{ form.nome.label(class="form-label") }}
-                            {{ form.nome(class="form-control bg-dark text-light border-secondary") }}
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            {{ form.client_id.label(class="form-label") }}
-                            {{ form.client_id(class="form-select bg-dark text-light border-secondary") }}
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            {{ form.responsible_id.label(class="form-label") }}
-                            {{ form.responsible_id(class="form-select bg-dark text-light border-secondary") }}
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            {{ form.status.label(class="form-label") }}
-                            {{ form.status(class="form-select bg-dark text-light border-secondary") }}
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            {{ form.team_members.label(class="form-label") }}
-                            {{ form.team_members(class="form-select bg-dark text-light border-secondary", multiple=True, size=3) }}
-                            <small class="form-text text-muted">Segure CTRL/Cmd para selecionar múltiplos</small>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        {{ form.transcricao.label(class="form-label") }}
-                        <small class="form-text text-muted d-block mb-2">A IA processará esta transcrição para preencher automaticamente os campos do projeto</small>
-                        {{ form.transcricao(class="form-control bg-dark text-light border-secondary") }}
-                    </div>
-                    {% endif %}
-                </div>
-                <div class="modal-footer border-secondary">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Criar Projeto com IA</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
 <!-- Modal para editar projeto -->
 <div class="modal fade" id="editProjectModal" tabindex="-1">
-    <div class="modal-dialog modal-xl">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content bg-dark text-light">
             <form id="editProjectForm" method="POST">
                 <div class="modal-header border-secondary">
@@ -358,7 +279,7 @@
                 </div>
                 <div class="modal-body">
                     <div id="editProjectContent">
-                        <div class="text-center">
+                        <div class="text-center py-4">
                             <div class="spinner-border text-primary" role="status">
                                 <span class="visually-hidden">Carregando...</span>
                             </div>
@@ -374,11 +295,115 @@
     </div>
 </div>
 
-<script>
-let currentProjectId = null;
+<style>
+.btn-icon {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+}
 
+.btn-icon-only {
+    background: transparent;
+    border: none;
+    color: #6c757d;
+    padding: 4px 8px;
+}
+
+.btn-icon-only:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.status-pills {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-pill {
+    background: transparent;
+    border: 1px solid #495057;
+    color: #adb5bd;
+    border-radius: 20px;
+    padding: 8px 20px;
+    font-size: 14px;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.btn-pill:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    border-color: #6c757d;
+}
+
+.btn-pill.active {
+    background: #0d6efd;
+    border-color: #0d6efd;
+    color: #fff;
+}
+
+.projects-table {
+    background: #1a1d23;
+}
+
+.projects-table thead th {
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+}
+
+.projects-table tbody tr {
+    border-bottom: 1px solid #2d3139;
+}
+
+.projects-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.projects-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.badge-status {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    display: inline-block;
+}
+
+.badge-ativo {
+    background: rgba(13, 110, 253, 0.2);
+    color: #0d6efd;
+}
+
+.badge-concluido {
+    background: rgba(25, 135, 84, 0.2);
+    color: #198754;
+}
+
+.badge-espera {
+    background: rgba(255, 193, 7, 0.2);
+    color: #ffc107;
+}
+
+.badge-atrasado {
+    background: rgba(220, 53, 69, 0.2);
+    color: #dc3545;
+}
+
+.progress {
+    background: #2d3139;
+    border-radius: 4px;
+}
+</style>
+
+<script>
 function editProject(projectId) {
-    currentProjectId = projectId;
     const modal = new bootstrap.Modal(document.getElementById('editProjectModal'));
     const content = document.getElementById('editProjectContent');
     const form = document.getElementById('editProjectForm');
@@ -386,7 +411,7 @@ function editProject(projectId) {
     form.action = `/projects/${projectId}/edit`;
     
     content.innerHTML = `
-        <div class="text-center">
+        <div class="text-center py-4">
             <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">Carregando...</span>
             </div>
@@ -422,14 +447,15 @@ function editProject(projectId) {
 
 function buildEditProjectHTML(project, clients, users) {
     const teamMemberIds = project.team_members ? project.team_members.map(m => m.id) : [];
+    const prazoFormatted = project.prazo ? project.prazo : '';
     
     return `
-        <div class="row">
-            <div class="col-md-6 mb-3">
+        <div class="row mb-3">
+            <div class="col-md-6">
                 <label class="form-label">Nome do Projeto</label>
                 <input type="text" class="form-control bg-dark text-light border-secondary" name="nome" value="${escapeHtml(project.nome || '')}" required>
             </div>
-            <div class="col-md-6 mb-3">
+            <div class="col-md-6">
                 <label class="form-label">Cliente</label>
                 <select class="form-select bg-dark text-light border-secondary" name="client_id" required>
                     ${clients.map(client => 
@@ -439,16 +465,16 @@ function buildEditProjectHTML(project, clients, users) {
             </div>
         </div>
         
-        <div class="row">
-            <div class="col-md-4 mb-3">
-                <label class="form-label">Usuário Responsável</label>
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <label class="form-label">Responsável</label>
                 <select class="form-select bg-dark text-light border-secondary" name="responsible_id" required>
                     ${users.map(user => 
                         `<option value="${user.id}" ${user.id === project.responsible_id ? 'selected' : ''}>${escapeHtml(user.full_name)}</option>`
                     ).join('')}
                 </select>
             </div>
-            <div class="col-md-4 mb-3">
+            <div class="col-md-4">
                 <label class="form-label">Status</label>
                 <select class="form-select bg-dark text-light border-secondary" name="status" required>
                     <option value="em_andamento" ${project.status === 'em_andamento' ? 'selected' : ''}>Em Andamento</option>
@@ -457,60 +483,24 @@ function buildEditProjectHTML(project, clients, users) {
                     <option value="concluido" ${project.status === 'concluido' ? 'selected' : ''}>Concluído</option>
                 </select>
             </div>
-            <div class="col-md-4 mb-3">
-                <label class="form-label">Membros da Equipe</label>
-                <select class="form-select bg-dark text-light border-secondary" name="team_member_ids" multiple size="5" style="height: auto;">
+            <div class="col-md-4">
+                <label class="form-label">Equipe</label>
+                <select class="form-select bg-dark text-light border-secondary" name="team_member_ids" multiple size="3">
                     ${users.map(user => 
                         `<option value="${user.id}" ${teamMemberIds.includes(user.id) ? 'selected' : ''}>${escapeHtml(user.full_name)}</option>`
                     ).join('')}
                 </select>
-                <small class="form-text text-muted">Segure Ctrl/Cmd para selecionar múltiplos</small>
             </div>
         </div>
         
-        <h6 class="mt-4 mb-3 text-primary">Detalhes do Projeto</h6>
-        
-        <div class="row">
-            <div class="col-md-6 mb-3">
-                <label class="form-label">Descrição Resumida</label>
-                <textarea class="form-control bg-dark text-light border-secondary" name="descricao_resumida" rows="3">${escapeHtml(project.descricao_resumida || '')}</textarea>
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="form-label">Prazo</label>
+                <input type="date" class="form-control bg-dark text-light border-secondary" name="prazo" value="${prazoFormatted}">
             </div>
-            <div class="col-md-6 mb-3">
-                <label class="form-label">Problema/Oportunidade</label>
-                <textarea class="form-control bg-dark text-light border-secondary" name="problema_oportunidade" rows="3">${escapeHtml(project.problema_oportunidade || '')}</textarea>
-            </div>
-        </div>
-        
-        <div class="row">
-            <div class="col-md-6 mb-3">
-                <label class="form-label">Objetivos</label>
-                <textarea class="form-control bg-dark text-light border-secondary" name="objetivos" rows="3">${escapeHtml(project.objetivos || '')}</textarea>
-            </div>
-            <div class="col-md-6 mb-3">
-                <label class="form-label">Alinhamento Estratégico</label>
-                <textarea class="form-control bg-dark text-light border-secondary" name="alinhamento_estrategico" rows="3">${escapeHtml(project.alinhamento_estrategico || '')}</textarea>
-            </div>
-        </div>
-        
-        <div class="row">
-            <div class="col-md-6 mb-3">
-                <label class="form-label">Escopo do Projeto</label>
-                <textarea class="form-control bg-dark text-light border-secondary" name="escopo_projeto" rows="4">${escapeHtml(project.escopo_projeto || '')}</textarea>
-            </div>
-            <div class="col-md-6 mb-3">
-                <label class="form-label">Fora do Escopo</label>
-                <textarea class="form-control bg-dark text-light border-secondary" name="fora_escopo" rows="4">${escapeHtml(project.fora_escopo || '')}</textarea>
-            </div>
-        </div>
-        
-        <div class="row">
-            <div class="col-md-6 mb-3">
-                <label class="form-label">Premissas</label>
-                <textarea class="form-control bg-dark text-light border-secondary" name="premissas" rows="3">${escapeHtml(project.premissas || '')}</textarea>
-            </div>
-            <div class="col-md-6 mb-3">
-                <label class="form-label">Restrições</label>
-                <textarea class="form-control bg-dark text-light border-secondary" name="restricoes" rows="3">${escapeHtml(project.restricoes || '')}</textarea>
+            <div class="col-md-6">
+                <label class="form-label">Progresso (%)</label>
+                <input type="number" class="form-control bg-dark text-light border-secondary" name="progress_percent" value="${project.progress_percent || 0}" min="0" max="100">
             </div>
         </div>
     `;

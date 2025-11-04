@@ -63,6 +63,8 @@ class Project(db.Model):
     transcricao = db.Column(db.Text)
     status = db.Column(db.String(20), default='em_andamento', nullable=False)  # em_andamento, pausado, cancelado, concluido
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    progress_percent = db.Column(db.Integer, default=0)  # Progresso do projeto em percentagem (0-100)
+    prazo = db.Column(db.Date)  # Data de prazo do projeto
     
     # Foreign keys
     client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)

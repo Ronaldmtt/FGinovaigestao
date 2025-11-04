@@ -1,198 +1,203 @@
 {% extends "base.html" %}
 
-{% block title %}Gerenciar Projetos - Sistema de Gerenciamento de Projetos{% endblock %}
+{% block title %}Projetos - Sistema de Gerenciamento de Projetos{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center">
-            <h2><i class="fas fa-project-diagram me-2"></i>Gerenciar Projetos</h2>
-            <div>
-                <button type="button" class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#manualProjectModal">
-                    <i class="fas fa-plus me-1"></i>Projeto Manual
-                </button>
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newProjectModal">
-                    <i class="fas fa-magic me-1"></i>Projeto com IA
-                </button>
-            </div>
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0"><i class="fas fa-project-diagram me-2"></i>Gerenciar Projetos</h2>
+        <div>
+            <button type="button" class="btn btn-outline-light me-2" data-bs-toggle="modal" data-bs-target="#manualProjectModal">
+                <i class="fas fa-plus me-1"></i>Projeto Manual
+            </button>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newProjectModal">
+                <i class="fas fa-magic me-1"></i>Projeto com IA
+            </button>
         </div>
     </div>
-</div>
 
-<!-- Filtros -->
-<div class="row mt-3">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-body">
-                <form method="GET" class="row g-3 align-items-end">
-                    <div class="col-md-4">
-                        <label class="form-label">Filtrar por Cliente</label>
-                        <select name="client_id" class="form-select">
-                            <option value="">Todos os clientes</option>
-                            {% for client in clients %}
-                            <option value="{{ client.id }}" {% if current_filters.client_id == client.id %}selected{% endif %}>
-                                {{ client.nome }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <div class="col-md-3">
-                        <label class="form-label">Filtrar por Responsável</label>
-                        <select name="responsible_id" class="form-select">
-                            <option value="">Todos</option>
-                            {% for user in users %}
-                            <option value="{{ user.id }}" {% if current_filters.responsible_id == user.id %}selected{% endif %}>
-                                {{ user.full_name }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <div class="col-md-3">
-                        <label class="form-label">Status</label>
-                        <select name="status" class="form-select">
-                            <option value="">Todos</option>
-                            <option value="em_andamento" {% if current_filters.status == 'em_andamento' %}selected{% endif %}>Em Andamento</option>
-                            <option value="pausado" {% if current_filters.status == 'pausado' %}selected{% endif %}>Pausado</option>
-                            <option value="cancelado" {% if current_filters.status == 'cancelado' %}selected{% endif %}>Cancelado</option>
-                            <option value="concluido" {% if current_filters.status == 'concluido' %}selected{% endif %}>Concluído</option>
-                        </select>
-                    </div>
-                    
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-filter me-1"></i>Filtrar
-                        </button>
-                    </div>
-                    
-                    <div class="col-md-12 mt-2">
-                        <a href="{{ url_for('projects') }}" class="btn btn-outline-secondary">
-                            <i class="fas fa-times me-1"></i>Limpar Filtros
-                        </a>
-                    </div>
-                </form>
+    <!-- Filtros -->
+    <div class="card bg-dark border-secondary mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">Filtrar por Cliente</label>
+                    <select name="client_id" class="form-select bg-dark text-light border-secondary">
+                        <option value="">Todos os clientes</option>
+                        {% for client in clients %}
+                        <option value="{{ client.id }}" {% if current_filters.client_id == client.id %}selected{% endif %}>
+                            {{ client.nome }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">Filtrar por Responsável</label>
+                    <select name="responsible_id" class="form-select bg-dark text-light border-secondary">
+                        <option value="">Todos</option>
+                        {% for user in users %}
+                        <option value="{{ user.id }}" {% if current_filters.responsible_id == user.id %}selected{% endif %}>
+                            {{ user.full_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">Status</label>
+                    <select name="status" class="form-select bg-dark text-light border-secondary">
+                        <option value="">Todos</option>
+                        <option value="em_andamento" {% if current_filters.status == 'em_andamento' %}selected{% endif %}>Em Andamento</option>
+                        <option value="pausado" {% if current_filters.status == 'pausado' %}selected{% endif %}>Pausado</option>
+                        <option value="cancelado" {% if current_filters.status == 'cancelado' %}selected{% endif %}>Cancelado</option>
+                        <option value="concluido" {% if current_filters.status == 'concluido' %}selected{% endif %}>Concluído</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-filter me-1"></i>Filtrar
+                    </button>
+                </div>
+            </form>
+            
+            {% if current_filters.client_id or current_filters.responsible_id or current_filters.status %}
+            <div class="mt-3">
+                <a href="{{ url_for('projects') }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-times me-1"></i>Limpar Filtros
+                </a>
             </div>
+            {% endif %}
         </div>
     </div>
-</div>
 
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Nome do Projeto</th>
-                                <th>Cliente</th>
-                                <th>Responsável</th>
-                                <th>Status</th>
-                                <th>Equipe</th>
-                                <th>Data</th>
-                                <th>Tarefas</th>
-                                <th>Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for project in projects %}
-                            <tr>
-                                <td>
-                                    <a href="{{ url_for('project_detail', id=project.id) }}" class="text-decoration-none">
-                                        {{ project.nome }}
-                                    </a>
-                                </td>
-                                <td>{{ project.client.nome }}</td>
-                                <td>{{ project.responsible.full_name }}</td>
-                                <td>
-                                    {% if project.status == 'em_andamento' %}
-                                        <span class="badge bg-primary">Em Andamento</span>
-                                    {% elif project.status == 'pausado' %}
-                                        <span class="badge bg-warning">Pausado</span>
-                                    {% elif project.status == 'cancelado' %}
-                                        <span class="badge bg-danger">Cancelado</span>
-                                    {% elif project.status == 'concluido' %}
-                                        <span class="badge bg-success">Concluído</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary">{{ project.status }}</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <span class="badge bg-secondary">{{ project.team_members|length }} membros</span>
-                                </td>
-                                <td>{{ project.created_at.strftime('%d/%m/%Y') }}</td>
-                                <td>
-                                    <span class="badge bg-info">{{ project.tasks|length }}</span>
-                                </td>
-                                <td>
-                                    <a href="{{ url_for('project_detail', id=project.id) }}" class="btn btn-sm btn-outline-primary me-1" title="Ver detalhes">
+    <!-- Tabela de Projetos -->
+    <div class="card bg-dark border-secondary">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover mb-0">
+                    <thead>
+                        <tr class="border-secondary">
+                            <th class="border-0 py-3 ps-4">Nome do Projeto</th>
+                            <th class="border-0 py-3">Cliente</th>
+                            <th class="border-0 py-3">Responsável</th>
+                            <th class="border-0 py-3">Status</th>
+                            <th class="border-0 py-3">Equipe</th>
+                            <th class="border-0 py-3">Data</th>
+                            <th class="border-0 py-3">Tarefas</th>
+                            <th class="border-0 py-3 pe-4">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if projects %}
+                        {% for project in projects %}
+                        <tr class="border-secondary">
+                            <td class="ps-4">
+                                <a href="{{ url_for('project_detail', id=project.id) }}" class="text-decoration-none text-primary fw-bold">
+                                    {{ project.nome }}
+                                </a>
+                            </td>
+                            <td class="text-light">{{ project.client.nome }}</td>
+                            <td class="text-light">{{ project.responsible.full_name }}</td>
+                            <td>
+                                {% if project.status == 'em_andamento' %}
+                                    <span class="badge bg-primary">Em Andamento</span>
+                                {% elif project.status == 'pausado' %}
+                                    <span class="badge bg-warning text-dark">Pausado</span>
+                                {% elif project.status == 'cancelado' %}
+                                    <span class="badge bg-danger">Cancelado</span>
+                                {% elif project.status == 'concluido' %}
+                                    <span class="badge bg-success">Concluído</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ project.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-info text-dark">{{ project.team_members|length }}</span>
+                            </td>
+                            <td class="text-muted">{{ project.created_at.strftime('%d/%m/%Y') }}</td>
+                            <td>
+                                <span class="badge bg-secondary">{{ project.tasks|length }}</span>
+                            </td>
+                            <td class="pe-4">
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('project_detail', id=project.id) }}" class="btn btn-sm btn-outline-primary" title="Ver detalhes">
                                         <i class="fas fa-eye"></i>
                                     </a>
                                     {% if current_user.is_admin or current_user.id == project.responsible_id %}
-                                    <button type="button" class="btn btn-sm btn-outline-info me-1" onclick="editProject({{ project.id }})" title="Editar projeto">
+                                    <button type="button" class="btn btn-sm btn-outline-info" onclick="editProject({{ project.id }})" title="Editar projeto">
                                         <i class="fas fa-edit"></i>
                                     </button>
                                     <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ project.id }}" title="Deletar projeto">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                     {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                
-                <!-- Modais de confirmação de exclusão -->
-                {% for project in projects %}
-                {% if current_user.is_admin or current_user.id == project.responsible_id %}
-                <div class="modal fade" id="deleteModal{{ project.id }}" tabindex="-1">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Confirmar Exclusão</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body">
-                                <p>Tem certeza que deseja deletar o projeto <strong>"{{ project.nome }}"</strong>?</p>
-                                <p class="text-warning"><i class="fas fa-exclamation-triangle me-2"></i>Esta ação não pode ser desfeita e todas as tarefas do projeto também serão deletadas.</p>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                <form method="POST" action="{{ url_for('delete_project', id=project.id) }}" style="display: inline;">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}"/>
-                                    <button type="submit" class="btn btn-danger">Deletar Projeto</button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
-                {% endfor %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <i class="fas fa-folder-open fa-3x mb-3 d-block"></i>
+                                <p class="mb-0">Nenhum projeto encontrado</p>
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Modais de confirmação de exclusão -->
+{% for project in projects %}
+{% if current_user.is_admin or current_user.id == project.responsible_id %}
+<div class="modal fade" id="deleteModal{{ project.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja deletar o projeto <strong>"{{ project.nome }}"</strong>?</p>
+                <p class="text-warning"><i class="fas fa-exclamation-triangle me-2"></i>Esta ação não pode ser desfeita e todas as tarefas do projeto também serão deletadas.</p>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="POST" action="{{ url_for('delete_project', id=project.id) }}" style="display: inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}"/>
+                    <button type="submit" class="btn btn-danger">Deletar Projeto</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+
 <!-- Modal para projeto manual -->
 <div class="modal fade" id="manualProjectModal" tabindex="-1">
     <div class="modal-dialog modal-xl">
-        <div class="modal-content">
+        <div class="modal-content bg-dark text-light">
             <form method="POST" action="{{ url_for('new_manual_project') }}">
-                <div class="modal-header">
+                <div class="modal-header border-secondary">
                     <h5 class="modal-title">Criar Projeto Manual</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Nome do Projeto</label>
-                            <input type="text" class="form-control" name="nome" required>
+                            <input type="text" class="form-control bg-dark text-light border-secondary" name="nome" required>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Cliente</label>
-                            <select class="form-select" name="client_id" required>
+                            <select class="form-select bg-dark text-light border-secondary" name="client_id" required>
                                 <option value="">Selecione um cliente</option>
                                 {% for client in clients %}
                                 <option value="{{ client.id }}">{{ client.nome }}</option>
@@ -204,7 +209,7 @@
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Usuário Responsável</label>
-                            <select class="form-select" name="responsible_id" required>
+                            <select class="form-select bg-dark text-light border-secondary" name="responsible_id" required>
                                 <option value="">Selecione um responsável</option>
                                 {% for user in users %}
                                 <option value="{{ user.id }}">{{ user.full_name }}</option>
@@ -213,7 +218,7 @@
                         </div>
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Status</label>
-                            <select class="form-select" name="status" required>
+                            <select class="form-select bg-dark text-light border-secondary" name="status" required>
                                 <option value="em_andamento">Em Andamento</option>
                                 <option value="pausado">Pausado</option>
                                 <option value="cancelado">Cancelado</option>
@@ -222,7 +227,7 @@
                         </div>
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Membros da Equipe</label>
-                            <select class="form-select" name="team_member_ids" multiple size="5" style="height: auto;">
+                            <select class="form-select bg-dark text-light border-secondary" name="team_member_ids" multiple size="5" style="height: auto;">
                                 {% for user in users %}
                                 <option value="{{ user.id }}">{{ user.full_name }}</option>
                                 {% endfor %}
@@ -231,53 +236,53 @@
                         </div>
                     </div>
                     
-                    <h6 class="mt-4 mb-3">Detalhes do Projeto</h6>
+                    <h6 class="mt-4 mb-3 text-primary">Detalhes do Projeto</h6>
                     
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Descrição Resumida</label>
-                            <textarea class="form-control" name="descricao_resumida" rows="3"></textarea>
+                            <textarea class="form-control bg-dark text-light border-secondary" name="descricao_resumida" rows="3"></textarea>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Problema/Oportunidade</label>
-                            <textarea class="form-control" name="problema_oportunidade" rows="3"></textarea>
+                            <textarea class="form-control bg-dark text-light border-secondary" name="problema_oportunidade" rows="3"></textarea>
                         </div>
                     </div>
                     
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Objetivos</label>
-                            <textarea class="form-control" name="objetivos" rows="3"></textarea>
+                            <textarea class="form-control bg-dark text-light border-secondary" name="objetivos" rows="3"></textarea>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Alinhamento Estratégico</label>
-                            <textarea class="form-control" name="alinhamento_estrategico" rows="3"></textarea>
+                            <textarea class="form-control bg-dark text-light border-secondary" name="alinhamento_estrategico" rows="3"></textarea>
                         </div>
                     </div>
                     
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Escopo do Projeto</label>
-                            <textarea class="form-control" name="escopo_projeto" rows="4"></textarea>
+                            <textarea class="form-control bg-dark text-light border-secondary" name="escopo_projeto" rows="4"></textarea>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Fora do Escopo</label>
-                            <textarea class="form-control" name="fora_escopo" rows="4"></textarea>
+                            <textarea class="form-control bg-dark text-light border-secondary" name="fora_escopo" rows="4"></textarea>
                         </div>
                     </div>
                     
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Premissas</label>
-                            <textarea class="form-control" name="premissas" rows="3"></textarea>
+                            <textarea class="form-control bg-dark text-light border-secondary" name="premissas" rows="3"></textarea>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Restrições</label>
-                            <textarea class="form-control" name="restricoes" rows="3"></textarea>
+                            <textarea class="form-control bg-dark text-light border-secondary" name="restricoes" rows="3"></textarea>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer border-secondary">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-primary">Criar Projeto</button>
                 </div>
@@ -289,11 +294,11 @@
 <!-- Modal para novo projeto com IA -->
 <div class="modal fade" id="newProjectModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content">
+        <div class="modal-content bg-dark text-light">
             <form method="POST" action="{{ url_for('new_project') }}">
-                <div class="modal-header">
+                <div class="modal-header border-secondary">
                     <h5 class="modal-title">Criar Projeto com IA</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     {% if form %}
@@ -302,38 +307,38 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             {{ form.nome.label(class="form-label") }}
-                            {{ form.nome(class="form-control") }}
+                            {{ form.nome(class="form-control bg-dark text-light border-secondary") }}
                         </div>
                         <div class="col-md-6 mb-3">
                             {{ form.client_id.label(class="form-label") }}
-                            {{ form.client_id(class="form-select") }}
+                            {{ form.client_id(class="form-select bg-dark text-light border-secondary") }}
                         </div>
                     </div>
                     
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             {{ form.responsible_id.label(class="form-label") }}
-                            {{ form.responsible_id(class="form-select") }}
+                            {{ form.responsible_id(class="form-select bg-dark text-light border-secondary") }}
                         </div>
                         <div class="col-md-4 mb-3">
                             {{ form.status.label(class="form-label") }}
-                            {{ form.status(class="form-select") }}
+                            {{ form.status(class="form-select bg-dark text-light border-secondary") }}
                         </div>
                         <div class="col-md-4 mb-3">
                             {{ form.team_members.label(class="form-label") }}
-                            {{ form.team_members(class="form-select", multiple=True, size=3) }}
+                            {{ form.team_members(class="form-select bg-dark text-light border-secondary", multiple=True, size=3) }}
                             <small class="form-text text-muted">Segure CTRL/Cmd para selecionar múltiplos</small>
                         </div>
                     </div>
                     
                     <div class="mb-3">
                         {{ form.transcricao.label(class="form-label") }}
-                        <small class="form-text text-muted">A IA processará esta transcrição para preencher automaticamente os campos do projeto</small>
-                        {{ form.transcricao(class="form-control") }}
+                        <small class="form-text text-muted d-block mb-2">A IA processará esta transcrição para preencher automaticamente os campos do projeto</small>
+                        {{ form.transcricao(class="form-control bg-dark text-light border-secondary") }}
                     </div>
                     {% endif %}
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer border-secondary">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-primary">Criar Projeto com IA</button>
                 </div>
@@ -345,11 +350,11 @@
 <!-- Modal para editar projeto -->
 <div class="modal fade" id="editProjectModal" tabindex="-1">
     <div class="modal-dialog modal-xl">
-        <div class="modal-content">
+        <div class="modal-content bg-dark text-light">
             <form id="editProjectForm" method="POST">
-                <div class="modal-header">
+                <div class="modal-header border-secondary">
                     <h5 class="modal-title">Editar Projeto</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div id="editProjectContent">
@@ -360,7 +365,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer border-secondary">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-primary">Salvar Alterações</button>
                 </div>
@@ -378,10 +383,8 @@ function editProject(projectId) {
     const content = document.getElementById('editProjectContent');
     const form = document.getElementById('editProjectForm');
     
-    // Definir action do formulário
     form.action = `/projects/${projectId}/edit`;
     
-    // Mostrar loading
     content.innerHTML = `
         <div class="text-center">
             <div class="spinner-border text-primary" role="status">
@@ -392,7 +395,6 @@ function editProject(projectId) {
     
     modal.show();
     
-    // Buscar dados do projeto
     fetch(`/projects/${projectId}/data`)
         .then(response => response.json())
         .then(data => {
@@ -419,17 +421,19 @@ function editProject(projectId) {
 }
 
 function buildEditProjectHTML(project, clients, users) {
+    const teamMemberIds = project.team_members ? project.team_members.map(m => m.id) : [];
+    
     return `
         <div class="row">
             <div class="col-md-6 mb-3">
                 <label class="form-label">Nome do Projeto</label>
-                <input type="text" class="form-control" name="nome" value="${project.nome || ''}" required>
+                <input type="text" class="form-control bg-dark text-light border-secondary" name="nome" value="${escapeHtml(project.nome || '')}" required>
             </div>
             <div class="col-md-6 mb-3">
                 <label class="form-label">Cliente</label>
-                <select class="form-select" name="client_id" required>
+                <select class="form-select bg-dark text-light border-secondary" name="client_id" required>
                     ${clients.map(client => 
-                        `<option value="${client.id}" ${client.id === project.client_id ? 'selected' : ''}>${client.nome}</option>`
+                        `<option value="${client.id}" ${client.id === project.client_id ? 'selected' : ''}>${escapeHtml(client.nome)}</option>`
                     ).join('')}
                 </select>
             </div>
@@ -438,15 +442,15 @@ function buildEditProjectHTML(project, clients, users) {
         <div class="row">
             <div class="col-md-4 mb-3">
                 <label class="form-label">Usuário Responsável</label>
-                <select class="form-select" name="responsible_id" required>
+                <select class="form-select bg-dark text-light border-secondary" name="responsible_id" required>
                     ${users.map(user => 
-                        `<option value="${user.id}" ${user.id === project.responsible_id ? 'selected' : ''}>${user.full_name}</option>`
+                        `<option value="${user.id}" ${user.id === project.responsible_id ? 'selected' : ''}>${escapeHtml(user.full_name)}</option>`
                     ).join('')}
                 </select>
             </div>
             <div class="col-md-4 mb-3">
                 <label class="form-label">Status</label>
-                <select class="form-select" name="status" required>
+                <select class="form-select bg-dark text-light border-secondary" name="status" required>
                     <option value="em_andamento" ${project.status === 'em_andamento' ? 'selected' : ''}>Em Andamento</option>
                     <option value="pausado" ${project.status === 'pausado' ? 'selected' : ''}>Pausado</option>
                     <option value="cancelado" ${project.status === 'cancelado' ? 'selected' : ''}>Cancelado</option>
@@ -455,61 +459,67 @@ function buildEditProjectHTML(project, clients, users) {
             </div>
             <div class="col-md-4 mb-3">
                 <label class="form-label">Membros da Equipe</label>
-                <select class="form-select" name="team_member_ids" multiple size="5" style="height: auto;">
+                <select class="form-select bg-dark text-light border-secondary" name="team_member_ids" multiple size="5" style="height: auto;">
                     ${users.map(user => 
-                        `<option value="${user.id}" ${project.team_members && project.team_members.some(m => m.id === user.id) ? 'selected' : ''}>${user.full_name}</option>`
+                        `<option value="${user.id}" ${teamMemberIds.includes(user.id) ? 'selected' : ''}>${escapeHtml(user.full_name)}</option>`
                     ).join('')}
                 </select>
                 <small class="form-text text-muted">Segure Ctrl/Cmd para selecionar múltiplos</small>
             </div>
         </div>
         
-        <h6 class="mt-4 mb-3">Detalhes do Projeto</h6>
+        <h6 class="mt-4 mb-3 text-primary">Detalhes do Projeto</h6>
         
         <div class="row">
             <div class="col-md-6 mb-3">
                 <label class="form-label">Descrição Resumida</label>
-                <textarea class="form-control" name="descricao_resumida" rows="3">${project.descricao_resumida || ''}</textarea>
+                <textarea class="form-control bg-dark text-light border-secondary" name="descricao_resumida" rows="3">${escapeHtml(project.descricao_resumida || '')}</textarea>
             </div>
             <div class="col-md-6 mb-3">
                 <label class="form-label">Problema/Oportunidade</label>
-                <textarea class="form-control" name="problema_oportunidade" rows="3">${project.problema_oportunidade || ''}</textarea>
+                <textarea class="form-control bg-dark text-light border-secondary" name="problema_oportunidade" rows="3">${escapeHtml(project.problema_oportunidade || '')}</textarea>
             </div>
         </div>
         
         <div class="row">
             <div class="col-md-6 mb-3">
                 <label class="form-label">Objetivos</label>
-                <textarea class="form-control" name="objetivos" rows="3">${project.objetivos || ''}</textarea>
+                <textarea class="form-control bg-dark text-light border-secondary" name="objetivos" rows="3">${escapeHtml(project.objetivos || '')}</textarea>
             </div>
             <div class="col-md-6 mb-3">
                 <label class="form-label">Alinhamento Estratégico</label>
-                <textarea class="form-control" name="alinhamento_estrategico" rows="3">${project.alinhamento_estrategico || ''}</textarea>
+                <textarea class="form-control bg-dark text-light border-secondary" name="alinhamento_estrategico" rows="3">${escapeHtml(project.alinhamento_estrategico || '')}</textarea>
             </div>
         </div>
         
         <div class="row">
             <div class="col-md-6 mb-3">
                 <label class="form-label">Escopo do Projeto</label>
-                <textarea class="form-control" name="escopo_projeto" rows="4">${project.escopo_projeto || ''}</textarea>
+                <textarea class="form-control bg-dark text-light border-secondary" name="escopo_projeto" rows="4">${escapeHtml(project.escopo_projeto || '')}</textarea>
             </div>
             <div class="col-md-6 mb-3">
                 <label class="form-label">Fora do Escopo</label>
-                <textarea class="form-control" name="fora_escopo" rows="4">${project.fora_escopo || ''}</textarea>
+                <textarea class="form-control bg-dark text-light border-secondary" name="fora_escopo" rows="4">${escapeHtml(project.fora_escopo || '')}</textarea>
             </div>
         </div>
         
         <div class="row">
             <div class="col-md-6 mb-3">
                 <label class="form-label">Premissas</label>
-                <textarea class="form-control" name="premissas" rows="3">${project.premissas || ''}</textarea>
+                <textarea class="form-control bg-dark text-light border-secondary" name="premissas" rows="3">${escapeHtml(project.premissas || '')}</textarea>
             </div>
             <div class="col-md-6 mb-3">
                 <label class="form-label">Restrições</label>
-                <textarea class="form-control" name="restricoes" rows="3">${project.restricoes || ''}</textarea>
+                <textarea class="form-control bg-dark text-light border-secondary" name="restricoes" rows="3">${escapeHtml(project.restricoes || '')}</textarea>
             </div>
         </div>
     `;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 </script>
 {% endblock %}

@@ -153,8 +153,24 @@ def dashboard():
                     'time': client.created_at
                 })
     
-    # Ordenar atividades por data
+    # Ordenar atividades por data e calcular tempo relativo
     recent_activities = sorted(recent_activities, key=lambda x: x['time'], reverse=True)[:10]
+    
+    # Calcular tempo relativo para cada atividade
+    now = datetime.utcnow()
+    for activity in recent_activities:
+        if activity['time']:
+            delta = (now - activity['time']).total_seconds()
+            if delta < 60:
+                activity['time_ago'] = 'Agora mesmo'
+            elif delta < 3600:
+                activity['time_ago'] = f'{int(delta / 60)} minutos atrás'
+            elif delta < 86400:
+                activity['time_ago'] = f'{int(delta / 3600)} horas atrás'
+            else:
+                activity['time_ago'] = f'{int(delta / 86400)} dias atrás'
+        else:
+            activity['time_ago'] = ''
     
     return render_template('dashboard.html', stats=stats, recent_activities=recent_activities)
 

@@ -181,19 +181,7 @@
                                 <h6 class="mb-1">{{ activity.title }}</h6>
                                 <p class="text-muted small mb-1">{{ activity.description }}</p>
                                 <small class="text-muted">
-                                    <i class="fas fa-clock me-1"></i>
-                                    {% if activity.time %}
-                                        {% set delta = (now() - activity.time).total_seconds() %}
-                                        {% if delta < 60 %}
-                                            Agora mesmo
-                                        {% elif delta < 3600 %}
-                                            {{ (delta / 60) | int }} minutos atrás
-                                        {% elif delta < 86400 %}
-                                            {{ (delta / 3600) | int }} horas atrás
-                                        {% else %}
-                                            {{ (delta / 86400) | int }} dias atrás
-                                        {% endif %}
-                                    {% endif %}
+                                    <i class="fas fa-clock me-1"></i>{{ activity.time_ago }}
                                 </small>
                             </div>
                         </div>

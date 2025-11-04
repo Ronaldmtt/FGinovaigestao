@@ -408,15 +408,25 @@ def projects():
     responsible_filter = request.args.get('responsible_id', type=int)
     status_filter = request.args.get('status')
     
-    # Query base
+    # Query base para contar todos os projetos (independente de filtros)
     if current_user.is_admin:
-        query = Project.query
+        base_query = Project.query
     else:
-        # Usuários veem apenas projetos que criaram ou são responsáveis ou fazem parte da equipe
-        query = Project.query.filter(
+        base_query = Project.query.filter(
             (Project.responsible_id == current_user.id) |
             (Project.team_members.contains(current_user))
         ).distinct()
+    
+    # Contadores de status para os pills
+    status_counts = {
+        'todos': base_query.count(),
+        'em_andamento': base_query.filter_by(status='em_andamento').count(),
+        'concluido': base_query.filter_by(status='concluido').count(),
+        'pausado': base_query.filter_by(status='pausado').count(),
+    }
+    
+    # Query para a listagem (com filtros aplicados)
+    query = base_query
     
     # Aplicar filtros
     if client_filter:
@@ -428,7 +438,8 @@ def projects():
     if status_filter:
         query = query.filter_by(status=status_filter)
     
-    projects = query.order_by(Project.nome).all()
+    # Ordenar por prazo (mais próximo primeiro) e depois por nome
+    projects = query.order_by(Project.prazo.asc().nullslast(), Project.nome).all()
     
     form = ProjectForm()
     clients = Client.query.order_by(Client.nome).all()
@@ -439,6 +450,7 @@ def projects():
                          form=form, 
                          clients=clients,
                          users=users,
+                         status_counts=status_counts,
                          current_filters={
                              'client_id': client_filter,
                              'responsible_id': responsible_filter,
@@ -457,7 +469,9 @@ def new_project():
             client_id=form.client_id.data,
             responsible_id=form.responsible_id.data,
             status=form.status.data,
-            transcricao=form.transcricao.data
+            transcricao=form.transcricao.data,
+            progress_percent=form.progress_percent.data or 0,
+            prazo=form.prazo.data
         )
         
         db.session.add(project)
@@ -538,11 +552,18 @@ def new_manual_project():
     team_member_ids = request.form.getlist('team_member_ids')  # Múltiplos membros
     
     # Criar o projeto
+    progress_percent = request.form.get('progress_percent', 0)
+    prazo_str = request.form.get('prazo')
+    from datetime import datetime as dt
+    prazo = dt.strptime(prazo_str, '%Y-%m-%d').date() if prazo_str else None
+    
     project = Project(
         nome=nome,
         client_id=client_id,
         responsible_id=responsible_id,
         status=status,
+        progress_percent=int(progress_percent) if progress_percent else 0,
+        prazo=prazo,
         contexto_justificativa=request.form.get('descricao_resumida'),
         descricao_resumida=request.form.get('descricao_resumida'),
         problema_oportunidade=request.form.get('problema_oportunidade'),
@@ -597,6 +618,17 @@ def edit_project(id):
     project.client_id = request.form.get('client_id')
     project.responsible_id = request.form.get('responsible_id')
     project.status = request.form.get('status')
+    
+    # Atualizar progresso e prazo
+    progress_percent = request.form.get('progress_percent', 0)
+    project.progress_percent = int(progress_percent) if progress_percent else 0
+    
+    prazo_str = request.form.get('prazo')
+    if prazo_str:
+        from datetime import datetime as dt
+        project.prazo = dt.strptime(prazo_str, '%Y-%m-%d').date()
+    else:
+        project.prazo = None
     
     # Atualizar membros da equipe (limpar e adicionar novos)
     team_member_ids = request.form.getlist('team_member_ids')  # Múltiplos membros

@@ -1,0 +1,210 @@
+Contexto
+Tenho um “Gerenciador de Projetos” com dashboard em tema escuro. Quero redesenhar para um layout claro/minimalista como o mock desejado (sidebar clara, cards brancos, ícones simples, espaçamento confortável). Todo o texto deve permanecer em português.
+
+Objetivo
+Recriar a tela de Dashboard seguindo fielmente o layout abaixo, com componentização, responsividade e estados (vazio, carregando, erro). Entregar em React + Tailwind (preferência) ou HTML/CSS moderninho equivalente. Não precisa conectar backend; use mocks e props.
+
+Requisitos de UI (comparar com as imagens fornecidas)
+1) Estrutura geral (layout)
+
+Sidebar esquerda fixa (72px de largura em mobile colapsada; 280px em desktop) com logo “Gerenciador de Projetos” no topo e a lista de navegação:
+
+Dashboard (ativo)
+
+Projetos
+
+Tarefas
+
+Clientes
+
+Kanban
+
+CRM
+
+Separador
+
+Configurações
+
+Perfil
+
+Sair
+
+Área de conteúdo com container central máx. 1200px, padding-x: 24px (md:32px), padding-top: 24px (md:32px).
+
+2) Header da página
+
+Título: “Olá, Nome do Usuário!” (usar o nome vindo por prop; fallback “Renan Gomes”).
+
+Subtítulo pequeno: “Aqui está um resumo de suas atividades.”
+
+Pílulas de resumo (chips) alinhadas à direita em desktop; em mobile, abaixo do título, quebrando linha:
+
+1 Projeto, 12 Tarefas, 0 Clientes, 3 Pendentes
+
+Estilo chip: borda suave, fundo cinza-claro, texto 13–14px, padding-y: 6px, padding-x: 10px, border-radius: 9999px.
+
+3) Cards de Métricas (primeira fileira – 4 colunas em desktop, 2 em tablet, 1 em mobile)
+
+Cada card é branco, sombra leve, border-radius: 16px, padding: 20px.
+
+Meus Projetos — valor 1 (ícone de pasta simples à esquerda do título).
+
+Minhas Tarefas — valor 12 (ícone de “check”/círculo checado).
+
+Clientes Criados — valor 0 (ícone de usuário/contato).
+
+Tarefas Pendentes — valor 3 (ícone de prancheta/clipboard).
+
+Tipografia:
+
+Título do card: 14px, semibold, cor #64748B.
+
+Valor: 24–28px, bold, cor #0F172A.
+
+4) Seção “Acesso Rápido”
+
+Três cards de ação lado a lado (grid 3 / 1 em mobile, 2 em tablet), com ícone grande, título e hover:
+
+Adicionar Novo Projeto (ícone “+” dentro de círculo).
+
+Criar Tarefa (ícone de documento com check).
+
+Cadastrar Cliente (ícone de usuário com “+”).
+Estilo dos cards:
+
+Fundo branco, borda sutil #E2E8F0, border-radius: 16px, padding: 24px, alinhamento central.
+
+Hover: elevação + borda #A3E635 apenas no foco/hover, transição 150ms.
+
+Acessível via teclado (enter/space aciona).
+
+5) Seção “Atividades Recentes”
+
+Lista em cards-linha (brancos) empilhados:
+
+Cada item tem ícone contextual à esquerda (criação, conclusão, novo cliente, comentário), título do evento, subtítulo com o nome do projeto, e timestamp alinhado à direita (1 hora atrás, 3 horas atrás, Ontem, 2 dias atrás).
+
+Espaçamento interno 16–20px, separador sutil entre itens.
+
+Texto:
+
+Linha 1 (evento): 15–16px, semibold, #0F172A.
+
+Linha 2 (projeto): 13–14px, #64748B.
+
+6) Navegação/estado ativo
+
+O item Dashboard na sidebar deve estar destacado (fundo muito claro + indicador verde à esquerda).
+
+Todos os itens da sidebar têm ícone + label; hover com fundo claro.
+
+Interações & Estados
+
+Loading: skeletons para cards e para 3 linhas de atividades.
+
+Empty state:
+
+Se clientes = 0, manter 0 e não quebrar layout.
+
+Se Atividades Recentes vazias: mostrar ilustração mínima + texto “Sem atividades por aqui ainda”.
+
+Erro: banner discreto acima do conteúdo com ação “Tentar novamente”.
+
+Acessibilidade: contraste AA, foco visível, rótulos aria-* nos botões de ação.
+
+Responsividade
+
+Mobile <640px: sidebar colapsa (hambúrguer no header opcional), grid de métricas 1 por linha, chips abaixo do título.
+
+Tablet 640–1024px: métricas em 2 colunas; Acesso Rápido em 2 colunas.
+
+Desktop ≥1024px: layout conforme descrito.
+
+Cores & Tipografia (tokens)
+
+Fundo app: #F8FAFC
+
+Card: #FFFFFF com border: #E2E8F0, shadow: sm
+
+Texto principal: #0F172A
+
+Texto secundário: #64748B
+
+Ações / realce: Verde #22C55E (primário), #16A34A (hover)
+
+Chips: fundo #EEF2F6, texto #0F172A
+
+Fonte: Inter/system-ui, 14–16px base, 24–28px headings
+
+border-radius: 16px (cards), 9999px (chips), 12px (itens da lista)
+
+Ícones
+
+Usar lucide-react ou ícones equivalentes:
+
+Pasta, Check em círculo, Usuário, Clipboard, Plus, File-Check, User-Plus, Clock/Activity.
+
+Arquitetura de componentes (React)
+
+<DashboardLayout>: recebe user, stats, activities.
+
+<Sidebar>: lista de rotas (prop com label, icon, href, active).
+
+<HeaderWithChips>: título + subtítulo + chips responsivos.
+
+<MetricCard>: título, valor, ícone.
+
+<QuickActionCard>: ícone grande, label, onClick.
+
+<ActivityItem>: ícone, título, subtítulo (projeto), timestamp.
+
+Dados (mock) para visual
+const user = { name: "Renan Gomes" };
+
+const stats = {
+  projetos: 1,
+  tarefas: 12,
+  clientes: 0,
+  pendentes: 3,
+};
+
+const activities = [
+  {
+    type: "create-task",
+    title: "Você criou a tarefa \"Revisar Design do App\".",
+    project: "Mobile App Redesign",
+    timeAgo: "1 hora atrás",
+  },
+  {
+    type: "complete-task",
+    title: "Você completou a tarefa \"Wireframes Iniciais\".",
+    project: "Website Corporativo",
+    timeAgo: "3 horas atrás",
+  },
+  {
+    type: "new-client",
+    title: "Novo cliente \"Tech Solutions Inc.\" foi adicionado.",
+    project: "Adicionado por você",
+    timeAgo: "Ontem",
+  },
+  {
+    type: "comment",
+    title: "Você comentou na tarefa \"Definir Estratégia de MKT\".",
+    project: "“Precisamos alinhar com o time de vendas.”",
+    timeAgo: "2 dias atrás",
+  },
+];
+
+Critérios de Aceitação
+
+Layout e textos idênticos ao mock desejado (chips, 4 métricas, 3 ações, lista de atividades).
+
+Sidebar fixa com item Dashboard ativo; navegação com hover/foco.
+
+Responsividade impecável nos 3 breakpoints (mobile, tablet, desktop).
+
+Estados de loading, vazio, erro implementados.
+
+Acessibilidade AA e navegação por teclado nos cards de ação.
+
+Código organizado por componentes, com Tailwind (ou CSS utilitário equivalente) e sem dependências desnecessárias.

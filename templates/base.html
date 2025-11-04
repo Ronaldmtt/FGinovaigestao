@@ -313,20 +313,9 @@
                 </button>
                 
                 <div class="user-menu">
-                    <div class="dropdown">
-                        <button class="dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-user me-2"></i>{{ current_user.full_name }}
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="{{ url_for('change_password') }}">
-                                <i class="fas fa-key me-2"></i>Alterar Senha
-                            </a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('logout') }}">
-                                <i class="fas fa-sign-out-alt me-2"></i>Sair
-                            </a></li>
-                        </ul>
-                    </div>
+                    <span class="text-muted small">
+                        <i class="fas fa-user me-2"></i>{{ current_user.full_name }}
+                    </span>
                 </div>
             </div>
             

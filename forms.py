@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SelectField, SelectMultipleField, TextAreaField, DateField, BooleanField
-from wtforms.validators import DataRequired, Email, Length, ValidationError, EqualTo, Optional
+from wtforms import StringField, PasswordField, SelectField, SelectMultipleField, TextAreaField, DateField, BooleanField, IntegerField
+from wtforms.validators import DataRequired, Email, Length, ValidationError, EqualTo, Optional, NumberRange
 from wtforms.widgets import TextArea
 from models import User, Client, Project
 from sqlalchemy import func
@@ -68,6 +68,8 @@ class ProjectForm(FlaskForm):
         ('cancelado', 'Cancelado'),
         ('concluido', 'Concluído')
     ], default='em_andamento', validators=[DataRequired()])
+    progress_percent = IntegerField('Progresso (%)', validators=[Optional(), NumberRange(min=0, max=100)], default=0)
+    prazo = DateField('Prazo', validators=[Optional()])
     transcricao = TextAreaField('Transcrição', widget=TextArea(), render_kw={"rows": 10})
     
     def __init__(self, *args, **kwargs):
@@ -109,6 +111,8 @@ class ManualProjectForm(FlaskForm):
         ('cancelado', 'Cancelado'),
         ('concluido', 'Concluído')
     ], default='em_andamento', validators=[DataRequired()])
+    progress_percent = IntegerField('Progresso (%)', validators=[Optional(), NumberRange(min=0, max=100)], default=0)
+    prazo = DateField('Prazo', validators=[Optional()])
     
     # Campos detalhados do projeto
     descricao_resumida = TextAreaField('Descrição Resumida', render_kw={"rows": 3})

@@ -309,10 +309,17 @@
 .task-meta-completed {
     color: #10b981;
 }
+
+/* Override content-wrapper constraints for Kanban */
+#kanban-page .content-wrapper {
+    max-width: 100% !important;
+    padding: 2rem 1.5rem !important;
+}
 </style>
 {% endblock %}
 
 {% block content %}
+<div id="kanban-page">
 <!-- Header -->
 <div class="kanban-header">
     <div class="d-flex justify-content-between align-items-center">
@@ -941,4 +948,5 @@ document.querySelectorAll('.kanban-column').forEach(column => {
     });
 });
 </script>
+</div>
 {% endblock %}

@@ -91,11 +91,6 @@
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end bg-dark border-secondary">
                                     <li>
-                                        <a class="dropdown-item text-light" href="{{ url_for('client_detail', id=client.id) }}">
-                                            <i class="fas fa-eye me-2"></i>Ver detalhes
-                                        </a>
-                                    </li>
-                                    <li>
                                         <button class="dropdown-item text-light" onclick="editClient({{ client.id }})">
                                             <i class="fas fa-edit me-2"></i>Editar
                                         </button>

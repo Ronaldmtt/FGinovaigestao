@@ -24,7 +24,7 @@
     <div class="col-12">
         <form method="GET" class="d-flex align-items-center gap-3 flex-wrap">
             <div style="min-width: 200px;">
-                <select name="project_id" class="form-select bg-dark text-light border-secondary">
+                <select name="project_id" class="form-select kanban-filter-select">
                     <option value="">Filtrar por Projeto</option>
                     {% for project in projects %}
                     <option value="{{ project.id }}" {% if current_filters.project_id == project.id %}selected{% endif %}>
@@ -35,7 +35,7 @@
             </div>
             
             <div style="min-width: 200px;">
-                <select name="client_id" class="form-select bg-dark text-light border-secondary">
+                <select name="client_id" class="form-select kanban-filter-select">
                     <option value="">Filtrar por Cliente</option>
                     {% for client in clients %}
                     <option value="{{ client.id }}" {% if current_filters.client_id == client.id %}selected{% endif %}>
@@ -46,7 +46,7 @@
             </div>
             
             <div style="min-width: 200px;">
-                <select name="user_id" class="form-select bg-dark text-light border-secondary">
+                <select name="user_id" class="form-select kanban-filter-select">
                     <option value="">Filtrar por Usuário</option>
                     {% for user in all_users %}
                     <option value="{{ user.id }}" {% if current_filters.user_id == user.id %}selected{% endif %}>
@@ -79,13 +79,13 @@
 <div class="row mt-4">
     <div class="col-md-4">
         <div class="kanban-column-container">
-            <div class="kanban-column-header" style="background-color: rgba(169, 169, 169, 0.15); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+            <div class="kanban-column-header kanban-header-pendente">
                 <div class="d-flex align-items-center">
                     <div class="kanban-icon-circle" style="background-color: #6c757d; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px;">
                         <i class="fas fa-clock" style="color: white; font-size: 14px;"></i>
                     </div>
                     <h6 class="mb-0 me-2" style="font-weight: 600;">Pendente</h6>
-                    <span class="badge rounded-pill" style="background-color: rgba(108, 117, 125, 0.2); color: inherit; padding: 4px 12px;">{{ task_columns.pendente|length }}</span>
+                    <span class="badge rounded-pill kanban-badge-pendente">{{ task_columns.pendente|length }}</span>
                 </div>
             </div>
             <div class="kanban-column" data-status="pendente" style="min-height: 400px;">
@@ -121,13 +121,13 @@
     
     <div class="col-md-4">
         <div class="kanban-column-container">
-            <div class="kanban-column-header" style="background-color: rgba(101, 84, 192, 0.15); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+            <div class="kanban-column-header kanban-header-andamento">
                 <div class="d-flex align-items-center">
                     <div class="kanban-icon-circle" style="background-color: #6554c0; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px;">
                         <i class="fas fa-play" style="color: white; font-size: 12px;"></i>
                     </div>
                     <h6 class="mb-0 me-2" style="font-weight: 600;">Em Andamento</h6>
-                    <span class="badge rounded-pill" style="background-color: rgba(101, 84, 192, 0.2); color: inherit; padding: 4px 12px;">{{ task_columns.em_andamento|length }}</span>
+                    <span class="badge rounded-pill kanban-badge-andamento">{{ task_columns.em_andamento|length }}</span>
                 </div>
             </div>
             <div class="kanban-column" data-status="em_andamento" style="min-height: 400px;">
@@ -163,13 +163,13 @@
     
     <div class="col-md-4">
         <div class="kanban-column-container">
-            <div class="kanban-column-header" style="background-color: rgba(0, 168, 107, 0.15); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+            <div class="kanban-column-header kanban-header-concluida">
                 <div class="d-flex align-items-center">
                     <div class="kanban-icon-circle" style="background-color: #00a86b; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px;">
                         <i class="fas fa-check" style="color: white; font-size: 14px;"></i>
                     </div>
                     <h6 class="mb-0 me-2" style="font-weight: 600;">Concluída</h6>
-                    <span class="badge rounded-pill" style="background-color: rgba(0, 168, 107, 0.2); color: inherit; padding: 4px 12px;">{{ task_columns.concluida|length }}</span>
+                    <span class="badge rounded-pill kanban-badge-concluida">{{ task_columns.concluida|length }}</span>
                 </div>
             </div>
             <div class="kanban-column" data-status="concluida" style="min-height: 400px;">
@@ -866,30 +866,81 @@ function dispatchFilteredTasks() {
 
 <style>
 /* Estilos customizados para Kanban moderno */
-.task-card-modern {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+.kanban-column-header {
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 16px;
 }
 
-.task-card-modern:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+/* Cabeçalhos das colunas - Tema Escuro */
+[data-theme="dark"] .kanban-header-pendente,
+body:not([data-theme]) .kanban-header-pendente {
+    background-color: rgba(169, 169, 169, 0.15);
+    color: #e2e8f0;
 }
 
-/* Tema escuro */
-[data-theme="dark"] .task-card-modern {
+[data-theme="dark"] .kanban-header-andamento,
+body:not([data-theme]) .kanban-header-andamento {
+    background-color: rgba(101, 84, 192, 0.15);
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .kanban-header-concluida,
+body:not([data-theme]) .kanban-header-concluida {
+    background-color: rgba(0, 168, 107, 0.15);
+    color: #e2e8f0;
+}
+
+/* Cabeçalhos das colunas - Tema Claro */
+[data-theme="light"] .kanban-header-pendente {
+    background-color: rgba(169, 169, 169, 0.1);
+    color: #2d3748;
+}
+
+[data-theme="light"] .kanban-header-andamento {
+    background-color: rgba(101, 84, 192, 0.1);
+    color: #2d3748;
+}
+
+[data-theme="light"] .kanban-header-concluida {
+    background-color: rgba(0, 168, 107, 0.1);
+    color: #2d3748;
+}
+
+/* Badges - Tema Escuro */
+[data-theme="dark"] .kanban-badge-pendente,
+[data-theme="dark"] .kanban-badge-andamento,
+[data-theme="dark"] .kanban-badge-concluida,
+body:not([data-theme]) .kanban-badge-pendente,
+body:not([data-theme]) .kanban-badge-andamento,
+body:not([data-theme]) .kanban-badge-concluida {
+    background-color: rgba(255, 255, 255, 0.15);
+    color: #e2e8f0;
+    padding: 4px 12px;
+}
+
+/* Badges - Tema Claro */
+[data-theme="light"] .kanban-badge-pendente,
+[data-theme="light"] .kanban-badge-andamento,
+[data-theme="light"] .kanban-badge-concluida {
+    background-color: rgba(0, 0, 0, 0.08);
+    color: #2d3748;
+    padding: 4px 12px;
+}
+
+/* Cards - Tema Escuro */
+[data-theme="dark"] .task-card-modern,
+body:not([data-theme]) .task-card-modern {
     background-color: #2d3748;
     border-color: #4a5568;
 }
 
-[data-theme="dark"] .task-card-modern .card-body {
+[data-theme="dark"] .task-card-modern .card-body,
+body:not([data-theme]) .task-card-modern .card-body {
     color: #e2e8f0;
 }
 
-[data-theme="dark"] .kanban-column-header {
-    color: #e2e8f0;
-}
-
-/* Tema claro */
+/* Cards - Tema Claro */
 [data-theme="light"] .task-card-modern {
     background-color: #ffffff;
     border-color: #e2e8f0;
@@ -899,25 +950,48 @@ function dispatchFilteredTasks() {
     color: #2d3748;
 }
 
-[data-theme="light"] .kanban-column-header {
-    color: #2d3748;
-}
-
-/* Ajustes para o corpo do html */
-body:not([data-theme]) .task-card-modern,
-html:not([data-theme]) .task-card-modern {
+/* Filtros - Tema Escuro */
+[data-theme="dark"] .kanban-filter-select,
+body:not([data-theme]) .kanban-filter-select {
     background-color: #2d3748;
+    color: #e2e8f0;
     border-color: #4a5568;
 }
 
-body:not([data-theme]) .task-card-modern .card-body,
-html:not([data-theme]) .task-card-modern .card-body {
+[data-theme="dark"] .kanban-filter-select option,
+body:not([data-theme]) .kanban-filter-select option {
+    background-color: #2d3748;
     color: #e2e8f0;
 }
 
-body:not([data-theme]) .kanban-column-header,
-html:not([data-theme]) .kanban-column-header {
-    color: #e2e8f0;
+/* Filtros - Tema Claro */
+[data-theme="light"] .kanban-filter-select {
+    background-color: #f7fafc;
+    color: #2d3748;
+    border-color: #cbd5e0;
+}
+
+[data-theme="light"] .kanban-filter-select option {
+    background-color: #ffffff;
+    color: #2d3748;
+}
+
+/* Animações e efeitos */
+.task-card-modern {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.task-card-modern:hover {
+    transform: translateY(-2px);
+}
+
+[data-theme="dark"] .task-card-modern:hover,
+body:not([data-theme]) .task-card-modern:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+}
+
+[data-theme="light"] .task-card-modern:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
 }
 
 /* Drag and drop */

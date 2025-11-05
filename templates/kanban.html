@@ -148,25 +148,23 @@
     color: white;
 }
 
-.kanban-board {
-    display: flex !important;
-    flex-direction: row !important;
-    gap: 1.5rem !important;
-    width: 100% !important;
-    align-items: flex-start !important;
+.kanban-board-container {
+    width: 100%;
+    overflow-x: auto;
 }
 
-@media (max-width: 992px) {
-    .kanban-board {
-        flex-direction: column !important;
-    }
+.kanban-board {
+    display: flex;
+    flex-direction: row;
+    gap: 1.5rem;
+    width: 100%;
+    min-width: 900px;
 }
 
 .kanban-column-wrapper {
-    display: flex;
-    flex-direction: column;
     flex: 1;
-    min-width: 0;
+    min-width: 280px;
+    max-width: 400px;
 }
 
 .kanban-column-header {
@@ -401,7 +399,7 @@
 </div>
 
 <!-- Kanban Board -->
-<div class="container-fluid px-0">
+<div class="kanban-board-container">
     <div class="kanban-board">
         <!-- Coluna Pendente -->
         <div class="kanban-column-wrapper">
@@ -527,7 +525,6 @@
             </div>
             {% endfor %}
         </div>
-    </div>
     </div>
 </div>
 

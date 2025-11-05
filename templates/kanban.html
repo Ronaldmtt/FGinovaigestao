@@ -148,26 +148,15 @@
     color: white;
 }
 
-.kanban-board-container {
-    width: 100%;
-    overflow-x: auto;
-}
-
 .kanban-board {
-    display: flex !important;
-    flex-direction: row !important;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     gap: 1.5rem;
-    width: 100%;
-    min-width: 900px;
-    align-items: flex-start !important;
 }
 
 .kanban-column-wrapper {
-    flex: 1 1 0 !important;
-    min-width: 280px;
-    max-width: 400px;
-    display: flex !important;
-    flex-direction: column !important;
+    display: flex;
+    flex-direction: column;
 }
 
 .kanban-column-header {
@@ -310,17 +299,10 @@
 .task-meta-completed {
     color: #10b981;
 }
-
-/* Override content-wrapper constraints for Kanban */
-#kanban-page .content-wrapper {
-    max-width: 100% !important;
-    padding: 2rem 1.5rem !important;
-}
 </style>
 {% endblock %}
 
 {% block content %}
-<div id="kanban-page">
 <!-- Header -->
 <div class="kanban-header">
     <div class="d-flex justify-content-between align-items-center">
@@ -402,132 +384,130 @@
 </div>
 
 <!-- Kanban Board -->
-<div class="kanban-board-container">
-    <div class="kanban-board">
-        <!-- Coluna Pendente -->
-        <div class="kanban-column-wrapper">
-            <div class="kanban-column-header pendente">
-                <div class="column-title">
-                    <i class="fas fa-clock"></i>
-                    Pendente
-                </div>
-                <span class="column-badge">{{ task_columns.pendente|length }}</span>
+<div class="kanban-board">
+    <!-- Coluna Pendente -->
+    <div class="kanban-column-wrapper">
+        <div class="kanban-column-header pendente">
+            <div class="column-title">
+                <i class="fas fa-clock"></i>
+                Pendente
             </div>
-            <div class="kanban-column" data-status="pendente">
-                {% for task in task_columns.pendente %}
-                <div class="task-card {% if task.disparada %}disparada{% endif %}" 
-                     data-task-id="{{ task.id }}" 
-                     draggable="true" 
-                     onclick="editTask({{ task.id }})">
-                    <div class="task-title">{{ task.titulo }}</div>
-                    <div class="task-project">{{ task.project.client.nome }} - {{ task.project.nome }}</div>
-                    <div class="task-meta">
-                        {% if task.assigned_user %}
-                        <div class="task-meta-item task-meta-user">
-                            <i class="fas fa-user"></i>
-                            {{ task.assigned_user.full_name }}
-                        </div>
-                        {% endif %}
-                        {% if task.data_conclusao %}
-                        <div class="task-meta-item task-meta-date">
-                            <i class="fas fa-calendar"></i>
-                            {{ task.data_conclusao.strftime('%d/%m/%Y') }}
-                        </div>
-                        {% endif %}
-                        {% if task.disparada and task.disparada_at %}
-                        <div class="task-meta-item task-meta-dispatched">
-                            <i class="fas fa-paper-plane"></i>
-                            Disparada em {{ task.disparada_at.strftime('%d/%m/%Y %H:%M') }}
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
+            <span class="column-badge">{{ task_columns.pendente|length }}</span>
         </div>
-        
-        <!-- Coluna Em Andamento -->
-        <div class="kanban-column-wrapper">
-            <div class="kanban-column-header em_andamento">
-                <div class="column-title">
-                    <i class="fas fa-play"></i>
-                    Em Andamento
-                </div>
-                <span class="column-badge">{{ task_columns.em_andamento|length }}</span>
-            </div>
-            <div class="kanban-column" data-status="em_andamento">
-                {% for task in task_columns.em_andamento %}
-                <div class="task-card {% if task.disparada %}disparada{% endif %}" 
-                     data-task-id="{{ task.id }}" 
-                     draggable="true" 
-                     onclick="editTask({{ task.id }})">
-                    <div class="task-title">{{ task.titulo }}</div>
-                    <div class="task-project">{{ task.project.client.nome }} - {{ task.project.nome }}</div>
-                    <div class="task-meta">
-                        {% if task.assigned_user %}
-                        <div class="task-meta-item task-meta-user">
-                            <i class="fas fa-user"></i>
-                            {{ task.assigned_user.full_name }}
-                        </div>
-                        {% endif %}
-                        {% if task.data_conclusao %}
-                        <div class="task-meta-item task-meta-date">
-                            <i class="fas fa-calendar"></i>
-                            {{ task.data_conclusao.strftime('%d/%m/%Y') }}
-                        </div>
-                        {% endif %}
-                        {% if task.disparada and task.disparada_at %}
-                        <div class="task-meta-item task-meta-dispatched">
-                            <i class="fas fa-paper-plane"></i>
-                            Disparada em {{ task.disparada_at.strftime('%d/%m/%Y %H:%M') }}
-                        </div>
-                        {% endif %}
+        <div class="kanban-column" data-status="pendente">
+            {% for task in task_columns.pendente %}
+            <div class="task-card {% if task.disparada %}disparada{% endif %}" 
+                 data-task-id="{{ task.id }}" 
+                 draggable="true" 
+                 onclick="editTask({{ task.id }})">
+                <div class="task-title">{{ task.titulo }}</div>
+                <div class="task-project">{{ task.project.client.nome }} - {{ task.project.nome }}</div>
+                <div class="task-meta">
+                    {% if task.assigned_user %}
+                    <div class="task-meta-item task-meta-user">
+                        <i class="fas fa-user"></i>
+                        {{ task.assigned_user.full_name }}
                     </div>
+                    {% endif %}
+                    {% if task.data_conclusao %}
+                    <div class="task-meta-item task-meta-date">
+                        <i class="fas fa-calendar"></i>
+                        {{ task.data_conclusao.strftime('%d/%m/%Y') }}
+                    </div>
+                    {% endif %}
+                    {% if task.disparada and task.disparada_at %}
+                    <div class="task-meta-item task-meta-dispatched">
+                        <i class="fas fa-paper-plane"></i>
+                        Disparada em {{ task.disparada_at.strftime('%d/%m/%Y %H:%M') }}
+                    </div>
+                    {% endif %}
                 </div>
-                {% endfor %}
             </div>
+            {% endfor %}
         </div>
-        
-        <!-- Coluna Concluída -->
-        <div class="kanban-column-wrapper">
-            <div class="kanban-column-header concluida">
-                <div class="column-title">
-                    <i class="fas fa-check-circle"></i>
-                    Concluída
-                </div>
-                <span class="column-badge">{{ task_columns.concluida|length }}</span>
+    </div>
+    
+    <!-- Coluna Em Andamento -->
+    <div class="kanban-column-wrapper">
+        <div class="kanban-column-header em_andamento">
+            <div class="column-title">
+                <i class="fas fa-play"></i>
+                Em Andamento
             </div>
-            <div class="kanban-column" data-status="concluida">
-                {% for task in task_columns.concluida %}
-                <div class="task-card {% if task.disparada %}disparada{% endif %}" 
-                     data-task-id="{{ task.id }}" 
-                     draggable="true" 
-                     onclick="editTask({{ task.id }})">
-                    <div class="task-title">{{ task.titulo }}</div>
-                    <div class="task-project">{{ task.project.client.nome }} - {{ task.project.nome }}</div>
-                    <div class="task-meta">
-                        {% if task.assigned_user %}
-                        <div class="task-meta-item task-meta-user">
-                            <i class="fas fa-user"></i>
-                            {{ task.assigned_user.full_name }}
-                        </div>
-                        {% endif %}
-                        {% if task.completed_at %}
-                        <div class="task-meta-item task-meta-completed">
-                            <i class="fas fa-check"></i>
-                            {{ task.completed_at.strftime('%d/%m/%Y') }}
-                        </div>
-                        {% endif %}
-                        {% if task.disparada and task.disparada_at %}
-                        <div class="task-meta-item task-meta-dispatched">
-                            <i class="fas fa-paper-plane"></i>
-                            Disparada em {{ task.disparada_at.strftime('%d/%m/%Y %H:%M') }}
-                        </div>
-                        {% endif %}
+            <span class="column-badge">{{ task_columns.em_andamento|length }}</span>
+        </div>
+        <div class="kanban-column" data-status="em_andamento">
+            {% for task in task_columns.em_andamento %}
+            <div class="task-card {% if task.disparada %}disparada{% endif %}" 
+                 data-task-id="{{ task.id }}" 
+                 draggable="true" 
+                 onclick="editTask({{ task.id }})">
+                <div class="task-title">{{ task.titulo }}</div>
+                <div class="task-project">{{ task.project.client.nome }} - {{ task.project.nome }}</div>
+                <div class="task-meta">
+                    {% if task.assigned_user %}
+                    <div class="task-meta-item task-meta-user">
+                        <i class="fas fa-user"></i>
+                        {{ task.assigned_user.full_name }}
                     </div>
+                    {% endif %}
+                    {% if task.data_conclusao %}
+                    <div class="task-meta-item task-meta-date">
+                        <i class="fas fa-calendar"></i>
+                        {{ task.data_conclusao.strftime('%d/%m/%Y') }}
+                    </div>
+                    {% endif %}
+                    {% if task.disparada and task.disparada_at %}
+                    <div class="task-meta-item task-meta-dispatched">
+                        <i class="fas fa-paper-plane"></i>
+                        Disparada em {{ task.disparada_at.strftime('%d/%m/%Y %H:%M') }}
+                    </div>
+                    {% endif %}
                 </div>
-                {% endfor %}
             </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Coluna Concluída -->
+    <div class="kanban-column-wrapper">
+        <div class="kanban-column-header concluida">
+            <div class="column-title">
+                <i class="fas fa-check-circle"></i>
+                Concluída
+            </div>
+            <span class="column-badge">{{ task_columns.concluida|length }}</span>
+        </div>
+        <div class="kanban-column" data-status="concluida">
+            {% for task in task_columns.concluida %}
+            <div class="task-card {% if task.disparada %}disparada{% endif %}" 
+                 data-task-id="{{ task.id }}" 
+                 draggable="true" 
+                 onclick="editTask({{ task.id }})">
+                <div class="task-title">{{ task.titulo }}</div>
+                <div class="task-project">{{ task.project.client.nome }} - {{ task.project.nome }}</div>
+                <div class="task-meta">
+                    {% if task.assigned_user %}
+                    <div class="task-meta-item task-meta-user">
+                        <i class="fas fa-user"></i>
+                        {{ task.assigned_user.full_name }}
+                    </div>
+                    {% endif %}
+                    {% if task.completed_at %}
+                    <div class="task-meta-item task-meta-completed">
+                        <i class="fas fa-check"></i>
+                        {{ task.completed_at.strftime('%d/%m/%Y') }}
+                    </div>
+                    {% endif %}
+                    {% if task.disparada and task.disparada_at %}
+                    <div class="task-meta-item task-meta-dispatched">
+                        <i class="fas fa-paper-plane"></i>
+                        Disparada em {{ task.disparada_at.strftime('%d/%m/%Y %H:%M') }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
         </div>
     </div>
 </div>
@@ -611,7 +591,8 @@
                 <h5 class="modal-title">Nova Tarefa</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form id="newTaskKanbanForm">
+            <form method="POST" action="{{ url_for('new_manual_task') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Título da Tarefa</label>
@@ -837,40 +818,6 @@ function deleteTask() {
     });
 }
 
-// Form de nova tarefa
-document.getElementById('newTaskKanbanForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(this);
-    const data = {
-        titulo: formData.get('titulo'),
-        descricao: formData.get('descricao'),
-        project_id: formData.get('project_id'),
-        assigned_user_id: formData.get('assigned_user_id') || null,
-        data_conclusao: formData.get('data_conclusao') || null
-    };
-    
-    fetch('/new_manual_task', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert(data.message || 'Erro ao criar tarefa');
-        }
-    })
-    .catch(error => {
-        console.error('Erro:', error);
-        alert('Erro ao criar tarefa');
-    });
-});
-
 // Form de transcrição
 document.getElementById('transcriptionForm').addEventListener('submit', function(e) {
     e.preventDefault();
@@ -949,5 +896,4 @@ document.querySelectorAll('.kanban-column').forEach(column => {
     });
 });
 </script>
-</div>
 {% endblock %}

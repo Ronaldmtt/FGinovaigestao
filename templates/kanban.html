@@ -795,6 +795,183 @@ function dispatchFilteredTasks() {
         alert('Erro ao enviar emails. Tente novamente.');
     });
 }
+
+// ============================================
+// DRAG AND DROP FUNCTIONALITY
+// ============================================
+
+let draggedElement = null;
+
+// Inicializar drag and drop quando a página carregar
+document.addEventListener('DOMContentLoaded', function() {
+    initializeDragAndDrop();
+});
+
+function initializeDragAndDrop() {
+    const taskCards = document.querySelectorAll('.task-card-modern');
+    const columns = document.querySelectorAll('.kanban-column');
+    
+    // Adicionar event listeners para cada card
+    taskCards.forEach(card => {
+        card.addEventListener('dragstart', handleDragStart);
+        card.addEventListener('dragend', handleDragEnd);
+    });
+    
+    // Adicionar event listeners para cada coluna
+    columns.forEach(column => {
+        column.addEventListener('dragover', handleDragOver);
+        column.addEventListener('drop', handleDrop);
+        column.addEventListener('dragleave', handleDragLeave);
+        column.addEventListener('dragenter', handleDragEnter);
+    });
+}
+
+function handleDragStart(e) {
+    // Verificar se o elemento é válido
+    if (!e.target || !e.target.classList.contains('task-card-modern')) {
+        console.error('Erro: card não é um HTMLElement válido');
+        return;
+    }
+    
+    draggedElement = e.target;
+    e.target.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', e.target.innerHTML);
+    
+    // Prevenir que o onclick seja acionado
+    setTimeout(() => {
+        e.target.style.pointerEvents = 'none';
+    }, 0);
+}
+
+function handleDragEnd(e) {
+    if (!e.target) return;
+    
+    e.target.classList.remove('dragging');
+    e.target.style.pointerEvents = 'auto';
+    
+    // Remover visual de drag-over de todas as colunas
+    document.querySelectorAll('.kanban-column').forEach(column => {
+        column.classList.remove('drag-over');
+    });
+    
+    draggedElement = null;
+}
+
+function handleDragOver(e) {
+    if (e.preventDefault) {
+        e.preventDefault();
+    }
+    e.dataTransfer.dropEffect = 'move';
+    return false;
+}
+
+function handleDragEnter(e) {
+    if (!e.currentTarget.classList.contains('kanban-column')) return;
+    e.currentTarget.classList.add('drag-over');
+}
+
+function handleDragLeave(e) {
+    if (!e.currentTarget.classList.contains('kanban-column')) return;
+    
+    // Verificar se realmente saiu da coluna
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (e.clientX <= rect.left || e.clientX >= rect.right || 
+        e.clientY <= rect.top || e.clientY >= rect.bottom) {
+        e.currentTarget.classList.remove('drag-over');
+    }
+}
+
+function handleDrop(e) {
+    if (e.stopPropagation) {
+        e.stopPropagation();
+    }
+    
+    if (!draggedElement) {
+        console.error('Erro: nenhum elemento sendo arrastado');
+        return false;
+    }
+    
+    const targetColumn = e.currentTarget;
+    targetColumn.classList.remove('drag-over');
+    
+    const newStatus = targetColumn.dataset.status;
+    const taskId = draggedElement.dataset.taskId;
+    const currentStatus = draggedElement.closest('.kanban-column').dataset.status;
+    
+    // Verificar se mudou de coluna
+    if (newStatus === currentStatus) {
+        return false;
+    }
+    
+    // Atualizar visualmente primeiro
+    targetColumn.appendChild(draggedElement);
+    
+    // Atualizar a cor da borda lateral do card
+    draggedElement.style.borderLeftColor = getBorderColorForStatus(newStatus);
+    
+    // Atualizar no backend
+    updateTaskStatus(taskId, newStatus);
+    
+    // Atualizar contadores
+    updateColumnCounters();
+    
+    return false;
+}
+
+function getBorderColorForStatus(status) {
+    const colors = {
+        'pendente': '#6c757d',
+        'em_andamento': '#6554c0',
+        'concluida': '#00a86b'
+    };
+    return colors[status] || '#6c757d';
+}
+
+function updateTaskStatus(taskId, newStatus) {
+    fetch(`/api/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            status: newStatus
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            console.error('Erro ao atualizar status da tarefa:', data.message);
+            alert('Erro ao atualizar status da tarefa. Recarregando a página...');
+            location.reload();
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao atualizar tarefa:', error);
+        alert('Erro ao atualizar tarefa. Recarregando a página...');
+        location.reload();
+    });
+}
+
+function updateColumnCounters() {
+    const columns = document.querySelectorAll('.kanban-column');
+    
+    columns.forEach(column => {
+        const status = column.dataset.status;
+        const count = column.querySelectorAll('.task-card-modern').length;
+        
+        // Encontrar o badge correspondente
+        let badgeClass = '';
+        if (status === 'pendente') badgeClass = 'kanban-badge-pendente';
+        else if (status === 'em_andamento') badgeClass = 'kanban-badge-andamento';
+        else if (status === 'concluida') badgeClass = 'kanban-badge-concluida';
+        
+        const badge = document.querySelector(`.${badgeClass}`);
+        if (badge) {
+            badge.textContent = count;
+        }
+    });
+}
 </script>
 
 <!-- Modal para Nova Tarefa no Kanban -->

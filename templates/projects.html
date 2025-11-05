@@ -342,14 +342,12 @@
 .projects-card {
     background: #1e2228;
     border-radius: 10px;
-    overflow: visible;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 /* Wrapper da tabela */
 .table-wrapper {
-    overflow-x: auto;
-    overflow-y: visible;
+    overflow: visible;
 }
 
 /* Tabela */
@@ -514,7 +512,12 @@
 }
 
 .dropdown .dropdown-menu {
-    z-index: 1050 !important;
+    z-index: 9999 !important;
+}
+
+.projects-table tbody td {
+    position: relative;
+    overflow: visible;
 }
 </style>
 

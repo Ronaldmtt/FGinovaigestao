@@ -3,13 +3,13 @@
 {% block title %}Kanban - Sistema de Gerenciamento de Projetos{% endblock %}
 
 {% block content %}
-<div class="row">
+<div class="row mb-4">
     <div class="col-12">
         <div class="d-flex justify-content-between align-items-center">
             <h2><i class="fas fa-columns me-2"></i>Kanban</h2>
             <div>
-                <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#transcriptionModal">
-                    <i class="fas fa-microphone me-1"></i>Incluir Transcrição
+                <button type="button" class="btn btn-outline-light me-2" data-bs-toggle="modal" data-bs-target="#transcriptionModal">
+                    <i class="fas fa-arrow-down me-1"></i>Incluir Transcrição
                 </button>
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newTaskKanbanModal">
                     <i class="fas fa-plus me-1"></i>Nova Tarefa
@@ -20,121 +20,95 @@
 </div>
 
 <!-- Filtros -->
-<div class="row mt-3">
+<div class="row mb-3">
     <div class="col-12">
-        <div class="card">
-            <div class="card-body">
-                <form method="GET" class="row g-3 align-items-end">
-                    <div class="col-md-3">
-                        <label class="form-label">Filtrar por Projeto</label>
-                        <select name="project_id" class="form-select">
-                            <option value="">Todos os projetos</option>
-                            {% for project in projects %}
-                            <option value="{{ project.id }}" {% if current_filters.project_id == project.id %}selected{% endif %}>
-                                {{ project.client.nome }} - {{ project.nome }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <div class="col-md-3">
-                        <label class="form-label">Filtrar por Cliente</label>
-                        <select name="client_id" class="form-select">
-                            <option value="">Todos os clientes</option>
-                            {% for client in clients %}
-                            <option value="{{ client.id }}" {% if current_filters.client_id == client.id %}selected{% endif %}>
-                                {{ client.nome }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <div class="col-md-3">
-                        <label class="form-label">Filtrar por Usuário</label>
-                        <select name="user_id" class="form-select">
-                            <option value="">Todos os usuários</option>
-                            {% for user in all_users %}
-                            <option value="{{ user.id }}" {% if current_filters.user_id == user.id %}selected{% endif %}>
-                                {{ user.full_name }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <div class="col-md-3">
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-filter me-1"></i>Filtrar
-                        </button>
-                    </div>
-                    
-                    <div class="col-md-12 mt-3">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="my_tasks" value="1" 
-                                       {% if current_filters.my_tasks %}checked{% endif %} id="myTasksCheck">
-                                <label class="form-check-label" for="myTasksCheck">
-                                    Apenas minhas tarefas
-                                </label>
-                            </div>
-                            <div class="d-flex gap-2">
-                                {% if current_user.is_admin %}
-                                <button type="button" class="btn btn-success" onclick="dispatchFilteredTasks()">
-                                    <i class="fas fa-paper-plane me-1"></i>Disparar Tarefas
-                                </button>
-                                {% endif %}
-                                <a href="{{ url_for('kanban') }}" class="btn btn-outline-secondary">
-                                    <i class="fas fa-times me-1"></i>Limpar Filtros
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </form>
+        <form method="GET" class="d-flex align-items-center gap-3 flex-wrap">
+            <div style="min-width: 200px;">
+                <select name="project_id" class="form-select bg-dark text-light border-secondary">
+                    <option value="">Filtrar por Projeto</option>
+                    {% for project in projects %}
+                    <option value="{{ project.id }}" {% if current_filters.project_id == project.id %}selected{% endif %}>
+                        {{ project.client.nome }} - {{ project.nome }}
+                    </option>
+                    {% endfor %}
+                </select>
             </div>
-        </div>
+            
+            <div style="min-width: 200px;">
+                <select name="client_id" class="form-select bg-dark text-light border-secondary">
+                    <option value="">Filtrar por Cliente</option>
+                    {% for client in clients %}
+                    <option value="{{ client.id }}" {% if current_filters.client_id == client.id %}selected{% endif %}>
+                        {{ client.nome }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div style="min-width: 200px;">
+                <select name="user_id" class="form-select bg-dark text-light border-secondary">
+                    <option value="">Filtrar por Usuário</option>
+                    {% for user in all_users %}
+                    <option value="{{ user.id }}" {% if current_filters.user_id == user.id %}selected{% endif %}>
+                        {{ user.full_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="my_tasks" value="1" 
+                       {% if current_filters.my_tasks %}checked{% endif %} id="myTasksCheck">
+                <label class="form-check-label" for="myTasksCheck">
+                    Apenas minhas tarefas
+                </label>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-filter me-1"></i>Filtrar
+            </button>
+            
+            <a href="{{ url_for('kanban') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-times me-1"></i>Limpar Filtros
+            </a>
+        </form>
     </div>
 </div>
 
 <!-- Kanban Board -->
 <div class="row mt-4">
     <div class="col-md-4">
-        <div class="card">
-            <div class="card-header bg-secondary text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-clock me-2"></i>Pendente
-                    <span class="badge bg-light text-dark ms-2">{{ task_columns.pendente|length }}</span>
-                </h5>
+        <div class="kanban-column-container">
+            <div class="kanban-column-header" style="background-color: rgba(169, 169, 169, 0.15); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+                <div class="d-flex align-items-center">
+                    <div class="kanban-icon-circle" style="background-color: #6c757d; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px;">
+                        <i class="fas fa-clock" style="color: white; font-size: 14px;"></i>
+                    </div>
+                    <h6 class="mb-0 me-2" style="font-weight: 600;">Pendente</h6>
+                    <span class="badge rounded-pill" style="background-color: rgba(108, 117, 125, 0.2); color: inherit; padding: 4px 12px;">{{ task_columns.pendente|length }}</span>
+                </div>
             </div>
-            <div class="card-body kanban-column" data-status="pendente" style="min-height: 400px;">
+            <div class="kanban-column" data-status="pendente" style="min-height: 400px;">
                 {% for task in task_columns.pendente %}
-                <div class="task-card card mb-2 {% if task.disparada %}border-danger{% endif %}" data-task-id="{{ task.id }}" draggable="true" onclick="editTask({{ task.id }})" style="cursor: pointer;">
-                    <div class="card-body p-2">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <h6 class="card-title mb-1">
-                                {% if task.disparada %}<i class="fas fa-paper-plane text-danger me-1" title="Tarefa disparada"></i>{% endif %}
-                                {{ task.titulo }}
-                            </h6>
-                            {% if current_user.is_admin %}
-                            <button class="btn btn-sm {% if task.disparada %}btn-danger{% else %}btn-outline-secondary{% endif %}" 
-                                    onclick="event.stopPropagation(); dispatchTask({{ task.id }})" 
-                                    title="{% if task.disparada %}Cancelar disparo{% else %}Disparar tarefa{% endif %}"
-                                    id="dispatch-btn-{{ task.id }}">
-                                <i class="fas fa-paper-plane"></i>
-                            </button>
-                            {% endif %}
-                        </div>
-                        <small class="text-muted d-block">{{ task.project.client.nome }} - {{ task.project.nome }}</small>
+                <div class="task-card-modern card mb-3" data-task-id="{{ task.id }}" draggable="true" onclick="editTask({{ task.id }})" style="cursor: pointer; border-left: 4px solid #6c757d; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <div class="card-body p-3">
+                        <h6 class="card-title mb-2" style="font-weight: 600; font-size: 14px;">
+                            {% if task.disparada %}<i class="fas fa-paper-plane text-danger me-1" title="Tarefa disparada"></i>{% endif %}
+                            {{ task.titulo }}
+                        </h6>
+                        <small class="d-block mb-1" style="color: #6c757d; font-size: 12px;">{{ task.project.client.nome }} - {{ task.project.nome }}</small>
                         {% if task.assigned_user %}
-                        <small class="text-info d-block">
+                        <small class="d-block mb-1" style="color: #0d6efd; font-size: 12px;">
                             <i class="fas fa-user me-1"></i>{{ task.assigned_user.full_name }}
                         </small>
                         {% endif %}
                         {% if task.data_conclusao %}
-                        <small class="text-warning d-block">
+                        <small class="d-block" style="color: #ffc107; font-size: 12px;">
                             <i class="fas fa-calendar me-1"></i>{{ task.data_conclusao.strftime('%d/%m/%Y') }}
                         </small>
                         {% endif %}
                         {% if task.disparada and task.disparada_at %}
-                        <small class="text-danger d-block">
+                        <small class="d-block text-danger" style="font-size: 12px;">
                             <i class="fas fa-paper-plane me-1"></i>Disparada em {{ task.disparada_at.strftime('%d/%m/%Y %H:%M') }}
                         </small>
                         {% endif %}
@@ -146,44 +120,37 @@
     </div>
     
     <div class="col-md-4">
-        <div class="card">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-play me-2"></i>Em Andamento
-                    <span class="badge bg-light text-dark ms-2">{{ task_columns.em_andamento|length }}</span>
-                </h5>
+        <div class="kanban-column-container">
+            <div class="kanban-column-header" style="background-color: rgba(101, 84, 192, 0.15); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+                <div class="d-flex align-items-center">
+                    <div class="kanban-icon-circle" style="background-color: #6554c0; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px;">
+                        <i class="fas fa-play" style="color: white; font-size: 12px;"></i>
+                    </div>
+                    <h6 class="mb-0 me-2" style="font-weight: 600;">Em Andamento</h6>
+                    <span class="badge rounded-pill" style="background-color: rgba(101, 84, 192, 0.2); color: inherit; padding: 4px 12px;">{{ task_columns.em_andamento|length }}</span>
+                </div>
             </div>
-            <div class="card-body kanban-column" data-status="em_andamento" style="min-height: 400px;">
+            <div class="kanban-column" data-status="em_andamento" style="min-height: 400px;">
                 {% for task in task_columns.em_andamento %}
-                <div class="task-card card mb-2 {% if task.disparada %}border-danger{% endif %}" data-task-id="{{ task.id }}" draggable="true" onclick="editTask({{ task.id }})" style="cursor: pointer;">
-                    <div class="card-body p-2">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <h6 class="card-title mb-1">
-                                {% if task.disparada %}<i class="fas fa-paper-plane text-danger me-1" title="Tarefa disparada"></i>{% endif %}
-                                {{ task.titulo }}
-                            </h6>
-                            {% if current_user.is_admin %}
-                            <button class="btn btn-sm {% if task.disparada %}btn-danger{% else %}btn-outline-secondary{% endif %}" 
-                                    onclick="event.stopPropagation(); dispatchTask({{ task.id }})" 
-                                    title="{% if task.disparada %}Cancelar disparo{% else %}Disparar tarefa{% endif %}"
-                                    id="dispatch-btn-{{ task.id }}">
-                                <i class="fas fa-paper-plane"></i>
-                            </button>
-                            {% endif %}
-                        </div>
-                        <small class="text-muted d-block">{{ task.project.client.nome }} - {{ task.project.nome }}</small>
+                <div class="task-card-modern card mb-3" data-task-id="{{ task.id }}" draggable="true" onclick="editTask({{ task.id }})" style="cursor: pointer; border-left: 4px solid #6554c0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <div class="card-body p-3">
+                        <h6 class="card-title mb-2" style="font-weight: 600; font-size: 14px;">
+                            {% if task.disparada %}<i class="fas fa-paper-plane text-danger me-1" title="Tarefa disparada"></i>{% endif %}
+                            {{ task.titulo }}
+                        </h6>
+                        <small class="d-block mb-1" style="color: #6c757d; font-size: 12px;">{{ task.project.client.nome }} - {{ task.project.nome }}</small>
                         {% if task.assigned_user %}
-                        <small class="text-info d-block">
+                        <small class="d-block mb-1" style="color: #0d6efd; font-size: 12px;">
                             <i class="fas fa-user me-1"></i>{{ task.assigned_user.full_name }}
                         </small>
                         {% endif %}
                         {% if task.data_conclusao %}
-                        <small class="text-warning d-block">
+                        <small class="d-block" style="color: #ffc107; font-size: 12px;">
                             <i class="fas fa-calendar me-1"></i>{{ task.data_conclusao.strftime('%d/%m/%Y') }}
                         </small>
                         {% endif %}
                         {% if task.disparada and task.disparada_at %}
-                        <small class="text-danger d-block">
+                        <small class="d-block text-danger" style="font-size: 12px;">
                             <i class="fas fa-paper-plane me-1"></i>Disparada em {{ task.disparada_at.strftime('%d/%m/%Y %H:%M') }}
                         </small>
                         {% endif %}
@@ -195,44 +162,37 @@
     </div>
     
     <div class="col-md-4">
-        <div class="card">
-            <div class="card-header bg-success text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-check me-2"></i>Concluída
-                    <span class="badge bg-light text-dark ms-2">{{ task_columns.concluida|length }}</span>
-                </h5>
+        <div class="kanban-column-container">
+            <div class="kanban-column-header" style="background-color: rgba(0, 168, 107, 0.15); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+                <div class="d-flex align-items-center">
+                    <div class="kanban-icon-circle" style="background-color: #00a86b; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px;">
+                        <i class="fas fa-check" style="color: white; font-size: 14px;"></i>
+                    </div>
+                    <h6 class="mb-0 me-2" style="font-weight: 600;">Concluída</h6>
+                    <span class="badge rounded-pill" style="background-color: rgba(0, 168, 107, 0.2); color: inherit; padding: 4px 12px;">{{ task_columns.concluida|length }}</span>
+                </div>
             </div>
-            <div class="card-body kanban-column" data-status="concluida" style="min-height: 400px;">
+            <div class="kanban-column" data-status="concluida" style="min-height: 400px;">
                 {% for task in task_columns.concluida %}
-                <div class="task-card card mb-2 {% if task.disparada %}border-danger{% endif %}" data-task-id="{{ task.id }}" draggable="true" onclick="editTask({{ task.id }})" style="cursor: pointer;">
-                    <div class="card-body p-2">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <h6 class="card-title mb-1">
-                                {% if task.disparada %}<i class="fas fa-paper-plane text-danger me-1" title="Tarefa disparada"></i>{% endif %}
-                                {{ task.titulo }}
-                            </h6>
-                            {% if current_user.is_admin %}
-                            <button class="btn btn-sm {% if task.disparada %}btn-danger{% else %}btn-outline-secondary{% endif %}" 
-                                    onclick="event.stopPropagation(); dispatchTask({{ task.id }})" 
-                                    title="{% if task.disparada %}Cancelar disparo{% else %}Disparar tarefa{% endif %}"
-                                    id="dispatch-btn-{{ task.id }}">
-                                <i class="fas fa-paper-plane"></i>
-                            </button>
-                            {% endif %}
-                        </div>
-                        <small class="text-muted d-block">{{ task.project.client.nome }} - {{ task.project.nome }}</small>
+                <div class="task-card-modern card mb-3" data-task-id="{{ task.id }}" draggable="true" onclick="editTask({{ task.id }})" style="cursor: pointer; border-left: 4px solid #00a86b; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <div class="card-body p-3">
+                        <h6 class="card-title mb-2" style="font-weight: 600; font-size: 14px;">
+                            {% if task.disparada %}<i class="fas fa-paper-plane text-danger me-1" title="Tarefa disparada"></i>{% endif %}
+                            {{ task.titulo }}
+                        </h6>
+                        <small class="d-block mb-1" style="color: #6c757d; font-size: 12px;">{{ task.project.client.nome }} - {{ task.project.nome }}</small>
                         {% if task.assigned_user %}
-                        <small class="text-info d-block">
+                        <small class="d-block mb-1" style="color: #0d6efd; font-size: 12px;">
                             <i class="fas fa-user me-1"></i>{{ task.assigned_user.full_name }}
                         </small>
                         {% endif %}
                         {% if task.completed_at %}
-                        <small class="text-success d-block">
+                        <small class="d-block" style="color: #00a86b; font-size: 12px;">
                             <i class="fas fa-check me-1"></i>{{ task.completed_at.strftime('%d/%m/%Y') }}
                         </small>
                         {% endif %}
                         {% if task.disparada and task.disparada_at %}
-                        <small class="text-danger d-block">
+                        <small class="d-block text-danger" style="font-size: 12px;">
                             <i class="fas fa-paper-plane me-1"></i>Disparada em {{ task.disparada_at.strftime('%d/%m/%Y %H:%M') }}
                         </small>
                         {% endif %}

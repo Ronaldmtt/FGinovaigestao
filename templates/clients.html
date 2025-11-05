@@ -3,268 +3,417 @@
 {% block title %}Gerenciar Clientes - Sistema de Gerenciamento de Projetos{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center">
-            <h2><i class="fas fa-building me-2"></i>Gerenciar Clientes</h2>
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newClientModal">
-                <i class="fas fa-plus me-1"></i>Novo Cliente
-            </button>
+<div class="container-fluid px-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 pt-3">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-users me-3" style="font-size: 1.5rem; color: #6c757d;"></i>
+            <h2 class="mb-0 fw-bold">Gerenciar Clientes</h2>
+        </div>
+        <button type="button" class="btn btn-primary px-4" data-bs-toggle="modal" data-bs-target="#newClientModal">
+            <i class="fas fa-plus me-2"></i>Novo Cliente
+        </button>
+    </div>
+
+    <!-- Área de Busca -->
+    <div class="search-card mb-4">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label small text-secondary">Buscar por Nome ou Email</label>
+                <input type="text" name="search" class="form-control bg-dark text-light border-secondary" placeholder="Digite o nome ou email..." value="{{ current_search }}">
+            </div>
+            
+            <div class="col-md-3">
+                <label class="form-label small text-secondary">Criado por</label>
+                <select name="creator_id" class="form-select bg-dark text-light border-secondary">
+                    <option value="">Todos</option>
+                    {% for user in all_users %}
+                    <option value="{{ user.id }}" {% if current_creator_id == user.id %}selected{% endif %}>
+                        {{ user.full_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search me-2"></i>Buscar
+                </button>
+            </div>
+            
+            <div class="col-md-2">
+                <a href="{{ url_for('clients') }}" class="btn btn-link w-100 text-secondary text-decoration-none">
+                    <i class="fas fa-times me-1"></i>Limpar Busca
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabela de Clientes -->
+    <div class="clients-card">
+        <div class="table-wrapper">
+            <table class="clients-table">
+                <thead>
+                    <tr>
+                        <th>NOME</th>
+                        <th>EMAIL</th>
+                        <th>TELEFONE</th>
+                        <th>CRIADO POR</th>
+                        <th>DATA</th>
+                        <th>PROJETOS</th>
+                        <th class="text-end">AÇÕES</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if clients %}
+                    {% for client in clients %}
+                    <tr>
+                        <td>
+                            <span class="client-name">{{ client.nome }}</span>
+                        </td>
+                        <td class="text-secondary">{{ client.email }}</td>
+                        <td class="text-secondary">{{ client.telefone if client.telefone else '-' }}</td>
+                        <td class="text-secondary">{{ client.creator.full_name if client.creator else 'Administrador Sistema' }}</td>
+                        <td class="text-secondary">
+                            {% if client.created_at %}
+                                {{ client.created_at.strftime('%d/%m/%Y') }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="project-count-badge">{{ client.projects|length }}</span>
+                        </td>
+                        <td class="text-end">
+                            <div class="dropdown">
+                                <button class="action-button" type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end bg-dark border-secondary">
+                                    <li>
+                                        <a class="dropdown-item text-light" href="{{ url_for('client_detail', id=client.id) }}">
+                                            <i class="fas fa-eye me-2"></i>Ver detalhes
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <button class="dropdown-item text-light" onclick="editClient({{ client.id }})">
+                                            <i class="fas fa-edit me-2"></i>Editar
+                                        </button>
+                                    </li>
+                                    {% if current_user.is_admin %}
+                                    <li><hr class="dropdown-divider border-secondary"></li>
+                                    <li>
+                                        <button class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ client.id }}">
+                                            <i class="fas fa-trash me-2"></i>Deletar
+                                        </button>
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5">
+                            <i class="fas fa-users fa-3x text-muted mb-3 d-block"></i>
+                            <p class="text-muted mb-0">Nenhum cliente encontrado</p>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
 
-<!-- Filtros -->
-<div class="row mt-3">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-body">
-                <form method="GET" class="row g-3 align-items-end">
-                    <div class="col-md-6">
-                        <label class="form-label">Buscar por Nome ou Email</label>
-                        <input type="text" name="search" class="form-control" placeholder="Digite o nome ou email..." value="{{ current_search }}">
-                    </div>
-                    
-                    <div class="col-md-3">
-                        <label class="form-label">Criado por</label>
-                        <select name="creator_id" class="form-select">
-                            <option value="">Todos</option>
-                            {% for user in all_users %}
-                            <option value="{{ user.id }}" {% if current_creator_id == user.id %}selected{% endif %}>
-                                {{ user.full_name }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <div class="col-md-3">
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-search me-1"></i>Buscar
-                        </button>
-                    </div>
-                    
-                    <div class="col-md-12 mt-2">
-                        <a href="{{ url_for('clients') }}" class="btn btn-outline-secondary">
-                            <i class="fas fa-times me-1"></i>Limpar Busca
-                        </a>
-                    </div>
+<!-- Modais de exclusão -->
+{% for client in clients %}
+{% if current_user.is_admin %}
+<div class="modal fade" id="deleteModal{{ client.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja deletar o cliente <strong>"{{ client.nome }}"</strong>?</p>
+                <p class="text-warning"><i class="fas fa-exclamation-triangle me-2"></i>Esta ação não pode ser desfeita.</p>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="POST" action="{{ url_for('delete_client', id=client.id) }}" style="display: inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}"/>
+                    <button type="submit" class="btn btn-danger">Deletar</button>
                 </form>
             </div>
         </div>
     </div>
 </div>
+{% endif %}
+{% endfor %}
 
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Nome</th>
-                                <th>Email</th>
-                                <th>Telefone</th>
-                                <th>Criado por</th>
-                                <th>Data</th>
-                                <th>Projetos</th>
-                                <th>Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for client in clients %}
-                            <tr>
-                                <td>{{ client.nome }}</td>
-                                <td>{{ client.email or '-' }}</td>
-                                <td>{{ client.telefone or '-' }}</td>
-                                <td>{{ client.creator.full_name }}</td>
-                                <td>{{ client.created_at.strftime('%d/%m/%Y') }}</td>
-                                <td>
-                                    <span class="badge bg-info">{{ client.projects|length }}</span>
-                                </td>
-                                <td>
-                                    <div class="btn-group" role="group">
-                                        <button type="button" class="btn btn-sm btn-outline-success" onclick="generatePublicLink({{ client.id }}, '{{ client.nome }}')" title="Gerar Link Público">
-                                            <i class="fas fa-link"></i>
-                                        </button>
-                                        <a href="{{ url_for('edit_client', client_id=client.id) }}" class="btn btn-sm btn-outline-primary" title="Editar cliente">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <button type="button" class="btn btn-sm btn-outline-danger" title="Excluir cliente" 
-                                                onclick="confirmDeleteClient('{{ client.nome }}', {{ client.id }})">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal para novo cliente -->
+<!-- Modal Novo Cliente -->
 <div class="modal fade" id="newClientModal" tabindex="-1">
     <div class="modal-dialog">
-        <div class="modal-content">
+        <div class="modal-content bg-dark text-light">
             <form method="POST" action="{{ url_for('new_client') }}">
-                <div class="modal-header">
+                {{ form.hidden_tag() if form }}
+                <div class="modal-header border-secondary">
                     <h5 class="modal-title">Novo Cliente</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     {% if form %}
-                    {{ form.hidden_tag() }}
-                    
                     <div class="mb-3">
                         {{ form.nome.label(class="form-label") }}
-                        {{ form.nome(class="form-control") }}
+                        {{ form.nome(class="form-control bg-dark text-light border-secondary") }}
                     </div>
-                    
                     <div class="mb-3">
                         {{ form.email.label(class="form-label") }}
-                        {{ form.email(class="form-control") }}
+                        {{ form.email(class="form-control bg-dark text-light border-secondary") }}
                     </div>
-                    
                     <div class="mb-3">
                         {{ form.telefone.label(class="form-label") }}
-                        {{ form.telefone(class="form-control") }}
+                        {{ form.telefone(class="form-control bg-dark text-light border-secondary") }}
                     </div>
-                    
                     <div class="mb-3">
                         {{ form.endereco.label(class="form-label") }}
-                        {{ form.endereco(class="form-control", rows="3") }}
+                        {{ form.endereco(class="form-control bg-dark text-light border-secondary", rows=3) }}
                     </div>
                     {% endif %}
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer border-secondary">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Salvar Cliente</button>
+                    <button type="submit" class="btn btn-primary">Criar Cliente</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- Modal para exibir link público -->
-<div class="modal fade" id="publicLinkModal" tabindex="-1">
+<!-- Modal Editar Cliente -->
+<div class="modal fade" id="editClientModal" tabindex="-1">
     <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Link Público do Cliente</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle me-2"></i>
-                    Este link permite que o cliente <strong id="clientName"></strong> acompanhe seus projetos usando o código de acesso.
+        <div class="modal-content bg-dark text-light">
+            <form id="editClientForm" method="POST">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">Editar Cliente</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                
-                <div class="mb-3">
-                    <label class="form-label">Link de Acesso Público:</label>
-                    <div class="input-group">
-                        <input type="text" class="form-control" id="publicUrl" readonly>
-                        <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('publicUrl')">
-                            <i class="fas fa-copy"></i>
-                        </button>
+                <div class="modal-body">
+                    <div id="editClientContent">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Carregando...</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                
-                <div class="mb-3">
-                    <label class="form-label">Código de Acesso:</label>
-                    <div class="input-group">
-                        <input type="text" class="form-control" id="publicCode" readonly style="font-family: monospace; font-size: 1.2em; text-align: center;">
-                        <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('publicCode')">
-                            <i class="fas fa-copy"></i>
-                        </button>
-                    </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
                 </div>
-                
-                <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    <strong>Importante:</strong> Compartilhe o código de acesso apenas com o cliente. Ele será necessário para visualizar os projetos.
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-            </div>
+            </form>
         </div>
     </div>
 </div>
 
-<!-- Modal de confirmação para exclusão de cliente -->
-<div class="modal fade" id="deleteClientModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Confirmar Exclusão</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>Tem certeza que deseja excluir o cliente <strong id="deleteClientName"></strong>?</p>
-                <p class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i>Esta ação não pode ser desfeita.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <form method="POST" style="display: inline;" id="deleteClientForm">
-                    <button type="submit" class="btn btn-danger">
-                        <i class="fas fa-trash me-1"></i>Excluir Cliente
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
+<style>
+/* Card de busca */
+.search-card {
+    background: #1e2228;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Card da tabela */
+.clients-card {
+    background: #1e2228;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Wrapper da tabela */
+.table-wrapper {
+    overflow: visible;
+}
+
+/* Tabela */
+.clients-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+}
+
+.clients-table thead th {
+    background: #1e2228;
+    color: #6c757d;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    padding: 16px 20px;
+    text-align: left;
+    border: none;
+}
+
+.clients-table thead th:first-child {
+    padding-left: 24px;
+}
+
+.clients-table thead th:last-child {
+    padding-right: 24px;
+}
+
+.clients-table tbody tr {
+    border-bottom: 1px solid #2a2f38;
+    transition: background 0.15s;
+}
+
+.clients-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.clients-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.clients-table tbody td {
+    padding: 18px 20px;
+    color: #e9ecef;
+    font-size: 14px;
+    border: none;
+    vertical-align: middle;
+    position: relative;
+    overflow: visible;
+}
+
+.clients-table tbody td:first-child {
+    padding-left: 24px;
+}
+
+.clients-table tbody td:last-child {
+    padding-right: 24px;
+}
+
+/* Nome do cliente */
+.client-name {
+    color: #e9ecef;
+    font-weight: 500;
+}
+
+/* Badge contador de projetos */
+.project-count-badge {
+    background: rgba(13, 110, 253, 0.15);
+    color: #5ba3ff;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-block;
+}
+
+/* Botão de ações */
+.action-button {
+    background: transparent;
+    border: none;
+    color: #6c757d;
+    padding: 6px 10px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.action-button:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+
+/* Dropdown */
+.dropdown {
+    position: relative;
+}
+
+.dropdown .dropdown-menu {
+    z-index: 9999 !important;
+}
+</style>
 
 <script>
-function confirmDeleteClient(clientName, clientId) {
-    document.getElementById('deleteClientName').textContent = clientName;
-    document.getElementById('deleteClientForm').action = `/clients/delete/${clientId}`;
-    new bootstrap.Modal(document.getElementById('deleteClientModal')).show();
-}
-
-function generatePublicLink(clientId, clientName) {
-    fetch(`/clients/${clientId}/generate-public-link`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            document.getElementById('clientName').textContent = clientName;
-            document.getElementById('publicUrl').value = data.public_url;
-            document.getElementById('publicCode').value = data.public_code;
-            
-            const modal = new bootstrap.Modal(document.getElementById('publicLinkModal'));
-            modal.show();
-        } else {
-            alert('Erro ao gerar link público.');
-        }
-    })
-    .catch(error => {
-        console.error('Erro:', error);
-        alert('Erro ao gerar link público.');
-    });
-}
-
-function copyToClipboard(elementId) {
-    const element = document.getElementById(elementId);
-    element.select();
-    element.setSelectionRange(0, 99999);
-    navigator.clipboard.writeText(element.value);
+function editClient(clientId) {
+    const modal = new bootstrap.Modal(document.getElementById('editClientModal'));
+    const content = document.getElementById('editClientContent');
+    const form = document.getElementById('editClientForm');
     
-    // Feedback visual
-    const button = element.nextElementSibling;
-    const originalIcon = button.innerHTML;
-    button.innerHTML = '<i class="fas fa-check text-success"></i>';
-    setTimeout(() => {
-        button.innerHTML = originalIcon;
-    }, 2000);
+    form.action = `/clients/${clientId}/edit`;
+    
+    content.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+        </div>
+    `;
+    
+    modal.show();
+    
+    fetch(`/clients/${clientId}/data`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                content.innerHTML = buildEditClientHTML(data.client);
+            } else {
+                content.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Erro ao carregar dados do cliente.
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            content.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Erro ao carregar dados do cliente.
+                </div>
+            `;
+        });
+}
+
+function buildEditClientHTML(client) {
+    return `
+        <input type="hidden" name="csrf_token" value="${document.querySelector('input[name=csrf_token]') ? document.querySelector('input[name=csrf_token]').value : ''}">
+        
+        <div class="mb-3">
+            <label class="form-label">Nome</label>
+            <input type="text" class="form-control bg-dark text-light border-secondary" name="nome" value="${escapeHtml(client.nome || '')}" required>
+        </div>
+        
+        <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-control bg-dark text-light border-secondary" name="email" value="${escapeHtml(client.email || '')}" required>
+        </div>
+        
+        <div class="mb-3">
+            <label class="form-label">Telefone</label>
+            <input type="text" class="form-control bg-dark text-light border-secondary" name="telefone" value="${escapeHtml(client.telefone || '')}">
+        </div>
+        
+        <div class="mb-3">
+            <label class="form-label">Endereço</label>
+            <textarea class="form-control bg-dark text-light border-secondary" name="endereco" rows="3">${escapeHtml(client.endereco || '')}</textarea>
+        </div>
+    `;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 </script>
 {% endblock %}

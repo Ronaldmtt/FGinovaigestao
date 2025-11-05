@@ -1,0 +1,79 @@
+<div class="table-wrapper">
+            <table class="projects-table">
+                <thead>
+                    <tr>
+                        <th>NOME DO PROJETO</th>
+                        <th>LÍDER DO PROJETO</th>
+                        <th>STATUS</th>
+                        <th>PRAZO</th>
+                        <th>PROGRESSO</th>
+                        <th class="text-end">AÇÕES</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                    
+                    <tr>
+                        <td>
+                            <a href="/projects/33" class="project-name">
+                                BoraBailar App
+                            </a>
+                        </td>
+                        <td class="text-secondary">Renan Gomes</td>
+                        <td>
+                            
+                                <span class="status-badge status-active">Ativo</span>
+                            
+                        </td>
+                        <td class="text-secondary">
+                            
+                                -
+                            
+                        </td>
+                        <td>
+                            <div class="progress-container">
+                                <div class="progress-wrapper">
+                                    
+                                    
+                                        
+                                    
+                                    <div class="progress-bar-custom">
+                                        <div class="progress-fill progress-danger" style="width: 0%;"></div>
+                                    </div>
+                                </div>
+                                <span class="progress-text">0%</span>
+                            </div>
+                        </td>
+                        <td class="text-end">
+                            <div class="dropdown">
+                                <button class="action-button show" type="button" data-bs-toggle="dropdown" data-bs-auto-close="true" aria-expanded="true">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end bg-dark border-secondary show" data-popper-placement="bottom-end" style="position: absolute; inset: 0px 0px auto auto; margin: 0px; transform: translate(0px, 34.4444px);">
+                                    <li>
+                                        <a class="dropdown-item text-light" href="/projects/33">
+                                            <i class="fas fa-eye me-2"></i>Ver detalhes
+                                        </a>
+                                    </li>
+                                    
+                                    <li>
+                                        <button class="dropdown-item text-light" onclick="editProject(33)">
+                                            <i class="fas fa-edit me-2"></i>Editar
+                                        </button>
+                                    </li>
+                                    <li><hr class="dropdown-divider border-secondary"></li>
+                                    <li>
+                                        <button class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#deleteModal33">
+                                            <i class="fas fa-trash me-2"></i>Deletar
+                                        </button>
+                                    </li>
+                                    
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                    
+                    
+                </tbody>
+            </table>
+        </div>

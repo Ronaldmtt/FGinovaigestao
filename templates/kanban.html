@@ -405,14 +405,14 @@
     <div class="kanban-board">
         <!-- Coluna Pendente -->
         <div class="kanban-column-wrapper">
-        <div class="kanban-column-header pendente">
-            <div class="column-title">
-                <i class="fas fa-clock"></i>
-                Pendente
+            <div class="kanban-column-header pendente">
+                <div class="column-title">
+                    <i class="fas fa-clock"></i>
+                    Pendente
+                </div>
+                <span class="column-badge">{{ task_columns.pendente|length }}</span>
             </div>
-            <span class="column-badge">{{ task_columns.pendente|length }}</span>
-        </div>
-        <div class="kanban-column" data-status="pendente">
+            <div class="kanban-column" data-status="pendente">
             {% for task in task_columns.pendente %}
             <div class="task-card {% if task.disparada %}disparada{% endif %}" 
                  data-task-id="{{ task.id }}" 

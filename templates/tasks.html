@@ -200,7 +200,7 @@
 <div class="modal fade" id="manualTaskModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content bg-dark text-light">
-            <form method="POST" action="{{ url_for('create_manual_task') }}">
+            <form method="POST" action="{{ url_for('new_manual_task') }}">
                 {{ manual_form.hidden_tag() if manual_form }}
                 <div class="modal-header border-secondary">
                     <h5 class="modal-title">Criar Tarefa Manual</h5>
@@ -286,7 +286,7 @@
 <div class="modal fade" id="transcriptionTaskModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content bg-dark text-light">
-            <form method="POST" action="{{ url_for('create_tasks_from_transcription') }}">
+            <form method="POST" action="{{ url_for('transcription_task') }}">
                 {{ transcription_form.hidden_tag() if transcription_form }}
                 <div class="modal-header border-secondary">
                     <h5 class="modal-title">Gerar Tarefas com IA</h5>

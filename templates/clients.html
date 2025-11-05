@@ -168,25 +168,35 @@
                     {% if form %}
                     <div class="mb-3">
                         {{ form.nome.label(class="form-label") }}
-                        {{ form.nome(class="form-control bg-dark text-light border-secondary") }}
+                        {{ form.nome(class="form-control bg-dark text-light border-secondary", placeholder="Insira o nome completo") }}
                     </div>
-                    <div class="mb-3">
-                        {{ form.email.label(class="form-label") }}
-                        {{ form.email(class="form-control bg-dark text-light border-secondary") }}
-                    </div>
-                    <div class="mb-3">
-                        {{ form.telefone.label(class="form-label") }}
-                        {{ form.telefone(class="form-control bg-dark text-light border-secondary") }}
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            {{ form.email.label(class="form-label") }}
+                            {{ form.email(class="form-control bg-dark text-light border-secondary", placeholder="exemplo@email.com") }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.telefone.label(class="form-label") }}
+                            {{ form.telefone(class="form-control bg-dark text-light border-secondary", placeholder="(00) 00000-0000") }}
+                        </div>
                     </div>
                     <div class="mb-3">
                         {{ form.endereco.label(class="form-label") }}
-                        {{ form.endereco(class="form-control bg-dark text-light border-secondary", rows=3) }}
+                        {{ form.endereco(class="form-control bg-dark text-light border-secondary", rows=2, placeholder="Insira o endereço completo") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.cpf_cnpj.label(class="form-label") }}
+                        {{ form.cpf_cnpj(class="form-control bg-dark text-light border-secondary", placeholder="000.000.000-00 ou 00.000.000/0000-00") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.observacoes.label(class="form-label") }}
+                        {{ form.observacoes(class="form-control bg-dark text-light border-secondary", rows=3, placeholder="Adicione notas ou observações importantes sobre o cliente...") }}
                     </div>
                     {% endif %}
                 </div>
                 <div class="modal-footer border-secondary">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Criar Cliente</button>
+                    <button type="submit" class="btn btn-success px-4">Salvar Cliente</button>
                 </div>
             </form>
         </div>
@@ -389,23 +399,34 @@ function buildEditClientHTML(client) {
         <input type="hidden" name="csrf_token" value="${document.querySelector('input[name=csrf_token]') ? document.querySelector('input[name=csrf_token]').value : ''}">
         
         <div class="mb-3">
-            <label class="form-label">Nome</label>
-            <input type="text" class="form-control bg-dark text-light border-secondary" name="nome" value="${escapeHtml(client.nome || '')}" required>
+            <label class="form-label">Nome Completo</label>
+            <input type="text" class="form-control bg-dark text-light border-secondary" name="nome" value="${escapeHtml(client.nome || '')}" required placeholder="Insira o nome completo">
         </div>
         
-        <div class="mb-3">
-            <label class="form-label">Email</label>
-            <input type="email" class="form-control bg-dark text-light border-secondary" name="email" value="${escapeHtml(client.email || '')}" required>
-        </div>
-        
-        <div class="mb-3">
-            <label class="form-label">Telefone</label>
-            <input type="text" class="form-control bg-dark text-light border-secondary" name="telefone" value="${escapeHtml(client.telefone || '')}">
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="form-label">Email</label>
+                <input type="email" class="form-control bg-dark text-light border-secondary" name="email" value="${escapeHtml(client.email || '')}" placeholder="exemplo@email.com">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Telefone</label>
+                <input type="text" class="form-control bg-dark text-light border-secondary" name="telefone" value="${escapeHtml(client.telefone || '')}" placeholder="(00) 00000-0000">
+            </div>
         </div>
         
         <div class="mb-3">
             <label class="form-label">Endereço</label>
-            <textarea class="form-control bg-dark text-light border-secondary" name="endereco" rows="3">${escapeHtml(client.endereco || '')}</textarea>
+            <textarea class="form-control bg-dark text-light border-secondary" name="endereco" rows="2" placeholder="Insira o endereço completo">${escapeHtml(client.endereco || '')}</textarea>
+        </div>
+        
+        <div class="mb-3">
+            <label class="form-label">CPF/CNPJ</label>
+            <input type="text" class="form-control bg-dark text-light border-secondary" name="cpf_cnpj" value="${escapeHtml(client.cpf_cnpj || '')}" placeholder="000.000.000-00 ou 00.000.000/0000-00">
+        </div>
+        
+        <div class="mb-3">
+            <label class="form-label">Observações</label>
+            <textarea class="form-control bg-dark text-light border-secondary" name="observacoes" rows="3" placeholder="Adicione notas ou observações importantes sobre o cliente...">${escapeHtml(client.observacoes || '')}</textarea>
         </div>
     `;
 }

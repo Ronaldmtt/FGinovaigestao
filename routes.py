@@ -328,6 +328,8 @@ def new_client():
             email=form.email.data,
             telefone=form.telefone.data,
             endereco=form.endereco.data,
+            cpf_cnpj=form.cpf_cnpj.data,
+            observacoes=form.observacoes.data,
             creator_id=current_user.id
         )
         db.session.add(client)
@@ -375,12 +377,33 @@ def edit_client(client_id):
         client.email = form.email.data
         client.telefone = form.telefone.data
         client.endereco = form.endereco.data
+        client.cpf_cnpj = form.cpf_cnpj.data
+        client.observacoes = form.observacoes.data
         
         db.session.commit()
         flash('Cliente atualizado com sucesso!', 'success')
         return redirect(url_for('clients'))
     
     return render_template('edit_client.html', form=form, client=client)
+
+@app.route('/clients/<int:id>/data', methods=['GET'])
+@login_required
+@requires_permission('acesso_clientes')
+def client_data(id):
+    client = Client.query.get_or_404(id)
+    
+    return jsonify({
+        'success': True,
+        'client': {
+            'id': client.id,
+            'nome': client.nome,
+            'email': client.email or '',
+            'telefone': client.telefone or '',
+            'endereco': client.endereco or '',
+            'cpf_cnpj': client.cpf_cnpj or '',
+            'observacoes': client.observacoes or ''
+        }
+    })
 
 @app.route('/clients/delete/<int:client_id>', methods=['POST'])
 @login_required

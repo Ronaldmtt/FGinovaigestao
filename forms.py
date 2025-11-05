@@ -52,10 +52,12 @@ class EditUserForm(FlaskForm):
                 raise ValidationError('Este email já está em uso.')
 
 class ClientForm(FlaskForm):
-    nome = StringField('Nome do Cliente', validators=[DataRequired(), Length(min=2, max=200)])
+    nome = StringField('Nome Completo', validators=[DataRequired(), Length(min=2, max=200)])
     email = StringField('Email')
     telefone = StringField('Telefone')
     endereco = TextAreaField('Endereço')
+    cpf_cnpj = StringField('CPF/CNPJ')
+    observacoes = TextAreaField('Observações')
 
 class ProjectForm(FlaskForm):
     nome = StringField('Nome do Projeto', validators=[DataRequired(), Length(min=2, max=200)])

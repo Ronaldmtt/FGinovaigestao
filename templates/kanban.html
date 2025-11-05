@@ -591,8 +591,7 @@
                 <h5 class="modal-title">Nova Tarefa</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" action="{{ url_for('new_manual_task') }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <form id="newTaskKanbanForm">
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Título da Tarefa</label>
@@ -817,6 +816,40 @@ function deleteTask() {
         alert('Erro ao deletar tarefa');
     });
 }
+
+// Form de nova tarefa
+document.getElementById('newTaskKanbanForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const data = {
+        titulo: formData.get('titulo'),
+        descricao: formData.get('descricao'),
+        project_id: formData.get('project_id'),
+        assigned_user_id: formData.get('assigned_user_id') || null,
+        data_conclusao: formData.get('data_conclusao') || null
+    };
+    
+    fetch('/new_manual_task', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.message || 'Erro ao criar tarefa');
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao criar tarefa');
+    });
+});
 
 // Form de transcrição
 document.getElementById('transcriptionForm').addEventListener('submit', function(e) {

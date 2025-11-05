@@ -3,198 +3,242 @@
 {% block title %}Gerenciar Tarefas - Sistema de Gerenciamento de Projetos{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center">
-            <h2><i class="fas fa-tasks me-2"></i>Gerenciar Tarefas</h2>
-            <div class="btn-group">
-                <button type="button" class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#manualTaskModal">
-                    <i class="fas fa-edit me-1"></i>Tarefa Manual
-                </button>
-                <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#newTaskModal">
-                    <i class="fas fa-plus me-1"></i>Tarefa Simples
-                </button>
-                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#transcriptionTaskModal">
-                    <i class="fas fa-robot me-1"></i>Gerar com IA
-                </button>
+<div class="container-fluid px-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 pt-3">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-tasks me-3" style="font-size: 1.5rem; color: #6c757d;"></i>
+            <h2 class="mb-0 fw-bold">Gerenciar Tarefas</h2>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#manualTaskModal">
+                <i class="fas fa-edit me-2"></i>Tarefa Manual
+            </button>
+            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#newTaskModal">
+                <i class="fas fa-plus me-2"></i>Tarefa Simples
+            </button>
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#transcriptionTaskModal">
+                <i class="fas fa-magic me-2"></i>Gerar com IA
+            </button>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filters-card mb-4">
+        <form method="GET" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label small text-secondary">Filtrar por Projeto</label>
+                <select name="project_id" class="form-select form-select-sm bg-dark text-light border-secondary">
+                    <option value="">Todos os projetos</option>
+                    {% for project in all_projects %}
+                    <option value="{{ project.id }}" {% if current_filters.project_id == project.id %}selected{% endif %}>
+                        {{ project.client.nome }} - {{ project.nome }}
+                    </option>
+                    {% endfor %}
+                </select>
             </div>
+            
+            <div class="col-md-3">
+                <label class="form-label small text-secondary">Filtrar por Cliente</label>
+                <select name="client_id" class="form-select form-select-sm bg-dark text-light border-secondary">
+                    <option value="">Todos os clientes</option>
+                    {% for client in all_clients %}
+                    <option value="{{ client.id }}" {% if current_filters.client_id == client.id %}selected{% endif %}>
+                        {{ client.nome }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="col-md-3">
+                <label class="form-label small text-secondary">Filtrar por Usuário</label>
+                <select name="user_id" class="form-select form-select-sm bg-dark text-light border-secondary">
+                    <option value="">Todos</option>
+                    {% for user in all_users %}
+                    <option value="{{ user.id }}" {% if current_filters.user_id == user.id %}selected{% endif %}>
+                        {{ user.full_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="col-md-3">
+                <label class="form-label small text-secondary">Status</label>
+                <select name="status" class="form-select form-select-sm bg-dark text-light border-secondary">
+                    <option value="">Todos</option>
+                    <option value="pendente" {% if current_filters.status == 'pendente' %}selected{% endif %}>Pendente</option>
+                    <option value="em_andamento" {% if current_filters.status == 'em_andamento' %}selected{% endif %}>Em Andamento</option>
+                    <option value="concluida" {% if current_filters.status == 'concluida' %}selected{% endif %}>Concluída</option>
+                </select>
+            </div>
+            
+            <div class="col-12">
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary btn-sm px-4">
+                        <i class="fas fa-filter me-2"></i>Filtrar
+                    </button>
+                    <a href="{{ url_for('tasks') }}" class="btn btn-link btn-sm text-secondary text-decoration-none">
+                        <i class="fas fa-times me-1"></i>Limpar Filtros
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabela de Tarefas -->
+    <div class="tasks-card">
+        <div class="table-wrapper">
+            <table class="tasks-table">
+                <thead>
+                    <tr>
+                        <th>TÍTULO</th>
+                        <th>PROJETO</th>
+                        <th>CLIENTE</th>
+                        <th>RESPONSÁVEL</th>
+                        <th>STATUS</th>
+                        <th>DATA CONCLUSÃO</th>
+                        <th class="text-end">AÇÕES</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if tasks %}
+                    {% for task in tasks %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                {% if task.disparada %}
+                                <i class="fas fa-paper-plane text-danger me-2" title="Tarefa disparada"></i>
+                                {% endif %}
+                                <span class="task-title">{{ task.titulo }}</span>
+                            </div>
+                        </td>
+                        <td class="text-secondary">{{ task.project.nome }}</td>
+                        <td class="text-secondary">{{ task.project.client.nome }}</td>
+                        <td class="text-secondary">{{ task.assigned_user.full_name if task.assigned_user else '-' }}</td>
+                        <td>
+                            {% if task.status == 'pendente' %}
+                                <span class="status-badge status-pending">Pendente</span>
+                            {% elif task.status == 'em_andamento' %}
+                                <span class="status-badge status-active">Em Andamento</span>
+                            {% elif task.status == 'concluida' %}
+                                <span class="status-badge status-completed">Concluída</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-secondary">
+                            {% if task.data_conclusao %}
+                                {{ task.data_conclusao.strftime('%d/%m/%Y') }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <div class="dropdown">
+                                <button class="action-button" type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end bg-dark border-secondary">
+                                    <li>
+                                        <button class="dropdown-item text-light" onclick="editTask({{ task.id }})">
+                                            <i class="fas fa-edit me-2"></i>Editar
+                                        </button>
+                                    </li>
+                                    {% if current_user.is_admin %}
+                                    <li><hr class="dropdown-divider border-secondary"></li>
+                                    <li>
+                                        <button class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ task.id }}">
+                                            <i class="fas fa-trash me-2"></i>Deletar
+                                        </button>
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5">
+                            <i class="fas fa-tasks fa-3x text-muted mb-3 d-block"></i>
+                            <p class="text-muted mb-0">Nenhuma tarefa encontrada</p>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
 
-<!-- Filtros -->
-<div class="row mt-3">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-body">
-                <form method="GET" class="row g-3 align-items-end">
-                    <div class="col-md-3">
-                        <label class="form-label">Filtrar por Projeto</label>
-                        <select name="project_id" class="form-select">
-                            <option value="">Todos os projetos</option>
-                            {% for project in all_projects %}
-                            <option value="{{ project.id }}" {% if current_filters.project_id == project.id %}selected{% endif %}>
-                                {{ project.client.nome }} - {{ project.nome }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <div class="col-md-3">
-                        <label class="form-label">Filtrar por Cliente</label>
-                        <select name="client_id" class="form-select">
-                            <option value="">Todos os clientes</option>
-                            {% for client in all_clients %}
-                            <option value="{{ client.id }}" {% if current_filters.client_id == client.id %}selected{% endif %}>
-                                {{ client.nome }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <div class="col-md-2">
-                        <label class="form-label">Filtrar por Usuário</label>
-                        <select name="user_id" class="form-select">
-                            <option value="">Todos</option>
-                            {% for user in all_users %}
-                            <option value="{{ user.id }}" {% if current_filters.user_id == user.id %}selected{% endif %}>
-                                {{ user.full_name }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <div class="col-md-2">
-                        <label class="form-label">Status</label>
-                        <select name="status" class="form-select">
-                            <option value="">Todos</option>
-                            <option value="pendente" {% if current_filters.status == 'pendente' %}selected{% endif %}>Pendente</option>
-                            <option value="em_andamento" {% if current_filters.status == 'em_andamento' %}selected{% endif %}>Em Andamento</option>
-                            <option value="concluida" {% if current_filters.status == 'concluida' %}selected{% endif %}>Concluída</option>
-                        </select>
-                    </div>
-                    
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-filter me-1"></i>Filtrar
-                        </button>
-                    </div>
-                    
-                    <div class="col-md-12 mt-2">
-                        <a href="{{ url_for('tasks') }}" class="btn btn-outline-secondary">
-                            <i class="fas fa-times me-1"></i>Limpar Filtros
-                        </a>
-                    </div>
+<!-- Modais de exclusão -->
+{% for task in tasks %}
+{% if current_user.is_admin %}
+<div class="modal fade" id="deleteModal{{ task.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja deletar a tarefa <strong>"{{ task.titulo }}"</strong>?</p>
+                <p class="text-warning"><i class="fas fa-exclamation-triangle me-2"></i>Esta ação não pode ser desfeita.</p>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="POST" action="{{ url_for('delete_task', id=task.id) }}" style="display: inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}"/>
+                    <button type="submit" class="btn btn-danger">Deletar</button>
                 </form>
             </div>
         </div>
     </div>
 </div>
+{% endif %}
+{% endfor %}
 
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Título</th>
-                                <th>Projeto</th>
-                                <th>Cliente</th>
-                                <th>Responsável</th>
-                                <th>Status</th>
-                                <th>Data Conclusão</th>
-                                <th>Criada em</th>
-                                {% if current_user.is_admin %}
-                                <th>Ações</th>
-                                {% endif %}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for task in tasks %}
-                            <tr {% if task.disparada %}class="table-danger"{% endif %} onclick="editTask({{ task.id }})" style="cursor: pointer;">
-                                <td>
-                                    {% if task.disparada %}<i class="fas fa-paper-plane text-danger me-1" title="Tarefa disparada"></i>{% endif %}
-                                    {{ task.titulo }}
-                                </td>
-                                <td>{{ task.project.nome }}</td>
-                                <td>{{ task.project.client.nome }}</td>
-                                <td>{{ task.assigned_user.full_name if task.assigned_user else '-' }}</td>
-                                <td>
-                                    {% if task.status == 'pendente' %}
-                                    <span class="badge bg-secondary">Pendente</span>
-                                    {% elif task.status == 'em_andamento' %}
-                                    <span class="badge bg-primary">Em Andamento</span>
-                                    {% else %}
-                                    <span class="badge bg-success">Concluída</span>
-                                    {% endif %}
-                                    {% if task.disparada %}
-                                    <span class="badge bg-danger ms-1">Disparada</span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ task.data_conclusao.strftime('%d/%m/%Y') if task.data_conclusao else '-' }}</td>
-                                <td>{{ task.created_at.strftime('%d/%m/%Y') }}</td>
-                                {% if current_user.is_admin %}
-                                <td onclick="event.stopPropagation();">
-                                    <button class="btn btn-sm {% if task.disparada %}btn-danger{% else %}btn-outline-secondary{% endif %}" 
-                                            onclick="dispatchTask({{ task.id }})" 
-                                            title="{% if task.disparada %}Cancelar disparo{% else %}Disparar tarefa{% endif %}"
-                                            id="dispatch-btn-{{ task.id }}">
-                                        <i class="fas fa-paper-plane"></i>
-                                    </button>
-                                </td>
-                                {% endif %}
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal para nova tarefa -->
-<div class="modal fade" id="newTaskModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form method="POST" action="{{ url_for('new_task') }}">
-                <div class="modal-header">
-                    <h5 class="modal-title">Nova Tarefa</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<!-- Modal Tarefa Manual -->
+<div class="modal fade" id="manualTaskModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark text-light">
+            <form method="POST" action="{{ url_for('create_manual_task') }}">
+                {{ manual_form.hidden_tag() if manual_form }}
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">Criar Tarefa Manual</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    {% if form %}
-                    {{ form.hidden_tag() }}
-                    
+                    {% if manual_form %}
                     <div class="mb-3">
-                        {{ form.titulo.label(class="form-label") }}
-                        {{ form.titulo(class="form-control") }}
+                        {{ manual_form.titulo.label(class="form-label") }}
+                        {{ manual_form.titulo(class="form-control bg-dark text-light border-secondary") }}
                     </div>
-                    
                     <div class="mb-3">
-                        {{ form.project_id.label(class="form-label") }}
-                        {{ form.project_id(class="form-select") }}
+                        {{ manual_form.descricao.label(class="form-label") }}
+                        {{ manual_form.descricao(class="form-control bg-dark text-light border-secondary", rows=4) }}
                     </div>
-                    
-                    <div class="mb-3">
-                        {{ form.assigned_user_id.label(class="form-label") }}
-                        {{ form.assigned_user_id(class="form-select") }}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ manual_form.project_id.label(class="form-label") }}
+                            {{ manual_form.project_id(class="form-select bg-dark text-light border-secondary") }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ manual_form.assigned_user_id.label(class="form-label") }}
+                            {{ manual_form.assigned_user_id(class="form-select bg-dark text-light border-secondary") }}
+                        </div>
                     </div>
-                    
-                    <div class="mb-3">
-                        {{ form.data_conclusao.label(class="form-label") }}
-                        {{ form.data_conclusao(class="form-control", type="date") }}
-                    </div>
-                    
-                    <div class="mb-3">
-                        {{ form.descricao.label(class="form-label") }}
-                        {{ form.descricao(class="form-control", rows="3") }}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ manual_form.status.label(class="form-label") }}
+                            {{ manual_form.status(class="form-select bg-dark text-light border-secondary") }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ manual_form.data_conclusao.label(class="form-label") }}
+                            {{ manual_form.data_conclusao(class="form-control bg-dark text-light border-secondary") }}
+                        </div>
                     </div>
                     {% endif %}
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer border-secondary">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-primary">Criar Tarefa</button>
                 </div>
@@ -203,165 +247,340 @@
     </div>
 </div>
 
-<!-- Modal para tarefa manual -->
-<div class="modal fade" id="manualTaskModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <form method="POST" action="{{ url_for('new_manual_task') }}">
-                <div class="modal-header">
-                    <h5 class="modal-title">Criar Tarefa Manual</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<!-- Modal Tarefa Simples -->
+<div class="modal fade" id="newTaskModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-light">
+            <form method="POST" action="{{ url_for('new_task') }}">
+                {{ simple_form.hidden_tag() if simple_form }}
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">Nova Tarefa Simples</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Título da Tarefa</label>
-                            <input type="text" class="form-control" name="titulo" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Projeto</label>
-                            <select class="form-select" name="project_id" required>
-                                <option value="">Selecione um projeto</option>
-                                {% for project in projects %}
-                                <option value="{{ project.id }}">{{ project.client.nome }} - {{ project.nome }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Usuário Responsável</label>
-                            <select class="form-select" name="assigned_user_id">
-                                <option value="">Selecione um usuário</option>
-                                {% for user in users %}
-                                <option value="{{ user.id }}">{{ user.full_name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Data de Conclusão</label>
-                            <input type="date" class="form-control" name="data_conclusao">
-                        </div>
-                    </div>
-                    
+                    {% if simple_form %}
                     <div class="mb-3">
-                        <label class="form-label">Status</label>
-                        <select class="form-select" name="status" required>
-                            <option value="pendente">Pendente</option>
-                            <option value="em_andamento">Em Andamento</option>
-                            <option value="concluida">Concluída</option>
-                        </select>
+                        {{ simple_form.titulo.label(class="form-label") }}
+                        {{ simple_form.titulo(class="form-control bg-dark text-light border-secondary") }}
                     </div>
-                    
                     <div class="mb-3">
-                        <label class="form-label">Descrição Detalhada</label>
-                        <textarea class="form-control" name="descricao" rows="5" required></textarea>
+                        {{ simple_form.project_id.label(class="form-label") }}
+                        {{ simple_form.project_id(class="form-select bg-dark text-light border-secondary") }}
                     </div>
+                    <div class="mb-3">
+                        {{ simple_form.assigned_user_id.label(class="form-label") }}
+                        {{ simple_form.assigned_user_id(class="form-select bg-dark text-light border-secondary") }}
+                    </div>
+                    {% endif %}
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer border-secondary">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Criar Tarefa</button>
+                    <button type="submit" class="btn btn-primary">Criar</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- Modal para gerar tarefas com transcrição -->
+<!-- Modal Gerar Tarefas com IA -->
 <div class="modal fade" id="transcriptionTaskModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <form method="POST" action="{{ url_for('transcription_task') }}">
-                <div class="modal-header">
+        <div class="modal-content bg-dark text-light">
+            <form method="POST" action="{{ url_for('create_tasks_from_transcription') }}">
+                {{ transcription_form.hidden_tag() if transcription_form }}
+                <div class="modal-header border-secondary">
                     <h5 class="modal-title">Gerar Tarefas com IA</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     {% if transcription_form %}
-                    {{ transcription_form.hidden_tag() }}
-                    
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            {{ transcription_form.client_id.label(class="form-label") }}
-                            {{ transcription_form.client_id(class="form-select", id="clientSelect") }}
-                        </div>
-                        <div class="col-md-6">
-                            {{ transcription_form.project_id.label(class="form-label") }}
-                            {{ transcription_form.project_id(class="form-select", id="projectSelect") }}
-                        </div>
+                    <div class="mb-3">
+                        {{ transcription_form.project_id.label(class="form-label") }}
+                        {{ transcription_form.project_id(class="form-select bg-dark text-light border-secondary") }}
                     </div>
-                    
                     <div class="mb-3">
                         {{ transcription_form.transcricao.label(class="form-label") }}
-                        <small class="form-text text-muted">A IA processará esta transcrição para gerar tarefas automaticamente</small>
-                        {{ transcription_form.transcricao(class="form-control") }}
+                        <small class="form-text text-muted d-block mb-2">A IA processará esta transcrição e gerará tarefas automaticamente</small>
+                        {{ transcription_form.transcricao(class="form-control bg-dark text-light border-secondary", rows=8) }}
                     </div>
                     {% endif %}
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer border-secondary">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-success">Gerar Tarefas</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-magic me-2"></i>Gerar Tarefas
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
-<script>
-// Atualizar projetos baseado no cliente selecionado
-document.getElementById('clientSelect')?.addEventListener('change', function() {
-    const clientId = this.value;
-    const projectSelect = document.getElementById('projectSelect');
-    
-    if (clientId) {
-        fetch(`/api/projects/${clientId}`)
-            .then(response => response.json())
-            .then(projects => {
-                projectSelect.innerHTML = '<option value="">Selecione um projeto</option>';
-                projects.forEach(project => {
-                    const option = document.createElement('option');
-                    option.value = project.id;
-                    option.textContent = project.nome;
-                    projectSelect.appendChild(option);
-                });
-            });
-    } else {
-        projectSelect.innerHTML = '<option value="">Selecione um projeto</option>';
-    }
-});
+<!-- Modal Editar Tarefa -->
+<div class="modal fade" id="editTaskModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark text-light">
+            <form id="editTaskForm" method="POST">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">Editar Tarefa</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="editTaskContent">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Carregando...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
-// Função para disparar tarefa
-function dispatchTask(taskId) {
-    if (!confirm('Deseja disparar/cancelar o disparo desta tarefa?')) {
-        return;
-    }
-    
-    fetch(`/api/tasks/${taskId}/dispatch`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert('Erro ao disparar tarefa: ' + (data.error || 'Erro desconhecido'));
-        }
-    })
-    .catch(error => {
-        console.error('Erro ao disparar tarefa:', error);
-        alert('Erro ao disparar tarefa. Tente novamente.');
-    });
+<style>
+/* Card de filtros */
+.filters-card {
+    background: #1e2228;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-// Função para editar tarefa
+/* Card da tabela */
+.tasks-card {
+    background: #1e2228;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Wrapper da tabela */
+.table-wrapper {
+    overflow: visible;
+}
+
+/* Tabela */
+.tasks-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+}
+
+.tasks-table thead th {
+    background: #1e2228;
+    color: #6c757d;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    padding: 16px 20px;
+    text-align: left;
+    border: none;
+}
+
+.tasks-table thead th:first-child {
+    padding-left: 24px;
+}
+
+.tasks-table thead th:last-child {
+    padding-right: 24px;
+}
+
+.tasks-table tbody tr {
+    border-bottom: 1px solid #2a2f38;
+    transition: background 0.15s;
+}
+
+.tasks-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.tasks-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.tasks-table tbody td {
+    padding: 18px 20px;
+    color: #e9ecef;
+    font-size: 14px;
+    border: none;
+    vertical-align: middle;
+}
+
+.tasks-table tbody td:first-child {
+    padding-left: 24px;
+}
+
+.tasks-table tbody td:last-child {
+    padding-right: 24px;
+}
+
+/* Título da tarefa */
+.task-title {
+    color: #e9ecef;
+    font-weight: 500;
+}
+
+/* Badges de status */
+.status-badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+    display: inline-block;
+    text-transform: capitalize;
+}
+
+.status-active {
+    background: rgba(13, 110, 253, 0.15);
+    color: #5ba3ff;
+}
+
+.status-completed {
+    background: rgba(25, 135, 84, 0.15);
+    color: #4ec991;
+}
+
+.status-pending {
+    background: rgba(255, 193, 7, 0.15);
+    color: #ffc107;
+}
+
+/* Botão de ações */
+.action-button {
+    background: transparent;
+    border: none;
+    color: #6c757d;
+    padding: 6px 10px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.action-button:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+
+/* Dropdown */
+.dropdown {
+    position: relative;
+}
+
+.dropdown .dropdown-menu {
+    z-index: 9999 !important;
+}
+
+.tasks-table tbody td {
+    position: relative;
+    overflow: visible;
+}
+</style>
+
+<script>
 function editTask(taskId) {
-    window.location.href = `/tasks/${taskId}/edit`;
+    const modal = new bootstrap.Modal(document.getElementById('editTaskModal'));
+    const content = document.getElementById('editTaskContent');
+    const form = document.getElementById('editTaskForm');
+    
+    form.action = `/tasks/${taskId}/edit`;
+    
+    content.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+        </div>
+    `;
+    
+    modal.show();
+    
+    fetch(`/tasks/${taskId}/data`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                content.innerHTML = buildEditTaskHTML(data.task, data.projects, data.users);
+            } else {
+                content.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Erro ao carregar dados da tarefa.
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            content.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Erro ao carregar dados da tarefa.
+                </div>
+            `;
+        });
+}
+
+function buildEditTaskHTML(task, projects, users) {
+    const dataFormatted = task.data_conclusao ? task.data_conclusao : '';
+    
+    return `
+        <input type="hidden" name="csrf_token" value="${document.querySelector('input[name=csrf_token]') ? document.querySelector('input[name=csrf_token]').value : ''}">
+        
+        <div class="mb-3">
+            <label class="form-label">Título</label>
+            <input type="text" class="form-control bg-dark text-light border-secondary" name="titulo" value="${escapeHtml(task.titulo || '')}" required>
+        </div>
+        
+        <div class="mb-3">
+            <label class="form-label">Descrição</label>
+            <textarea class="form-control bg-dark text-light border-secondary" name="descricao" rows="4">${escapeHtml(task.descricao || '')}</textarea>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Projeto</label>
+                <select class="form-select bg-dark text-light border-secondary" name="project_id" required>
+                    ${projects.map(project => 
+                        `<option value="${project.id}" ${project.id === task.project_id ? 'selected' : ''}>${escapeHtml(project.client_nome)} - ${escapeHtml(project.nome)}</option>`
+                    ).join('')}
+                </select>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Responsável</label>
+                <select class="form-select bg-dark text-light border-secondary" name="assigned_user_id">
+                    <option value="">Não atribuído</option>
+                    ${users.map(user => 
+                        `<option value="${user.id}" ${user.id === task.assigned_user_id ? 'selected' : ''}>${escapeHtml(user.full_name)}</option>`
+                    ).join('')}
+                </select>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Status</label>
+                <select class="form-select bg-dark text-light border-secondary" name="status" required>
+                    <option value="pendente" ${task.status === 'pendente' ? 'selected' : ''}>Pendente</option>
+                    <option value="em_andamento" ${task.status === 'em_andamento' ? 'selected' : ''}>Em Andamento</option>
+                    <option value="concluida" ${task.status === 'concluida' ? 'selected' : ''}>Concluída</option>
+                </select>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Data de Conclusão</label>
+                <input type="date" class="form-control bg-dark text-light border-secondary" name="data_conclusao" value="${dataFormatted}">
+            </div>
+        </div>
+    `;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 </script>
 {% endblock %}

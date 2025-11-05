@@ -180,10 +180,6 @@
                         {{ form.endereco(class="form-control bg-dark text-light border-secondary", rows=2, placeholder="Insira o endereço completo") }}
                     </div>
                     <div class="mb-3">
-                        {{ form.cpf_cnpj.label(class="form-label") }}
-                        {{ form.cpf_cnpj(class="form-control bg-dark text-light border-secondary", placeholder="000.000.000-00 ou 00.000.000/0000-00") }}
-                    </div>
-                    <div class="mb-3">
                         {{ form.observacoes.label(class="form-label") }}
                         {{ form.observacoes(class="form-control bg-dark text-light border-secondary", rows=3, placeholder="Adicione notas ou observações importantes sobre o cliente...") }}
                     </div>
@@ -412,11 +408,6 @@ function buildEditClientHTML(client) {
         <div class="mb-3">
             <label class="form-label">Endereço</label>
             <textarea class="form-control bg-dark text-light border-secondary" name="endereco" rows="2" placeholder="Insira o endereço completo">${escapeHtml(client.endereco || '')}</textarea>
-        </div>
-        
-        <div class="mb-3">
-            <label class="form-label">CPF/CNPJ</label>
-            <input type="text" class="form-control bg-dark text-light border-secondary" name="cpf_cnpj" value="${escapeHtml(client.cpf_cnpj || '')}" placeholder="000.000.000-00 ou 00.000.000/0000-00">
         </div>
         
         <div class="mb-3">

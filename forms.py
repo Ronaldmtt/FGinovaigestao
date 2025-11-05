@@ -56,7 +56,6 @@ class ClientForm(FlaskForm):
     email = StringField('Email')
     telefone = StringField('Telefone')
     endereco = TextAreaField('Endereço')
-    cpf_cnpj = StringField('CPF/CNPJ')
     observacoes = TextAreaField('Observações')
 
 class ProjectForm(FlaskForm):

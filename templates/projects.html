@@ -3,18 +3,18 @@
 {% block title %}Projetos - Sistema de Gerenciamento de Projetos{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
+<div class="container-fluid px-4">
     <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0">Projetos</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4 pt-3">
+        <h2 class="mb-0 fw-bold">Projetos</h2>
         <div class="d-flex gap-2">
-            <button class="btn btn-outline-secondary btn-icon" type="button" data-bs-toggle="collapse" data-bs-target="#advancedFilters">
+            <button class="btn btn-outline-secondary btn-icon-filter" type="button" data-bs-toggle="collapse" data-bs-target="#advancedFilters">
                 <i class="fas fa-filter"></i>
             </button>
-            <button class="btn btn-outline-secondary btn-icon">
+            <button class="btn btn-outline-secondary btn-icon-filter">
                 <i class="fas fa-calendar-alt"></i>
             </button>
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newProjectModal">
+            <button type="button" class="btn btn-primary px-4" data-bs-toggle="modal" data-bs-target="#newProjectModal">
                 <i class="fas fa-plus me-2"></i>Criar Novo Projeto
             </button>
         </div>
@@ -58,83 +58,85 @@
 
     <!-- Pills de Status -->
     <div class="mb-4">
-        <div class="btn-group status-pills" role="group">
-            <a href="{{ url_for('projects') }}" class="btn btn-pill {% if not current_filters.status %}active{% endif %}">
-                Todos ({{ status_counts.todos }})
+        <div class="status-pills-container">
+            <a href="{{ url_for('projects') }}" class="status-pill {% if not current_filters.status %}active{% endif %}">
+                Todos
             </a>
-            <a href="{{ url_for('projects', status='em_andamento') }}" class="btn btn-pill {% if current_filters.status == 'em_andamento' %}active{% endif %}">
-                Ativos ({{ status_counts.em_andamento }})
+            <a href="{{ url_for('projects', status='em_andamento') }}" class="status-pill {% if current_filters.status == 'em_andamento' %}active{% endif %}">
+                Ativos
             </a>
-            <a href="{{ url_for('projects', status='concluido') }}" class="btn btn-pill {% if current_filters.status == 'concluido' %}active{% endif %}">
-                Concluídos ({{ status_counts.concluido }})
+            <a href="{{ url_for('projects', status='concluido') }}" class="status-pill {% if current_filters.status == 'concluido' %}active{% endif %}">
+                Concluídos
             </a>
-            <a href="{{ url_for('projects', status='pausado') }}" class="btn btn-pill {% if current_filters.status == 'pausado' %}active{% endif %}">
-                Em Espera ({{ status_counts.pausado }})
+            <a href="{{ url_for('projects', status='pausado') }}" class="status-pill {% if current_filters.status == 'pausado' %}active{% endif %}">
+                Em Espera
             </a>
         </div>
     </div>
 
     <!-- Tabela de Projetos -->
-    <div class="card bg-dark border-0" style="border-radius: 12px;">
-        <div class="table-responsive" style="overflow-x: auto; overflow-y: visible;">
-            <table class="table table-hover mb-0 projects-table">
+    <div class="projects-card">
+        <div class="table-wrapper">
+            <table class="projects-table">
                 <thead>
-                    <tr class="border-0">
-                        <th class="border-0 py-3 ps-4 text-muted text-uppercase small">Nome do Projeto</th>
-                        <th class="border-0 py-3 text-muted text-uppercase small">Líder do Projeto</th>
-                        <th class="border-0 py-3 text-muted text-uppercase small">Status</th>
-                        <th class="border-0 py-3 text-muted text-uppercase small">Prazo</th>
-                        <th class="border-0 py-3 text-muted text-uppercase small">Progresso</th>
-                        <th class="border-0 py-3 pe-4 text-muted text-uppercase small">Ações</th>
+                    <tr>
+                        <th>NOME DO PROJETO</th>
+                        <th>LÍDER DO PROJETO</th>
+                        <th>STATUS</th>
+                        <th>PRAZO</th>
+                        <th>PROGRESSO</th>
+                        <th class="text-end">AÇÕES</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% if projects %}
                     {% for project in projects %}
-                    <tr class="border-0">
-                        <td class="ps-4 py-3">
-                            <a href="{{ url_for('project_detail', id=project.id) }}" class="text-decoration-none text-light fw-semibold">
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('project_detail', id=project.id) }}" class="project-name">
                                 {{ project.nome }}
                             </a>
                         </td>
-                        <td class="py-3 text-light">{{ project.responsible.full_name }}</td>
-                        <td class="py-3">
+                        <td class="text-secondary">{{ project.responsible.full_name }}</td>
+                        <td>
                             {% if project.status == 'em_andamento' %}
-                                <span class="badge-status badge-ativo">Ativo</span>
+                                <span class="status-badge status-active">Ativo</span>
                             {% elif project.status == 'pausado' %}
-                                <span class="badge-status badge-espera">Em Espera</span>
+                                <span class="status-badge status-pending">Em Espera</span>
                             {% elif project.status == 'cancelado' %}
-                                <span class="badge-status badge-atrasado">Cancelado</span>
+                                <span class="status-badge status-delayed">Cancelado</span>
                             {% elif project.status == 'concluido' %}
-                                <span class="badge-status badge-concluido">Concluído</span>
+                                <span class="status-badge status-completed">Concluído</span>
                             {% endif %}
                         </td>
-                        <td class="py-3 text-muted">
+                        <td class="text-secondary">
                             {% if project.prazo %}
                                 {{ project.prazo.strftime('%d/%m/%Y') }}
                             {% else %}
                                 -
                             {% endif %}
                         </td>
-                        <td class="py-3">
-                            <div class="d-flex align-items-center gap-2">
-                                <div class="progress flex-grow-1" style="height: 8px; width: 100px;">
+                        <td>
+                            <div class="progress-container">
+                                <div class="progress-wrapper">
                                     {% set progress = project.progress_percent or 0 %}
                                     {% if progress <= 25 %}
-                                        {% set progress_color = 'bg-danger' %}
+                                        {% set progress_color = 'progress-danger' %}
                                     {% elif progress <= 75 %}
-                                        {% set progress_color = 'bg-warning' %}
+                                        {% set progress_color = 'progress-warning' %}
                                     {% else %}
-                                        {% set progress_color = 'bg-success' %}
+                                        {% set progress_color = 'progress-success' %}
                                     {% endif %}
-                                    <div class="progress-bar {{ progress_color }}" role="progressbar" style="width: {{ progress }}%;" aria-valuenow="{{ progress }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                    <div class="progress-bar-custom">
+                                        <div class="progress-fill {{ progress_color }}" style="width: {{ progress }}%;"></div>
+                                    </div>
                                 </div>
-                                <span class="text-muted small">{{ progress }}%</span>
+                                <span class="progress-text">{{ progress }}%</span>
                             </div>
                         </td>
-                        <td class="pe-4 py-3">
+                        <td class="text-end">
                             <div class="dropup">
-                                <button class="btn btn-sm btn-icon-only" type="button" data-bs-toggle="dropdown" data-bs-auto-close="true">
+                                <button class="action-button" type="button" data-bs-toggle="dropdown" data-bs-auto-close="true">
                                     <i class="fas fa-ellipsis-v"></i>
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end bg-dark border-secondary">
@@ -202,7 +204,7 @@
 {% endif %}
 {% endfor %}
 
-<!-- Modal para novo projeto com IA -->
+<!-- Modal para novo projeto -->
 <div class="modal fade" id="newProjectModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content bg-dark text-light">
@@ -296,68 +298,89 @@
 </div>
 
 <style>
-.btn-icon {
-    width: 40px;
-    height: 40px;
+/* Botões de ícone */
+.btn-icon-filter {
+    width: 38px;
+    height: 38px;
     padding: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 8px;
+    border-radius: 6px;
+    font-size: 14px;
 }
 
-.btn-icon-only {
+/* Pills de status (filtros) */
+.status-pills-container {
+    display: flex;
+    gap: 10px;
+}
+
+.status-pill {
     background: transparent;
     border: none;
-    color: #6c757d;
-    padding: 4px 8px;
-}
-
-.btn-icon-only:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
-}
-
-.status-pills {
-    display: flex;
-    gap: 8px;
-}
-
-.btn-pill {
-    background: transparent;
-    border: 1px solid #495057;
-    color: #adb5bd;
-    border-radius: 20px;
-    padding: 8px 20px;
-    font-size: 14px;
+    color: #8b92a8;
+    padding: 8px 18px;
+    font-size: 13px;
+    font-weight: 500;
     text-decoration: none;
+    border-radius: 6px;
     transition: all 0.2s;
 }
 
-.btn-pill:hover {
+.status-pill:hover {
     background: rgba(255, 255, 255, 0.05);
     color: #fff;
-    border-color: #6c757d;
 }
 
-.btn-pill.active {
+.status-pill.active {
     background: #0d6efd;
-    border-color: #0d6efd;
     color: #fff;
 }
 
+/* Card da tabela */
+.projects-card {
+    background: #1e2228;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Wrapper da tabela */
+.table-wrapper {
+    overflow-x: auto;
+    overflow-y: visible;
+}
+
+/* Tabela */
 .projects-table {
-    background: #1a1d23;
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
 }
 
 .projects-table thead th {
-    font-weight: 600;
+    background: #1e2228;
+    color: #6c757d;
     font-size: 11px;
+    font-weight: 600;
     letter-spacing: 0.5px;
+    padding: 16px 20px;
+    text-align: left;
+    border: none;
+}
+
+.projects-table thead th:first-child {
+    padding-left: 24px;
+}
+
+.projects-table thead th:last-child {
+    padding-right: 24px;
 }
 
 .projects-table tbody tr {
-    border-bottom: 1px solid #2d3139;
+    border-bottom: 1px solid #2a2f38;
+    transition: background 0.15s;
 }
 
 .projects-table tbody tr:last-child {
@@ -369,52 +392,129 @@
 }
 
 .projects-table tbody td {
-    border: none !important;
+    padding: 18px 20px;
+    color: #e9ecef;
+    font-size: 14px;
+    border: none;
+    vertical-align: middle;
 }
 
-.badge-status {
-    padding: 4px 12px;
-    border-radius: 12px;
-    font-size: 12px;
+.projects-table tbody td:first-child {
+    padding-left: 24px;
+}
+
+.projects-table tbody td:last-child {
+    padding-right: 24px;
+}
+
+/* Nome do projeto */
+.project-name {
+    color: #e9ecef;
+    text-decoration: none;
     font-weight: 500;
-    display: inline-block;
+    transition: color 0.2s;
 }
 
-.badge-ativo {
-    background: rgba(13, 110, 253, 0.2);
+.project-name:hover {
     color: #0d6efd;
 }
 
-.badge-concluido {
-    background: rgba(25, 135, 84, 0.2);
-    color: #198754;
+/* Badges de status */
+.status-badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+    display: inline-block;
+    text-transform: capitalize;
 }
 
-.badge-espera {
-    background: rgba(255, 193, 7, 0.2);
+.status-active {
+    background: rgba(13, 110, 253, 0.15);
+    color: #5ba3ff;
+}
+
+.status-completed {
+    background: rgba(25, 135, 84, 0.15);
+    color: #4ec991;
+}
+
+.status-pending {
+    background: rgba(255, 193, 7, 0.15);
     color: #ffc107;
 }
 
-.badge-atrasado {
-    background: rgba(220, 53, 69, 0.2);
-    color: #dc3545;
+.status-delayed {
+    background: rgba(220, 53, 69, 0.15);
+    color: #ff6b7a;
 }
 
-.progress {
-    background: #2d3139;
+/* Container de progresso */
+.progress-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.progress-wrapper {
+    flex: 0 0 100px;
+}
+
+.progress-bar-custom {
+    height: 6px;
+    background: #2a2f38;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.progress-danger {
+    background: #ff6b7a;
+}
+
+.progress-warning {
+    background: #ffc107;
+}
+
+.progress-success {
+    background: #4ec991;
+}
+
+.progress-text {
+    font-size: 13px;
+    color: #8b92a8;
+    font-weight: 500;
+    min-width: 35px;
+}
+
+/* Botão de ações */
+.action-button {
+    background: transparent;
+    border: none;
+    color: #6c757d;
+    padding: 6px 10px;
+    cursor: pointer;
     border-radius: 4px;
+    transition: all 0.2s;
 }
 
+.action-button:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+
+/* Dropdown */
 .dropup {
     position: relative;
 }
 
 .dropup .dropdown-menu {
     z-index: 1050 !important;
-}
-
-.projects-table tbody td {
-    position: relative;
 }
 </style>
 

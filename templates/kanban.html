@@ -2,255 +2,523 @@
 
 {% block title %}Kanban - Sistema de Gerenciamento de Projetos{% endblock %}
 
+{% block extra_css %}
+<style>
+.kanban-header {
+    background: transparent;
+    padding: 1.5rem 0;
+    margin-bottom: 1.5rem;
+}
+
+.kanban-title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.kanban-title i {
+    font-size: 1.5rem;
+}
+
+.btn-transcription {
+    background: var(--bs-secondary);
+    color: white;
+    border: none;
+    padding: 0.625rem 1.25rem;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btn-transcription:hover {
+    background: #5a6268;
+    color: white;
+}
+
+.btn-new-task {
+    background: #6366f1;
+    color: white;
+    border: none;
+    padding: 0.625rem 1.25rem;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btn-new-task:hover {
+    background: #5558e3;
+    color: white;
+}
+
+.filters-section {
+    background: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.filter-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.filter-group {
+    flex: 1;
+}
+
+.filter-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: var(--bs-body-color);
+}
+
+.filter-select {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 6px;
+    background: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    font-size: 0.875rem;
+}
+
+.filter-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.filter-checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.filter-checkbox label {
+    margin: 0;
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.filter-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.btn-filter {
+    background: #6366f1;
+    color: white;
+    border: none;
+    padding: 0.5rem 1.5rem;
+    border-radius: 6px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+}
+
+.btn-filter:hover {
+    background: #5558e3;
+    color: white;
+}
+
+.btn-clear-filters {
+    background: var(--bs-secondary);
+    color: white;
+    border: none;
+    padding: 0.5rem 1.5rem;
+    border-radius: 6px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+}
+
+.btn-clear-filters:hover {
+    background: #5a6268;
+    color: white;
+}
+
+.kanban-board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+}
+
+.kanban-column-wrapper {
+    display: flex;
+    flex-direction: column;
+}
+
+.kanban-column-header {
+    padding: 0.875rem 1.25rem;
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 600;
+    font-size: 0.9375rem;
+}
+
+.kanban-column-header.pendente {
+    background: #e5e7eb;
+    color: #1f2937;
+}
+
+.kanban-column-header.em_andamento {
+    background: #c7d2fe;
+    color: #4338ca;
+}
+
+.kanban-column-header.concluida {
+    background: #bbf7d0;
+    color: #15803d;
+}
+
+[data-theme="dark"] .kanban-column-header.pendente {
+    background: #374151;
+    color: #e5e7eb;
+}
+
+[data-theme="dark"] .kanban-column-header.em_andamento {
+    background: #4338ca;
+    color: #e0e7ff;
+}
+
+[data-theme="dark"] .kanban-column-header.concluida {
+    background: #166534;
+    color: #d1fae5;
+}
+
+.column-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.column-badge {
+    background: rgba(0,0,0,0.1);
+    color: inherit;
+    padding: 0.125rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+[data-theme="dark"] .column-badge {
+    background: rgba(255,255,255,0.15);
+}
+
+.kanban-column {
+    background: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    padding: 1rem;
+    min-height: 500px;
+}
+
+.task-card {
+    background: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.task-card:hover {
+    border-color: #6366f1;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
+}
+
+.task-card.disparada {
+    border-left: 3px solid #ef4444;
+}
+
+.task-title {
+    font-weight: 600;
+    font-size: 0.9375rem;
+    margin-bottom: 0.5rem;
+    color: var(--bs-body-color);
+    line-height: 1.4;
+}
+
+.task-project {
+    font-size: 0.8125rem;
+    color: #6b7280;
+    margin-bottom: 0.5rem;
+}
+
+[data-theme="dark"] .task-project {
+    color: #9ca3af;
+}
+
+.task-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    margin-top: 0.75rem;
+}
+
+.task-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.8125rem;
+}
+
+.task-meta-item i {
+    width: 14px;
+    font-size: 0.75rem;
+}
+
+.task-meta-user {
+    color: #6366f1;
+}
+
+.task-meta-date {
+    color: #f59e0b;
+}
+
+.task-meta-dispatched {
+    color: #ef4444;
+    font-weight: 500;
+}
+
+.task-meta-completed {
+    color: #10b981;
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center">
-            <h2><i class="fas fa-columns me-2"></i>Kanban</h2>
-            <div>
-                <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#transcriptionModal">
-                    <i class="fas fa-microphone me-1"></i>Incluir Transcrição
-                </button>
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newTaskKanbanModal">
-                    <i class="fas fa-plus me-1"></i>Nova Tarefa
-                </button>
-            </div>
+<!-- Header -->
+<div class="kanban-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <h1 class="kanban-title">
+            <i class="fas fa-columns"></i>
+            Kanban
+        </h1>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn-transcription" data-bs-toggle="modal" data-bs-target="#transcriptionModal">
+                <i class="fas fa-file-alt me-1"></i>Incluir Transcrição
+            </button>
+            <button type="button" class="btn-new-task" data-bs-toggle="modal" data-bs-target="#newTaskKanbanModal">
+                <i class="fas fa-plus me-1"></i>Nova Tarefa
+            </button>
         </div>
     </div>
 </div>
 
 <!-- Filtros -->
-<div class="row mt-3">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-body">
-                <form method="GET" class="row g-3 align-items-end">
-                    <div class="col-md-3">
-                        <label class="form-label">Filtrar por Projeto</label>
-                        <select name="project_id" class="form-select">
-                            <option value="">Todos os projetos</option>
-                            {% for project in projects %}
-                            <option value="{{ project.id }}" {% if current_filters.project_id == project.id %}selected{% endif %}>
-                                {{ project.client.nome }} - {{ project.nome }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <div class="col-md-3">
-                        <label class="form-label">Filtrar por Cliente</label>
-                        <select name="client_id" class="form-select">
-                            <option value="">Todos os clientes</option>
-                            {% for client in clients %}
-                            <option value="{{ client.id }}" {% if current_filters.client_id == client.id %}selected{% endif %}>
-                                {{ client.nome }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <div class="col-md-3">
-                        <label class="form-label">Filtrar por Usuário</label>
-                        <select name="user_id" class="form-select">
-                            <option value="">Todos os usuários</option>
-                            {% for user in all_users %}
-                            <option value="{{ user.id }}" {% if current_filters.user_id == user.id %}selected{% endif %}>
-                                {{ user.full_name }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <div class="col-md-3">
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-filter me-1"></i>Filtrar
-                        </button>
-                    </div>
-                    
-                    <div class="col-md-12 mt-3">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="my_tasks" value="1" 
-                                       {% if current_filters.my_tasks %}checked{% endif %} id="myTasksCheck">
-                                <label class="form-check-label" for="myTasksCheck">
-                                    Apenas minhas tarefas
-                                </label>
-                            </div>
-                            <div class="d-flex gap-2">
-                                {% if current_user.is_admin %}
-                                <button type="button" class="btn btn-success" onclick="dispatchFilteredTasks()">
-                                    <i class="fas fa-paper-plane me-1"></i>Disparar Tarefas
-                                </button>
-                                {% endif %}
-                                <a href="{{ url_for('kanban') }}" class="btn btn-outline-secondary">
-                                    <i class="fas fa-times me-1"></i>Limpar Filtros
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </form>
+<div class="filters-section">
+    <form method="GET">
+        <div class="filter-row">
+            <div class="filter-group">
+                <div class="filter-label">Filtrar por Projeto</div>
+                <select name="project_id" class="filter-select">
+                    <option value="">Todos os projetos</option>
+                    {% for project in projects %}
+                    <option value="{{ project.id }}" {% if current_filters.project_id == project.id %}selected{% endif %}>
+                        {{ project.client.nome }} - {{ project.nome }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <div class="filter-label">Filtrar por Cliente</div>
+                <select name="client_id" class="filter-select">
+                    <option value="">Todos os clientes</option>
+                    {% for client in clients %}
+                    <option value="{{ client.id }}" {% if current_filters.client_id == client.id %}selected{% endif %}>
+                        {{ client.nome }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <div class="filter-label">Filtrar por Usuário</div>
+                <select name="user_id" class="filter-select">
+                    <option value="">Todos os usuários</option>
+                    {% for user in all_users %}
+                    <option value="{{ user.id }}" {% if current_filters.user_id == user.id %}selected{% endif %}>
+                        {{ user.full_name }}
+                    </option>
+                    {% endfor %}
+                </select>
             </div>
         </div>
-    </div>
+        
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="filter-checkbox">
+                <input type="checkbox" name="my_tasks" value="1" id="myTasksCheck" 
+                       {% if current_filters.my_tasks %}checked{% endif %}>
+                <label for="myTasksCheck">Apenas minhas tarefas</label>
+            </div>
+            
+            <div class="filter-actions">
+                <button type="submit" class="btn-filter">
+                    <i class="fas fa-filter"></i>
+                    Filtrar
+                </button>
+                <a href="{{ url_for('kanban') }}" class="btn-clear-filters">
+                    <i class="fas fa-times"></i>
+                    Limpar Filtros
+                </a>
+            </div>
+        </div>
+    </form>
 </div>
 
 <!-- Kanban Board -->
-<div class="row mt-4">
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header bg-secondary text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-clock me-2"></i>Pendente
-                    <span class="badge bg-light text-dark ms-2">{{ task_columns.pendente|length }}</span>
-                </h5>
+<div class="kanban-board">
+    <!-- Coluna Pendente -->
+    <div class="kanban-column-wrapper">
+        <div class="kanban-column-header pendente">
+            <div class="column-title">
+                <i class="fas fa-clock"></i>
+                Pendente
             </div>
-            <div class="card-body kanban-column" data-status="pendente" style="min-height: 400px;">
-                {% for task in task_columns.pendente %}
-                <div class="task-card card mb-2 {% if task.disparada %}border-danger{% endif %}" data-task-id="{{ task.id }}" draggable="true" onclick="editTask({{ task.id }})" style="cursor: pointer;">
-                    <div class="card-body p-2">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <h6 class="card-title mb-1">
-                                {% if task.disparada %}<i class="fas fa-paper-plane text-danger me-1" title="Tarefa disparada"></i>{% endif %}
-                                {{ task.titulo }}
-                            </h6>
-                            {% if current_user.is_admin %}
-                            <button class="btn btn-sm {% if task.disparada %}btn-danger{% else %}btn-outline-secondary{% endif %}" 
-                                    onclick="event.stopPropagation(); dispatchTask({{ task.id }})" 
-                                    title="{% if task.disparada %}Cancelar disparo{% else %}Disparar tarefa{% endif %}"
-                                    id="dispatch-btn-{{ task.id }}">
-                                <i class="fas fa-paper-plane"></i>
-                            </button>
-                            {% endif %}
-                        </div>
-                        <small class="text-muted d-block">{{ task.project.client.nome }} - {{ task.project.nome }}</small>
-                        {% if task.assigned_user %}
-                        <small class="text-info d-block">
-                            <i class="fas fa-user me-1"></i>{{ task.assigned_user.full_name }}
-                        </small>
-                        {% endif %}
-                        {% if task.data_conclusao %}
-                        <small class="text-warning d-block">
-                            <i class="fas fa-calendar me-1"></i>{{ task.data_conclusao.strftime('%d/%m/%Y') }}
-                        </small>
-                        {% endif %}
-                        {% if task.disparada and task.disparada_at %}
-                        <small class="text-danger d-block">
-                            <i class="fas fa-paper-plane me-1"></i>Disparada em {{ task.disparada_at.strftime('%d/%m/%Y %H:%M') }}
-                        </small>
-                        {% endif %}
+            <span class="column-badge">{{ task_columns.pendente|length }}</span>
+        </div>
+        <div class="kanban-column" data-status="pendente">
+            {% for task in task_columns.pendente %}
+            <div class="task-card {% if task.disparada %}disparada{% endif %}" 
+                 data-task-id="{{ task.id }}" 
+                 draggable="true" 
+                 onclick="editTask({{ task.id }})">
+                <div class="task-title">{{ task.titulo }}</div>
+                <div class="task-project">{{ task.project.client.nome }} - {{ task.project.nome }}</div>
+                <div class="task-meta">
+                    {% if task.assigned_user %}
+                    <div class="task-meta-item task-meta-user">
+                        <i class="fas fa-user"></i>
+                        {{ task.assigned_user.full_name }}
                     </div>
+                    {% endif %}
+                    {% if task.data_conclusao %}
+                    <div class="task-meta-item task-meta-date">
+                        <i class="fas fa-calendar"></i>
+                        {{ task.data_conclusao.strftime('%d/%m/%Y') }}
+                    </div>
+                    {% endif %}
+                    {% if task.disparada and task.disparada_at %}
+                    <div class="task-meta-item task-meta-dispatched">
+                        <i class="fas fa-paper-plane"></i>
+                        Disparada em {{ task.disparada_at.strftime('%d/%m/%Y %H:%M') }}
+                    </div>
+                    {% endif %}
                 </div>
-                {% endfor %}
             </div>
+            {% endfor %}
         </div>
     </div>
     
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-play me-2"></i>Em Andamento
-                    <span class="badge bg-light text-dark ms-2">{{ task_columns.em_andamento|length }}</span>
-                </h5>
+    <!-- Coluna Em Andamento -->
+    <div class="kanban-column-wrapper">
+        <div class="kanban-column-header em_andamento">
+            <div class="column-title">
+                <i class="fas fa-play"></i>
+                Em Andamento
             </div>
-            <div class="card-body kanban-column" data-status="em_andamento" style="min-height: 400px;">
-                {% for task in task_columns.em_andamento %}
-                <div class="task-card card mb-2 {% if task.disparada %}border-danger{% endif %}" data-task-id="{{ task.id }}" draggable="true" onclick="editTask({{ task.id }})" style="cursor: pointer;">
-                    <div class="card-body p-2">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <h6 class="card-title mb-1">
-                                {% if task.disparada %}<i class="fas fa-paper-plane text-danger me-1" title="Tarefa disparada"></i>{% endif %}
-                                {{ task.titulo }}
-                            </h6>
-                            {% if current_user.is_admin %}
-                            <button class="btn btn-sm {% if task.disparada %}btn-danger{% else %}btn-outline-secondary{% endif %}" 
-                                    onclick="event.stopPropagation(); dispatchTask({{ task.id }})" 
-                                    title="{% if task.disparada %}Cancelar disparo{% else %}Disparar tarefa{% endif %}"
-                                    id="dispatch-btn-{{ task.id }}">
-                                <i class="fas fa-paper-plane"></i>
-                            </button>
-                            {% endif %}
-                        </div>
-                        <small class="text-muted d-block">{{ task.project.client.nome }} - {{ task.project.nome }}</small>
-                        {% if task.assigned_user %}
-                        <small class="text-info d-block">
-                            <i class="fas fa-user me-1"></i>{{ task.assigned_user.full_name }}
-                        </small>
-                        {% endif %}
-                        {% if task.data_conclusao %}
-                        <small class="text-warning d-block">
-                            <i class="fas fa-calendar me-1"></i>{{ task.data_conclusao.strftime('%d/%m/%Y') }}
-                        </small>
-                        {% endif %}
-                        {% if task.disparada and task.disparada_at %}
-                        <small class="text-danger d-block">
-                            <i class="fas fa-paper-plane me-1"></i>Disparada em {{ task.disparada_at.strftime('%d/%m/%Y %H:%M') }}
-                        </small>
-                        {% endif %}
+            <span class="column-badge">{{ task_columns.em_andamento|length }}</span>
+        </div>
+        <div class="kanban-column" data-status="em_andamento">
+            {% for task in task_columns.em_andamento %}
+            <div class="task-card {% if task.disparada %}disparada{% endif %}" 
+                 data-task-id="{{ task.id }}" 
+                 draggable="true" 
+                 onclick="editTask({{ task.id }})">
+                <div class="task-title">{{ task.titulo }}</div>
+                <div class="task-project">{{ task.project.client.nome }} - {{ task.project.nome }}</div>
+                <div class="task-meta">
+                    {% if task.assigned_user %}
+                    <div class="task-meta-item task-meta-user">
+                        <i class="fas fa-user"></i>
+                        {{ task.assigned_user.full_name }}
                     </div>
+                    {% endif %}
+                    {% if task.data_conclusao %}
+                    <div class="task-meta-item task-meta-date">
+                        <i class="fas fa-calendar"></i>
+                        {{ task.data_conclusao.strftime('%d/%m/%Y') }}
+                    </div>
+                    {% endif %}
+                    {% if task.disparada and task.disparada_at %}
+                    <div class="task-meta-item task-meta-dispatched">
+                        <i class="fas fa-paper-plane"></i>
+                        Disparada em {{ task.disparada_at.strftime('%d/%m/%Y %H:%M') }}
+                    </div>
+                    {% endif %}
                 </div>
-                {% endfor %}
             </div>
+            {% endfor %}
         </div>
     </div>
     
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header bg-success text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-check me-2"></i>Concluída
-                    <span class="badge bg-light text-dark ms-2">{{ task_columns.concluida|length }}</span>
-                </h5>
+    <!-- Coluna Concluída -->
+    <div class="kanban-column-wrapper">
+        <div class="kanban-column-header concluida">
+            <div class="column-title">
+                <i class="fas fa-check-circle"></i>
+                Concluída
             </div>
-            <div class="card-body kanban-column" data-status="concluida" style="min-height: 400px;">
-                {% for task in task_columns.concluida %}
-                <div class="task-card card mb-2 {% if task.disparada %}border-danger{% endif %}" data-task-id="{{ task.id }}" draggable="true" onclick="editTask({{ task.id }})" style="cursor: pointer;">
-                    <div class="card-body p-2">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <h6 class="card-title mb-1">
-                                {% if task.disparada %}<i class="fas fa-paper-plane text-danger me-1" title="Tarefa disparada"></i>{% endif %}
-                                {{ task.titulo }}
-                            </h6>
-                            {% if current_user.is_admin %}
-                            <button class="btn btn-sm {% if task.disparada %}btn-danger{% else %}btn-outline-secondary{% endif %}" 
-                                    onclick="event.stopPropagation(); dispatchTask({{ task.id }})" 
-                                    title="{% if task.disparada %}Cancelar disparo{% else %}Disparar tarefa{% endif %}"
-                                    id="dispatch-btn-{{ task.id }}">
-                                <i class="fas fa-paper-plane"></i>
-                            </button>
-                            {% endif %}
-                        </div>
-                        <small class="text-muted d-block">{{ task.project.client.nome }} - {{ task.project.nome }}</small>
-                        {% if task.assigned_user %}
-                        <small class="text-info d-block">
-                            <i class="fas fa-user me-1"></i>{{ task.assigned_user.full_name }}
-                        </small>
-                        {% endif %}
-                        {% if task.completed_at %}
-                        <small class="text-success d-block">
-                            <i class="fas fa-check me-1"></i>{{ task.completed_at.strftime('%d/%m/%Y') }}
-                        </small>
-                        {% endif %}
-                        {% if task.disparada and task.disparada_at %}
-                        <small class="text-danger d-block">
-                            <i class="fas fa-paper-plane me-1"></i>Disparada em {{ task.disparada_at.strftime('%d/%m/%Y %H:%M') }}
-                        </small>
-                        {% endif %}
+            <span class="column-badge">{{ task_columns.concluida|length }}</span>
+        </div>
+        <div class="kanban-column" data-status="concluida">
+            {% for task in task_columns.concluida %}
+            <div class="task-card {% if task.disparada %}disparada{% endif %}" 
+                 data-task-id="{{ task.id }}" 
+                 draggable="true" 
+                 onclick="editTask({{ task.id }})">
+                <div class="task-title">{{ task.titulo }}</div>
+                <div class="task-project">{{ task.project.client.nome }} - {{ task.project.nome }}</div>
+                <div class="task-meta">
+                    {% if task.assigned_user %}
+                    <div class="task-meta-item task-meta-user">
+                        <i class="fas fa-user"></i>
+                        {{ task.assigned_user.full_name }}
                     </div>
+                    {% endif %}
+                    {% if task.completed_at %}
+                    <div class="task-meta-item task-meta-completed">
+                        <i class="fas fa-check"></i>
+                        {{ task.completed_at.strftime('%d/%m/%Y') }}
+                    </div>
+                    {% endif %}
+                    {% if task.disparada and task.disparada_at %}
+                    <div class="task-meta-item task-meta-dispatched">
+                        <i class="fas fa-paper-plane"></i>
+                        Disparada em {{ task.disparada_at.strftime('%d/%m/%Y %H:%M') }}
+                    </div>
+                    {% endif %}
                 </div>
-                {% endfor %}
             </div>
+            {% endfor %}
         </div>
     </div>
 </div>
 
 <!-- Modal de Edição de Tarefa -->
-<div class="modal fade" id="editTaskModal" tabindex="-1" aria-labelledby="editTaskModalLabel" aria-hidden="true">
+<div class="modal fade" id="editTaskModal" tabindex="-1">
     <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editTaskModalLabel">Editar Tarefa</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">Editar Tarefa</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form id="editTaskForm">
                 <div class="modal-body">
@@ -258,17 +526,17 @@
                     
                     <div class="mb-3">
                         <label for="editTaskTitulo" class="form-label">Título da Tarefa</label>
-                        <input type="text" class="form-control" id="editTaskTitulo" required>
+                        <input type="text" class="form-control bg-dark text-light border-secondary" id="editTaskTitulo" required>
                     </div>
                     
                     <div class="mb-3">
                         <label for="editTaskDescricao" class="form-label">Descrição</label>
-                        <textarea class="form-control" id="editTaskDescricao" rows="4"></textarea>
+                        <textarea class="form-control bg-dark text-light border-secondary" id="editTaskDescricao" rows="4"></textarea>
                     </div>
                     
                     <div class="mb-3">
                         <label for="editTaskResponsavel" class="form-label">Responsável</label>
-                        <select class="form-select" id="editTaskResponsavel">
+                        <select class="form-select bg-dark text-light border-secondary" id="editTaskResponsavel">
                             <option value="">Selecione um usuário</option>
                             {% for user in all_users %}
                             <option value="{{ user.id }}">{{ user.full_name }}</option>
@@ -278,7 +546,7 @@
                     
                     <div class="mb-3">
                         <label for="editTaskStatus" class="form-label">Status</label>
-                        <select class="form-select" id="editTaskStatus" required>
+                        <select class="form-select bg-dark text-light border-secondary" id="editTaskStatus" required>
                             <option value="pendente">Pendente</option>
                             <option value="em_andamento">Em Andamento</option>
                             <option value="concluida">Concluída</option>
@@ -287,23 +555,23 @@
                     
                     <div class="mb-3">
                         <label for="editTaskDataConclusao" class="form-label">Data de Conclusão</label>
-                        <input type="date" class="form-control" id="editTaskDataConclusao">
+                        <input type="date" class="form-control bg-dark text-light border-secondary" id="editTaskDataConclusao">
                     </div>
                     
                     <div class="mb-3">
                         <label class="form-label">Lista de To-Do's</label>
-                        <div id="todosList" class="border rounded p-2" style="max-height: 200px; overflow-y: auto;">
+                        <div id="todosList" class="border border-secondary rounded p-2 bg-dark" style="max-height: 200px; overflow-y: auto;">
                             <!-- To-do's serão carregados aqui -->
                         </div>
                         <div class="d-flex mt-2">
-                            <input type="text" class="form-control" id="newTodoText" placeholder="Adicionar novo to-do..." maxlength="300">
+                            <input type="text" class="form-control bg-dark text-light border-secondary" id="newTodoText" placeholder="Adicionar novo to-do..." maxlength="300">
                             <button type="button" class="btn btn-outline-primary ms-2" onclick="addTodo()">
                                 <i class="fas fa-plus"></i>
                             </button>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer border-secondary">
                     <button type="button" class="btn btn-danger me-auto" onclick="deleteTask()">
                         <i class="fas fa-trash"></i> Deletar Tarefa
                     </button>
@@ -315,21 +583,76 @@
     </div>
 </div>
 
+<!-- Modal de Nova Tarefa -->
+<div class="modal fade" id="newTaskKanbanModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">Nova Tarefa</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('new_manual_task') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Título da Tarefa</label>
+                        <input type="text" class="form-control bg-dark text-light border-secondary" name="titulo" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Descrição</label>
+                        <textarea class="form-control bg-dark text-light border-secondary" name="descricao" rows="4"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Projeto</label>
+                        <select class="form-select bg-dark text-light border-secondary" name="project_id" required>
+                            <option value="">Selecione um projeto</option>
+                            {% for project in projects %}
+                            <option value="{{ project.id }}">{{ project.client.nome }} - {{ project.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Responsável</label>
+                        <select class="form-select bg-dark text-light border-secondary" name="assigned_user_id">
+                            <option value="">Selecione um usuário</option>
+                            {% for user in all_users %}
+                            <option value="{{ user.id }}">{{ user.full_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Data de Conclusão</label>
+                        <input type="date" class="form-control bg-dark text-light border-secondary" name="data_conclusao">
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Criar Tarefa</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Modal de Transcrição -->
-<div class="modal fade" id="transcriptionModal" tabindex="-1" aria-labelledby="transcriptionModalLabel" aria-hidden="true">
+<div class="modal fade" id="transcriptionModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="transcriptionModalLabel">
-                    <i class="fas fa-microphone me-2"></i>Incluir Transcrição
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">
+                    <i class="fas fa-file-alt me-2"></i>Incluir Transcrição
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form id="transcriptionForm">
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="transcriptionProject" class="form-label">Selecionar Projeto</label>
-                        <select class="form-select" id="transcriptionProject" required>
+                        <select class="form-select bg-dark text-light border-secondary" id="transcriptionProject" required>
                             <option value="">Selecione um projeto</option>
                             {% for project in projects %}
                             <option value="{{ project.id }}">{{ project.client.nome }} - {{ project.nome }}</option>
@@ -339,12 +662,12 @@
                     
                     <div class="mb-3">
                         <label for="transcriptionText" class="form-label">Transcrição</label>
-                        <textarea class="form-control" id="transcriptionText" rows="8" 
+                        <textarea class="form-control bg-dark text-light border-secondary" id="transcriptionText" rows="8" 
                                   placeholder="Cole aqui a transcrição da reunião ou discussão do projeto..." required></textarea>
-                        <div class="form-text">A IA analisará esta transcrição e gerará tarefas automaticamente para o projeto selecionado.</div>
+                        <div class="form-text text-light-emphasis">A IA analisará esta transcrição e gerará tarefas automaticamente para o projeto selecionado.</div>
                     </div>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer border-secondary">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-success">
                         <i class="fas fa-magic me-1"></i>Gerar Tarefas
@@ -356,6 +679,9 @@
 </div>
 
 <script>
+// Variáveis globais para todos
+let currentTodos = [];
+
 // Função para editar tarefa
 function editTask(taskId) {
     fetch(`/api/tasks/${taskId}`)
@@ -368,7 +694,6 @@ function editTask(taskId) {
             document.getElementById('editTaskStatus').value = task.status || 'pendente';
             document.getElementById('editTaskDataConclusao').value = task.data_conclusao || '';
             
-            // Carregar to-do's
             loadTodos(task.todos || []);
             
             const modal = new bootstrap.Modal(document.getElementById('editTaskModal'));
@@ -380,49 +705,59 @@ function editTask(taskId) {
         });
 }
 
-// Função para atualizar card em tempo real
-function updateTaskCard(taskData) {
-    const taskCard = document.querySelector(`[data-task-id="${taskData.id}"]`);
-    if (!taskCard) return;
+// Gerenciamento de To-Dos
+function loadTodos(todos) {
+    currentTodos = todos;
+    renderTodos();
+}
+
+function renderTodos() {
+    const todosList = document.getElementById('todosList');
     
-    const cardBody = taskCard.querySelector('.card-body');
+    if (currentTodos.length === 0) {
+        todosList.innerHTML = '<p class="text-muted mb-0 p-2">Nenhum to-do adicionado ainda.</p>';
+        return;
+    }
     
-    // Atualizar o conteúdo do card
-    let newContent = `
-        <div class="d-flex justify-content-between align-items-start">
-            <h6 class="card-title mb-1">${taskData.titulo}</h6>
-            <button class="btn btn-sm btn-outline-primary" onclick="editTask(${taskData.id})" title="Editar tarefa">
-                <i class="fas fa-edit"></i>
+    todosList.innerHTML = currentTodos.map((todo, index) => `
+        <div class="d-flex align-items-center gap-2 p-2 border-bottom border-secondary">
+            <input type="checkbox" ${todo.completed ? 'checked' : ''} 
+                   onchange="toggleTodo(${index})" 
+                   class="form-check-input">
+            <span class="${todo.completed ? 'text-decoration-line-through text-muted' : ''}" 
+                  style="flex: 1;">${todo.texto}</span>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteTodo(${index})">
+                <i class="fas fa-trash"></i>
             </button>
         </div>
-        <small class="text-muted d-block">${taskData.project_client_name} - ${taskData.project_name}</small>
-    `;
+    `).join('');
+}
+
+function addTodo() {
+    const newTodoText = document.getElementById('newTodoText').value.trim();
+    if (!newTodoText) return;
     
-    // Adicionar responsável se existir
-    if (taskData.assigned_user_name) {
-        newContent += `
-        <small class="text-info d-block">
-            <i class="fas fa-user me-1"></i>${taskData.assigned_user_name}
-        </small>
-        `;
-    }
+    currentTodos.push({
+        texto: newTodoText,
+        completed: false
+    });
     
-    // Adicionar data de conclusão ou completed_at dependendo do status
-    if (taskData.status === 'concluida' && taskData.completed_at) {
-        newContent += `
-        <small class="text-success d-block">
-            <i class="fas fa-check-circle me-1"></i>${taskData.completed_at}
-        </small>
-        `;
-    } else if (taskData.data_conclusao) {
-        newContent += `
-        <small class="text-warning d-block">
-            <i class="fas fa-calendar me-1"></i>${taskData.data_conclusao}
-        </small>
-        `;
-    }
-    
-    cardBody.innerHTML = newContent;
+    document.getElementById('newTodoText').value = '';
+    renderTodos();
+}
+
+function toggleTodo(index) {
+    currentTodos[index].completed = !currentTodos[index].completed;
+    renderTodos();
+}
+
+function deleteTodo(index) {
+    currentTodos.splice(index, 1);
+    renderTodos();
+}
+
+function getCurrentTodos() {
+    return currentTodos;
 }
 
 // Salvar alterações da tarefa
@@ -449,458 +784,116 @@ document.getElementById('editTaskForm').addEventListener('submit', function(e) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            const modal = bootstrap.Modal.getInstance(document.getElementById('editTaskModal'));
-            modal.hide();
-            
-            // Atualizar card em tempo real
-            const taskCard = document.querySelector(`[data-task-id="${taskId}"]`);
-            const currentColumn = taskCard.closest('.kanban-column');
-            const targetColumn = document.querySelector(`[data-status="${data.task.status}"]`);
-            
-            // Se mudou de coluna, mover o card
-            if (currentColumn.dataset.status !== data.task.status) {
-                targetColumn.appendChild(taskCard);
-                updateColumnCounts();
-            }
-            
-            // Atualizar o conteúdo do card
-            updateTaskCard(data.task);
-            
+            location.reload();
         } else {
-            alert('Erro ao salvar alterações: ' + data.message);
+            alert('Erro ao atualizar tarefa');
         }
     })
     .catch(error => {
-        console.error('Erro ao salvar tarefa:', error);
-        alert('Erro ao salvar alterações');
+        console.error('Erro:', error);
+        alert('Erro ao atualizar tarefa');
     });
 });
 
-// Funções para gerenciar to-do's
-function loadTodos(todos) {
-    const todosList = document.getElementById('todosList');
-    todosList.innerHTML = '';
-    
-    todos.forEach(todo => {
-        const todoDiv = document.createElement('div');
-        todoDiv.className = 'd-flex align-items-center mb-2';
-        todoDiv.innerHTML = `
-            <input type="checkbox" class="form-check-input me-2" ${todo.completed ? 'checked' : ''} onchange="toggleTodo(this, ${todo.id})">
-            <span class="todo-text ${todo.completed ? 'text-decoration-line-through text-muted' : ''}" 
-                  style="flex-grow: 1; cursor: pointer;" 
-                  data-todo-id="${todo.id}"
-                  onclick="enableTodoEdit(this)">${todo.texto}</span>
-            <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="removeTodo(this, ${todo.id})">
-                <i class="fas fa-trash-alt"></i>
-            </button>
-        `;
-        todoDiv.dataset.todoId = todo.id;
-        todoDiv.dataset.todoText = todo.texto;
-        todoDiv.dataset.todoCompleted = todo.completed;
-        todosList.appendChild(todoDiv);
-    });
-}
-
-// Função para habilitar edição inline do to-do (estilo Trello)
-function enableTodoEdit(span) {
-    if (span.querySelector('input')) return; // Já está editando
-    
-    const todoId = span.dataset.todoId;
-    const currentText = span.textContent;
-    
-    // Criar input de edição
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.className = 'form-control form-control-sm';
-    input.value = currentText;
-    input.style.flexGrow = '1';
-    
-    // Substituir span por input
-    span.textContent = '';
-    span.appendChild(input);
-    input.focus();
-    input.select();
-    
-    // Função para salvar
-    const saveTodo = async () => {
-        const newText = input.value.trim();
-        
-        if (!newText) {
-            input.value = currentText; // Restaurar texto original se vazio
-            return;
-        }
-        
-        if (newText === currentText) {
-            // Sem mudanças, apenas restaurar
-            span.textContent = currentText;
-            return;
-        }
-        
-        // Salvar no backend
-        try {
-            const response = await fetch(`/api/todos/${todoId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ texto: newText })
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                span.textContent = newText;
-                // Atualizar dataset
-                const todoDiv = span.closest('[data-todo-id]');
-                if (todoDiv) {
-                    todoDiv.dataset.todoText = newText;
-                }
-            } else {
-                alert('Erro ao atualizar: ' + data.message);
-                span.textContent = currentText;
-            }
-        } catch (error) {
-            console.error('Erro ao atualizar to-do:', error);
-            alert('Erro ao atualizar to-do');
-            span.textContent = currentText;
-        }
-    };
-    
-    // Salvar ao pressionar Enter ou perder foco
-    input.addEventListener('blur', saveTodo);
-    input.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            input.blur();
-        }
-    });
-    input.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            span.textContent = currentText; // Cancelar edição
-        }
-    });
-}
-
-function addTodo() {
-    const newTodoText = document.getElementById('newTodoText');
-    const text = newTodoText.value.trim();
-    
-    if (text) {
-        const todosList = document.getElementById('todosList');
-        const todoDiv = document.createElement('div');
-        todoDiv.className = 'd-flex align-items-center mb-2';
-        todoDiv.innerHTML = `
-            <input type="checkbox" class="form-check-input me-2" onchange="toggleTodo(this)">
-            <span class="todo-text" style="flex-grow: 1; cursor: pointer;" data-todo-id="new-${Date.now()}" onclick="enableTodoEdit(this)">${text}</span>
-            <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="removeTodo(this)">
-                <i class="fas fa-trash-alt"></i>
-            </button>
-        `;
-        todoDiv.dataset.todoId = 'new-' + Date.now();
-        todoDiv.dataset.todoText = text;
-        todoDiv.dataset.todoCompleted = 'false';
-        
-        todosList.appendChild(todoDiv);
-        newTodoText.value = '';
-    }
-}
-
-function toggleTodo(checkbox, todoId = null) {
-    const todoDiv = checkbox.closest('div');
-    const span = todoDiv.querySelector('span');
-    const isCompleted = checkbox.checked;
-    
-    if (isCompleted) {
-        span.classList.add('text-decoration-line-through', 'text-muted');
-    } else {
-        span.classList.remove('text-decoration-line-through', 'text-muted');
-    }
-    
-    todoDiv.dataset.todoCompleted = isCompleted.toString();
-}
-
-function removeTodo(button, todoId = null) {
-    const todoDiv = button.closest('div');
-    todoDiv.remove();
-}
-
-function getCurrentTodos() {
-    const todosList = document.getElementById('todosList');
-    const todoDivs = todosList.querySelectorAll('[data-todo-id]');
-    const todos = [];
-    
-    todoDivs.forEach(todoDiv => {
-        todos.push({
-            id: todoDiv.dataset.todoId.startsWith('new-') ? null : parseInt(todoDiv.dataset.todoId),
-            texto: todoDiv.dataset.todoText,
-            completed: todoDiv.dataset.todoCompleted === 'true'
-        });
-    });
-    
-    return todos;
-}
-
-function updateColumnCounts() {
-    // Atualizar contadores das colunas
-    const columns = document.querySelectorAll('.kanban-column');
-    columns.forEach(column => {
-        const count = column.querySelectorAll('.task-card').length;
-        const badge = column.parentElement.querySelector('.badge');
-        if (badge) {
-            badge.textContent = count;
-        }
-    });
-}
-
-// Função para deletar tarefa
+// Deletar tarefa
 function deleteTask() {
-    const taskId = document.getElementById('editTaskId').value;
-    const taskTitle = document.getElementById('editTaskTitulo').value;
+    if (!confirm('Tem certeza que deseja deletar esta tarefa?')) return;
     
-    if (confirm(`Tem certeza que deseja deletar a tarefa "${taskTitle}"? Esta ação não pode ser desfeita.`)) {
-        fetch(`/api/tasks/${taskId}`, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const modal = bootstrap.Modal.getInstance(document.getElementById('editTaskModal'));
-                modal.hide();
-                
-                // Remover o card da interface
-                const taskCard = document.querySelector(`[data-task-id="${taskId}"]`);
-                if (taskCard) {
-                    taskCard.remove();
-                    updateColumnCounts();
-                }
-                
-                alert('Tarefa deletada com sucesso!');
-            } else {
-                alert('Erro ao deletar tarefa: ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Erro ao deletar tarefa:', error);
+    const taskId = document.getElementById('editTaskId').value;
+    
+    fetch(`/api/tasks/${taskId}`, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
             alert('Erro ao deletar tarefa');
-        });
-    }
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao deletar tarefa');
+    });
 }
 
-// Função para processar transcrição
+// Form de transcrição
 document.getElementById('transcriptionForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
     const projectId = document.getElementById('transcriptionProject').value;
     const transcriptionText = document.getElementById('transcriptionText').value;
     
-    if (!projectId || !transcriptionText.trim()) {
-        alert('Por favor, selecione um projeto e insira uma transcrição.');
-        return;
-    }
-    
-    const submitButton = this.querySelector('button[type="submit"]');
-    const originalText = submitButton.innerHTML;
-    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processando...';
-    submitButton.disabled = true;
-    
-    fetch('/kanban/transcription', {
+    fetch('/transcription_task', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
             project_id: projectId,
-            transcription: transcriptionText
+            transcricao: transcriptionText
         })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            const modal = bootstrap.Modal.getInstance(document.getElementById('transcriptionModal'));
-            modal.hide();
-            
-            // Limpar formulário
-            document.getElementById('transcriptionProject').value = '';
-            document.getElementById('transcriptionText').value = '';
-            
-            alert(`${data.tasks_created} tarefas foram geradas com sucesso!`);
-            location.reload(); // Recarregar para mostrar as novas tarefas
-        } else {
-            alert('Erro ao processar transcrição: ' + data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Erro ao processar transcrição:', error);
-        alert('Erro ao processar transcrição. Tente novamente.');
-    })
-    .finally(() => {
-        submitButton.innerHTML = originalText;
-        submitButton.disabled = false;
-    });
-});
-
-// Permitir adicionar to-do com Enter
-document.addEventListener('keypress', function(e) {
-    if (e.target.id === 'newTodoText' && e.key === 'Enter') {
-        addTodo();
-    }
-});
-
-// Função para disparar tarefa
-function dispatchTask(taskId) {
-    if (!confirm('Deseja disparar/cancelar o disparo desta tarefa?')) {
-        return;
-    }
-    
-    fetch(`/api/tasks/${taskId}/dispatch`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            const button = document.getElementById(`dispatch-btn-${taskId}`);
-            const card = document.querySelector(`[data-task-id="${taskId}"]`);
-            
-            if (data.disparada) {
-                button.classList.remove('btn-outline-secondary');
-                button.classList.add('btn-danger');
-                button.title = 'Cancelar disparo';
-                card.classList.add('border-danger');
-                alert('Tarefa disparada com sucesso!');
-            } else {
-                button.classList.remove('btn-danger');
-                button.classList.add('btn-outline-secondary');
-                button.title = 'Disparar tarefa';
-                card.classList.remove('border-danger');
-                alert('Disparo cancelado com sucesso!');
-            }
-            
             location.reload();
         } else {
-            alert('Erro ao disparar tarefa: ' + (data.error || 'Erro desconhecido'));
+            alert(data.message || 'Erro ao processar transcrição');
         }
     })
     .catch(error => {
-        console.error('Erro ao disparar tarefa:', error);
-        alert('Erro ao disparar tarefa. Tente novamente.');
+        console.error('Erro:', error);
+        alert('Erro ao processar transcrição');
     });
-}
+});
 
-// Função para disparar tarefas filtradas
-function dispatchFilteredTasks() {
-    const projectId = document.querySelector('select[name="project_id"]').value;
-    const clientId = document.querySelector('select[name="client_id"]').value;
-    const userId = document.querySelector('select[name="user_id"]').value;
-    const myTasks = document.querySelector('input[name="my_tasks"]').checked;
-    
-    let confirmMessage = 'Deseja enviar emails de resumo de tarefas ';
-    if (userId) {
-        const userName = document.querySelector('select[name="user_id"] option:checked').text;
-        confirmMessage += `para ${userName}?`;
-    } else {
-        confirmMessage += 'para todos os usuários com tarefas atribuídas?';
-    }
-    
-    if (!confirm(confirmMessage)) {
-        return;
-    }
-    
-    fetch('/api/disparar-tarefas', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            project_id: projectId || null,
-            client_id: clientId || null,
-            user_id: userId || null,
-            my_tasks: myTasks
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(`✓ ${data.message}\n\nUsuários notificados:\n${data.usuarios.join('\n')}`);
-        } else {
-            alert('⚠ ' + data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Erro ao disparar tarefas:', error);
-        alert('Erro ao enviar emails. Tente novamente.');
+// Drag and Drop
+let draggedTask = null;
+
+document.querySelectorAll('.task-card').forEach(card => {
+    card.addEventListener('dragstart', function(e) {
+        draggedTask = this;
+        e.dataTransfer.effectAllowed = 'move';
+        this.style.opacity = '0.5';
     });
-}
+    
+    card.addEventListener('dragend', function(e) {
+        this.style.opacity = '1';
+    });
+});
+
+document.querySelectorAll('.kanban-column').forEach(column => {
+    column.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    });
+    
+    column.addEventListener('drop', function(e) {
+        e.preventDefault();
+        
+        if (draggedTask) {
+            const taskId = draggedTask.dataset.taskId;
+            const newStatus = this.dataset.status;
+            
+            fetch(`/api/tasks/${taskId}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    status: newStatus
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                }
+            });
+        }
+    });
+});
 </script>
-
-<!-- Modal para Nova Tarefa no Kanban -->
-<div class="modal fade" id="newTaskKanbanModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <form method="POST" action="{{ url_for('new_task_kanban') }}">
-                <div class="modal-header">
-                    <h5 class="modal-title">Nova Tarefa</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Título da Tarefa</label>
-                            <input type="text" class="form-control" name="titulo" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Projeto</label>
-                            <select class="form-select" name="project_id" required>
-                                <option value="">Selecione um projeto</option>
-                                {% for project in projects %}
-                                <option value="{{ project.id }}" {% if current_filters.project_id == project.id %}selected{% endif %}>
-                                    {{ project.client.nome }} - {{ project.nome }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Usuário Responsável</label>
-                            <select class="form-select" name="assigned_user_id">
-                                <option value="">Selecione um usuário</option>
-                                {% for user in all_users %}
-                                <option value="{{ user.id }}">{{ user.full_name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Data de Conclusão</label>
-                            <input type="date" class="form-control" name="data_conclusao">
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Status</label>
-                        <select class="form-select" name="status" required>
-                            <option value="pendente" selected>Pendente</option>
-                            <option value="em_andamento">Em Andamento</option>
-                            <option value="concluida">Concluída</option>
-                        </select>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Descrição</label>
-                        <textarea class="form-control" name="descricao" rows="4"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Criar Tarefa</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
 {% endblock %}

@@ -185,10 +185,7 @@
             </div>
             <div class="modal-footer border-secondary">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <form method="POST" action="{{ url_for('delete_task', id=task.id) }}" style="display: inline;">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}"/>
-                    <button type="submit" class="btn btn-danger">Deletar</button>
-                </form>
+                <button type="button" class="btn btn-danger" onclick="deleteTask({{ task.id }})">Deletar</button>
             </div>
         </div>
     </div>
@@ -522,6 +519,34 @@ function editTask(taskId) {
                 </div>
             `;
         });
+}
+
+function deleteTask(taskId) {
+    if (!confirm('Tem certeza que deseja deletar esta tarefa? Esta ação não pode ser desfeita.')) {
+        return;
+    }
+    
+    fetch(`/api/tasks/${taskId}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('deleteModal' + taskId));
+            if (modal) modal.hide();
+            alert('Tarefa deletada com sucesso!');
+            location.reload();
+        } else {
+            alert('Erro ao deletar tarefa: ' + (data.message || 'Erro desconhecido'));
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao deletar tarefa:', error);
+        alert('Erro ao deletar tarefa. Tente novamente.');
+    });
 }
 
 function buildEditTaskHTML(task, projects, users) {

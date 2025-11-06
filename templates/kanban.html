@@ -98,7 +98,7 @@
                                 {{ task.titulo }}
                             </h6>
                             <div class="d-flex align-items-center gap-2">
-                                {% if not task.disparada and task.assigned_user %}
+                                {% if task.assigned_user %}
                                 <button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="event.stopPropagation(); dispatchTask({{ task.id }})" title="Disparar tarefa por e-mail" style="font-size: 11px;">
                                     <i class="fas fa-envelope"></i>
                                 </button>
@@ -150,7 +150,7 @@
                                 {{ task.titulo }}
                             </h6>
                             <div class="d-flex align-items-center gap-2">
-                                {% if not task.disparada and task.assigned_user %}
+                                {% if task.assigned_user %}
                                 <button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="event.stopPropagation(); dispatchTask({{ task.id }})" title="Disparar tarefa por e-mail" style="font-size: 11px;">
                                     <i class="fas fa-envelope"></i>
                                 </button>
@@ -202,7 +202,7 @@
                                 {{ task.titulo }}
                             </h6>
                             <div class="d-flex align-items-center gap-2">
-                                {% if not task.disparada and task.assigned_user %}
+                                {% if task.assigned_user %}
                                 <button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="event.stopPropagation(); dispatchTask({{ task.id }})" title="Disparar tarefa por e-mail" style="font-size: 11px;">
                                     <i class="fas fa-envelope"></i>
                                 </button>

@@ -97,7 +97,14 @@
                                 {% if task.disparada %}<i class="fas fa-paper-plane text-danger me-1" title="Tarefa disparada"></i>{% endif %}
                                 {{ task.titulo }}
                             </h6>
-                            <span class="badge bg-secondary ms-2" style="font-size: 10px; white-space: nowrap;">PENDENTE</span>
+                            <div class="d-flex align-items-center gap-2">
+                                {% if not task.disparada and task.assigned_user %}
+                                <button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="event.stopPropagation(); dispatchTask({{ task.id }})" title="Disparar tarefa por e-mail" style="font-size: 11px;">
+                                    <i class="fas fa-envelope"></i>
+                                </button>
+                                {% endif %}
+                                <span class="badge bg-secondary" style="font-size: 10px; white-space: nowrap;">PENDENTE</span>
+                            </div>
                         </div>
                         <small class="d-block mb-1" style="color: #6c757d; font-size: 12px;">{{ task.project.client.nome }} - {{ task.project.nome }}</small>
                         {% if task.assigned_user %}
@@ -142,7 +149,14 @@
                                 {% if task.disparada %}<i class="fas fa-paper-plane text-danger me-1" title="Tarefa disparada"></i>{% endif %}
                                 {{ task.titulo }}
                             </h6>
-                            <span class="badge ms-2" style="background-color: #6554c0; font-size: 10px; white-space: nowrap;">EM ANDAMENTO</span>
+                            <div class="d-flex align-items-center gap-2">
+                                {% if not task.disparada and task.assigned_user %}
+                                <button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="event.stopPropagation(); dispatchTask({{ task.id }})" title="Disparar tarefa por e-mail" style="font-size: 11px;">
+                                    <i class="fas fa-envelope"></i>
+                                </button>
+                                {% endif %}
+                                <span class="badge" style="background-color: #6554c0; font-size: 10px; white-space: nowrap;">EM ANDAMENTO</span>
+                            </div>
                         </div>
                         <small class="d-block mb-1" style="color: #6c757d; font-size: 12px;">{{ task.project.client.nome }} - {{ task.project.nome }}</small>
                         {% if task.assigned_user %}
@@ -187,7 +201,14 @@
                                 {% if task.disparada %}<i class="fas fa-paper-plane text-danger me-1" title="Tarefa disparada"></i>{% endif %}
                                 {{ task.titulo }}
                             </h6>
-                            <span class="badge bg-success ms-2" style="font-size: 10px; white-space: nowrap;">CONCLUÍDA</span>
+                            <div class="d-flex align-items-center gap-2">
+                                {% if not task.disparada and task.assigned_user %}
+                                <button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="event.stopPropagation(); dispatchTask({{ task.id }})" title="Disparar tarefa por e-mail" style="font-size: 11px;">
+                                    <i class="fas fa-envelope"></i>
+                                </button>
+                                {% endif %}
+                                <span class="badge bg-success" style="font-size: 10px; white-space: nowrap;">CONCLUÍDA</span>
+                            </div>
                         </div>
                         <small class="d-block mb-1" style="color: #6c757d; font-size: 12px;">{{ task.project.client.nome }} - {{ task.project.nome }}</small>
                         {% if task.assigned_user %}
@@ -325,6 +346,33 @@
 </div>
 
 <script>
+// Função para disparar tarefa por e-mail
+function dispatchTask(taskId) {
+    if (!confirm('Deseja disparar esta tarefa por e-mail para o usuário responsável?')) {
+        return;
+    }
+    
+    fetch(`/api/tasks/${taskId}/dispatch`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Tarefa disparada com sucesso!');
+            location.reload();
+        } else {
+            alert('Erro ao disparar tarefa: ' + (data.message || 'Erro desconhecido'));
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao disparar tarefa:', error);
+        alert('Erro ao disparar tarefa. Tente novamente.');
+    });
+}
+
 // Função para editar tarefa
 function editTask(taskId) {
     fetch(`/api/tasks/${taskId}`)
@@ -716,49 +764,6 @@ document.addEventListener('keypress', function(e) {
         addTodo();
     }
 });
-
-// Função para disparar tarefa
-function dispatchTask(taskId) {
-    if (!confirm('Deseja disparar/cancelar o disparo desta tarefa?')) {
-        return;
-    }
-    
-    fetch(`/api/tasks/${taskId}/dispatch`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            const button = document.getElementById(`dispatch-btn-${taskId}`);
-            const card = document.querySelector(`[data-task-id="${taskId}"]`);
-            
-            if (data.disparada) {
-                button.classList.remove('btn-outline-secondary');
-                button.classList.add('btn-danger');
-                button.title = 'Cancelar disparo';
-                card.classList.add('border-danger');
-                alert('Tarefa disparada com sucesso!');
-            } else {
-                button.classList.remove('btn-danger');
-                button.classList.add('btn-outline-secondary');
-                button.title = 'Disparar tarefa';
-                card.classList.remove('border-danger');
-                alert('Disparo cancelado com sucesso!');
-            }
-            
-            location.reload();
-        } else {
-            alert('Erro ao disparar tarefa: ' + (data.error || 'Erro desconhecido'));
-        }
-    })
-    .catch(error => {
-        console.error('Erro ao disparar tarefa:', error);
-        alert('Erro ao disparar tarefa. Tente novamente.');
-    });
-}
 
 // Função para disparar tarefas filtradas
 function dispatchFilteredTasks() {

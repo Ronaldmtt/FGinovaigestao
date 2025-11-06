@@ -68,6 +68,10 @@
                 <i class="fas fa-filter me-1"></i>Filtrar
             </button>
             
+            <button type="button" class="btn btn-success" onclick="dispatchFilteredTasks()">
+                <i class="fas fa-envelope me-1"></i>Disparar Tarefas
+            </button>
+            
             <a href="{{ url_for('kanban') }}" class="btn btn-outline-secondary">
                 <i class="fas fa-times me-1"></i>Limpar Filtros
             </a>
@@ -97,14 +101,7 @@
                                 {% if task.disparada %}<i class="fas fa-paper-plane text-danger me-1" title="Tarefa disparada"></i>{% endif %}
                                 {{ task.titulo }}
                             </h6>
-                            <div class="d-flex align-items-center gap-2">
-                                {% if task.assigned_user %}
-                                <button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="event.stopPropagation(); dispatchTask({{ task.id }})" title="Disparar tarefa por e-mail" style="font-size: 11px;">
-                                    <i class="fas fa-envelope"></i>
-                                </button>
-                                {% endif %}
-                                <span class="badge bg-secondary" style="font-size: 10px; white-space: nowrap;">PENDENTE</span>
-                            </div>
+                            <span class="badge bg-secondary" style="font-size: 10px; white-space: nowrap;">PENDENTE</span>
                         </div>
                         <small class="d-block mb-1" style="color: #6c757d; font-size: 12px;">{{ task.project.client.nome }} - {{ task.project.nome }}</small>
                         {% if task.assigned_user %}
@@ -149,14 +146,7 @@
                                 {% if task.disparada %}<i class="fas fa-paper-plane text-danger me-1" title="Tarefa disparada"></i>{% endif %}
                                 {{ task.titulo }}
                             </h6>
-                            <div class="d-flex align-items-center gap-2">
-                                {% if task.assigned_user %}
-                                <button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="event.stopPropagation(); dispatchTask({{ task.id }})" title="Disparar tarefa por e-mail" style="font-size: 11px;">
-                                    <i class="fas fa-envelope"></i>
-                                </button>
-                                {% endif %}
-                                <span class="badge" style="background-color: #6554c0; font-size: 10px; white-space: nowrap;">EM ANDAMENTO</span>
-                            </div>
+                            <span class="badge" style="background-color: #6554c0; font-size: 10px; white-space: nowrap;">EM ANDAMENTO</span>
                         </div>
                         <small class="d-block mb-1" style="color: #6c757d; font-size: 12px;">{{ task.project.client.nome }} - {{ task.project.nome }}</small>
                         {% if task.assigned_user %}
@@ -201,14 +191,7 @@
                                 {% if task.disparada %}<i class="fas fa-paper-plane text-danger me-1" title="Tarefa disparada"></i>{% endif %}
                                 {{ task.titulo }}
                             </h6>
-                            <div class="d-flex align-items-center gap-2">
-                                {% if task.assigned_user %}
-                                <button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="event.stopPropagation(); dispatchTask({{ task.id }})" title="Disparar tarefa por e-mail" style="font-size: 11px;">
-                                    <i class="fas fa-envelope"></i>
-                                </button>
-                                {% endif %}
-                                <span class="badge bg-success" style="font-size: 10px; white-space: nowrap;">CONCLUÍDA</span>
-                            </div>
+                            <span class="badge bg-success" style="font-size: 10px; white-space: nowrap;">CONCLUÍDA</span>
                         </div>
                         <small class="d-block mb-1" style="color: #6c757d; font-size: 12px;">{{ task.project.client.nome }} - {{ task.project.nome }}</small>
                         {% if task.assigned_user %}

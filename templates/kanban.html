@@ -1156,12 +1156,20 @@ body:not([data-theme]) .task-card-modern .card-body {
 
 /* Cards - Tema Claro */
 [data-theme="light"] .task-card-modern {
-    background-color: #ffffff;
-    border-color: #e2e8f0;
+    background-color: #ffffff !important;
+    border-color: #e2e8f0 !important;
 }
 
 [data-theme="light"] .task-card-modern .card-body {
-    color: #2d3748;
+    color: #2d3748 !important;
+}
+
+[data-theme="light"] .task-card-modern .card-title {
+    color: #1a202c !important;
+}
+
+[data-theme="light"] .task-card-modern .badge {
+    color: #ffffff !important;
 }
 
 /* Filtros - Tema Escuro */
@@ -1188,6 +1196,15 @@ body:not([data-theme]) .kanban-filter-select option {
 [data-theme="light"] .kanban-filter-select option {
     background-color: #ffffff;
     color: #2d3748;
+}
+
+/* Colunas do Kanban - Tema Claro */
+[data-theme="light"] .kanban-column {
+    background-color: transparent;
+}
+
+[data-theme="light"] .kanban-icon-circle i {
+    color: white !important;
 }
 
 /* Animações e efeitos */

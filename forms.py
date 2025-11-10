@@ -192,7 +192,7 @@ class LeadForm(FlaskForm):
     
     def __init__(self, *args, **kwargs):
         super(LeadForm, self).__init__(*args, **kwargs)
-        self.responsavel_id.choices = [('', 'Selecione um responsável')] + [(u.id, u.full_name) for u in User.query.order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()]
+        self.responsavel_id.choices = [(0, 'Selecione um responsável')] + [(u.id, u.full_name) for u in User.query.order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()]
 
 class LeadInteractionForm(FlaskForm):
     tipo = SelectField('Tipo de Interação', choices=[

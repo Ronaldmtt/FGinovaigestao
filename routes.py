@@ -2218,9 +2218,9 @@ def new_lead():
                 email=form.email.data,
                 telefone=form.telefone.data,
                 cargo=form.cargo.data,
-                origem=form.origem.data,
+                origem=form.origem.data if form.origem.data else None,
                 valor_estimado=form.valor_estimado.data,
-                responsavel_id=form.responsavel_id.data if form.responsavel_id.data else None,
+                responsavel_id=form.responsavel_id.data if form.responsavel_id.data and form.responsavel_id.data > 0 else None,
                 observacoes=form.observacoes.data,
                 etapa='captacao'
             )
@@ -2312,7 +2312,8 @@ def update_lead(lead_id):
         if 'valor_estimado' in data:
             lead.valor_estimado = float(data['valor_estimado']) if data['valor_estimado'] else None
         if 'responsavel_id' in data:
-            lead.responsavel_id = int(data['responsavel_id']) if data['responsavel_id'] else None
+            resp_id = int(data['responsavel_id']) if data['responsavel_id'] else 0
+            lead.responsavel_id = resp_id if resp_id > 0 else None
         if 'observacoes' in data:
             lead.observacoes = data['observacoes']
         

@@ -1,0 +1,165 @@
+2025-11-10 18:14:56.34
+218e5dd5
+User
+rv = self.dispatch_request()
+2025-11-10 18:14:56.34
+218e5dd5
+User
+^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-10 18:14:56.34
+218e5dd5
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+2025-11-10 18:14:56.34
+218e5dd5
+User
+return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args) # type: ignore[no-any-return]
+2025-11-10 18:14:56.34
+218e5dd5
+User
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-10 18:14:56.34
+218e5dd5
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_login/utils.py", line 290, in decorated_view
+2025-11-10 18:14:56.34
+218e5dd5
+User
+return current_app.ensure_sync(func)(*args, **kwargs)
+2025-11-10 18:14:56.34
+218e5dd5
+User
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-10 18:14:56.34
+218e5dd5
+User
+File "/home/runner/workspace/routes.py", line 1135, in new_task_kanban
+2025-11-10 18:14:56.34
+218e5dd5
+User
+db.session.commit()
+2025-11-10 18:14:56.34
+218e5dd5
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/scoping.py", line 599, in commit
+2025-11-10 18:14:56.34
+218e5dd5
+User
+return self._proxied.commit()
+2025-11-10 18:14:56.34
+218e5dd5
+User
+^^^^^^^^^^^^^^^^^^^^^^
+2025-11-10 18:14:56.34
+218e5dd5
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 2032, in commit
+2025-11-10 18:14:56.34
+218e5dd5
+User
+trans.commit(_to_root=True)
+2025-11-10 18:14:56.34
+218e5dd5
+User
+File "", line 2, in commit
+2025-11-10 18:14:56.34
+218e5dd5
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/state_changes.py", line 137, in _go
+2025-11-10 18:14:56.34
+218e5dd5
+User
+ret_value = fn(self, *arg, **kw)
+2025-11-10 18:14:56.34
+218e5dd5
+User
+^^^^^^^^^^^^^^^^^^^^
+2025-11-10 18:14:56.34
+218e5dd5
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 1313, in commit
+2025-11-10 18:14:56.34
+218e5dd5
+User
+self._prepare_impl()
+2025-11-10 18:14:56.34
+218e5dd5
+User
+File "", line 2, in _prepare_impl
+2025-11-10 18:14:56.34
+218e5dd5
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/state_changes.py", line 137, in _go
+2025-11-10 18:14:56.34
+218e5dd5
+User
+ret_value = fn(self, *arg, **kw)
+2025-11-10 18:14:56.34
+218e5dd5
+User
+^^^^^^^^^^^^^^^^^^^^
+2025-11-10 18:14:56.34
+218e5dd5
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 1288, in _prepare_impl
+2025-11-10 18:14:56.34
+218e5dd5
+User
+self.session.flush()
+2025-11-10 18:14:56.34
+218e5dd5
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 4345, in flush
+2025-11-10 18:14:56.34
+218e5dd5
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 4480, in _flush
+2025-11-10 18:14:56.34
+218e5dd5
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 4441, in _flush
+2025-11-10 18:14:56.34
+218e5dd5
+User
+flush_context.execute()
+2025-11-10 18:14:56.34
+218e5dd5
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/unitofwork.py", line 642, in execute
+2025-11-10 18:14:56.34
+218e5dd5
+User
+util.preloaded.orm_persistence.save_obj(
+2025-11-10 18:14:56.34
+218e5dd5
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/persistence.py", line 93, in save_obj
+2025-11-10 18:14:56.34
+218e5dd5
+User
+_emit_insert_statements(
+
+2025-11-10 18:14:56.34
+218e5dd5
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/persistence.py", line 1233, in _emit_insert_statements
+2025-11-10 18:14:56.34
+218e5dd5
+User
+result = connection.execute(
+2025-11-10 18:14:56.34
+218e5dd5
+User
+return meth(
+2025-11-10 18:14:56.34
+218e5dd5
+User
+return connection._execute_clauseelement(
+2025-11-10 18:14:56.34
+218e5dd5
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+2025-11-10 18:14:56.34
+218e5dd5
+User
+return self._exec_single_context(

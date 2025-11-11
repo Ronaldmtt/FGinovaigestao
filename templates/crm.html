@@ -454,11 +454,26 @@ document.addEventListener('DOMContentLoaded', function() {
     setupDragAndDrop();
 });
 
+let isDragging = false;
+let clickStartTime = 0;
+
 function setupDragAndDrop() {
     const leadCards = document.querySelectorAll('.lead-card');
     const columns = document.querySelectorAll('.crm-column');
     
     leadCards.forEach(card => {
+        card.addEventListener('mousedown', () => {
+            clickStartTime = Date.now();
+            isDragging = false;
+        });
+        
+        card.addEventListener('click', (e) => {
+            if (!isDragging) {
+                const leadId = card.dataset.leadId;
+                viewLeadDetails(leadId);
+            }
+        });
+        
         card.addEventListener('dragstart', handleDragStart);
         card.addEventListener('dragend', handleDragEnd);
     });
@@ -471,6 +486,7 @@ function setupDragAndDrop() {
 }
 
 function handleDragStart(e) {
+    isDragging = true;
     draggedLead = this;
     this.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'move';
@@ -481,6 +497,11 @@ function handleDragEnd(e) {
     document.querySelectorAll('.crm-column').forEach(col => {
         col.classList.remove('drag-over');
     });
+    
+    // Resetar isDragging após um pequeno delay para não interferir com o click
+    setTimeout(() => {
+        isDragging = false;
+    }, 100);
 }
 
 function handleDragOver(e) {

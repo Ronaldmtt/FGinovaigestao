@@ -2,8 +2,7 @@
      data-lead-id="{{ lead.id }}"
      data-responsavel="{{ lead.responsavel_id or '' }}"
      data-origem="{{ lead.origem or '' }}"
-     draggable="true"
-     onclick="viewLeadDetails({{ lead.id }})">
+     draggable="true">
     <div class="d-flex justify-content-between align-items-start mb-2">
         <h6 class="mb-0" style="font-weight: 600; font-size: 14px;">{{ lead.nome }}</h6>
     </div>

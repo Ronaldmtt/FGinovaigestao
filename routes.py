@@ -835,6 +835,57 @@ def edit_task(task_id):
     
     return redirect(url_for('kanban') + f'#task-{task_id}')
 
+@app.route('/tasks/<int:task_id>/data', methods=['GET'])
+@login_required
+def get_task_data(task_id):
+    task = Task.query.get_or_404(task_id)
+    
+    # Verificar permissão
+    if not current_user.is_admin and task.assigned_user_id != current_user.id:
+        project = task.project
+        if current_user.id != project.responsible_id and current_user not in project.team_members:
+            return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+    
+    # Buscar todos os projetos e usuários para os selects
+    projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
+    users = User.query.filter_by(is_admin=False).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
+    
+    projects_list = [{
+        'id': p.id,
+        'nome': p.nome,
+        'client_nome': p.client.nome
+    } for p in projects]
+    
+    users_list = [{
+        'id': u.id,
+        'nome': u.full_name
+    } for u in users]
+    
+    # Buscar to-dos da tarefa
+    todos_list = [{
+        'id': todo.id,
+        'texto': todo.texto,
+        'completed': todo.completed
+    } for todo in task.todos]
+    
+    task_data = {
+        'id': task.id,
+        'titulo': task.titulo,
+        'descricao': task.descricao,
+        'project_id': task.project_id,
+        'assigned_user_id': task.assigned_user_id,
+        'data_conclusao': task.data_conclusao.isoformat() if task.data_conclusao else None,
+        'status': task.status,
+        'todos': todos_list
+    }
+    
+    return jsonify({
+        'success': True,
+        'task': task_data,
+        'projects': projects_list,
+        'users': users_list
+    })
+
 @app.route('/tasks/new-manual', methods=['POST'])
 @login_required 
 def new_manual_task():

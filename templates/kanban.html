@@ -675,8 +675,6 @@ function deleteTask() {
                     taskCard.remove();
                     updateColumnCounts();
                 }
-                
-                alert('Tarefa deletada com sucesso!');
             } else {
                 alert('Erro ao deletar tarefa: ' + data.message);
             }
@@ -896,8 +894,18 @@ function handleDrop(e) {
     const taskId = draggedElement.dataset.taskId;
     const currentStatus = draggedElement.closest('.kanban-column').dataset.status;
     
-    // Verificar se mudou de coluna
+    // Verificar se mudou de coluna ou se está reordenando dentro da mesma coluna
     if (newStatus === currentStatus) {
+        // Reordenar dentro da mesma coluna
+        const afterElement = getDragAfterElement(targetColumn, e.clientY);
+        if (afterElement == null) {
+            targetColumn.appendChild(draggedElement);
+        } else {
+            targetColumn.insertBefore(draggedElement, afterElement);
+        }
+        
+        // Atualizar ordem no backend
+        updateColumnOrder(targetColumn);
         return false;
     }
     
@@ -916,7 +924,52 @@ function handleDrop(e) {
     // Atualizar contadores
     updateColumnCounters();
     
+    // Atualizar ordem da nova coluna
+    updateColumnOrder(targetColumn);
+    
     return false;
+}
+
+function getDragAfterElement(column, y) {
+    const draggableElements = [...column.querySelectorAll('.task-card-modern:not(.dragging)')];
+    
+    return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        
+        if (offset < 0 && offset > closest.offset) {
+            return { offset: offset, element: child };
+        } else {
+            return closest;
+        }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+function updateColumnOrder(column) {
+    const cards = column.querySelectorAll('.task-card-modern');
+    const taskIds = Array.from(cards).map(card => parseInt(card.dataset.taskId));
+    
+    if (taskIds.length === 0) return;
+    
+    // Enviar nova ordem para o backend
+    fetch('/api/tasks/reorder', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            task_ids: taskIds
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            console.error('Erro ao atualizar ordem:', data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao atualizar ordem:', error);
+    });
 }
 
 function getBorderColorForStatus(status) {

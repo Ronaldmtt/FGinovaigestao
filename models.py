@@ -99,6 +99,7 @@ class Task(db.Model):
     completed_at = db.Column(db.DateTime)
     disparada = db.Column(db.Boolean, default=False, nullable=False)
     disparada_at = db.Column(db.DateTime)
+    ordem = db.Column(db.Integer, default=0)  # Ordem dentro da coluna do Kanban
     
     # Foreign keys
     project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=False)

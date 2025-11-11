@@ -1203,9 +1203,9 @@ def kanban():
     if user_filter:
         query = query.filter(Task.assigned_user_id == user_filter)
     
-    tasks = query.all()
+    tasks = query.order_by(Task.ordem).all()
     
-    # Organizar tarefas por status
+    # Organizar tarefas por status, mantendo a ordem
     task_columns = {
         'pendente': [],
         'em_andamento': [],
@@ -2471,3 +2471,26 @@ def convert_lead_to_client(lead_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Erro ao converter lead: {str(e)}'})
+
+@app.route('/api/tasks/reorder', methods=['POST'])
+@login_required
+def reorder_tasks():
+    if not current_user.is_admin and not current_user.acesso_kanban:
+        return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+    
+    data = request.get_json()
+    task_ids = data.get('task_ids', [])
+    
+    try:
+        # Atualizar a ordem de cada tarefa
+        for index, task_id in enumerate(task_ids):
+            task = Task.query.get(task_id)
+            if task:
+                task.ordem = index
+        
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Ordem atualizada com sucesso!'})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Erro ao reordenar tarefas: {str(e)}'})

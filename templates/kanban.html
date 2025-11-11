@@ -217,74 +217,115 @@
     </div>
 </div>
 
-<!-- Modal de Edição de Tarefa -->
-<div class="modal fade" id="editTaskModal" tabindex="-1" aria-labelledby="editTaskModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editTaskModalLabel">Editar Tarefa</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<!-- Backdrop do Drawer -->
+<div class="task-drawer-backdrop" id="taskDrawerBackdrop" onclick="closeTaskDrawer()"></div>
+
+<!-- Drawer Lateral de Edição de Tarefa (Estilo Asana) -->
+<div class="task-drawer" id="taskDrawer">
+    <div class="task-drawer-header">
+        <button type="button" class="task-drawer-close" onclick="closeTaskDrawer()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    
+    <div class="task-drawer-content">
+        <form id="editTaskForm">
+            <input type="hidden" id="editTaskId">
+            
+            <!-- Título da Tarefa - Grande e sem borda -->
+            <div class="task-field-clean">
+                <input type="text" 
+                       class="task-title-input" 
+                       id="editTaskTitulo" 
+                       placeholder="Nome da tarefa"
+                       required>
             </div>
-            <form id="editTaskForm">
-                <div class="modal-body">
-                    <input type="hidden" id="editTaskId">
-                    
-                    <div class="mb-3">
-                        <label for="editTaskTitulo" class="form-label">Título da Tarefa</label>
-                        <input type="text" class="form-control" id="editTaskTitulo" required>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="editTaskDescricao" class="form-label">Descrição</label>
-                        <textarea class="form-control" id="editTaskDescricao" rows="4"></textarea>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="editTaskResponsavel" class="form-label">Responsável</label>
-                        <select class="form-select" id="editTaskResponsavel">
-                            <option value="">Selecione um usuário</option>
-                            {% for user in all_users %}
-                            <option value="{{ user.id }}">{{ user.full_name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="editTaskStatus" class="form-label">Status</label>
-                        <select class="form-select" id="editTaskStatus" required>
-                            <option value="pendente">Pendente</option>
-                            <option value="em_andamento">Em Andamento</option>
-                            <option value="concluida">Concluída</option>
-                        </select>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="editTaskDataConclusao" class="form-label">Data de Conclusão</label>
-                        <input type="date" class="form-control" id="editTaskDataConclusao">
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Lista de To-Do's</label>
-                        <div id="todosList" class="border rounded p-2" style="max-height: 200px; overflow-y: auto;">
-                            <!-- To-do's serão carregados aqui -->
-                        </div>
-                        <div class="d-flex mt-2">
-                            <input type="text" class="form-control" id="newTodoText" placeholder="Adicionar novo to-do..." maxlength="300">
-                            <button type="button" class="btn btn-outline-primary ms-2" onclick="addTodo()">
-                                <i class="fas fa-plus"></i>
-                            </button>
-                        </div>
-                    </div>
+            
+            <!-- Projeto/Cliente - Clean -->
+            <div class="task-field-clean" id="taskProjectInfo">
+                <i class="fas fa-folder text-muted me-2"></i>
+                <span class="text-muted" style="font-size: 14px;">Carregando...</span>
+            </div>
+            
+            <!-- Responsável - Clean com seletor -->
+            <div class="task-field-row">
+                <div class="task-field-label">
+                    <i class="fas fa-user text-muted"></i>
+                    <span>Responsável</span>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-danger me-auto" onclick="deleteTask()">
-                        <i class="fas fa-trash"></i> Deletar Tarefa
+                <select class="task-select-clean" id="editTaskResponsavel">
+                    <option value="">Nenhum responsável</option>
+                    {% for user in all_users %}
+                    <option value="{{ user.id }}">{{ user.full_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <!-- Status - Clean com seletor -->
+            <div class="task-field-row">
+                <div class="task-field-label">
+                    <i class="fas fa-circle-notch text-muted"></i>
+                    <span>Status</span>
+                </div>
+                <select class="task-select-clean" id="editTaskStatus" required>
+                    <option value="pendente">Pendente</option>
+                    <option value="em_andamento">Em Andamento</option>
+                    <option value="concluida">Concluída</option>
+                </select>
+            </div>
+            
+            <!-- Data de Conclusão - Clean com date picker -->
+            <div class="task-field-row">
+                <div class="task-field-label">
+                    <i class="fas fa-calendar text-muted"></i>
+                    <span>Data de conclusão</span>
+                </div>
+                <input type="date" class="task-date-clean" id="editTaskDataConclusao">
+            </div>
+            
+            <div class="task-divider"></div>
+            
+            <!-- Descrição - Com borda (estilo Asana) -->
+            <div class="task-section">
+                <label class="task-section-label">Descrição</label>
+                <textarea class="task-textarea-bordered" 
+                          id="editTaskDescricao" 
+                          rows="6"
+                          placeholder="Do que se trata esta tarefa?"></textarea>
+            </div>
+            
+            <div class="task-divider"></div>
+            
+            <!-- Subtarefas / To-Do's - Com borda -->
+            <div class="task-section">
+                <label class="task-section-label">Subtarefas</label>
+                <div id="todosList" class="task-todos-list">
+                    <!-- To-do's serão carregados aqui -->
+                </div>
+                <div class="task-add-todo">
+                    <input type="text" 
+                           class="task-add-todo-input" 
+                           id="newTodoText" 
+                           placeholder="Adicionar subtarefa..." 
+                           maxlength="300">
+                    <button type="button" class="task-add-todo-btn" onclick="addTodo()">
+                        <i class="fas fa-plus"></i>
                     </button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
                 </div>
-            </form>
-        </div>
+            </div>
+            
+            <div class="task-divider"></div>
+            
+            <!-- Botões de ação -->
+            <div class="task-drawer-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i>Salvar Alterações
+                </button>
+                <button type="button" class="btn btn-outline-danger" onclick="deleteTask()">
+                    <i class="fas fa-trash me-1"></i>Deletar Tarefa
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -356,29 +397,74 @@ function dispatchTask(taskId) {
     });
 }
 
-// Função para editar tarefa
+// Função para abrir drawer de edição de tarefa
 function editTask(taskId) {
-    fetch(`/api/tasks/${taskId}`)
+    fetch(`/tasks/${taskId}/data`)
         .then(response => response.json())
-        .then(task => {
-            document.getElementById('editTaskId').value = task.id;
-            document.getElementById('editTaskTitulo').value = task.titulo;
-            document.getElementById('editTaskDescricao').value = task.descricao || '';
-            document.getElementById('editTaskResponsavel').value = task.assigned_user_id || '';
-            document.getElementById('editTaskStatus').value = task.status || 'pendente';
-            document.getElementById('editTaskDataConclusao').value = task.data_conclusao || '';
-            
-            // Carregar to-do's
-            loadTodos(task.todos || []);
-            
-            const modal = new bootstrap.Modal(document.getElementById('editTaskModal'));
-            modal.show();
+        .then(data => {
+            if (data.success) {
+                const task = data.task;
+                
+                // Preencher campos
+                document.getElementById('editTaskId').value = task.id;
+                document.getElementById('editTaskTitulo').value = task.titulo;
+                document.getElementById('editTaskDescricao').value = task.descricao || '';
+                document.getElementById('editTaskResponsavel').value = task.assigned_user_id || '';
+                document.getElementById('editTaskStatus').value = task.status || 'pendente';
+                document.getElementById('editTaskDataConclusao').value = task.data_conclusao || '';
+                
+                // Atualizar informações do projeto
+                const projectInfo = document.getElementById('taskProjectInfo');
+                if (task.project_id) {
+                    const project = data.projects.find(p => p.id === task.project_id);
+                    if (project) {
+                        projectInfo.innerHTML = `
+                            <i class="fas fa-folder text-muted me-2"></i>
+                            <span class="text-muted" style="font-size: 14px;">${project.client_nome} - ${project.nome}</span>
+                        `;
+                    }
+                }
+                
+                // Carregar to-do's
+                loadTodos(task.todos || []);
+                
+                // Abrir drawer
+                openTaskDrawer();
+            } else {
+                alert('Erro ao carregar dados da tarefa');
+            }
         })
         .catch(error => {
             console.error('Erro ao carregar dados da tarefa:', error);
             alert('Erro ao carregar dados da tarefa');
         });
 }
+
+// Funções para controlar o drawer
+function openTaskDrawer() {
+    const drawer = document.getElementById('taskDrawer');
+    const backdrop = document.getElementById('taskDrawerBackdrop');
+    
+    drawer.classList.add('show');
+    backdrop.classList.add('show');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeTaskDrawer() {
+    const drawer = document.getElementById('taskDrawer');
+    const backdrop = document.getElementById('taskDrawerBackdrop');
+    
+    drawer.classList.remove('show');
+    backdrop.classList.remove('show');
+    document.body.style.overflow = '';
+}
+
+// Fechar drawer ao pressionar ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeTaskDrawer();
+    }
+});
 
 // Função para atualizar card em tempo real
 function updateTaskCard(taskData) {
@@ -449,8 +535,8 @@ document.getElementById('editTaskForm').addEventListener('submit', function(e) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            const modal = bootstrap.Modal.getInstance(document.getElementById('editTaskModal'));
-            modal.hide();
+            // Fechar drawer
+            closeTaskDrawer();
             
             // Atualizar card em tempo real
             const taskCard = document.querySelector(`[data-task-id="${taskId}"]`);
@@ -666,8 +752,8 @@ function deleteTask() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                const modal = bootstrap.Modal.getInstance(document.getElementById('editTaskModal'));
-                modal.hide();
+                // Fechar drawer
+                closeTaskDrawer();
                 
                 // Remover o card da interface
                 const taskCard = document.querySelector(`[data-task-id="${taskId}"]`);
@@ -1290,6 +1376,365 @@ body:not([data-theme]) .task-card-modern:hover {
 
 .kanban-column.drag-over {
     background-color: rgba(101, 84, 192, 0.05);
+}
+
+/* ============================================ */
+/* DRAWER LATERAL - ESTILO ASANA */
+/* ============================================ */
+
+/* Backdrop */
+.task-drawer-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1040;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.task-drawer-backdrop.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Drawer Principal */
+.task-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 600px;
+    max-width: 90vw;
+    height: 100vh;
+    background-color: #1a1d23;
+    box-shadow: -2px 0 20px rgba(0, 0, 0, 0.5);
+    z-index: 1050;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+}
+
+.task-drawer.show {
+    transform: translateX(0);
+}
+
+/* Header do Drawer */
+.task-drawer-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.task-drawer-close {
+    background: none;
+    border: none;
+    color: #cbd5e0;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.task-drawer-close:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Conteúdo do Drawer */
+.task-drawer-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 24px 24px 24px;
+}
+
+/* Título da Tarefa - Grande e Clean */
+.task-title-input {
+    width: 100%;
+    background: none;
+    border: none;
+    font-size: 24px;
+    font-weight: 600;
+    color: #e2e8f0;
+    padding: 16px 0;
+    outline: none;
+}
+
+.task-title-input::placeholder {
+    color: #718096;
+}
+
+/* Campos Clean (sem bordas visíveis) */
+.task-field-clean {
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Linhas de Campos (responsável, status, data) */
+.task-field-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.task-field-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #cbd5e0;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.task-field-label i {
+    width: 16px;
+}
+
+/* Selects Clean (sem bordas, apenas underline sutil) */
+.task-select-clean {
+    background: none;
+    border: none;
+    color: #e2e8f0;
+    font-size: 14px;
+    padding: 4px 8px;
+    cursor: pointer;
+    outline: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s ease;
+}
+
+.task-select-clean:hover {
+    border-bottom-color: rgba(255, 255, 255, 0.2);
+}
+
+.task-select-clean:focus {
+    border-bottom-color: #6366f1;
+}
+
+.task-select-clean option {
+    background-color: #2d3748;
+    color: #e2e8f0;
+}
+
+/* Date Picker Clean */
+.task-date-clean {
+    background: none;
+    border: none;
+    color: #e2e8f0;
+    font-size: 14px;
+    padding: 4px 8px;
+    cursor: pointer;
+    outline: none;
+}
+
+.task-date-clean::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    cursor: pointer;
+}
+
+/* Divider */
+.task-divider {
+    height: 1px;
+    background-color: rgba(255, 255, 255, 0.1);
+    margin: 24px 0;
+}
+
+/* Seções com Borda (Descrição, To-Dos) */
+.task-section {
+    margin: 24px 0;
+}
+
+.task-section-label {
+    display: block;
+    color: #cbd5e0;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Textarea Bordered (só para descrição) */
+.task-textarea-bordered {
+    width: 100%;
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: #e2e8f0;
+    font-size: 14px;
+    padding: 12px;
+    resize: vertical;
+    min-height: 100px;
+    outline: none;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.task-textarea-bordered:focus {
+    border-color: #6366f1;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.task-textarea-bordered::placeholder {
+    color: #718096;
+}
+
+/* Lista de To-Dos */
+.task-todos-list {
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 12px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.task-add-todo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.task-add-todo-input {
+    flex: 1;
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    color: #e2e8f0;
+    font-size: 14px;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color 0.2s ease;
+}
+
+.task-add-todo-input:focus {
+    border-color: #6366f1;
+}
+
+.task-add-todo-input::placeholder {
+    color: #718096;
+}
+
+.task-add-todo-btn {
+    background-color: rgba(99, 102, 241, 0.1);
+    border: 1px solid #6366f1;
+    border-radius: 6px;
+    color: #6366f1;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.task-add-todo-btn:hover {
+    background-color: #6366f1;
+    color: white;
+}
+
+/* Ações do Drawer */
+.task-drawer-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ===== TEMA CLARO ===== */
+[data-theme="light"] .task-drawer {
+    background-color: #ffffff;
+    box-shadow: -2px 0 20px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .task-drawer-header {
+    border-bottom: 1px solid #e2e8f0;
+}
+
+[data-theme="light"] .task-drawer-close {
+    color: #4a5568;
+}
+
+[data-theme="light"] .task-drawer-close:hover {
+    background-color: #f7fafc;
+}
+
+[data-theme="light"] .task-title-input {
+    color: #1a202c;
+}
+
+[data-theme="light"] .task-title-input::placeholder {
+    color: #a0aec0;
+}
+
+[data-theme="light"] .task-field-clean,
+[data-theme="light"] .task-field-row {
+    border-bottom-color: #e2e8f0;
+}
+
+[data-theme="light"] .task-field-label {
+    color: #2d3748;
+}
+
+[data-theme="light"] .task-select-clean,
+[data-theme="light"] .task-date-clean {
+    color: #2d3748;
+}
+
+[data-theme="light"] .task-select-clean option {
+    background-color: #ffffff;
+    color: #2d3748;
+}
+
+[data-theme="light"] .task-date-clean::-webkit-calendar-picker-indicator {
+    filter: invert(0);
+}
+
+[data-theme="light"] .task-divider {
+    background-color: #e2e8f0;
+}
+
+[data-theme="light"] .task-section-label {
+    color: #4a5568;
+}
+
+[data-theme="light"] .task-textarea-bordered {
+    background-color: #f7fafc;
+    border-color: #e2e8f0;
+    color: #2d3748;
+}
+
+[data-theme="light"] .task-textarea-bordered:focus {
+    border-color: #6366f1;
+    background-color: #ffffff;
+}
+
+[data-theme="light"] .task-textarea-bordered::placeholder {
+    color: #a0aec0;
+}
+
+[data-theme="light"] .task-todos-list {
+    background-color: #f7fafc;
+    border-color: #e2e8f0;
+}
+
+[data-theme="light"] .task-add-todo-input {
+    background-color: #ffffff;
+    border-color: #e2e8f0;
+    color: #2d3748;
+}
+
+[data-theme="light"] .task-add-todo-input::placeholder {
+    color: #a0aec0;
+}
+
+[data-theme="light"] .task-drawer-actions {
+    border-top-color: #e2e8f0;
 }
 
 /* ============================================ */

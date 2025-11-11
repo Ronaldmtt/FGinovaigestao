@@ -491,7 +491,15 @@ def new_project():
             status=form.status.data,
             transcricao=form.transcricao.data,
             progress_percent=form.progress_percent.data or 0,
-            prazo=form.prazo.data
+            prazo=form.prazo.data,
+            descricao_resumida=form.descricao_resumida.data,
+            problema_oportunidade=form.problema_oportunidade.data,
+            objetivos=form.objetivos.data,
+            alinhamento_estrategico=form.alinhamento_estrategico.data,
+            escopo_projeto=form.escopo_projeto.data,
+            fora_escopo=form.fora_escopo.data,
+            premissas=form.premissas.data,
+            restricoes=form.restricoes.data
         )
         
         db.session.add(project)

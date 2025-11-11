@@ -259,6 +259,54 @@
                         <small class="form-text text-muted d-block mb-2">A IA processará esta transcrição para gerar detalhes do projeto</small>
                         {{ form.transcricao(class="form-control bg-dark text-light border-secondary") }}
                     </div>
+                    
+                    <!-- Contexto e Justificativa -->
+                    <hr class="my-4 border-secondary">
+                    <h6 class="mb-3"><i class="fas fa-lightbulb me-2"></i>Contexto e Justificativa</h6>
+                    
+                    <div class="mb-3">
+                        {{ form.descricao_resumida.label(class="form-label") }}
+                        {{ form.descricao_resumida(class="form-control bg-dark text-light border-secondary") }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.problema_oportunidade.label(class="form-label") }}
+                        {{ form.problema_oportunidade(class="form-control bg-dark text-light border-secondary") }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.objetivos.label(class="form-label") }}
+                        {{ form.objetivos(class="form-control bg-dark text-light border-secondary") }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.alinhamento_estrategico.label(class="form-label") }}
+                        {{ form.alinhamento_estrategico(class="form-control bg-dark text-light border-secondary") }}
+                    </div>
+                    
+                    <!-- Escopo -->
+                    <hr class="my-4 border-secondary">
+                    <h6 class="mb-3"><i class="fas fa-bullseye me-2"></i>Escopo</h6>
+                    
+                    <div class="mb-3">
+                        {{ form.escopo_projeto.label(class="form-label") }}
+                        {{ form.escopo_projeto(class="form-control bg-dark text-light border-secondary") }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.fora_escopo.label(class="form-label") }}
+                        {{ form.fora_escopo(class="form-control bg-dark text-light border-secondary") }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.premissas.label(class="form-label") }}
+                        {{ form.premissas(class="form-control bg-dark text-light border-secondary") }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.restricoes.label(class="form-label") }}
+                        {{ form.restricoes(class="form-control bg-dark text-light border-secondary") }}
+                    </div>
                     {% endif %}
                 </div>
                 <div class="modal-footer border-secondary">

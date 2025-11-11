@@ -73,6 +73,15 @@ class ProjectForm(FlaskForm):
     prazo = DateField('Prazo', validators=[Optional()])
     transcricao = TextAreaField('Transcrição', widget=TextArea(), render_kw={"rows": 10})
     
+    descricao_resumida = TextAreaField('Descrição Resumida', render_kw={"rows": 2})
+    problema_oportunidade = TextAreaField('Problema/Oportunidade', render_kw={"rows": 2})
+    objetivos = TextAreaField('Objetivos', render_kw={"rows": 2})
+    alinhamento_estrategico = TextAreaField('Alinhamento Estratégico', render_kw={"rows": 2})
+    escopo_projeto = TextAreaField('Escopo do Projeto', render_kw={"rows": 3})
+    fora_escopo = TextAreaField('Fora do Escopo', render_kw={"rows": 2})
+    premissas = TextAreaField('Premissas', render_kw={"rows": 2})
+    restricoes = TextAreaField('Restrições', render_kw={"rows": 2})
+    
     def __init__(self, *args, **kwargs):
         super(ProjectForm, self).__init__(*args, **kwargs)
         self.client_id.choices = [(c.id, c.nome) for c in Client.query.order_by(Client.nome).all()]

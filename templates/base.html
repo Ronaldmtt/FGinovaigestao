@@ -208,6 +208,47 @@
             padding: 2rem;
             max-width: 1400px;
             margin: 0 auto;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        /* Animações de transição entre páginas */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+        }
+        
+        .page-transition-leave {
+            animation: fadeOut 0.2s ease-in-out forwards;
+        }
+        
+        .page-transition-enter {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        /* Respeitar preferências de movimento reduzido */
+        @media (prefers-reduced-motion: reduce) {
+            .content-wrapper,
+            .page-transition-leave,
+            .page-transition-enter {
+                animation: none !important;
+            }
         }
         
         /* Mobile Responsive */
@@ -457,6 +498,70 @@
                 themeToggle.title = 'Mudar para tema escuro';
             }
         }
+        
+        // Smooth page transitions
+        let isTransitioning = false;
+        
+        function initPageTransitions() {
+            // Interceptar cliques nos links de navegação da sidebar
+            const navLinks = document.querySelectorAll('.sidebar .nav-link:not([href^="javascript:"]):not([onclick])');
+            
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    // Não interceptar se já está em transição ou é o logout
+                    if (isTransitioning || this.href.includes('/logout')) {
+                        return;
+                    }
+                    
+                    // Não interceptar se é a página atual
+                    if (this.classList.contains('active')) {
+                        e.preventDefault();
+                        return;
+                    }
+                    
+                    // Prevenir navegação padrão
+                    e.preventDefault();
+                    const targetUrl = this.href;
+                    
+                    // Marcar que está em transição
+                    isTransitioning = true;
+                    
+                    // Aplicar animação de saída
+                    const contentWrapper = document.querySelector('.content-wrapper');
+                    if (contentWrapper) {
+                        contentWrapper.classList.add('page-transition-leave');
+                        
+                        // Aguardar animação e navegar
+                        setTimeout(() => {
+                            window.location.href = targetUrl;
+                        }, 200);
+                    } else {
+                        // Fallback se não encontrar o wrapper
+                        window.location.href = targetUrl;
+                    }
+                });
+            });
+        }
+        
+        // Inicializar transições quando a página carregar
+        if (document.querySelector('.sidebar')) {
+            initPageTransitions();
+        }
+        
+        // Adicionar animação de entrada quando voltar usando botão "voltar" do navegador
+        window.addEventListener('pageshow', function(event) {
+            isTransitioning = false;
+            const contentWrapper = document.querySelector('.content-wrapper');
+            if (contentWrapper) {
+                contentWrapper.classList.remove('page-transition-leave');
+                contentWrapper.classList.add('page-transition-enter');
+                
+                // Remover classe após animação
+                setTimeout(() => {
+                    contentWrapper.classList.remove('page-transition-enter');
+                }, 300);
+            }
+        });
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

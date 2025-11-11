@@ -650,6 +650,18 @@ def edit_project(id):
     else:
         project.prazo = None
     
+    # Atualizar campos de Contexto e Justificativa
+    project.descricao_resumida = request.form.get('descricao_resumida', '')
+    project.problema_oportunidade = request.form.get('problema_oportunidade', '')
+    project.objetivos = request.form.get('objetivos', '')
+    project.alinhamento_estrategico = request.form.get('alinhamento_estrategico', '')
+    
+    # Atualizar campos de Escopo
+    project.escopo_projeto = request.form.get('escopo_projeto', '')
+    project.fora_escopo = request.form.get('fora_escopo', '')
+    project.premissas = request.form.get('premissas', '')
+    project.restricoes = request.form.get('restricoes', '')
+    
     # Atualizar membros da equipe (limpar e adicionar novos)
     team_member_ids = request.form.getlist('team_member_ids')  # Múltiplos membros
     project.team_members.clear()  # Limpar membros atuais

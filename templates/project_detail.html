@@ -240,6 +240,54 @@
                             <small class="form-text text-muted">Segure Ctrl/Cmd para selecionar múltiplos usuários</small>
                         </div>
                     </div>
+                    
+                    <!-- Contexto e Justificativa -->
+                    <hr class="my-4">
+                    <h6 class="mb-3"><i class="fas fa-lightbulb me-2"></i>Contexto e Justificativa</h6>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Descrição Resumida</label>
+                        <textarea class="form-control" name="descricao_resumida" rows="2">{{ project.descricao_resumida or '' }}</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Problema/Oportunidade</label>
+                        <textarea class="form-control" name="problema_oportunidade" rows="2">{{ project.problema_oportunidade or '' }}</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Objetivos</label>
+                        <textarea class="form-control" name="objetivos" rows="2">{{ project.objetivos or '' }}</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Alinhamento Estratégico</label>
+                        <textarea class="form-control" name="alinhamento_estrategico" rows="2">{{ project.alinhamento_estrategico or '' }}</textarea>
+                    </div>
+                    
+                    <!-- Escopo -->
+                    <hr class="my-4">
+                    <h6 class="mb-3"><i class="fas fa-bullseye me-2"></i>Escopo</h6>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Escopo do Projeto</label>
+                        <textarea class="form-control" name="escopo_projeto" rows="3">{{ project.escopo_projeto or '' }}</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Fora do Escopo</label>
+                        <textarea class="form-control" name="fora_escopo" rows="2">{{ project.fora_escopo or '' }}</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Premissas</label>
+                        <textarea class="form-control" name="premissas" rows="2">{{ project.premissas or '' }}</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Restrições</label>
+                        <textarea class="form-control" name="restricoes" rows="2">{{ project.restricoes or '' }}</textarea>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>

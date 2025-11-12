@@ -24,7 +24,7 @@
     <div class="col-12">
         <form method="GET" class="d-flex align-items-center gap-3 flex-wrap">
             <div style="min-width: 200px;">
-                <select name="project_id" class="form-select kanban-filter-select">
+                <select name="project_id" class="form-select kanban-filter-select" onchange="this.form.submit()">
                     <option value="">Filtrar por Projeto</option>
                     {% for project in projects %}
                     <option value="{{ project.id }}" {% if current_filters.project_id == project.id %}selected{% endif %}>
@@ -35,7 +35,7 @@
             </div>
             
             <div style="min-width: 200px;">
-                <select name="client_id" class="form-select kanban-filter-select">
+                <select name="client_id" class="form-select kanban-filter-select" onchange="this.form.submit()">
                     <option value="">Filtrar por Cliente</option>
                     {% for client in clients %}
                     <option value="{{ client.id }}" {% if current_filters.client_id == client.id %}selected{% endif %}>
@@ -46,7 +46,7 @@
             </div>
             
             <div style="min-width: 200px;">
-                <select name="user_id" class="form-select kanban-filter-select">
+                <select name="user_id" class="form-select kanban-filter-select" onchange="this.form.submit()">
                     <option value="">Filtrar por Usuário</option>
                     {% for user in all_users %}
                     <option value="{{ user.id }}" {% if current_filters.user_id == user.id %}selected{% endif %}>
@@ -58,15 +58,11 @@
             
             <div class="form-check">
                 <input class="form-check-input" type="checkbox" name="my_tasks" value="1" 
-                       {% if current_filters.my_tasks %}checked{% endif %} id="myTasksCheck">
+                       {% if current_filters.my_tasks %}checked{% endif %} id="myTasksCheck" onchange="this.form.submit()">
                 <label class="form-check-label" for="myTasksCheck">
                     Apenas minhas tarefas
                 </label>
             </div>
-            
-            <button type="submit" class="btn btn-primary">
-                <i class="fas fa-filter me-1"></i>Filtrar
-            </button>
             
             <button type="button" class="btn btn-success" onclick="dispatchFilteredTasks()">
                 <i class="fas fa-envelope me-1"></i>Disparar Tarefas

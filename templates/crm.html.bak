@@ -1,0 +1,422 @@
+{% extends "base.html" %}
+
+{% block title %}CRM - Pipeline de Vendas{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1 class="h3 mb-3"><i class="fas fa-diamond me-2"></i>Pipeline de Vendas</h1>
+            <a href="{{ url_for('novo_contato') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i>Novo Contato
+            </a>
+        </div>
+        <div class="alert alert-dark border-secondary">
+            <i class="fas fa-info-circle"></i> Total de contatos: <strong>{{ total_contatos }}</strong>
+        </div>
+    </div>
+</div>
+
+<div class="pipeline-container">
+    {% for estagio in estagios %}
+    <div class="pipeline-column">
+        <div class="pipeline-header">
+            <h5 class="mb-0">
+                {{ loop.index }}. {{ estagio }}
+            </h5>
+            <span class="badge bg-light text-dark">{{ contatos_por_estagio[estagio]|length }}</span>
+        </div>
+        <div class="pipeline-cards" data-estagio="{{ estagio }}">
+            {% for contato in contatos_por_estagio[estagio] %}
+            <div class="pipeline-card" data-contato-id="{{ contato.id }}">
+                <div class="card-header">
+                    <strong>{{ contato.nome_empresa }}</strong>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <i class="fas fa-user"></i> {{ contato.nome_contato }}
+                    </div>
+                    <div class="mb-2">
+                        <i class="fas fa-envelope"></i> {{ contato.email }}
+                    </div>
+                    <div class="mb-2">
+                        <i class="fas fa-phone"></i> {{ contato.telefone }}
+                    </div>
+                    {% if contato.comentarios %}
+                    <div class="text-muted small">
+                        <i class="fas fa-comment-dots"></i> {{ contato.comentarios|length }} comentário(s)
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('ver_contato', id=contato.id) }}" class="btn btn-sm btn-primary">
+                        Ver Detalhes
+                    </a>
+                </div>
+            </div>
+            {% else %}
+            <div class="text-center text-muted p-3">
+                <i class="fas fa-inbox" style="font-size: 2rem;"></i><br>
+                Nenhum contato neste estágio
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<style>
+.pipeline-container {
+    display: flex;
+    gap: 15px;
+    overflow-x: auto;
+    padding: 20px 10px;
+    min-height: 600px;
+}
+
+.pipeline-column {
+    flex: 0 0 300px;
+    min-width: 300px;
+    display: flex;
+    flex-direction: column;
+}
+
+.pipeline-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 15px;
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.pipeline-header h5 {
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.pipeline-cards {
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    padding: 15px;
+    min-height: 400px;
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+.pipeline-card {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    transition: transform 0.2s, box-shadow 0.2s;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.pipeline-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.pipeline-card .card-header {
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 12px 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    font-size: 1rem;
+    color: var(--bs-light);
+}
+
+.pipeline-card .card-body {
+    padding: 15px;
+    font-size: 0.9rem;
+    color: var(--bs-light);
+}
+
+.pipeline-card .card-body > div {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.pipeline-card .card-body i {
+    color: rgba(255, 255, 255, 0.6);
+    margin-right: 5px;
+}
+
+.pipeline-card .card-footer {
+    background-color: rgba(255, 255, 255, 0.05);
+    padding: 10px 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+@media (max-width: 768px) {
+    .pipeline-column {
+        flex: 0 0 280px;
+        min-width: 280px;
+    }
+    
+    .pipeline-container {
+        gap: 10px;
+    }
+}
+</style>
+        const badge = header.querySelector('.badge');
+        if (badge) {
+            badge.textContent = count;
+        }
+    });
+}
+
+function viewLeadDetails(leadId) {
+    const modal = new bootstrap.Modal(document.getElementById('leadDetailsModal'));
+    const content = document.getElementById('leadDetailsContent');
+    
+    content.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+        </div>
+    `;
+    
+    modal.show();
+    
+    fetch(`/api/leads/${leadId}/data`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                content.innerHTML = buildLeadDetailsHTML(data.lead, data.users);
+            } else {
+                content.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Erro ao carregar dados do lead.
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            content.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Erro ao carregar dados do lead.
+                </div>
+            `;
+        });
+}
+
+function buildLeadDetailsHTML(lead, users) {
+    const interacoesHTML = lead.interacoes.map(i => `
+        <div class="interaction-item mb-3 p-3" style="background: rgba(255,255,255,0.05); border-radius: 8px;">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <span class="badge bg-primary">${i.tipo}</span>
+                    <small class="text-muted ms-2">${i.created_at} - ${i.user_name}</small>
+                </div>
+            </div>
+            <p class="mb-0 mt-2">${i.descricao}</p>
+        </div>
+    `).join('') || '<p class="text-muted">Nenhuma interação registrada.</p>';
+    
+    const convertButton = !lead.convertido ? `
+        <button type="button" class="btn btn-success" onclick="convertToClient(${lead.id})">
+            <i class="fas fa-check-circle me-1"></i>Converter em Cliente
+        </button>
+    ` : '<span class="badge bg-success"><i class="fas fa-check me-1"></i>Convertido</span>';
+    
+    return `
+        <div class="row">
+            <div class="col-md-8">
+                <h5 class="mb-3"><i class="fas fa-user me-2"></i>${lead.nome}</h5>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Empresa:</strong> ${lead.empresa || 'N/A'}</p>
+                        <p><strong>Email:</strong> ${lead.email || 'N/A'}</p>
+                        <p><strong>Telefone:</strong> ${lead.telefone || 'N/A'}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Cargo:</strong> ${lead.cargo || 'N/A'}</p>
+                        <p><strong>Origem:</strong> ${lead.origem || 'N/A'}</p>
+                        <p><strong>Valor Estimado:</strong> ${lead.valor_estimado ? 'R$ ' + lead.valor_estimado.toLocaleString('pt-BR', {minimumFractionDigits: 2}) : 'N/A'}</p>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <strong>Responsável:</strong> ${lead.responsavel_nome || 'Não definido'}
+                </div>
+                <div class="mb-3">
+                    <strong>Observações:</strong>
+                    <p>${lead.observacoes || 'Nenhuma observação.'}</p>
+                </div>
+                
+                <hr class="border-secondary my-4">
+                
+                <h6 class="mb-3"><i class="fas fa-history me-2"></i>Timeline de Interações</h6>
+                ${interacoesHTML}
+                
+                <div class="mt-4">
+                    <h6 class="mb-3">Adicionar Nova Interação</h6>
+                    <form id="addInteractionForm">
+                        <div class="mb-3">
+                            <label class="form-label">Tipo de Interação</label>
+                            <select class="form-select" id="interactionTipo" required>
+                                <option value="email">Email</option>
+                                <option value="ligacao">Ligação</option>
+                                <option value="reuniao">Reunião</option>
+                                <option value="whatsapp">WhatsApp</option>
+                                <option value="proposta_enviada">Proposta Enviada</option>
+                                <option value="follow_up">Follow-up</option>
+                                <option value="outro">Outro</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Descrição</label>
+                            <textarea class="form-control" id="interactionDescricao" rows="3" required></textarea>
+                        </div>
+                        <button type="button" class="btn btn-primary" onclick="addInteraction(${lead.id})">
+                            <i class="fas fa-plus me-1"></i>Adicionar Interação
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3" style="background: rgba(255,255,255,0.03); border-radius: 8px;">
+                    <h6 class="mb-3">Ações</h6>
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-outline-primary" onclick="editLead(${lead.id})">
+                            <i class="fas fa-edit me-1"></i>Editar Lead
+                        </button>
+                        ${convertButton}
+                        <button type="button" class="btn btn-outline-danger" onclick="deleteLead(${lead.id})">
+                            <i class="fas fa-trash me-1"></i>Deletar Lead
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function addInteraction(leadId) {
+    const tipo = document.getElementById('interactionTipo').value;
+    const descricao = document.getElementById('interactionDescricao').value;
+    
+    if (!descricao) {
+        alert('Por favor, preencha a descrição da interação.');
+        return;
+    }
+    
+    fetch(`/api/leads/${leadId}/interaction`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ tipo, descricao })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Interação adicionada com sucesso!');
+            viewLeadDetails(leadId); // Recarregar detalhes
+        } else {
+            alert('Erro ao adicionar interação: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao adicionar interação');
+    });
+}
+
+function convertToClient(leadId) {
+    if (!confirm('Tem certeza que deseja converter este lead em cliente?')) {
+        return;
+    }
+    
+    fetch(`/api/leads/${leadId}/convert`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Lead convertido em cliente com sucesso!');
+            location.reload();
+        } else {
+            alert('Erro ao converter lead: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao converter lead');
+    });
+}
+
+function deleteLead(leadId) {
+    if (!confirm('Tem certeza que deseja deletar este lead? Esta ação não pode ser desfeita.')) {
+        return;
+    }
+    
+    fetch(`/api/leads/${leadId}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Lead deletado com sucesso!');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('leadDetailsModal'));
+            if (modal) modal.hide();
+            location.reload();
+        } else {
+            alert('Erro ao deletar lead: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao deletar lead');
+    });
+}
+
+function applyFilters() {
+    const responsavel = document.getElementById('filterResponsavel').value;
+    const origem = document.getElementById('filterOrigem').value;
+    
+    document.querySelectorAll('.lead-card').forEach(card => {
+        let show = true;
+        
+        if (responsavel && card.dataset.responsavel != responsavel) {
+            show = false;
+        }
+        
+        if (origem && card.dataset.origem != origem) {
+            show = false;
+        }
+        
+        card.style.display = show ? 'block' : 'none';
+    });
+    
+    updateColumnCounts();
+}
+
+function clearFilters() {
+    document.getElementById('filterResponsavel').value = '';
+    document.getElementById('filterOrigem').value = '';
+    
+    document.querySelectorAll('.lead-card').forEach(card => {
+        card.style.display = 'block';
+    });
+    
+    updateColumnCounts();
+}
+</script>
+{% endblock %}

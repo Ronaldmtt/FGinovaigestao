@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}{{ contato.nome_empresa }} - CRM{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card bg-dark text-light border-secondary mb-4">
+            <div class="card-header bg-primary text-white border-secondary d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">
+                    <i class="fas fa-building"></i> {{ contato.nome_empresa }}
+                </h4>
+                <div>
+                    <a href="{{ url_for('editar_contato', id=contato.id) }}" class="btn btn-sm btn-light">
+                        <i class="fas fa-pencil"></i> Editar
+                    </a>
+                    <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                        <i class="fas fa-trash"></i> Deletar
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Nome do Contato</h6>
+                        <p><i class="fas fa-user"></i> {{ contato.nome_contato }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Email</h6>
+                        <p><i class="fas fa-envelope"></i> <a href="mailto:{{ contato.email }}" class="text-light">{{ contato.email }}</a></p>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Telefone</h6>
+                        <p><i class="fas fa-phone"></i> {{ contato.telefone }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Estágio Atual</h6>
+                        <select class="form-select bg-dark text-light border-secondary" id="estagioSelect">
+                            {% for estagio in estagios %}
+                            <option value="{{ estagio }}" {% if estagio == contato.estagio %}selected{% endif %}>
+                                {{ estagio }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                {% if contato.observacoes %}
+                <div class="mb-3">
+                    <h6 class="text-muted">Observações</h6>
+                    <p class="border border-secondary p-3 rounded bg-dark">{{ contato.observacoes }}</p>
+                </div>
+                {% endif %}
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Data de Criação</h6>
+                        <p><i class="fas fa-calendar-plus"></i> {{ contato.data_criacao.strftime('%d/%m/%Y %H:%M') }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Última Atualização</h6>
+                        <p><i class="fas fa-calendar-check"></i> {{ contato.data_atualizacao.strftime('%d/%m/%Y %H:%M') }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card bg-dark text-light border-secondary">
+            <div class="card-header bg-secondary text-white border-secondary">
+                <h5 class="mb-0">
+                    <i class="fas fa-comment-dots"></i> Histórico de Interações
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('adicionar_comentario', id=contato.id) }}" class="mb-4">
+                    <div class="mb-3">
+                        <label for="texto" class="form-label">Adicionar Comentário</label>
+                        <textarea class="form-control bg-dark text-light border-secondary" id="texto" name="texto" rows="3" required placeholder="Descreva a interação com o contato..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus-circle"></i> Adicionar Comentário
+                    </button>
+                </form>
+
+                <hr class="border-secondary">
+
+                {% if contato.comentarios %}
+                    <div class="comentarios-lista">
+                        {% for comentario in contato.comentarios %}
+                        <div class="comentario-item mb-3 p-3 border border-secondary rounded bg-dark">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <small class="text-muted">
+                                    <i class="fas fa-clock"></i> {{ comentario.data_criacao.strftime('%d/%m/%Y às %H:%M') }}
+                                </small>
+                            </div>
+                            <p class="mb-0">{{ comentario.texto }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted p-4">
+                        <i class="fas fa-inbox" style="font-size: 3rem;"></i>
+                        <p class="mt-2">Nenhum comentário ainda. Adicione o primeiro comentário acima!</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card bg-dark text-light border-secondary">
+            <div class="card-header bg-info text-white border-secondary">
+                <h5 class="mb-0">
+                    <i class="fas fa-bolt"></i> Ações Rápidas
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="mailto:{{ contato.email }}" class="btn btn-outline-primary">
+                        <i class="fas fa-envelope"></i> Enviar Email
+                    </a>
+                    <a href="tel:{{ contato.telefone }}" class="btn btn-outline-success">
+                        <i class="fas fa-phone"></i> Ligar
+                    </a>
+                    <a href="{{ url_for('crm') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Voltar ao Pipeline
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-light border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja deletar o contato <strong>{{ contato.nome_empresa }}</strong>?</p>
+                <p class="text-danger">Esta ação não pode ser desfeita e todos os comentários serão perdidos.</p>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="POST" action="{{ url_for('deletar_contato', id=contato.id) }}" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Deletar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('estagioSelect').addEventListener('change', function() {
+    const novoEstagio = this.value;
+    
+    if (confirm('Deseja mover este contato para o estágio "' + novoEstagio + '"?')) {
+        fetch('{{ url_for("mudar_estagio", id=contato.id) }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ estagio: novoEstagio })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Erro ao mudar estágio');
+            }
+        });
+    } else {
+        this.value = '{{ contato.estagio }}';
+    }
+});
+</script>
+{% endblock %}

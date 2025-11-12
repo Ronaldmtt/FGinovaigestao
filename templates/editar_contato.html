@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Editar {{ contato.nome_empresa }} - CRM{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card bg-dark text-light border-secondary">
+            <div class="card-header bg-primary text-white border-secondary">
+                <h4 class="mb-0">
+                    <i class="fas fa-edit"></i> Editar Contato
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="nome_empresa" class="form-label">Nome da Empresa *</label>
+                            <input type="text" class="form-control bg-dark text-light border-secondary" id="nome_empresa" name="nome_empresa" value="{{ contato.nome_empresa }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="nome_contato" class="form-label">Nome do Contato *</label>
+                            <input type="text" class="form-control bg-dark text-light border-secondary" id="nome_contato" name="nome_contato" value="{{ contato.nome_contato }}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">Email *</label>
+                            <input type="email" class="form-control bg-dark text-light border-secondary" id="email" name="email" value="{{ contato.email }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="telefone" class="form-label">Telefone *</label>
+                            <input type="text" class="form-control bg-dark text-light border-secondary" id="telefone" name="telefone" value="{{ contato.telefone }}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="estagio" class="form-label">Estágio do Pipeline *</label>
+                        <select class="form-select bg-dark text-light border-secondary" id="estagio" name="estagio" required>
+                            {% for estagio in estagios %}
+                            <option value="{{ estagio }}" {% if estagio == contato.estagio %}selected{% endif %}>
+                                {{ loop.index }}. {{ estagio }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="observacoes" class="form-label">Observações</label>
+                        <textarea class="form-control bg-dark text-light border-secondary" id="observacoes" name="observacoes" rows="4">{{ contato.observacoes }}</textarea>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Salvar Alterações
+                        </button>
+                        <a href="{{ url_for('ver_contato', id=contato.id) }}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

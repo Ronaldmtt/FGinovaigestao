@@ -178,39 +178,3 @@ class ChangePasswordForm(FlaskForm):
 class ImportDataForm(FlaskForm):
     data_file = StringField('Arquivo JSON', validators=[DataRequired()])
 
-class LeadForm(FlaskForm):
-    nome = StringField('Nome do Lead', validators=[DataRequired(), Length(min=2, max=200)])
-    empresa = StringField('Empresa', validators=[Optional(), Length(max=200)])
-    email = StringField('Email', validators=[Optional(), Email()])
-    telefone = StringField('Telefone', validators=[Optional(), Length(max=20)])
-    cargo = StringField('Cargo', validators=[Optional(), Length(max=100)])
-    origem = SelectField('Origem', choices=[
-        ('', 'Selecione a origem'),
-        ('site', 'Site'),
-        ('indicacao', 'Indicação'),
-        ('linkedin', 'LinkedIn'),
-        ('evento', 'Evento'),
-        ('cold_call', 'Cold Call'),
-        ('email', 'Email Marketing'),
-        ('whatsapp', 'WhatsApp'),
-        ('outro', 'Outro')
-    ], validators=[Optional()])
-    valor_estimado = FloatField('Valor Estimado (R$)', validators=[Optional()])
-    responsavel_id = SelectField('Responsável', coerce=int, validators=[Optional()])
-    observacoes = TextAreaField('Observações', render_kw={"rows": 3})
-    
-    def __init__(self, *args, **kwargs):
-        super(LeadForm, self).__init__(*args, **kwargs)
-        self.responsavel_id.choices = [(0, 'Selecione um responsável')] + [(u.id, u.full_name) for u in User.query.order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()]
-
-class LeadInteractionForm(FlaskForm):
-    tipo = SelectField('Tipo de Interação', choices=[
-        ('email', 'Email'),
-        ('ligacao', 'Ligação'),
-        ('reuniao', 'Reunião'),
-        ('whatsapp', 'WhatsApp'),
-        ('proposta_enviada', 'Proposta Enviada'),
-        ('follow_up', 'Follow-up'),
-        ('outro', 'Outro')
-    ], validators=[DataRequired()])
-    descricao = TextAreaField('Descrição', validators=[DataRequired()], render_kw={"rows": 4})

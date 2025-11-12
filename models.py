@@ -124,55 +124,32 @@ class TodoItem(db.Model):
     def __repr__(self):
         return f'<TodoItem {self.texto}>'
 
-class Lead(db.Model):
+class Contato(db.Model):
+    __tablename__ = 'contatos'
+    
     id = db.Column(db.Integer, primary_key=True)
-    nome = db.Column(db.String(200), nullable=False)
-    empresa = db.Column(db.String(200))
-    email = db.Column(db.String(120))
-    telefone = db.Column(db.String(20))
-    cargo = db.Column(db.String(100))
-    origem = db.Column(db.String(50))  # site, indicacao, linkedin, evento, cold_call, etc
-    valor_estimado = db.Column(db.Float)  # Valor estimado do negócio
+    nome_empresa = db.Column(db.String(200), nullable=False)
+    nome_contato = db.Column(db.String(200), nullable=False)
+    email = db.Column(db.String(200), nullable=False)
+    telefone = db.Column(db.String(50), nullable=False)
+    observacoes = db.Column(db.Text, nullable=True)
+    estagio = db.Column(db.String(100), nullable=False, default='Captação')
+    data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
+    data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Etapa do funil (9 etapas)
-    etapa = db.Column(db.String(50), default='captacao', nullable=False)
-    # captacao, qualificacao_automatica, contato_inicial, diagnostico, 
-    # apresentacao_poc, proposta, negociacao, fechamento, pos_venda
-    
-    # Status e tracking
-    convertido = db.Column(db.Boolean, default=False, nullable=False)
-    perdido = db.Column(db.Boolean, default=False, nullable=False)
-    motivo_perda = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    # Observações e anotações
-    observacoes = db.Column(db.Text)
-    
-    # Foreign keys
-    responsavel_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    converted_to_client_id = db.Column(db.Integer, db.ForeignKey('client.id'))
-    
-    # Relacionamentos
-    responsavel = db.relationship('User', backref='leads', foreign_keys=[responsavel_id])
-    converted_client = db.relationship('Client', backref='original_lead', foreign_keys=[converted_to_client_id])
-    interacoes = db.relationship('LeadInteraction', backref='lead', lazy=True, cascade='all, delete-orphan', order_by='LeadInteraction.created_at.desc()')
+    comentarios = db.relationship('Comentario', backref='contato', lazy=True, cascade='all, delete-orphan', order_by='Comentario.data_criacao.desc()')
     
     def __repr__(self):
-        return f'<Lead {self.nome} - {self.empresa}>'
+        return f'<Contato {self.nome_empresa} - {self.nome_contato}>'
 
-class LeadInteraction(db.Model):
+
+class Comentario(db.Model):
+    __tablename__ = 'comentarios'
+    
     id = db.Column(db.Integer, primary_key=True)
-    tipo = db.Column(db.String(50), nullable=False)  # email, ligacao, reuniao, whatsapp, proposta_enviada, etc
-    descricao = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    # Foreign keys
-    lead_id = db.Column(db.Integer, db.ForeignKey('lead.id'), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    
-    # Relacionamentos
-    user = db.relationship('User', backref='lead_interactions')
+    contato_id = db.Column(db.Integer, db.ForeignKey('contatos.id'), nullable=False)
+    texto = db.Column(db.Text, nullable=False)
+    data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
     
     def __repr__(self):
-        return f'<LeadInteraction {self.tipo} - Lead {self.lead_id}>'
+        return f'<Comentario {self.id} - Contato {self.contato_id}>'

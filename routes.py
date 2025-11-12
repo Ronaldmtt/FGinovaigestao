@@ -10,8 +10,8 @@ import string
 import json
 import os
 from app import app, db
-from models import User, Client, Project, Task, TodoItem, Lead, LeadInteraction
-from forms import LoginForm, UserForm, EditUserForm, ClientForm, ProjectForm, TaskForm, TranscriptionTaskForm, ManualProjectForm, ManualTaskForm, ForgotPasswordForm, ResetPasswordForm, ChangePasswordForm, ImportDataForm, LeadForm, LeadInteractionForm
+from models import User, Client, Project, Task, TodoItem, Contato, Comentario
+from forms import LoginForm, UserForm, EditUserForm, ClientForm, ProjectForm, TaskForm, TranscriptionTaskForm, ManualProjectForm, ManualTaskForm, ForgotPasswordForm, ResetPasswordForm, ChangePasswordForm, ImportDataForm
 from openai_service import process_project_transcription, generate_tasks_from_transcription
 from email_service import enviar_email_nova_tarefa, enviar_email_mudanca_status, enviar_email_alteracao_data, enviar_email_tarefa_editada, enviar_email_resumo_tarefas
 
@@ -2193,6 +2193,18 @@ def import_tasks():
 
 # ==================== CRM ROUTES ====================
 
+ESTAGIOS = [
+    'Captação',
+    'Qualificação Automática',
+    'Contato Inicial',
+    'Diagnóstico / Levantamento de Dor',
+    'Apresentação de POC',
+    'Proposta Técnica e Comercial',
+    'Negociação e Follow-up',
+    'Fechamento e Onboarding',
+    'Pós-venda e Expansão'
+]
+
 @app.route('/crm')
 @login_required
 def crm():
@@ -2200,300 +2212,121 @@ def crm():
         flash('Você não tem permissão para acessar o CRM.', 'danger')
         return redirect(url_for('dashboard'))
     
-    # Buscar todos os leads
-    leads = Lead.query.all()
-    users = User.query.order_by(User.nome, User.sobrenome).all()
+    contatos_por_estagio = {}
+    for estagio in ESTAGIOS:
+        contatos_por_estagio[estagio] = Contato.query.filter_by(estagio=estagio).all()
     
-    # Organizar leads por etapa
-    etapas = {
-        'captacao': [],
-        'qualificacao_automatica': [],
-        'contato_inicial': [],
-        'diagnostico': [],
-        'apresentacao_poc': [],
-        'proposta': [],
-        'negociacao': [],
-        'fechamento': [],
-        'pos_venda': []
-    }
+    total_contatos = Contato.query.count()
     
-    for lead in leads:
-        if not lead.perdido and not lead.convertido:
-            etapas[lead.etapa].append(lead)
-    
-    form = LeadForm()
-    
-    return render_template('crm.html', etapas=etapas, users=users, form=form)
+    return render_template('crm.html', 
+                         contatos_por_estagio=contatos_por_estagio,
+                         estagios=ESTAGIOS,
+                         total_contatos=total_contatos)
 
-@app.route('/crm/leads/new', methods=['POST'])
+@app.route('/crm/contato/novo', methods=['GET', 'POST'])
 @login_required
-def new_lead():
+def novo_contato():
     if not current_user.is_admin and not current_user.acesso_crm:
-        return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+        flash('Você não tem permissão para acessar o CRM.', 'danger')
+        return redirect(url_for('dashboard'))
     
-    form = LeadForm()
-    
-    if form.validate_on_submit():
-        try:
-            lead = Lead(
-                nome=form.nome.data,
-                empresa=form.empresa.data,
-                email=form.email.data,
-                telefone=form.telefone.data,
-                cargo=form.cargo.data,
-                origem=form.origem.data if form.origem.data else None,
-                valor_estimado=form.valor_estimado.data,
-                responsavel_id=form.responsavel_id.data if form.responsavel_id.data and form.responsavel_id.data > 0 else None,
-                observacoes=form.observacoes.data,
-                etapa='captacao'
-            )
-            
-            db.session.add(lead)
-            db.session.commit()
-            
-            flash('Lead criado com sucesso!', 'success')
-            return redirect(url_for('crm'))
-            
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Erro ao criar lead: {str(e)}', 'danger')
-            return redirect(url_for('crm'))
-    else:
-        for field, errors in form.errors.items():
-            for error in errors:
-                flash(f'{field}: {error}', 'danger')
+    if request.method == 'POST':
+        contato = Contato(
+            nome_empresa=request.form['nome_empresa'],
+            nome_contato=request.form['nome_contato'],
+            email=request.form['email'],
+            telefone=request.form['telefone'],
+            observacoes=request.form.get('observacoes', ''),
+            estagio=request.form.get('estagio', 'Captação')
+        )
+        db.session.add(contato)
+        db.session.commit()
+        flash('Contato cadastrado com sucesso!', 'success')
         return redirect(url_for('crm'))
+    
+    return render_template('novo_contato.html', estagios=ESTAGIOS)
 
-@app.route('/api/leads/<int:lead_id>/data')
+@app.route('/crm/contato/<int:id>')
 @login_required
-def get_lead_data(lead_id):
+def ver_contato(id):
     if not current_user.is_admin and not current_user.acesso_crm:
-        return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+        flash('Você não tem permissão para acessar o CRM.', 'danger')
+        return redirect(url_for('dashboard'))
     
-    lead = Lead.query.get_or_404(lead_id)
-    
-    users = User.query.order_by(User.nome, User.sobrenome).all()
-    users_list = [{'id': u.id, 'nome': u.full_name} for u in users]
-    
-    interacoes = []
-    for interacao in lead.interacoes:
-        interacoes.append({
-            'id': interacao.id,
-            'tipo': interacao.tipo,
-            'descricao': interacao.descricao,
-            'created_at': interacao.created_at.strftime('%d/%m/%Y às %H:%M'),
-            'user_name': interacao.user.full_name
-        })
-    
-    lead_data = {
-        'id': lead.id,
-        'nome': lead.nome,
-        'empresa': lead.empresa,
-        'email': lead.email,
-        'telefone': lead.telefone,
-        'cargo': lead.cargo,
-        'origem': lead.origem,
-        'valor_estimado': lead.valor_estimado,
-        'responsavel_id': lead.responsavel_id,
-        'responsavel_nome': lead.responsavel.full_name if lead.responsavel else None,
-        'observacoes': lead.observacoes,
-        'etapa': lead.etapa,
-        'convertido': lead.convertido,
-        'perdido': lead.perdido,
-        'motivo_perda': lead.motivo_perda,
-        'interacoes': interacoes
-    }
-    
-    return jsonify({
-        'success': True,
-        'lead': lead_data,
-        'users': users_list
-    })
+    contato = Contato.query.get_or_404(id)
+    return render_template('ver_contato.html', contato=contato, estagios=ESTAGIOS)
 
-@app.route('/api/leads/<int:lead_id>', methods=['PUT'])
+@app.route('/crm/contato/<int:id>/editar', methods=['GET', 'POST'])
 @login_required
-def update_lead(lead_id):
+def editar_contato(id):
     if not current_user.is_admin and not current_user.acesso_crm:
-        return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+        flash('Você não tem permissão para acessar o CRM.', 'danger')
+        return redirect(url_for('dashboard'))
     
-    lead = Lead.query.get_or_404(lead_id)
-    data = request.get_json()
+    contato = Contato.query.get_or_404(id)
     
-    try:
-        if 'nome' in data:
-            lead.nome = data['nome']
-        if 'empresa' in data:
-            lead.empresa = data['empresa']
-        if 'email' in data:
-            lead.email = data['email']
-        if 'telefone' in data:
-            lead.telefone = data['telefone']
-        if 'cargo' in data:
-            lead.cargo = data['cargo']
-        if 'origem' in data:
-            lead.origem = data['origem']
-        if 'valor_estimado' in data:
-            lead.valor_estimado = float(data['valor_estimado']) if data['valor_estimado'] else None
-        if 'responsavel_id' in data:
-            resp_id = int(data['responsavel_id']) if data['responsavel_id'] else 0
-            lead.responsavel_id = resp_id if resp_id > 0 else None
-        if 'observacoes' in data:
-            lead.observacoes = data['observacoes']
-        
-        lead.updated_at = datetime.utcnow()
-        db.session.commit()
-        
-        return jsonify({'success': True, 'message': 'Lead atualizado com sucesso!'})
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': f'Erro ao atualizar lead: {str(e)}'})
-
-@app.route('/api/leads/<int:lead_id>', methods=['DELETE'])
-@login_required
-def delete_lead(lead_id):
-    if not current_user.is_admin and not current_user.acesso_crm:
-        return jsonify({'success': False, 'message': 'Sem permissão'}), 403
-    
-    lead = Lead.query.get_or_404(lead_id)
-    
-    try:
-        db.session.delete(lead)
-        db.session.commit()
-        
-        return jsonify({'success': True, 'message': 'Lead deletado com sucesso!'})
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': f'Erro ao deletar lead: {str(e)}'})
-
-@app.route('/api/leads/<int:lead_id>/move', methods=['POST'])
-@login_required
-def move_lead(lead_id):
-    if not current_user.is_admin and not current_user.acesso_crm:
-        return jsonify({'success': False, 'message': 'Sem permissão'}), 403
-    
-    lead = Lead.query.get_or_404(lead_id)
-    data = request.get_json()
-    nova_etapa = data.get('etapa')
-    
-    etapas_validas = [
-        'captacao', 'qualificacao_automatica', 'contato_inicial', 
-        'diagnostico', 'apresentacao_poc', 'proposta', 
-        'negociacao', 'fechamento', 'pos_venda'
-    ]
-    
-    if nova_etapa not in etapas_validas:
-        return jsonify({'success': False, 'message': 'Etapa inválida'}), 400
-    
-    try:
-        etapa_anterior = lead.etapa
-        lead.etapa = nova_etapa
-        lead.updated_at = datetime.utcnow()
-        db.session.commit()
-        
-        # Registrar interação automática
-        interacao = LeadInteraction(
-            lead_id=lead.id,
-            user_id=current_user.id,
-            tipo='outro',
-            descricao=f'Lead movido de "{etapa_anterior}" para "{nova_etapa}"'
-        )
-        db.session.add(interacao)
-        db.session.commit()
-        
-        return jsonify({'success': True, 'message': 'Lead movido com sucesso!'})
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': f'Erro ao mover lead: {str(e)}'})
-
-@app.route('/api/leads/<int:lead_id>/interaction', methods=['POST'])
-@login_required
-def add_lead_interaction(lead_id):
-    if not current_user.is_admin and not current_user.acesso_crm:
-        return jsonify({'success': False, 'message': 'Sem permissão'}), 403
-    
-    lead = Lead.query.get_or_404(lead_id)
-    data = request.get_json()
-    
-    try:
-        interacao = LeadInteraction(
-            lead_id=lead.id,
-            user_id=current_user.id,
-            tipo=data.get('tipo'),
-            descricao=data.get('descricao')
-        )
-        
-        db.session.add(interacao)
-        lead.updated_at = datetime.utcnow()
-        db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'message': 'Interação adicionada com sucesso!',
-            'interacao': {
-                'id': interacao.id,
-                'tipo': interacao.tipo,
-                'descricao': interacao.descricao,
-                'created_at': interacao.created_at.strftime('%d/%m/%Y às %H:%M'),
-                'user_name': current_user.full_name
-            }
-        })
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': f'Erro ao adicionar interação: {str(e)}'})
-
-@app.route('/api/leads/<int:lead_id>/convert', methods=['POST'])
-@login_required
-def convert_lead_to_client(lead_id):
-    if not current_user.is_admin and not current_user.acesso_crm:
-        return jsonify({'success': False, 'message': 'Sem permissão'}), 403
-    
-    lead = Lead.query.get_or_404(lead_id)
-    
-    if lead.convertido:
-        return jsonify({'success': False, 'message': 'Lead já foi convertido em cliente'}), 400
-    
-    try:
-        # Criar novo cliente com dados do lead
-        cliente = Client(
-            nome=lead.nome,
-            email=lead.email,
-            telefone=lead.telefone,
-            observacoes=f"Convertido do lead: {lead.empresa or lead.nome}\n\nObservações do lead:\n{lead.observacoes or 'Nenhuma'}",
-            creator_id=current_user.id
-        )
-        
-        db.session.add(cliente)
-        db.session.flush()  # Para obter o ID do cliente
-        
-        # Marcar lead como convertido
-        lead.convertido = True
-        lead.converted_to_client_id = cliente.id
-        lead.updated_at = datetime.utcnow()
-        
-        # Registrar interação de conversão
-        interacao = LeadInteraction(
-            lead_id=lead.id,
-            user_id=current_user.id,
-            tipo='outro',
-            descricao=f'Lead convertido em cliente: {cliente.nome}'
-        )
-        db.session.add(interacao)
+    if request.method == 'POST':
+        contato.nome_empresa = request.form['nome_empresa']
+        contato.nome_contato = request.form['nome_contato']
+        contato.email = request.form['email']
+        contato.telefone = request.form['telefone']
+        contato.observacoes = request.form.get('observacoes', '')
+        contato.estagio = request.form['estagio']
+        contato.data_atualizacao = datetime.utcnow()
         
         db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'message': 'Lead convertido em cliente com sucesso!',
-            'client_id': cliente.id
-        })
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': f'Erro ao converter lead: {str(e)}'})
+        flash('Contato atualizado com sucesso!', 'success')
+        return redirect(url_for('ver_contato', id=id))
+    
+    return render_template('editar_contato.html', contato=contato, estagios=ESTAGIOS)
+
+@app.route('/crm/contato/<int:id>/deletar', methods=['POST'])
+@login_required
+def deletar_contato(id):
+    if not current_user.is_admin and not current_user.acesso_crm:
+        flash('Você não tem permissão para acessar o CRM.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    contato = Contato.query.get_or_404(id)
+    db.session.delete(contato)
+    db.session.commit()
+    flash('Contato deletado com sucesso!', 'success')
+    return redirect(url_for('crm'))
+
+@app.route('/crm/contato/<int:id>/mudar-estagio', methods=['POST'])
+@login_required
+def mudar_estagio(id):
+    if not current_user.is_admin and not current_user.acesso_crm:
+        return jsonify({'success': False, 'error': 'Sem permissão'}), 403
+    
+    contato = Contato.query.get_or_404(id)
+    novo_estagio = request.json.get('estagio')
+    
+    if novo_estagio in ESTAGIOS:
+        contato.estagio = novo_estagio
+        contato.data_atualizacao = datetime.utcnow()
+        db.session.commit()
+        return jsonify({'success': True})
+    
+    return jsonify({'success': False, 'error': 'Estágio inválido'}), 400
+
+@app.route('/crm/contato/<int:id>/comentario', methods=['POST'])
+@login_required
+def adicionar_comentario(id):
+    if not current_user.is_admin and not current_user.acesso_crm:
+        flash('Você não tem permissão para acessar o CRM.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    contato = Contato.query.get_or_404(id)
+    texto = request.form.get('texto')
+    
+    if texto:
+        comentario = Comentario(contato_id=id, texto=texto)
+        db.session.add(comentario)
+        db.session.commit()
+        flash('Comentário adicionado com sucesso!', 'success')
+    
+    return redirect(url_for('ver_contato', id=id))
 
 @app.route('/api/tasks/reorder', methods=['POST'])
 @login_required

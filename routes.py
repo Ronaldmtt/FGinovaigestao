@@ -4,6 +4,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime, timedelta
 from functools import wraps
 from sqlalchemy import func
+from sqlalchemy.orm import joinedload, selectinload
 import httpx
 import secrets
 import string
@@ -459,14 +460,63 @@ def projects():
         query = query.filter_by(status=status_filter)
     
     # Ordenar por prazo (mais próximo primeiro) e depois por nome
-    projects = query.order_by(Project.prazo.asc().nullslast(), Project.nome).all()
+    # Usar eager loading para evitar N+1 queries
+    projects = query.options(
+        joinedload(Project.responsible),
+        joinedload(Project.client),
+        selectinload(Project.tasks)
+    ).order_by(Project.prazo.asc().nullslast(), Project.nome).all()
+    
+    # Preparar dados dos projetos para o template
+    projects_data = []
+    for project in projects:
+        # Calcular progresso baseado em tarefas se disponível
+        if project.tasks:
+            total_tasks = len(project.tasks)
+            completed_tasks = sum(1 for task in project.tasks if task.status == 'concluida')
+            computed_progress = int((completed_tasks / total_tasks) * 100) if total_tasks > 0 else 0
+        else:
+            computed_progress = project.progress_percent or 0
+        
+        # Status para label e classe CSS
+        status_map = {
+            'em_andamento': {'label': 'Ativo', 'class': 'status-active'},
+            'concluido': {'label': 'Concluído', 'class': 'status-completed'},
+            'pausado': {'label': 'Em Espera', 'class': 'status-pending'},
+            'cancelado': {'label': 'Cancelado', 'class': 'status-delayed'}
+        }
+        status_info = status_map.get(project.status, {'label': project.status, 'class': 'status-pending'})
+        
+        # Cor da barra de progresso
+        if computed_progress <= 25:
+            progress_color = 'progress-danger'
+        elif computed_progress <= 75:
+            progress_color = 'progress-warning'
+        else:
+            progress_color = 'progress-success'
+        
+        projects_data.append({
+            'id': project.id,
+            'nome': project.nome,
+            'leader': project.responsible.full_name if project.responsible else '-',
+            'client': project.client.nome if project.client else '-',
+            'status_label': status_info['label'],
+            'status_class': status_info['class'],
+            'prazo': project.prazo,
+            'progress': computed_progress,
+            'progress_color': progress_color,
+            'created_at': project.created_at,
+            'can_edit': current_user.is_admin or current_user.id == project.responsible_id,
+            'project': project  # Passar o objeto completo também para compatibilidade
+        })
     
     form = ProjectForm()
     clients = Client.query.order_by(Client.nome).all()
     users = User.query.filter_by(is_admin=False).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
     
     return render_template('projects.html', 
-                         projects=projects, 
+                         projects=projects,  # Manter para modals
+                         projects_data=projects_data,  # Novos dados estruturados
                          form=form, 
                          clients=clients,
                          users=users,

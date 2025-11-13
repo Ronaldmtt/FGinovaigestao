@@ -74,106 +74,79 @@
         </div>
     </div>
 
-    <!-- Tabela de Projetos -->
-    <div class="projects-card">
-        <div class="table-wrapper">
-            <table class="projects-table">
-                <thead>
-                    <tr>
-                        <th>NOME DO PROJETO</th>
-                        <th>LÍDER DO PROJETO</th>
-                        <th>STATUS</th>
-                        <th>PRAZO</th>
-                        <th>PROGRESSO</th>
-                        <th class="text-end">AÇÕES</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% if projects %}
-                    {% for project in projects %}
-                    <tr>
-                        <td>
-                            <a href="{{ url_for('project_detail', id=project.id) }}" class="project-name">
-                                {{ project.nome }}
-                            </a>
-                        </td>
-                        <td class="text-secondary">{{ project.responsible.full_name }}</td>
-                        <td>
-                            {% if project.status == 'em_andamento' %}
-                                <span class="status-badge status-active">Ativo</span>
-                            {% elif project.status == 'pausado' %}
-                                <span class="status-badge status-pending">Em Espera</span>
-                            {% elif project.status == 'cancelado' %}
-                                <span class="status-badge status-delayed">Cancelado</span>
-                            {% elif project.status == 'concluido' %}
-                                <span class="status-badge status-completed">Concluído</span>
-                            {% endif %}
-                        </td>
-                        <td class="text-secondary">
-                            {% if project.prazo %}
-                                {{ project.prazo.strftime('%d/%m/%Y') }}
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div class="progress-container">
-                                <div class="progress-wrapper">
-                                    {% set progress = project.progress_percent or 0 %}
-                                    {% if progress <= 25 %}
-                                        {% set progress_color = 'progress-danger' %}
-                                    {% elif progress <= 75 %}
-                                        {% set progress_color = 'progress-warning' %}
-                                    {% else %}
-                                        {% set progress_color = 'progress-success' %}
-                                    {% endif %}
-                                    <div class="progress-bar-custom">
-                                        <div class="progress-fill {{ progress_color }}" style="width: {{ progress }}%;"></div>
-                                    </div>
-                                </div>
-                                <span class="progress-text">{{ progress }}%</span>
-                            </div>
-                        </td>
-                        <td class="text-end">
-                            <div class="dropdown">
-                                <button class="action-button" type="button" data-bs-toggle="dropdown" data-bs-auto-close="true">
-                                    <i class="fas fa-ellipsis-v"></i>
+    <!-- Grid de Cards de Projetos -->
+    <div class="projects-grid">
+        {% if projects_data %}
+            {% for p in projects_data %}
+            <div class="project-card" onclick="window.location.href='{{ url_for('project_detail', id=p.id) }}'">
+                <div class="project-card-header">
+                    <h5 class="project-card-title mb-0">{{ p.nome }}</h5>
+                    <div class="dropdown" onclick="event.stopPropagation()">
+                        <button class="project-card-actions" type="button" data-bs-toggle="dropdown" data-bs-auto-close="true">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end bg-dark border-secondary">
+                            <li>
+                                <a class="dropdown-item text-light" href="{{ url_for('project_detail', id=p.id) }}">
+                                    <i class="fas fa-eye me-2"></i>Ver detalhes
+                                </a>
+                            </li>
+                            {% if p.can_edit %}
+                            <li>
+                                <button class="dropdown-item text-light" onclick="editProject({{ p.id }})">
+                                    <i class="fas fa-edit me-2"></i>Editar
                                 </button>
-                                <ul class="dropdown-menu dropdown-menu-end bg-dark border-secondary">
-                                    <li>
-                                        <a class="dropdown-item text-light" href="{{ url_for('project_detail', id=project.id) }}">
-                                            <i class="fas fa-eye me-2"></i>Ver detalhes
-                                        </a>
-                                    </li>
-                                    {% if current_user.is_admin or current_user.id == project.responsible_id %}
-                                    <li>
-                                        <button class="dropdown-item text-light" onclick="editProject({{ project.id }})">
-                                            <i class="fas fa-edit me-2"></i>Editar
-                                        </button>
-                                    </li>
-                                    <li><hr class="dropdown-divider border-secondary"></li>
-                                    <li>
-                                        <button class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ project.id }}">
-                                            <i class="fas fa-trash me-2"></i>Deletar
-                                        </button>
-                                    </li>
-                                    {% endif %}
-                                </ul>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                    {% else %}
-                    <tr>
-                        <td colspan="6" class="text-center py-5">
-                            <i class="fas fa-folder-open fa-3x text-muted mb-3 d-block"></i>
-                            <p class="text-muted mb-0">Nenhum projeto encontrado</p>
-                        </td>
-                    </tr>
-                    {% endif %}
-                </tbody>
-            </table>
-        </div>
+                            </li>
+                            <li><hr class="dropdown-divider border-secondary"></li>
+                            <li>
+                                <button class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ p.id }}">
+                                    <i class="fas fa-trash me-2"></i>Deletar
+                                </button>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+                <div class="project-card-body">
+                    <div class="project-card-info">
+                        <i class="fas fa-user-tie text-muted me-2"></i>
+                        <span class="text-secondary">{{ p.leader }}</span>
+                    </div>
+                    <div class="project-card-info">
+                        <i class="fas fa-building text-muted me-2"></i>
+                        <span class="text-secondary">{{ p.client }}</span>
+                    </div>
+                    <div class="project-card-info">
+                        <span class="status-badge {{ p.status_class }}">{{ p.status_label }}</span>
+                    </div>
+                    <div class="project-card-info">
+                        <i class="fas fa-calendar-alt text-muted me-2"></i>
+                        <span class="text-secondary">
+                            {% if p.prazo %}
+                                {{ p.prazo.strftime('%d/%m/%Y') }}
+                            {% else %}
+                                Sem prazo
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+                <div class="project-card-footer">
+                    <div class="progress-container-card">
+                        <div class="progress-bar-custom">
+                            <div class="progress-fill {{ p.progress_color }}" style="width: {{ p.progress }}%;"></div>
+                        </div>
+                        <span class="progress-text">{{ p.progress }}%</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <i class="fas fa-folder-open fa-4x text-muted mb-3"></i>
+                <p class="text-muted fs-5">Nenhum projeto encontrado</p>
+                <p class="text-secondary small">Clique em "Criar Novo Projeto" para começar</p>
+            </div>
+        {% endif %}
     </div>
 </div>
 
@@ -363,6 +336,7 @@
 .status-pills-container {
     display: flex;
     gap: 10px;
+    flex-wrap: wrap;
 }
 
 .status-pill {
@@ -387,172 +361,182 @@
     color: #fff;
 }
 
-/* Card da tabela */
-.projects-card {
+/* Grid de Cards de Projetos */
+.projects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+    padding: 10px 0;
+}
+
+/* Card de Projeto */
+.project-card {
     background: #1e2228;
-    border-radius: 10px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-/* Wrapper da tabela */
-.table-wrapper {
-    overflow: visible;
+.project-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+    border-color: rgba(13, 110, 253, 0.5);
+    background: #242933;
 }
 
-/* Tabela */
-.projects-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 0;
-}
-
-.projects-table thead th {
-    background: #1e2228;
-    color: #6c757d;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    padding: 16px 20px;
-    text-align: left;
-    border: none;
-}
-
-.projects-table thead th:first-child {
-    padding-left: 24px;
-}
-
-.projects-table thead th:last-child {
-    padding-right: 24px;
-}
-
-.projects-table tbody tr {
-    border-bottom: 1px solid #2a2f38;
-    transition: background 0.15s;
-}
-
-.projects-table tbody tr:last-child {
-    border-bottom: none;
-}
-
-.projects-table tbody tr:hover {
+/* Header do Card */
+.project-card-header {
+    padding: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
     background: rgba(255, 255, 255, 0.02);
 }
 
-.projects-table tbody td {
-    padding: 18px 20px;
+.project-card-title {
+    font-size: 16px;
+    font-weight: 600;
     color: #e9ecef;
-    font-size: 14px;
+    flex: 1;
+    line-height: 1.4;
+    margin: 0;
+}
+
+.project-card-actions {
+    background: transparent;
     border: none;
-    vertical-align: middle;
+    color: #6c757d;
+    padding: 4px 8px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+    font-size: 14px;
 }
 
-.projects-table tbody td:first-child {
-    padding-left: 24px;
+.project-card-actions:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
 }
 
-.projects-table tbody td:last-child {
-    padding-right: 24px;
+/* Body do Card */
+.project-card-body {
+    padding: 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
-/* Nome do projeto */
-.project-name {
-    color: #e9ecef;
-    text-decoration: none;
-    font-weight: 500;
-    transition: color 0.2s;
-}
-
-.project-name:hover {
-    color: #0d6efd;
-}
-
-/* Badges de status */
-.status-badge {
-    padding: 4px 10px;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 500;
-    display: inline-block;
-    text-transform: capitalize;
-}
-
-.status-active {
-    background: rgba(13, 110, 253, 0.15);
-    color: #5ba3ff;
-}
-
-.status-completed {
-    background: rgba(25, 135, 84, 0.15);
-    color: #4ec991;
-}
-
-.status-pending {
-    background: rgba(255, 193, 7, 0.15);
-    color: #ffc107;
-}
-
-.status-delayed {
-    background: rgba(220, 53, 69, 0.15);
-    color: #ff6b7a;
-}
-
-/* Container de progresso */
-.progress-container {
+.project-card-info {
     display: flex;
     align-items: center;
-    gap: 10px;
+    font-size: 14px;
+    color: #e9ecef;
 }
 
-.progress-wrapper {
-    flex: 0 0 100px;
+.project-card-info i {
+    font-size: 13px;
+    width: 16px;
+}
+
+/* Footer do Card */
+.project-card-footer {
+    padding: 16px 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.progress-container-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 .progress-bar-custom {
-    height: 6px;
+    flex: 1;
+    height: 8px;
     background: #2a2f38;
-    border-radius: 3px;
+    border-radius: 4px;
     overflow: hidden;
 }
 
 .progress-fill {
     height: 100%;
-    border-radius: 3px;
+    border-radius: 4px;
     transition: width 0.3s ease;
 }
 
 .progress-danger {
-    background: #ff6b7a;
+    background: linear-gradient(90deg, #ff6b7a 0%, #dc3545 100%);
 }
 
 .progress-warning {
-    background: #ffc107;
+    background: linear-gradient(90deg, #ffc107 0%, #ffb300 100%);
 }
 
 .progress-success {
-    background: #4ec991;
+    background: linear-gradient(90deg, #4ec991 0%, #198754 100%);
 }
 
 .progress-text {
-    font-size: 13px;
-    color: #8b92a8;
-    font-weight: 500;
-    min-width: 35px;
+    font-size: 14px;
+    color: #e9ecef;
+    font-weight: 600;
+    min-width: 45px;
+    text-align: right;
 }
 
-/* Botão de ações */
-.action-button {
-    background: transparent;
-    border: none;
-    color: #6c757d;
-    padding: 6px 10px;
-    cursor: pointer;
-    border-radius: 4px;
-    transition: all 0.2s;
+/* Badges de status */
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 11px;
+    font-weight: 600;
+    display: inline-block;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-.action-button:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: #fff;
+.status-active {
+    background: rgba(13, 110, 253, 0.2);
+    color: #5ba3ff;
+    border: 1px solid rgba(13, 110, 253, 0.3);
+}
+
+.status-completed {
+    background: rgba(25, 135, 84, 0.2);
+    color: #4ec991;
+    border: 1px solid rgba(25, 135, 84, 0.3);
+}
+
+.status-pending {
+    background: rgba(255, 193, 7, 0.2);
+    color: #ffc107;
+    border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.status-delayed {
+    background: rgba(220, 53, 69, 0.2);
+    color: #ff6b7a;
+    border: 1px solid rgba(220, 53, 69, 0.3);
+}
+
+/* Empty State */
+.empty-state {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px;
+    text-align: center;
 }
 
 /* Dropdown */
@@ -564,9 +548,30 @@
     z-index: 9999 !important;
 }
 
-.projects-table tbody td {
-    position: relative;
-    overflow: visible;
+/* Responsivo */
+@media (max-width: 768px) {
+    .projects-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    .project-card-header {
+        padding: 16px;
+    }
+    
+    .project-card-body {
+        padding: 16px;
+    }
+    
+    .project-card-footer {
+        padding: 12px 16px;
+    }
+}
+
+@media (min-width: 1400px) {
+    .projects-grid {
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    }
 }
 </style>
 

@@ -489,10 +489,13 @@ function generatePublicLink(btn) {
     const clientId = btn.dataset.clientId;
     const clientName = btn.dataset.clientName;
     
+    const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+    
     fetch(`/clients/${clientId}/generate-public-link`, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
         }
     })
     .then(response => response.json())
@@ -500,7 +503,7 @@ function generatePublicLink(btn) {
         if (data.success) {
             showPublicLinkModal(clientName, data.public_code, data.public_url);
         } else {
-            alert('Erro ao gerar link de acesso. Tente novamente.');
+            alert(data.message || 'Erro ao gerar link de acesso. Tente novamente.');
         }
     })
     .catch(error => {

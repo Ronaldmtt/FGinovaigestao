@@ -512,8 +512,8 @@ function generatePublicLink(btn) {
 function showPublicLinkModal(clientName, code, publicUrl) {
     const modal = new bootstrap.Modal(document.getElementById('publicLinkModal'));
     document.getElementById('publicLinkClientName').textContent = clientName;
-    document.getElementById('publicCode').textContent = code;
-    document.getElementById('publicUrlFull').textContent = publicUrl;
+    document.getElementById('publicCode').value = code;
+    document.getElementById('publicUrlFull').value = publicUrl;
     modal.show();
 }
 

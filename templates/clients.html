@@ -96,7 +96,10 @@
                                         </button>
                                     </li>
                                     <li>
-                                        <button class="dropdown-item text-light" onclick="generatePublicLink({{ client.id }}, {{ client.nome|tojson }})">
+                                        <button class="dropdown-item text-light" 
+                                                data-client-id="{{ client.id }}" 
+                                                data-client-name="{{ client.nome }}" 
+                                                onclick="generatePublicLink(this)">
                                             <i class="fas fa-link me-2"></i>Gerar Link de Acesso
                                         </button>
                                     </li>
@@ -482,7 +485,10 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-function generatePublicLink(clientId, clientName) {
+function generatePublicLink(btn) {
+    const clientId = btn.dataset.clientId;
+    const clientName = btn.dataset.clientName;
+    
     fetch(`/clients/${clientId}/generate-public-link`, {
         method: 'POST',
         headers: {

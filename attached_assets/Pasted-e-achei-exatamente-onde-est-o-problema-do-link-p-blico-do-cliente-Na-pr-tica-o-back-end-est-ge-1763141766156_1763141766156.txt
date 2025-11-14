@@ -1,0 +1,182 @@
+e achei exatamente onde está o problema do “link público do cliente”.
+
+Na prática o back-end está gerando o link/código, mas o front-end não está exibindo nada nem copiando para a área de transferência, então parece que “não gera”.
+
+1. Problema principal: uso de textContent em <input>
+
+No arquivo templates/clients.html você tem:
+
+<input type="text" id="publicCode" class="form-control-lg bg-dark text-light border-secondary text-center" readonly>
+...
+<input type="text" id="publicUrlFull" class="form-control bg-dark text-light border-secondary" readonly>
+
+
+Mas no JavaScript você faz:
+
+function showPublicLinkModal(clientName, code, publicUrl) {
+    const modal = new bootstrap.Modal(document.getElementById('publicLinkModal'));
+    document.getElementById('publicLinkClientName').textContent = clientName;
+    document.getElementById('publicCode').textContent = code;
+    document.getElementById('publicUrlFull').textContent = publicUrl;
+    modal.show();
+}
+
+function copyCode() {
+    const code = document.getElementById('publicCode').textContent;
+    ...
+}
+
+function copyUrl() {
+    const url = document.getElementById('publicUrlFull').textContent;
+    ...
+}
+
+
+Só que para <input> o valor fica em .value, não em .textContent.
+Resultado: o modal abre, mas os campos ficam vazios e nada é copiado.
+
+✅ Como corrigir
+
+Troque essas linhas para:
+
+function showPublicLinkModal(clientName, code, publicUrl) {
+    const modal = new bootstrap.Modal(document.getElementById('publicLinkModal'));
+    document.getElementById('publicLinkClientName').textContent = clientName;
+    document.getElementById('publicCode').value = code;
+    document.getElementById('publicUrlFull').value = publicUrl;
+    modal.show();
+}
+
+function copyCode() {
+    const code = document.getElementById('publicCode').value;
+    navigator.clipboard.writeText(code).then(() => {
+        const btn = event.target.closest('button');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check me-2"></i>Copiado!';
+        btn.classList.add('btn-success');
+        btn.classList.remove('btn-outline-primary');
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-outline-primary');
+        }, 2000);
+    });
+}
+
+function copyUrl() {
+    const url = document.getElementById('publicUrlFull').value;
+    navigator.clipboard.writeText(url).then(() => {
+        const btn = event.target.closest('button');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check me-2"></i>Copiado!';
+        btn.classList.add('btn-success');
+        btn.classList.remove('btn-outline-primary');
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-outline-primary');
+        }, 2000);
+    });
+}
+
+
+Só essa troca de .textContent → .value já faz:
+
+o código de acesso aparecer no campo,
+
+o link público aparecer no campo,
+
+os botões “Copiar Código” e “Copiar Link” funcionarem direitinho.
+
+2. Deixar o link realmente “direto” para o cliente (opcional, mas recomendado)
+
+Hoje, no routes.py, a rota que gera o link público está assim:
+
+@app.route('/clients/<int:id>/generate-public-link', methods=['POST'])
+@login_required
+@requires_permission('acesso_clientes')
+def generate_public_link(id):
+    client = Client.query.get_or_404(id)
+    
+    # Verificar se usuário tem acesso
+    if not current_user.is_admin and client.creator_id != current_user.id:
+        flash('Você não tem permissão para gerar link para este cliente.', 'danger')
+        return redirect(url_for('clients'))
+    
+    # Gerar código único
+    if not client.public_code:
+        alphabet = string.ascii_uppercase + string.digits
+        client.public_code = ''.join(secrets.choice(alphabet) for _ in range(8))
+        db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'public_code': client.public_code,
+        'public_url': url_for('public_access', _external=True)
+    })
+
+
+Esse public_url aponta só para a página /public (onde o cliente ainda precisa digitar o código).
+
+Se você quiser mandar um link direto por cliente (sem ele precisar digitar o código), dá pra usar a timeline pública que você já tem:
+
+@app.route('/public/timeline/<code>')
+def client_timeline(code):
+    ...
+
+Sugestão de ajuste:
+return jsonify({
+    'success': True,
+    'public_code': client.public_code,
+    'public_url': url_for('client_timeline', code=client.public_code, _external=True)
+})
+
+
+Assim:
+
+O campo “Código de Acesso” continua existindo (se você quiser mandar só o código).
+
+O “Link Público” que aparece no modal já é algo como:
+
+https://seusistema.com/public/timeline/ABCD1234
+
+Você pode copiar esse link e mandar direto para o cliente (WhatsApp, e-mail, etc.).
+
+3. Um detalhe de permissão que pode quebrar o JSON
+
+A mesma rota usa login_required e @requires_permission('acesso_clientes').
+Se um usuário sem permissão tentar gerar o link, hoje ela faz:
+
+flash('Você não tem permissão...', 'danger')
+return redirect(url_for('clients'))
+
+
+Só que o front está esperando JSON (por fetch(...)), não um redirect HTML.
+Se no teu uso normal todos que geram link têm permissão, beleza. Se não, o ideal seria retornar JSON de erro:
+
+if not current_user.is_admin and client.creator_id != current_user.id:
+    return jsonify({
+        'success': False,
+        'message': 'Você não tem permissão para gerar link para este cliente.'
+    }), 403
+
+Resumindo o que você precisa mudar
+
+Em templates/clients.html:
+
+Trocar .textContent por .value em:
+
+publicCode (mostrar código)
+
+publicUrlFull (mostrar link)
+
+copyCode() e copyUrl().
+
+Opcional, mas bem útil, em routes.py:
+
+Ajustar o public_url para:
+
+url_for('client_timeline', code=client.public_code, _external=True)
+
+
+(Opcional) retornar JSON de erro em vez de flash + redirect se o usuário não tiver permissão.

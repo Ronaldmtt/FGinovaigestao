@@ -347,8 +347,10 @@ def generate_public_link(id):
     
     # Verificar se usuário tem acesso
     if not current_user.is_admin and client.creator_id != current_user.id:
-        flash('Você não tem permissão para gerar link para este cliente.', 'danger')
-        return redirect(url_for('clients'))
+        return jsonify({
+            'success': False,
+            'message': 'Você não tem permissão para gerar link para este cliente.'
+        }), 403
     
     # Gerar código único
     if not client.public_code:
@@ -357,11 +359,11 @@ def generate_public_link(id):
         client.public_code = ''.join(secrets.choice(alphabet) for _ in range(8))
         db.session.commit()
     
-    # Retornar dados do link
+    # Retornar dados do link com URL direta para a timeline do cliente
     return jsonify({
         'success': True,
         'public_code': client.public_code,
-        'public_url': url_for('public_access', _external=True)
+        'public_url': url_for('client_timeline', code=client.public_code, _external=True)
     })
 
 @app.route('/clients/edit/<int:client_id>', methods=['GET', 'POST'])

@@ -372,8 +372,8 @@
                     {% if current_user.is_admin %}
                     <div class="nav-item">
                         <a href="{{ url_for('admin_users') }}" class="nav-link {% if request.endpoint in ['admin_users', 'admin_new_user', 'admin_edit_user'] %}active{% endif %}">
-                            <i class="fas fa-cog"></i>
-                            <span>Configurações</span>
+                            <i class="fas fa-users"></i>
+                            <span>Usuários</span>
                         </a>
                     </div>
                     {% endif %}

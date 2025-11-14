@@ -518,7 +518,7 @@ function showPublicLinkModal(clientName, code, publicUrl) {
 }
 
 function copyCode() {
-    const code = document.getElementById('publicCode').textContent;
+    const code = document.getElementById('publicCode').value;
     navigator.clipboard.writeText(code).then(() => {
         const btn = event.target.closest('button');
         const originalText = btn.innerHTML;
@@ -534,7 +534,7 @@ function copyCode() {
 }
 
 function copyUrl() {
-    const url = document.getElementById('publicUrlFull').textContent;
+    const url = document.getElementById('publicUrlFull').value;
     navigator.clipboard.writeText(url).then(() => {
         const btn = event.target.closest('button');
         const originalText = btn.innerHTML;

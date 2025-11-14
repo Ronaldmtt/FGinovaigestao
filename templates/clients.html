@@ -498,7 +498,7 @@ function generatePublicLink(btn) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showPublicLinkModal(clientName, data.code, data.public_url);
+            showPublicLinkModal(clientName, data.public_code, data.public_url);
         } else {
             alert('Erro ao gerar link de acesso. Tente novamente.');
         }

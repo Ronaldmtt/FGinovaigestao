@@ -95,6 +95,11 @@
                                             <i class="fas fa-edit me-2"></i>Editar
                                         </button>
                                     </li>
+                                    <li>
+                                        <button class="dropdown-item text-light" onclick="generatePublicLink({{ client.id }}, {{ client.nome|tojson }})">
+                                            <i class="fas fa-link me-2"></i>Gerar Link de Acesso
+                                        </button>
+                                    </li>
                                     {% if current_user.is_admin %}
                                     <li><hr class="dropdown-divider border-secondary"></li>
                                     <li>
@@ -190,6 +195,60 @@
                     <button type="submit" class="btn btn-success px-4">Salvar Cliente</button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Link Público -->
+<div class="modal fade" id="publicLinkModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-light border-success">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">
+                    <i class="fas fa-link text-success me-2"></i>
+                    Link de Acesso Gerado
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info border-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Link gerado para o cliente: <strong id="publicLinkClientName"></strong>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Código de Acesso:</label>
+                    <div class="input-group">
+                        <input type="text" id="publicCode" class="form-control form-control-lg bg-dark text-light border-secondary text-center" 
+                               style="font-family: 'Courier New', monospace; font-size: 1.5rem; letter-spacing: 0.2em; font-weight: bold;" 
+                               readonly>
+                        <button class="btn btn-outline-primary" type="button" onclick="copyCode()">
+                            <i class="fas fa-copy me-2"></i>Copiar Código
+                        </button>
+                    </div>
+                    <small class="text-muted">
+                        <i class="fas fa-shield-alt me-1"></i>
+                        Compartilhe este código com seu cliente para que ele possa acessar os projetos dele
+                    </small>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Link Público:</label>
+                    <div class="input-group">
+                        <input type="text" id="publicUrlFull" class="form-control bg-dark text-light border-secondary" readonly>
+                        <button class="btn btn-outline-primary" type="button" onclick="copyUrl()">
+                            <i class="fas fa-copy me-2"></i>Copiar Link
+                        </button>
+                    </div>
+                    <small class="text-muted">
+                        <i class="fas fa-globe me-1"></i>
+                        Este é o link direto para a página de acesso
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
         </div>
     </div>
 </div>
@@ -421,6 +480,67 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+function generatePublicLink(clientId, clientName) {
+    fetch(`/clients/${clientId}/generate-public-link`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showPublicLinkModal(clientName, data.code, data.public_url);
+        } else {
+            alert('Erro ao gerar link de acesso. Tente novamente.');
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao gerar link de acesso. Tente novamente.');
+    });
+}
+
+function showPublicLinkModal(clientName, code, publicUrl) {
+    const modal = new bootstrap.Modal(document.getElementById('publicLinkModal'));
+    document.getElementById('publicLinkClientName').textContent = clientName;
+    document.getElementById('publicCode').textContent = code;
+    document.getElementById('publicUrlFull').textContent = publicUrl;
+    modal.show();
+}
+
+function copyCode() {
+    const code = document.getElementById('publicCode').textContent;
+    navigator.clipboard.writeText(code).then(() => {
+        const btn = event.target.closest('button');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check me-2"></i>Copiado!';
+        btn.classList.add('btn-success');
+        btn.classList.remove('btn-outline-primary');
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-outline-primary');
+        }, 2000);
+    });
+}
+
+function copyUrl() {
+    const url = document.getElementById('publicUrlFull').textContent;
+    navigator.clipboard.writeText(url).then(() => {
+        const btn = event.target.closest('button');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check me-2"></i>Copiado!';
+        btn.classList.add('btn-success');
+        btn.classList.remove('btn-outline-primary');
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-outline-primary');
+        }, 2000);
+    });
 }
 </script>
 {% endblock %}

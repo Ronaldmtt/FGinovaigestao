@@ -7,14 +7,9 @@
     <div class="col-12">
         <div class="d-flex justify-content-between align-items-center">
             <h1 class="h3 mb-3"><i class="fas fa-diamond me-2"></i>Pipeline de Vendas</h1>
-            <div>
-                <button type="button" class="btn btn-success me-2" onclick="adicionarColuna()">
-                    <i class="fas fa-plus me-1"></i>Adicionar Coluna
-                </button>
-                <a href="{{ url_for('novo_contato') }}" class="btn btn-primary">
-                    <i class="fas fa-plus me-1"></i>Novo Contato
-                </a>
-            </div>
+            <a href="{{ url_for('novo_contato') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i>Novo Contato
+            </a>
         </div>
         <div class="alert alert-dark border-secondary">
             <i class="fas fa-info-circle"></i> Total de contatos: <strong>{{ total_contatos }}</strong>
@@ -75,6 +70,14 @@
         </div>
     </div>
     {% endfor %}
+    
+    <!-- Coluna para adicionar nova coluna -->
+    <div class="pipeline-column add-column-container">
+        <div class="add-column-box" onclick="adicionarColuna()">
+            <i class="fas fa-plus"></i>
+            <span>Adicionar Coluna</span>
+        </div>
+    </div>
 </div>
 
 <style>
@@ -188,6 +191,52 @@
 .btn-delete-stage {
     padding: 4px 8px;
     font-size: 0.75rem;
+}
+
+.add-column-container {
+    flex: 0 0 300px;
+    min-width: 300px;
+    display: flex;
+    align-items: flex-start;
+    padding-top: 0;
+}
+
+.add-column-box {
+    width: 100%;
+    min-height: 120px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 2px dashed rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 30px;
+}
+
+.add-column-box:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-2px);
+}
+
+.add-column-box i {
+    font-size: 2.5rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 10px;
+}
+
+.add-column-box span {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.add-column-box:hover i,
+.add-column-box:hover span {
+    color: rgba(255, 255, 255, 0.9);
 }
 </style>
 

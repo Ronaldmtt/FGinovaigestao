@@ -40,8 +40,8 @@
                         <h6 class="text-muted">Estágio Atual</h6>
                         <select class="form-select bg-dark text-light border-secondary" id="estagioSelect">
                             {% for estagio in estagios %}
-                            <option value="{{ estagio }}" {% if estagio == contato.estagio %}selected{% endif %}>
-                                {{ estagio }}
+                            <option value="{{ estagio.nome }}" {% if estagio.nome == contato.estagio %}selected{% endif %}>
+                                {{ estagio.nome }}
                             </option>
                             {% endfor %}
                         </select>

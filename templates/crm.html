@@ -40,7 +40,7 @@
         </div>
         <div class="pipeline-cards" data-estagio="{{ estagio.nome }}">
             {% for contato in contatos_por_estagio[estagio.nome] %}
-            <div class="pipeline-card" data-contato-id="{{ contato.id }}">
+            <div class="pipeline-card" data-contato-id="{{ contato.id }}" draggable="true">
                 <div class="card-header">
                     <strong>{{ contato.nome_empresa }}</strong>
                 </div>
@@ -263,6 +263,28 @@
 .add-column-box:hover span {
     color: rgba(255, 255, 255, 0.9);
 }
+
+/* Drag and Drop Styles */
+.pipeline-card.dragging {
+    opacity: 0.5;
+    cursor: grabbing !important;
+    transform: rotate(3deg);
+}
+
+.pipeline-cards.drag-over {
+    background: rgba(13, 110, 253, 0.1);
+    border: 2px dashed rgba(13, 110, 253, 0.5);
+    border-radius: 8px;
+}
+
+.pipeline-card {
+    cursor: grab;
+    transition: all 0.2s ease;
+}
+
+.pipeline-card:active {
+    cursor: grabbing;
+}
 </style>
 
 <script>
@@ -317,6 +339,13 @@ function adicionarColuna() {
             // Ativar edição inline para a nova coluna
             const editableElement = novaColuna.querySelector('.stage-name-editable');
             attachEditListeners(editableElement);
+            
+            // Adicionar drag and drop listeners para a nova coluna
+            const newCardsContainer = novaColuna.querySelector('.pipeline-cards');
+            newCardsContainer.addEventListener('dragover', handleDragOver);
+            newCardsContainer.addEventListener('drop', handleDrop);
+            newCardsContainer.addEventListener('dragleave', handleDragLeave);
+            newCardsContainer.addEventListener('dragenter', handleDragEnter);
             
             // Focar automaticamente no nome para edição
             setTimeout(() => {
@@ -398,7 +427,168 @@ function attachEditListeners(element) {
 document.addEventListener('DOMContentLoaded', function() {
     const editableNames = document.querySelectorAll('.stage-name-editable');
     editableNames.forEach(element => attachEditListeners(element));
+    
+    // Inicializar drag and drop
+    initializeDragAndDrop();
 });
+
+// ============================================
+// DRAG AND DROP FUNCTIONALITY
+// ============================================
+
+let draggedElement = null;
+
+function initializeDragAndDrop() {
+    const cards = document.querySelectorAll('.pipeline-card');
+    const columns = document.querySelectorAll('.pipeline-cards');
+    
+    // Adicionar event listeners para cada card
+    cards.forEach(card => {
+        card.addEventListener('dragstart', handleDragStart);
+        card.addEventListener('dragend', handleDragEnd);
+    });
+    
+    // Adicionar event listeners para cada coluna
+    columns.forEach(column => {
+        column.addEventListener('dragover', handleDragOver);
+        column.addEventListener('drop', handleDrop);
+        column.addEventListener('dragleave', handleDragLeave);
+        column.addEventListener('dragenter', handleDragEnter);
+    });
+}
+
+function handleDragStart(e) {
+    if (!e.target || !e.target.classList.contains('pipeline-card')) {
+        return;
+    }
+    
+    draggedElement = e.target;
+    e.target.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', e.target.innerHTML);
+}
+
+function handleDragEnd(e) {
+    if (!e.target) return;
+    
+    e.target.classList.remove('dragging');
+    
+    // Remover visual de drag-over de todas as colunas
+    document.querySelectorAll('.pipeline-cards').forEach(column => {
+        column.classList.remove('drag-over');
+    });
+    
+    draggedElement = null;
+}
+
+function handleDragOver(e) {
+    if (e.preventDefault) {
+        e.preventDefault();
+    }
+    e.dataTransfer.dropEffect = 'move';
+    return false;
+}
+
+function handleDragEnter(e) {
+    if (!e.currentTarget.classList.contains('pipeline-cards')) return;
+    e.currentTarget.classList.add('drag-over');
+}
+
+function handleDragLeave(e) {
+    if (!e.currentTarget.classList.contains('pipeline-cards')) return;
+    
+    // Verificar se realmente saiu da coluna
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (e.clientX <= rect.left || e.clientX >= rect.right || 
+        e.clientY <= rect.top || e.clientY >= rect.bottom) {
+        e.currentTarget.classList.remove('drag-over');
+    }
+}
+
+function handleDrop(e) {
+    if (e.stopPropagation) {
+        e.stopPropagation();
+    }
+    
+    if (!draggedElement) {
+        return false;
+    }
+    
+    const targetColumn = e.currentTarget;
+    targetColumn.classList.remove('drag-over');
+    
+    const newEstagio = targetColumn.dataset.estagio;
+    const contatoId = draggedElement.dataset.contatoId;
+    const currentColumn = draggedElement.closest('.pipeline-cards');
+    const currentEstagio = currentColumn.dataset.estagio;
+    
+    // Verificar se mudou de coluna
+    if (newEstagio === currentEstagio) {
+        return false;
+    }
+    
+    // Remover mensagem de "Nenhum contato" se existir
+    const emptyMessage = targetColumn.querySelector('.text-center.text-muted');
+    if (emptyMessage) {
+        emptyMessage.remove();
+    }
+    
+    // Mover card visualmente
+    targetColumn.appendChild(draggedElement);
+    
+    // Atualizar contador da coluna de origem
+    updateColumnCounter(currentColumn, -1);
+    
+    // Atualizar contador da coluna de destino
+    updateColumnCounter(targetColumn, 1);
+    
+    // Verificar se a coluna de origem ficou vazia
+    if (currentColumn.children.length === 0) {
+        currentColumn.innerHTML = `
+            <div class="text-center text-muted p-3">
+                <i class="fas fa-inbox" style="font-size: 2rem;"></i><br>
+                Nenhum contato neste estágio
+            </div>
+        `;
+    }
+    
+    // Atualizar no backend
+    updateContatoEstagio(contatoId, newEstagio);
+    
+    return false;
+}
+
+function updateColumnCounter(column, change) {
+    const pipelineColumn = column.closest('.pipeline-column');
+    const badge = pipelineColumn.querySelector('.badge.bg-light');
+    if (badge) {
+        const currentCount = parseInt(badge.textContent) || 0;
+        badge.textContent = Math.max(0, currentCount + change);
+    }
+}
+
+function updateContatoEstagio(contatoId, novoEstagio) {
+    fetch(`/crm/contato/${contatoId}/mudar-estagio`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ estagio: novoEstagio })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            console.error('Erro ao atualizar estágio:', data.error);
+            alert('Erro ao atualizar estágio do contato');
+            location.reload();
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao atualizar estágio do contato');
+        location.reload();
+    });
+}
 
 function deleteStage(stageId, stageName) {
     if (!confirm(`Tem certeza que deseja deletar a coluna "${stageName}"? Esta ação não pode ser desfeita.`)) {

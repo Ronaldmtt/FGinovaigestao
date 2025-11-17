@@ -347,6 +347,15 @@
                     </div>
                     {% endif %}
                     
+                    {% if current_user.is_admin %}
+                    <div class="nav-item">
+                        <a href="{{ url_for('admin_users') }}" class="nav-link {% if request.endpoint in ['admin_users', 'admin_new_user', 'admin_edit_user'] %}active{% endif %}">
+                            <i class="fas fa-user-cog"></i>
+                            <span>Usuários</span>
+                        </a>
+                    </div>
+                    {% endif %}
+                    
                     {% if current_user.is_admin or current_user.acesso_kanban %}
                     <div class="nav-item">
                         <a href="{{ url_for('kanban') }}" class="nav-link {% if request.endpoint == 'kanban' %}active{% endif %}">
@@ -369,15 +378,6 @@
                 <div class="nav-divider"></div>
                 
                 <div class="nav-section">
-                    {% if current_user.is_admin %}
-                    <div class="nav-item">
-                        <a href="{{ url_for('admin_users') }}" class="nav-link {% if request.endpoint in ['admin_users', 'admin_new_user', 'admin_edit_user'] %}active{% endif %}">
-                            <i class="fas fa-users"></i>
-                            <span>Usuários</span>
-                        </a>
-                    </div>
-                    {% endif %}
-                    
                     <div class="nav-item">
                         <a href="{{ url_for('change_password') }}" class="nav-link {% if request.endpoint == 'change_password' %}active{% endif %}">
                             <i class="fas fa-user"></i>

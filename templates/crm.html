@@ -21,8 +21,13 @@
     {% for estagio in estagios %}
     <div class="pipeline-column" data-stage-id="{{ estagio.id }}">
         <div class="pipeline-header">
-            <h5 class="mb-0 stage-name-editable" data-stage-id="{{ estagio.id }}" onclick="editStageName({{ estagio.id }}, '{{ estagio.nome }}')">
-                {{ loop.index }}. {{ estagio.nome }}
+            <h5 class="mb-0 stage-name-wrapper">
+                <span class="stage-number">{{ loop.index }}.</span>
+                <span class="stage-name-editable" 
+                      data-stage-id="{{ estagio.id }}" 
+                      data-original-name="{{ estagio.nome }}"
+                      contenteditable="true"
+                      spellcheck="false">{{ estagio.nome }}</span>
             </h5>
             <div class="d-flex align-items-center gap-2">
                 <span class="badge bg-light text-dark">{{ contatos_por_estagio[estagio.nome]|length }}</span>
@@ -180,12 +185,32 @@
     }
 }
 
+.stage-name-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.stage-number {
+    color: rgba(255, 255, 255, 0.7);
+}
+
 .stage-name-editable {
-    cursor: pointer;
+    cursor: text;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: background 0.2s;
+    outline: none;
+    min-width: 80px;
 }
 
 .stage-name-editable:hover {
-    opacity: 0.8;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.stage-name-editable:focus {
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.5);
 }
 
 .btn-delete-stage {
@@ -241,24 +266,18 @@
 </style>
 
 <script>
+// Adicionar coluna direto sem prompt
 function adicionarColuna() {
-    const nome = prompt('Digite o nome da nova coluna:');
-    
-    if (!nome || nome.trim() === '') {
-        return;
-    }
-    
     fetch('/api/crm/stages', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ nome: nome.trim() })
+        body: JSON.stringify({ nome: 'Nova Coluna' })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert(data.message);
             location.reload();
         } else {
             alert(data.message || 'Erro ao adicionar coluna');
@@ -270,33 +289,69 @@ function adicionarColuna() {
     });
 }
 
-function editStageName(stageId, currentName) {
-    const novoNome = prompt('Digite o novo nome da coluna:', currentName);
+// Edição inline do nome da coluna
+document.addEventListener('DOMContentLoaded', function() {
+    const editableNames = document.querySelectorAll('.stage-name-editable');
     
-    if (!novoNome || novoNome.trim() === '' || novoNome.trim() === currentName) {
-        return;
-    }
-    
-    fetch(`/api/crm/stages/${stageId}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ nome: novoNome.trim() })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert(data.message || 'Erro ao atualizar nome');
-        }
-    })
-    .catch(error => {
-        console.error('Erro:', error);
-        alert('Erro ao atualizar nome');
+    editableNames.forEach(element => {
+        // Salvar quando pressionar Enter
+        element.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.blur();
+            }
+            if (e.key === 'Escape') {
+                this.textContent = this.dataset.originalName;
+                this.blur();
+            }
+        });
+        
+        // Salvar quando perder o foco
+        element.addEventListener('blur', function() {
+            const novoNome = this.textContent.trim();
+            const stageId = this.dataset.stageId;
+            const originalName = this.dataset.originalName;
+            
+            if (!novoNome || novoNome === originalName) {
+                this.textContent = originalName;
+                return;
+            }
+            
+            // Salvar no backend
+            fetch(`/api/crm/stages/${stageId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ nome: novoNome })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    this.dataset.originalName = novoNome;
+                    location.reload();
+                } else {
+                    alert(data.message || 'Erro ao atualizar nome');
+                    this.textContent = originalName;
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro ao atualizar nome');
+                this.textContent = originalName;
+            });
+        });
+        
+        // Selecionar todo o texto ao focar
+        element.addEventListener('focus', function() {
+            const range = document.createRange();
+            range.selectNodeContents(this);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+        });
     });
-}
+});
 
 function deleteStage(stageId, stageName) {
     if (!confirm(`Tem certeza que deseja deletar a coluna "${stageName}"? Esta ação não pode ser desfeita.`)) {

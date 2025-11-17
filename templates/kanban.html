@@ -739,6 +739,12 @@ function addTodo() {
         
         todosList.appendChild(todoDiv);
         newTodoText.value = '';
+        
+        // Salvar automaticamente após adicionar to-do
+        clearTimeout(autoSaveTimeout);
+        autoSaveTimeout = setTimeout(() => {
+            saveTaskFromDrawer();
+        }, 1000);
     }
 }
 
@@ -754,11 +760,23 @@ function toggleTodo(checkbox, todoId = null) {
     }
     
     todoDiv.dataset.todoCompleted = isCompleted.toString();
+    
+    // Salvar automaticamente após marcar/desmarcar to-do
+    clearTimeout(autoSaveTimeout);
+    autoSaveTimeout = setTimeout(() => {
+        saveTaskFromDrawer();
+    }, 1000);
 }
 
 function removeTodo(button, todoId = null) {
     const todoDiv = button.closest('div');
     todoDiv.remove();
+    
+    // Salvar automaticamente após remover to-do
+    clearTimeout(autoSaveTimeout);
+    autoSaveTimeout = setTimeout(() => {
+        saveTaskFromDrawer();
+    }, 1000);
 }
 
 function getCurrentTodos() {

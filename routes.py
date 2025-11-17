@@ -845,7 +845,28 @@ def new_task():
         flash('Tarefa criada com sucesso!', 'success')
         return redirect(url_for('tasks'))
     
-    return render_template('tasks.html', form=form)
+    # Se houver erro, retornar com todas as variáveis
+    manual_form = ManualTaskForm()
+    transcription_form = TranscriptionTaskForm()
+    tasks = Task.query.all()
+    all_projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
+    all_clients = Client.query.order_by(Client.nome).all()
+    all_users = User.query.filter_by(is_admin=False).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
+    
+    return render_template('tasks.html',
+                         tasks=tasks,
+                         simple_form=form,
+                         manual_form=manual_form,
+                         transcription_form=transcription_form,
+                         all_projects=all_projects,
+                         all_clients=all_clients,
+                         all_users=all_users,
+                         current_filters={
+                             'project_id': None,
+                             'client_id': None,
+                             'user_id': None,
+                             'status': None
+                         })
 
 @app.route('/tasks/<int:task_id>/edit', methods=['GET'])
 @login_required
@@ -1245,7 +1266,28 @@ def transcription_task():
             
             return redirect(url_for('kanban'))
     
-    return render_template('tasks.html', transcription_form=form)
+    # Se houver erro de validação, retornar para a página de tarefas com todas as variáveis
+    simple_form = TaskForm()
+    manual_form = ManualTaskForm()
+    tasks = Task.query.all()
+    all_projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
+    all_clients = Client.query.order_by(Client.nome).all()
+    all_users = User.query.filter_by(is_admin=False).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
+    
+    return render_template('tasks.html',
+                         tasks=tasks,
+                         simple_form=simple_form,
+                         manual_form=manual_form,
+                         transcription_form=form,
+                         all_projects=all_projects,
+                         all_clients=all_clients,
+                         all_users=all_users,
+                         current_filters={
+                             'project_id': None,
+                             'client_id': None,
+                             'user_id': None,
+                             'status': None
+                         })
 
 # Kanban
 @app.route('/kanban')

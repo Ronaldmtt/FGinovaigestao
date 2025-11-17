@@ -7,9 +7,14 @@
     <div class="col-12">
         <div class="d-flex justify-content-between align-items-center">
             <h1 class="h3 mb-3"><i class="fas fa-diamond me-2"></i>Pipeline de Vendas</h1>
-            <a href="{{ url_for('novo_contato') }}" class="btn btn-primary">
-                <i class="fas fa-plus me-1"></i>Novo Contato
-            </a>
+            <div>
+                <button type="button" class="btn btn-success me-2" onclick="adicionarColuna()">
+                    <i class="fas fa-plus me-1"></i>Adicionar Coluna
+                </button>
+                <a href="{{ url_for('novo_contato') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>Novo Contato
+                </a>
+            </div>
         </div>
         <div class="alert alert-dark border-secondary">
             <i class="fas fa-info-circle"></i> Total de contatos: <strong>{{ total_contatos }}</strong>
@@ -19,15 +24,22 @@
 
 <div class="pipeline-container">
     {% for estagio in estagios %}
-    <div class="pipeline-column">
+    <div class="pipeline-column" data-stage-id="{{ estagio.id }}">
         <div class="pipeline-header">
-            <h5 class="mb-0">
-                {{ loop.index }}. {{ estagio }}
+            <h5 class="mb-0 stage-name-editable" data-stage-id="{{ estagio.id }}" onclick="editStageName({{ estagio.id }}, '{{ estagio.nome }}')">
+                {{ loop.index }}. {{ estagio.nome }}
             </h5>
-            <span class="badge bg-light text-dark">{{ contatos_por_estagio[estagio]|length }}</span>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-light text-dark">{{ contatos_por_estagio[estagio.nome]|length }}</span>
+                {% if not estagio.is_fixed %}
+                <button type="button" class="btn btn-sm btn-danger btn-delete-stage" onclick="deleteStage({{ estagio.id }}, '{{ estagio.nome }}')" title="Deletar coluna">
+                    <i class="fas fa-trash"></i>
+                </button>
+                {% endif %}
+            </div>
         </div>
-        <div class="pipeline-cards" data-estagio="{{ estagio }}">
-            {% for contato in contatos_por_estagio[estagio] %}
+        <div class="pipeline-cards" data-estagio="{{ estagio.nome }}">
+            {% for contato in contatos_por_estagio[estagio.nome] %}
             <div class="pipeline-card" data-contato-id="{{ contato.id }}">
                 <div class="card-header">
                     <strong>{{ contato.nome_empresa }}</strong>
@@ -164,5 +176,103 @@
         gap: 10px;
     }
 }
+
+.stage-name-editable {
+    cursor: pointer;
+}
+
+.stage-name-editable:hover {
+    opacity: 0.8;
+}
+
+.btn-delete-stage {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+}
 </style>
+
+<script>
+function adicionarColuna() {
+    const nome = prompt('Digite o nome da nova coluna:');
+    
+    if (!nome || nome.trim() === '') {
+        return;
+    }
+    
+    fetch('/api/crm/stages', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ nome: nome.trim() })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert(data.message || 'Erro ao adicionar coluna');
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao adicionar coluna');
+    });
+}
+
+function editStageName(stageId, currentName) {
+    const novoNome = prompt('Digite o novo nome da coluna:', currentName);
+    
+    if (!novoNome || novoNome.trim() === '' || novoNome.trim() === currentName) {
+        return;
+    }
+    
+    fetch(`/api/crm/stages/${stageId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ nome: novoNome.trim() })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.message || 'Erro ao atualizar nome');
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao atualizar nome');
+    });
+}
+
+function deleteStage(stageId, stageName) {
+    if (!confirm(`Tem certeza que deseja deletar a coluna "${stageName}"? Esta ação não pode ser desfeita.`)) {
+        return;
+    }
+    
+    fetch(`/api/crm/stages/${stageId}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert(data.message || 'Erro ao deletar coluna');
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao deletar coluna');
+    });
+}
+</script>
 {% endblock %}

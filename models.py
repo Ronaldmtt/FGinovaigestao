@@ -153,3 +153,15 @@ class Comentario(db.Model):
     
     def __repr__(self):
         return f'<Comentario {self.id} - Contato {self.contato_id}>'
+
+class CrmStage(db.Model):
+    __tablename__ = 'crm_stages'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), nullable=False, unique=True)
+    ordem = db.Column(db.Integer, nullable=False)
+    is_fixed = db.Column(db.Boolean, default=False, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<CrmStage {self.nome}>'

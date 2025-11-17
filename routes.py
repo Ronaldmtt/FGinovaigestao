@@ -2289,17 +2289,22 @@ def import_tasks():
 
 # ==================== CRM ROUTES ====================
 
-ESTAGIOS = [
-    'Captação',
-    'Qualificação Automática',
-    'Contato Inicial',
-    'Diagnóstico / Levantamento de Dor',
-    'Apresentação de POC',
-    'Proposta Técnica e Comercial',
-    'Negociação e Follow-up',
-    'Fechamento e Onboarding',
-    'Pós-venda e Expansão'
-]
+def init_crm_stages():
+    """Inicializar estágios fixos do CRM se não existirem"""
+    from models import CrmStage
+    
+    if CrmStage.query.count() == 0:
+        default_stages = [
+            {'nome': 'Captação', 'ordem': 1, 'is_fixed': True},
+            {'nome': 'Qualificação Automática', 'ordem': 2, 'is_fixed': True},
+            {'nome': 'Contato Inicial', 'ordem': 3, 'is_fixed': True},
+        ]
+        
+        for stage_data in default_stages:
+            stage = CrmStage(**stage_data)
+            db.session.add(stage)
+        
+        db.session.commit()
 
 @app.route('/crm')
 @login_required
@@ -2308,15 +2313,22 @@ def crm():
         flash('Você não tem permissão para acessar o CRM.', 'danger')
         return redirect(url_for('dashboard'))
     
+    # Inicializar estágios se necessário
+    init_crm_stages()
+    
+    # Buscar estágios do banco
+    from models import CrmStage
+    estagios = CrmStage.query.order_by(CrmStage.ordem).all()
+    
     contatos_por_estagio = {}
-    for estagio in ESTAGIOS:
-        contatos_por_estagio[estagio] = Contato.query.filter_by(estagio=estagio).all()
+    for estagio in estagios:
+        contatos_por_estagio[estagio.nome] = Contato.query.filter_by(estagio=estagio.nome).all()
     
     total_contatos = Contato.query.count()
     
     return render_template('crm.html', 
                          contatos_por_estagio=contatos_por_estagio,
-                         estagios=ESTAGIOS,
+                         estagios=estagios,
                          total_contatos=total_contatos)
 
 @app.route('/crm/contato/novo', methods=['GET', 'POST'])
@@ -2340,7 +2352,9 @@ def novo_contato():
         flash('Contato cadastrado com sucesso!', 'success')
         return redirect(url_for('crm'))
     
-    return render_template('novo_contato.html', estagios=ESTAGIOS)
+    from models import CrmStage
+    estagios = CrmStage.query.order_by(CrmStage.ordem).all()
+    return render_template('novo_contato.html', estagios=estagios)
 
 @app.route('/crm/contato/<int:id>')
 @login_required
@@ -2349,8 +2363,10 @@ def ver_contato(id):
         flash('Você não tem permissão para acessar o CRM.', 'danger')
         return redirect(url_for('dashboard'))
     
+    from models import CrmStage
+    estagios = CrmStage.query.order_by(CrmStage.ordem).all()
     contato = Contato.query.get_or_404(id)
-    return render_template('ver_contato.html', contato=contato, estagios=ESTAGIOS)
+    return render_template('ver_contato.html', contato=contato, estagios=estagios)
 
 @app.route('/crm/contato/<int:id>/editar', methods=['GET', 'POST'])
 @login_required
@@ -2374,7 +2390,9 @@ def editar_contato(id):
         flash('Contato atualizado com sucesso!', 'success')
         return redirect(url_for('ver_contato', id=id))
     
-    return render_template('editar_contato.html', contato=contato, estagios=ESTAGIOS)
+    from models import CrmStage
+    estagios = CrmStage.query.order_by(CrmStage.ordem).all()
+    return render_template('editar_contato.html', contato=contato, estagios=estagios)
 
 @app.route('/crm/contato/<int:id>/deletar', methods=['POST'])
 @login_required
@@ -2395,10 +2413,13 @@ def mudar_estagio(id):
     if not current_user.is_admin and not current_user.acesso_crm:
         return jsonify({'success': False, 'error': 'Sem permissão'}), 403
     
+    from models import CrmStage
     contato = Contato.query.get_or_404(id)
     novo_estagio = request.json.get('estagio')
     
-    if novo_estagio in ESTAGIOS:
+    # Verificar se o estágio existe
+    estagio_existe = CrmStage.query.filter_by(nome=novo_estagio).first()
+    if estagio_existe:
         contato.estagio = novo_estagio
         contato.data_atualizacao = datetime.utcnow()
         db.session.commit()
@@ -2423,6 +2444,126 @@ def adicionar_comentario(id):
         flash('Comentário adicionado com sucesso!', 'success')
     
     return redirect(url_for('ver_contato', id=id))
+
+# ==================== CRM STAGE API ROUTES ====================
+
+@app.route('/api/crm/stages', methods=['POST'])
+@login_required
+def api_add_crm_stage():
+    """Adicionar novo estágio do CRM"""
+    if not current_user.is_admin and not current_user.acesso_crm:
+        return jsonify({'success': False, 'error': 'Sem permissão'}), 403
+    
+    from models import CrmStage
+    data = request.get_json()
+    nome = data.get('nome', '').strip()
+    
+    if not nome:
+        return jsonify({'success': False, 'message': 'Nome não pode ser vazio'}), 400
+    
+    # Verificar se já existe
+    if CrmStage.query.filter_by(nome=nome).first():
+        return jsonify({'success': False, 'message': 'Já existe um estágio com este nome'}), 400
+    
+    try:
+        # Pegar a maior ordem atual
+        max_ordem = db.session.query(db.func.max(CrmStage.ordem)).scalar() or 0
+        
+        stage = CrmStage(
+            nome=nome,
+            ordem=max_ordem + 1,
+            is_fixed=False
+        )
+        db.session.add(stage)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Estágio adicionado com sucesso!',
+            'stage': {
+                'id': stage.id,
+                'nome': stage.nome,
+                'ordem': stage.ordem,
+                'is_fixed': stage.is_fixed
+            }
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Erro ao adicionar: {str(e)}'}), 500
+
+@app.route('/api/crm/stages/<int:stage_id>', methods=['PUT'])
+@login_required
+def api_update_crm_stage(stage_id):
+    """Atualizar nome do estágio"""
+    if not current_user.is_admin and not current_user.acesso_crm:
+        return jsonify({'success': False, 'error': 'Sem permissão'}), 403
+    
+    from models import CrmStage
+    stage = CrmStage.query.get_or_404(stage_id)
+    data = request.get_json()
+    novo_nome = data.get('nome', '').strip()
+    
+    if not novo_nome:
+        return jsonify({'success': False, 'message': 'Nome não pode ser vazio'}), 400
+    
+    # Verificar se já existe outro estágio com este nome
+    existing = CrmStage.query.filter(CrmStage.nome == novo_nome, CrmStage.id != stage_id).first()
+    if existing:
+        return jsonify({'success': False, 'message': 'Já existe um estágio com este nome'}), 400
+    
+    try:
+        nome_antigo = stage.nome
+        stage.nome = novo_nome
+        
+        # Atualizar todos os contatos que usam o nome antigo
+        Contato.query.filter_by(estagio=nome_antigo).update({'estagio': novo_nome})
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Estágio atualizado com sucesso!',
+            'stage': {
+                'id': stage.id,
+                'nome': stage.nome,
+                'ordem': stage.ordem,
+                'is_fixed': stage.is_fixed
+            }
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Erro ao atualizar: {str(e)}'}), 500
+
+@app.route('/api/crm/stages/<int:stage_id>', methods=['DELETE'])
+@login_required
+def api_delete_crm_stage(stage_id):
+    """Deletar estágio não-fixo"""
+    if not current_user.is_admin and not current_user.acesso_crm:
+        return jsonify({'success': False, 'error': 'Sem permissão'}), 403
+    
+    from models import CrmStage
+    stage = CrmStage.query.get_or_404(stage_id)
+    
+    # Revalidar is_fixed do banco (não confiar em payload)
+    if stage.is_fixed:
+        return jsonify({'success': False, 'message': 'Não é possível deletar estágios fixos'}), 400
+    
+    # Verificar se há contatos neste estágio
+    contatos_count = Contato.query.filter_by(estagio=stage.nome).count()
+    if contatos_count > 0:
+        return jsonify({
+            'success': False,
+            'message': f'Não é possível deletar este estágio pois há {contatos_count} contato(s) nele. Mova os contatos para outro estágio primeiro.'
+        }), 400
+    
+    try:
+        db.session.delete(stage)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Estágio deletado com sucesso!'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Erro ao deletar: {str(e)}'}), 500
 
 @app.route('/api/tasks/reorder', methods=['POST'])
 @login_required

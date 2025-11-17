@@ -278,7 +278,50 @@ function adicionarColuna() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            location.reload();
+            // Criar a nova coluna dinamicamente sem recarregar
+            const stage = data.stage;
+            const totalColunas = document.querySelectorAll('.pipeline-column:not(.add-column-container)').length;
+            
+            const novaColuna = document.createElement('div');
+            novaColuna.className = 'pipeline-column';
+            novaColuna.setAttribute('data-stage-id', stage.id);
+            novaColuna.innerHTML = `
+                <div class="pipeline-header">
+                    <h5 class="mb-0 stage-name-wrapper">
+                        <span class="stage-number">${totalColunas + 1}.</span>
+                        <span class="stage-name-editable" 
+                              data-stage-id="${stage.id}" 
+                              data-original-name="${stage.nome}"
+                              contenteditable="true"
+                              spellcheck="false">${stage.nome}</span>
+                    </h5>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-light text-dark">0</span>
+                        <button type="button" class="btn btn-sm btn-danger btn-delete-stage" onclick="deleteStage(${stage.id}, '${stage.nome}')" title="Deletar coluna">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="pipeline-cards" data-estagio="${stage.nome}">
+                    <div class="text-center text-muted p-3">
+                        <i class="fas fa-inbox" style="font-size: 2rem;"></i><br>
+                        Nenhum contato neste estágio
+                    </div>
+                </div>
+            `;
+            
+            // Inserir antes da coluna "Adicionar Coluna"
+            const addColumnContainer = document.querySelector('.add-column-container');
+            addColumnContainer.parentNode.insertBefore(novaColuna, addColumnContainer);
+            
+            // Ativar edição inline para a nova coluna
+            const editableElement = novaColuna.querySelector('.stage-name-editable');
+            attachEditListeners(editableElement);
+            
+            // Focar automaticamente no nome para edição
+            setTimeout(() => {
+                editableElement.focus();
+            }, 100);
         } else {
             alert(data.message || 'Erro ao adicionar coluna');
         }
@@ -289,68 +332,72 @@ function adicionarColuna() {
     });
 }
 
+// Função para anexar listeners de edição
+function attachEditListeners(element) {
+    // Salvar quando pressionar Enter
+    element.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            this.blur();
+        }
+        if (e.key === 'Escape') {
+            this.textContent = this.dataset.originalName;
+            this.blur();
+        }
+    });
+    
+    // Salvar quando perder o foco
+    element.addEventListener('blur', function() {
+        const novoNome = this.textContent.trim();
+        const stageId = this.dataset.stageId;
+        const originalName = this.dataset.originalName;
+        
+        if (!novoNome || novoNome === originalName) {
+            this.textContent = originalName;
+            return;
+        }
+        
+        // Salvar no backend
+        fetch(`/api/crm/stages/${stageId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ nome: novoNome })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                this.dataset.originalName = novoNome;
+                // Atualizar também o data-estagio da div de cards
+                const cardsDiv = this.closest('.pipeline-column').querySelector('.pipeline-cards');
+                cardsDiv.setAttribute('data-estagio', novoNome);
+            } else {
+                alert(data.message || 'Erro ao atualizar nome');
+                this.textContent = originalName;
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            alert('Erro ao atualizar nome');
+            this.textContent = originalName;
+        });
+    });
+    
+    // Selecionar todo o texto ao focar
+    element.addEventListener('focus', function() {
+        const range = document.createRange();
+        range.selectNodeContents(this);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+    });
+}
+
 // Edição inline do nome da coluna
 document.addEventListener('DOMContentLoaded', function() {
     const editableNames = document.querySelectorAll('.stage-name-editable');
-    
-    editableNames.forEach(element => {
-        // Salvar quando pressionar Enter
-        element.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                this.blur();
-            }
-            if (e.key === 'Escape') {
-                this.textContent = this.dataset.originalName;
-                this.blur();
-            }
-        });
-        
-        // Salvar quando perder o foco
-        element.addEventListener('blur', function() {
-            const novoNome = this.textContent.trim();
-            const stageId = this.dataset.stageId;
-            const originalName = this.dataset.originalName;
-            
-            if (!novoNome || novoNome === originalName) {
-                this.textContent = originalName;
-                return;
-            }
-            
-            // Salvar no backend
-            fetch(`/api/crm/stages/${stageId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ nome: novoNome })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    this.dataset.originalName = novoNome;
-                    location.reload();
-                } else {
-                    alert(data.message || 'Erro ao atualizar nome');
-                    this.textContent = originalName;
-                }
-            })
-            .catch(error => {
-                console.error('Erro:', error);
-                alert('Erro ao atualizar nome');
-                this.textContent = originalName;
-            });
-        });
-        
-        // Selecionar todo o texto ao focar
-        element.addEventListener('focus', function() {
-            const range = document.createRange();
-            range.selectNodeContents(this);
-            const sel = window.getSelection();
-            sel.removeAllRanges();
-            sel.addRange(range);
-        });
-    });
+    editableNames.forEach(element => attachEditListeners(element));
 });
 
 function deleteStage(stageId, stageName) {

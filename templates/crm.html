@@ -414,8 +414,27 @@ function deleteStage(stageId, stageName) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert(data.message);
-            location.reload();
+            // Remover a coluna do DOM instantaneamente
+            const coluna = document.querySelector(`.pipeline-column[data-stage-id="${stageId}"]`);
+            if (coluna) {
+                // Adicionar animação de saída suave
+                coluna.style.transition = 'opacity 0.3s, transform 0.3s';
+                coluna.style.opacity = '0';
+                coluna.style.transform = 'scale(0.95)';
+                
+                setTimeout(() => {
+                    coluna.remove();
+                    
+                    // Renumerar as colunas restantes
+                    const colunas = document.querySelectorAll('.pipeline-column:not(.add-column-container)');
+                    colunas.forEach((col, index) => {
+                        const numeroSpan = col.querySelector('.stage-number');
+                        if (numeroSpan) {
+                            numeroSpan.textContent = `${index + 1}.`;
+                        }
+                    });
+                }, 300);
+            }
         } else {
             alert(data.message || 'Erro ao deletar coluna');
         }

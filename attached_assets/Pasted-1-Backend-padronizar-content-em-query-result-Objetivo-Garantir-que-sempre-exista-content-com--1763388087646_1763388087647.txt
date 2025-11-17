@@ -1,0 +1,210 @@
+1. Backend – padronizar content em query_result
+🧠 Objetivo
+
+Garantir que sempre exista content com markdown em qualquer resposta do bot – inclusive nas de type: "query_result".
+
+Onde mudar
+
+No ai_assistant.py (ou onde você monta o retorno da consulta SQL), procure algo próximo disso:
+
+🔴 ANTES
+return {
+    "type": "query_result",
+    "markdown": markdown_explanation,
+    "explanation": explanation_text,
+    "sql": sql_query,
+    "data": query_result["rows"],
+    "count": query_result["row_count"],
+}
+
+🟢 DEPOIS (retrocompatível)
+return {
+    "type": "query_result",
+    # texto principal da resposta em Markdown
+    "content": markdown_explanation,      
+
+    # campos antigos mantidos para não quebrar nada do front
+    "markdown": markdown_explanation,
+    "explanation": explanation_text,
+
+    "sql": sql_query,
+    "data": query_result.get("rows", []),
+    "count": query_result.get("row_count", 0),
+}
+
+
+✅ A partir daqui, o front pode sempre confiar em data.content como texto principal em Markdown, independente do tipo.
+
+Se você tiver outros pontos que retornam type: "query_result" (ex: quando não há dados, ou quando só retorna contagem), aplique a mesma ideia: sempre incluir content.
+
+2. Front-end – renderizar Markdown em todas respostas do bot
+2.1. addChatMessage – usar Markdown para mensagens do bot
+
+Procure em static/js/app.js (ou equivalente) a função addChatMessage.
+
+🔴 ANTES (algo assim)
+function addChatMessage(text, sender, containerId, isLoading = false) {
+    const chatMessages = document.getElementById(containerId);
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('chat-message', sender);
+
+    const contentDiv = document.createElement('div');
+    contentDiv.classList.add('message-content', sender === 'user' ? 'user-message' : 'bot-message');
+
+    if (isLoading) {
+        contentDiv.innerHTML = text;
+    } else {
+        contentDiv.textContent = text;
+    }
+
+    messageDiv.appendChild(contentDiv);
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+🟢 DEPOIS (Markdown para o bot)
+function addChatMessage(text, sender, containerId, isLoading = false) {
+    const chatMessages = document.getElementById(containerId);
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('chat-message', sender);
+
+    const contentDiv = document.createElement('div');
+    contentDiv.classList.add(
+        'message-content',
+        sender === 'user' ? 'user-message' : 'bot-message'
+    );
+
+    if (isLoading) {
+        // mensagens de loading podem vir em HTML mesmo (spinner, etc.)
+        contentDiv.innerHTML = text;
+    } else if (sender === 'bot' && typeof marked !== 'undefined') {
+        // aqui é o pulo do gato: renderiza Markdown para o bot
+        contentDiv.innerHTML = marked.parse(text);
+    } else {
+        // usuário continua como texto puro
+        contentDiv.textContent = text;
+    }
+
+    messageDiv.appendChild(contentDiv);
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+
+✅ Isso faz com que qualquer type: "text" e também type: "error" (que usam addChatMessage) fiquem bonitos com Markdown.
+
+2.2. displayQueryResult – usar content + Markdown
+
+Agora vamos alinhar o comportamento de query_result com o resto do chat.
+
+Procure a função displayQueryResult(data, containerId).
+
+🔴 ANTES (versão comum)
+
+Vai estar mais ou menos assim:
+
+function displayQueryResult(data, containerId) {
+    const chatMessages = document.getElementById(containerId);
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('chat-message', 'bot');
+
+    const contentDiv = document.createElement('div');
+    contentDiv.classList.add('message-content', 'bot-message');
+
+    const explanationText = data.markdown || data.explanation || 'Consulta executada.';
+    const safeExplanation = escapeHtml(explanationText);
+    let html = `<p><strong>${safeExplanation}</strong></p>`;
+
+    // ... monta tabela, sql, etc ...
+
+    contentDiv.innerHTML = html;
+    messageDiv.appendChild(contentDiv);
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+🟢 DEPOIS – usando content + marked
+function displayQueryResult(data, containerId) {
+    const chatMessages = document.getElementById(containerId);
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('chat-message', 'bot');
+
+    const contentDiv = document.createElement('div');
+    contentDiv.classList.add('message-content', 'bot-message');
+
+    // 1) Texto principal em Markdown
+    const explanationText =
+        data.content ||
+        data.markdown ||
+        data.explanation ||
+        'Consulta executada.';
+
+    let explanationHtml;
+    if (typeof marked !== 'undefined') {
+        explanationHtml = marked.parse(explanationText);
+    } else {
+        // fallback seguro, sem markdown
+        explanationHtml = `<p>${escapeHtml(explanationText)}</p>`;
+    }
+
+    contentDiv.innerHTML = explanationHtml;
+
+    // 2) Tabela com os dados, se existir
+    if (Array.isArray(data.data) && data.data.length > 0) {
+        const table = document.createElement('table');
+        table.classList.add('query-result-table');
+
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+
+        // cabeçalho
+        Object.keys(data.data[0]).forEach((key) => {
+            const th = document.createElement('th');
+            th.textContent = key;
+            headerRow.appendChild(th);
+        });
+
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+
+        // linhas
+        data.data.forEach((row) => {
+            const tr = document.createElement('tr');
+            Object.keys(row).forEach((key) => {
+                const td = document.createElement('td');
+                td.textContent = row[key];
+                tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+        });
+
+        table.appendChild(tbody);
+        contentDiv.appendChild(table);
+    }
+
+    // 3) SQL opcional
+    if (data.sql) {
+        const sqlBlock = document.createElement('pre');
+        sqlBlock.classList.add('sql-query');
+        sqlBlock.textContent = data.sql;
+        contentDiv.appendChild(sqlBlock);
+    }
+
+    messageDiv.appendChild(contentDiv);
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+
+✅ Agora query_result também fica com a explicação em Markdown, igual ao rag_response.
+
+3. Opcional – pequeno ajuste de prompt
+
+Como você vai passar a renderizar Markdown inclusive nas respostas simples, dá pra reforçar levemente no SYSTEM_PROMPT algo assim (se ainda não estiver):
+
+Todas as suas respostas para o usuário final devem ser em português (Brasil) e podem usar Markdown (títulos, listas, negrito, tabelas) para ficar mais legíveis. O front-end do sistema já renderiza Markdown corretamente.
+
+
+Se já tiver algo parecido, pode manter — a diferença é que agora isso é verdade na prática também pro type: "text" e query_result.

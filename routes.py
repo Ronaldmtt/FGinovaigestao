@@ -806,7 +806,8 @@ def tasks():
     
     tasks = query.all()
     
-    form = TaskForm()
+    simple_form = TaskForm()
+    manual_form = ManualTaskForm()
     transcription_form = TranscriptionTaskForm()
     all_projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
     all_clients = Client.query.order_by(Client.nome).all()
@@ -814,7 +815,8 @@ def tasks():
     
     return render_template('tasks.html', 
                          tasks=tasks, 
-                         form=form, 
+                         simple_form=simple_form,
+                         manual_form=manual_form,
                          transcription_form=transcription_form, 
                          all_projects=all_projects,
                          all_clients=all_clients,

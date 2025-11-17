@@ -314,9 +314,7 @@
             
             <!-- Botões de ação -->
             <div class="task-drawer-actions">
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-save me-1"></i>Salvar Alterações
-                </button>
+                <div id="autoSaveStatus" class="text-muted small mb-2"></div>
                 <button type="button" class="btn btn-outline-danger" onclick="deleteTask()">
                     <i class="fas fa-trash me-1"></i>Deletar Tarefa
                 </button>
@@ -426,6 +424,9 @@ function editTask(taskId) {
                 
                 // Abrir drawer
                 openTaskDrawer();
+                
+                // Configurar auto-save
+                setupDrawerAutoSave();
             } else {
                 alert('Erro ao carregar dados da tarefa');
             }
@@ -507,11 +508,66 @@ function updateTaskCard(taskData) {
     cardBody.innerHTML = newContent;
 }
 
-// Salvar alterações da tarefa
-document.getElementById('editTaskForm').addEventListener('submit', function(e) {
-    e.preventDefault();
+// Auto-save para o drawer
+let autoSaveTimeout = null;
+
+function setupDrawerAutoSave() {
+    const fields = [
+        document.getElementById('editTaskTitulo'),
+        document.getElementById('editTaskDescricao'),
+        document.getElementById('editTaskResponsavel'),
+        document.getElementById('editTaskStatus'),
+        document.getElementById('editTaskDataConclusao')
+    ];
     
+    fields.forEach(field => {
+        if (!field) return;
+        
+        field.addEventListener('input', () => {
+            clearTimeout(autoSaveTimeout);
+            updateDrawerAutoSaveStatus('editando');
+            
+            autoSaveTimeout = setTimeout(() => {
+                saveTaskFromDrawer();
+            }, 2000);
+        });
+        
+        field.addEventListener('change', () => {
+            clearTimeout(autoSaveTimeout);
+            saveTaskFromDrawer();
+        });
+    });
+}
+
+function updateDrawerAutoSaveStatus(status) {
+    const statusEl = document.getElementById('autoSaveStatus');
+    if (!statusEl) return;
+    
+    if (status === 'editando') {
+        statusEl.innerHTML = '<i class="fas fa-pencil-alt me-1"></i>Editando...';
+        statusEl.className = 'text-muted small mb-2';
+    } else if (status === 'salvando') {
+        statusEl.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Salvando...';
+        statusEl.className = 'text-warning small mb-2';
+    } else if (status === 'salvo') {
+        statusEl.innerHTML = '<i class="fas fa-check me-1"></i>Salvo automaticamente';
+        statusEl.className = 'text-success small mb-2';
+        
+        setTimeout(() => {
+            statusEl.innerHTML = '';
+        }, 3000);
+    } else if (status === 'erro') {
+        statusEl.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i>Erro ao salvar';
+        statusEl.className = 'text-danger small mb-2';
+    }
+}
+
+function saveTaskFromDrawer() {
     const taskId = document.getElementById('editTaskId').value;
+    if (!taskId) return;
+    
+    updateDrawerAutoSaveStatus('salvando');
+    
     const formData = {
         titulo: document.getElementById('editTaskTitulo').value,
         descricao: document.getElementById('editTaskDescricao').value,
@@ -531,32 +587,32 @@ document.getElementById('editTaskForm').addEventListener('submit', function(e) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Fechar drawer
-            closeTaskDrawer();
+            updateDrawerAutoSaveStatus('salvo');
             
             // Atualizar card em tempo real
             const taskCard = document.querySelector(`[data-task-id="${taskId}"]`);
-            const currentColumn = taskCard.closest('.kanban-column');
-            const targetColumn = document.querySelector(`[data-status="${data.task.status}"]`);
-            
-            // Se mudou de coluna, mover o card
-            if (currentColumn.dataset.status !== data.task.status) {
-                targetColumn.appendChild(taskCard);
-                updateColumnCounts();
+            if (taskCard) {
+                const currentColumn = taskCard.closest('.kanban-column');
+                const targetColumn = document.querySelector(`[data-status="${data.task.status}"]`);
+                
+                // Se mudou de coluna, mover o card
+                if (currentColumn && targetColumn && currentColumn.dataset.status !== data.task.status) {
+                    targetColumn.appendChild(taskCard);
+                    updateColumnCounts();
+                }
+                
+                // Atualizar o conteúdo do card
+                updateTaskCard(data.task);
             }
-            
-            // Atualizar o conteúdo do card
-            updateTaskCard(data.task);
-            
         } else {
-            alert('Erro ao salvar alterações: ' + data.message);
+            updateDrawerAutoSaveStatus('erro');
         }
     })
     .catch(error => {
         console.error('Erro ao salvar tarefa:', error);
-        alert('Erro ao salvar alterações');
+        updateDrawerAutoSaveStatus('erro');
     });
-});
+}
 
 // Funções para gerenciar to-do's
 function loadTodos(todos) {

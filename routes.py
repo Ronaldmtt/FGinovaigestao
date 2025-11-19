@@ -375,15 +375,21 @@ def edit_client(client_id):
     form = ClientForm(obj=client)
     
     if form.validate_on_submit():
-        client.nome = form.nome.data
-        client.email = form.email.data
-        client.telefone = form.telefone.data
-        client.endereco = form.endereco.data
-        client.observacoes = form.observacoes.data
-        
-        db.session.commit()
-        flash('Cliente atualizado com sucesso!', 'success')
-        return redirect(url_for('clients'))
+        try:
+            client.nome = form.nome.data
+            client.email = form.email.data
+            client.telefone = form.telefone.data
+            client.endereco = form.endereco.data
+            client.observacoes = form.observacoes.data
+            
+            db.session.commit()
+            flash('Cliente atualizado com sucesso!', 'success')
+            return redirect('/clients')
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f'Erro ao atualizar cliente: {e}')
+            flash('Erro ao atualizar cliente. Tente novamente.', 'danger')
+            return redirect(f'/clients/edit/{client_id}')
     
     return render_template('edit_client.html', form=form, client=client)
 

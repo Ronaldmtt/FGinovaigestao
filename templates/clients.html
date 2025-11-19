@@ -410,7 +410,7 @@ function editClient(clientId) {
     const content = document.getElementById('editClientContent');
     const form = document.getElementById('editClientForm');
     
-    form.action = `/clients/${clientId}/edit`;
+    form.action = `/clients/edit/${clientId}`;
     
     content.innerHTML = `
         <div class="text-center py-4">

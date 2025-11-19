@@ -13,6 +13,7 @@
             </div>
             <div class="card-body">
                 <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="nome_empresa" class="form-label">Nome da Empresa *</label>
@@ -39,8 +40,8 @@
                         <label for="estagio" class="form-label">Estágio do Pipeline *</label>
                         <select class="form-select bg-dark text-light border-secondary" id="estagio" name="estagio" required>
                             {% for estagio in estagios %}
-                            <option value="{{ estagio }}" {% if estagio == contato.estagio %}selected{% endif %}>
-                                {{ loop.index }}. {{ estagio }}
+                            <option value="{{ estagio.nome }}" {% if estagio.nome == contato.estagio %}selected{% endif %}>
+                                {{ loop.index }}. {{ estagio.nome }}
                             </option>
                             {% endfor %}
                         </select>

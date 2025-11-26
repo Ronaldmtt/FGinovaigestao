@@ -523,6 +523,16 @@ function updateTaskCard(taskData) {
         `;
     }
     
+    // Adicionar contador de to-dos pendentes
+    if (taskData.pending_todos_count && taskData.pending_todos_count > 0) {
+        const plural = taskData.pending_todos_count > 1 ? 's' : '';
+        newContent += `
+        <small class="d-block" style="color: #17a2b8; font-size: 12px;">
+            <i class="fas fa-list-check me-1"></i>${taskData.pending_todos_count} to-do${plural} pendente${plural}
+        </small>
+        `;
+    }
+    
     cardBody.innerHTML = newContent;
 }
 

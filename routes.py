@@ -1465,6 +1465,9 @@ def api_update_task(task_id):
                 except Exception as e:
                     app.logger.error(f"Erro ao enviar email de atualização: {e}")
         
+        # Contar to-dos pendentes
+        pending_todos_count = sum(1 for todo in task.todos if not todo.completed)
+        
         # Retornar dados completos da tarefa atualizada para atualizar o card
         response_data = {
             'success': True,
@@ -1479,7 +1482,8 @@ def api_update_task(task_id):
                 'data_conclusao_iso': task.data_conclusao.isoformat() if task.data_conclusao else None,
                 'completed_at': task.completed_at.strftime('%d/%m/%Y às %H:%M') if task.completed_at else None,
                 'project_client_name': task.project.client.nome if task.project and task.project.client else None,
-                'project_name': task.project.nome if task.project else None
+                'project_name': task.project.nome if task.project else None,
+                'pending_todos_count': pending_todos_count
             }
         }
         return jsonify(response_data)

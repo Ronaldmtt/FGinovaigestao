@@ -223,6 +223,273 @@
             50% { transform: scale(1.1); opacity: 0.7; }
             100% { transform: scale(1); opacity: 1; }
         }
+        
+        /* ============================================ */
+        /* DRAWER LATERAL - ESTILO ASANA */
+        /* ============================================ */
+        
+        .task-drawer-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1040;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        
+        .task-drawer-backdrop.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .task-drawer {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 600px;
+            max-width: 90vw;
+            height: 100vh;
+            background-color: #1a1d23;
+            box-shadow: -2px 0 20px rgba(0, 0, 0, 0.5);
+            z-index: 1050;
+            transform: translateX(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s linear 0.3s;
+            display: flex;
+            flex-direction: column;
+            visibility: hidden;
+        }
+        
+        .task-drawer.show {
+            transform: translateX(0);
+            visibility: visible;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .task-drawer-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+        }
+        
+        .task-drawer-close {
+            background: none;
+            border: none;
+            color: #cbd5e0;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+        }
+        
+        .task-drawer-close:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .task-drawer-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 24px 24px 24px;
+        }
+        
+        .task-title-input {
+            width: 100%;
+            background: none;
+            border: none;
+            font-size: 24px;
+            font-weight: 600;
+            color: #e2e8f0;
+            padding: 16px 0;
+            outline: none;
+        }
+        
+        .task-title-input::placeholder {
+            color: #718096;
+        }
+        
+        .task-field-clean {
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .task-field-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .task-field-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #cbd5e0;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .task-field-label i {
+            width: 16px;
+        }
+        
+        .task-select-clean {
+            background: none;
+            border: none;
+            color: #e2e8f0;
+            font-size: 14px;
+            padding: 4px 8px;
+            cursor: pointer;
+            outline: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.2s ease;
+        }
+        
+        .task-select-clean:hover {
+            border-bottom-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .task-select-clean:focus {
+            border-bottom-color: #6366f1;
+        }
+        
+        .task-select-clean option {
+            background-color: #2d3748;
+            color: #e2e8f0;
+        }
+        
+        .task-date-clean {
+            background: none;
+            border: none;
+            color: #e2e8f0;
+            font-size: 14px;
+            padding: 4px 8px;
+            cursor: pointer;
+            outline: none;
+        }
+        
+        .task-date-clean::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
+        }
+        
+        .task-divider {
+            height: 1px;
+            background-color: rgba(255, 255, 255, 0.1);
+            margin: 24px 0;
+        }
+        
+        .task-section {
+            margin: 24px 0;
+        }
+        
+        .task-section-label {
+            display: block;
+            color: #cbd5e0;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .task-textarea-bordered {
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #e2e8f0;
+            font-size: 14px;
+            padding: 12px;
+            resize: vertical;
+            min-height: 100px;
+            outline: none;
+            transition: border-color 0.2s ease, background-color 0.2s ease;
+        }
+        
+        .task-textarea-bordered:focus {
+            border-color: #6366f1;
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        
+        .task-textarea-bordered::placeholder {
+            color: #718096;
+        }
+        
+        .task-todos-list {
+            background-color: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .task-add-todo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        
+        .task-add-todo-input {
+            flex: 1;
+            background-color: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: #e2e8f0;
+            font-size: 14px;
+            padding: 10px 12px;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+        
+        .task-add-todo-input:focus {
+            border-color: #6366f1;
+        }
+        
+        .task-add-todo-input::placeholder {
+            color: #718096;
+        }
+        
+        .task-add-todo-btn {
+            background-color: rgba(99, 102, 241, 0.1);
+            border: 1px solid #6366f1;
+            border-radius: 6px;
+            color: #6366f1;
+            padding: 10px 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .task-add-todo-btn:hover {
+            background-color: #6366f1;
+            color: white;
+        }
+        
+        .task-drawer-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Card clicável */
+        .task-item.clickable {
+            cursor: pointer;
+        }
+        
+        .task-item.clickable:hover {
+            border-color: #6366f1 !important;
+        }
     </style>
 </head>
 <body>
@@ -658,13 +925,14 @@
             `;
         }
         
-        // Função para criar card de tarefa
+        // Função para criar card de tarefa (clicável para abrir drawer)
         function createTaskCard(task, colorClass) {
             const todos = task.todos || [];
             const completedTodos = todos.filter(todo => todo.completed).length;
+            const pendingTodos = todos.length - completedTodos;
             
             return `
-                <div class="task-item p-3">
+                <div class="task-item clickable p-3" onclick="openTaskDrawer(${task.id})" data-task-id="${task.id}">
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <h6 class="text-white mb-0">${task.titulo}</h6>
                         <span class="status-badge status-${task.status === 'concluida' ? 'completed' : task.status === 'em_andamento' ? 'progress' : 'pending'}">
@@ -683,14 +951,6 @@
                             <div class="progress-bar mb-2" style="height: 4px;">
                                 <div class="progress-fill" style="width: ${todos.length > 0 ? (completedTodos / todos.length * 100) : 0}%"></div>
                             </div>
-                            <div class="small">
-                                ${todos.map(todo => `
-                                    <div class="d-flex align-items-center mb-1">
-                                        <i class="fas ${todo.completed ? 'fa-check-square text-success' : 'fa-square text-muted'} me-2"></i>
-                                        <span class="text-muted ${todo.completed ? 'text-decoration-line-through' : ''}">${todo.text}</span>
-                                    </div>
-                                `).join('')}
-                            </div>
                         </div>
                     ` : ''}
                     
@@ -699,12 +959,21 @@
                             <i class="fas fa-calendar me-1"></i>
                             ${formatDate(task.created_at)}
                         </span>
-                        ${task.completed_at ? `
-                            <span class="text-success">
-                                <i class="fas fa-check-circle me-1"></i>
-                                Finalizada
+                        ${pendingTodos > 0 ? `
+                            <span class="text-info">
+                                <i class="fas fa-list-check me-1"></i>
+                                ${pendingTodos} pendente${pendingTodos > 1 ? 's' : ''}
                             </span>
                         ` : ''}
+                        ${task.assigned_user ? `
+                            <span>
+                                <i class="fas fa-user me-1"></i>
+                                ${task.assigned_user}
+                            </span>
+                        ` : ''}
+                    </div>
+                    <div class="text-center mt-2">
+                        <small class="text-primary"><i class="fas fa-edit me-1"></i>Clique para editar</small>
                     </div>
                 </div>
             `;
@@ -957,6 +1226,428 @@
                 default: return status;
             }
         }
+        
+        // ============================================
+        // DRAWER - FUNÇÕES DE EDIÇÃO DE TAREFA
+        // ============================================
+        
+        const PUBLIC_CODE = '{{ client.public_code }}';
+        let currentTaskId = null;
+        let currentTaskData = null;
+        let autoSaveTimeout = null;
+        
+        // Abrir drawer com dados da tarefa
+        function openTaskDrawer(taskId) {
+            currentTaskId = taskId;
+            
+            // Mostrar drawer
+            document.getElementById('taskDrawer').classList.add('show');
+            document.getElementById('taskDrawerBackdrop').classList.add('show');
+            document.body.style.overflow = 'hidden';
+            
+            // Carregar dados da tarefa
+            fetch(`/public/task/${taskId}/${PUBLIC_CODE}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        currentTaskData = data.task;
+                        populateDrawer(data.task);
+                    } else {
+                        alert('Erro ao carregar tarefa');
+                        closeTaskDrawer();
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    alert('Erro ao carregar tarefa');
+                    closeTaskDrawer();
+                });
+        }
+        
+        // Fechar drawer
+        function closeTaskDrawer() {
+            document.getElementById('taskDrawer').classList.remove('show');
+            document.getElementById('taskDrawerBackdrop').classList.remove('show');
+            document.body.style.overflow = '';
+            currentTaskId = null;
+            currentTaskData = null;
+        }
+        
+        // Preencher drawer com dados da tarefa
+        function populateDrawer(task) {
+            document.getElementById('editTaskId').value = task.id;
+            document.getElementById('editTaskTitulo').value = task.titulo || '';
+            document.getElementById('editTaskDescricao').value = task.descricao || '';
+            document.getElementById('editTaskStatus').value = task.status || 'pendente';
+            document.getElementById('editTaskDataConclusao').value = task.data_conclusao || '';
+            
+            // Info do projeto
+            document.getElementById('taskProjectInfo').innerHTML = `
+                <i class="fas fa-folder text-muted me-2"></i>
+                <span class="text-muted" style="font-size: 14px;">${task.project_client_name} - ${task.project_name}</span>
+            `;
+            
+            // Info do responsável
+            if (task.assigned_user) {
+                document.getElementById('taskAssignedInfo').innerHTML = `
+                    <i class="fas fa-user text-info me-2"></i>
+                    <span class="text-info" style="font-size: 14px;">${task.assigned_user}</span>
+                `;
+            } else {
+                document.getElementById('taskAssignedInfo').innerHTML = `
+                    <i class="fas fa-user text-muted me-2"></i>
+                    <span class="text-muted" style="font-size: 14px;">Sem responsável definido</span>
+                `;
+            }
+            
+            // Carregar to-dos
+            loadTodos(task.todos || []);
+            
+            // Configurar auto-save
+            setupDrawerAutoSave();
+        }
+        
+        // Carregar to-dos no drawer
+        function loadTodos(todos) {
+            const todosList = document.getElementById('todosList');
+            todosList.innerHTML = '';
+            
+            if (todos.length === 0) {
+                todosList.innerHTML = '<p class="text-muted small mb-0">Nenhuma subtarefa cadastrada.</p>';
+                return;
+            }
+            
+            todos.forEach(todo => {
+                const todoDiv = document.createElement('div');
+                todoDiv.className = 'd-flex align-items-center mb-2';
+                todoDiv.innerHTML = `
+                    <input type="checkbox" class="form-check-input me-2" ${todo.completed ? 'checked' : ''} 
+                           onchange="toggleTodo(${todo.id}, this.checked)">
+                    <span class="todo-text ${todo.completed ? 'text-decoration-line-through text-muted' : 'text-light'}" 
+                          style="flex-grow: 1; cursor: pointer;" 
+                          data-todo-id="${todo.id}"
+                          onclick="enableTodoEdit(this)">${todo.texto}</span>
+                    <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="removeTodo(${todo.id})">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                `;
+                todoDiv.dataset.todoId = todo.id;
+                todosList.appendChild(todoDiv);
+            });
+        }
+        
+        // Marcar/desmarcar to-do
+        function toggleTodo(todoId, completed) {
+            fetch(`/public/todo/${todoId}/${PUBLIC_CODE}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ completed: completed })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Atualizar visual do to-do
+                    const todoSpan = document.querySelector(`[data-todo-id="${todoId}"]`);
+                    if (todoSpan) {
+                        if (completed) {
+                            todoSpan.classList.add('text-decoration-line-through', 'text-muted');
+                            todoSpan.classList.remove('text-light');
+                        } else {
+                            todoSpan.classList.remove('text-decoration-line-through', 'text-muted');
+                            todoSpan.classList.add('text-light');
+                        }
+                    }
+                    
+                    // Atualizar card no Kanban
+                    updateTaskCardInKanban(currentTaskId, { pending_todos_count: data.pending_todos_count });
+                }
+            })
+            .catch(error => console.error('Erro:', error));
+        }
+        
+        // Adicionar novo to-do
+        function addTodo() {
+            const input = document.getElementById('newTodoText');
+            const texto = input.value.trim();
+            
+            if (!texto) return;
+            
+            // Obter todos atuais
+            const currentTodos = getCurrentTodos();
+            currentTodos.push({ texto: texto, completed: false });
+            
+            // Salvar
+            saveTaskFromDrawer();
+            
+            // Limpar input
+            input.value = '';
+        }
+        
+        // Remover to-do
+        function removeTodo(todoId) {
+            const todoDiv = document.querySelector(`[data-todo-id="${todoId}"]`).closest('.d-flex');
+            if (todoDiv) {
+                todoDiv.remove();
+            }
+            saveTaskFromDrawer();
+        }
+        
+        // Obter to-dos atuais do DOM
+        function getCurrentTodos() {
+            const todos = [];
+            document.querySelectorAll('#todosList .d-flex').forEach(div => {
+                const checkbox = div.querySelector('input[type="checkbox"]');
+                const span = div.querySelector('.todo-text');
+                if (span && span.textContent) {
+                    todos.push({
+                        texto: span.textContent,
+                        completed: checkbox ? checkbox.checked : false
+                    });
+                }
+            });
+            return todos;
+        }
+        
+        // Habilitar edição inline do to-do
+        function enableTodoEdit(span) {
+            if (span.querySelector('input')) return;
+            
+            const currentText = span.textContent;
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'form-control form-control-sm';
+            input.value = currentText;
+            input.style.flexGrow = '1';
+            
+            span.textContent = '';
+            span.appendChild(input);
+            input.focus();
+            input.select();
+            
+            const saveTodo = () => {
+                const newText = input.value.trim();
+                if (newText) {
+                    span.textContent = newText;
+                } else {
+                    span.textContent = currentText;
+                }
+                saveTaskFromDrawer();
+            };
+            
+            input.addEventListener('blur', saveTodo);
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    input.blur();
+                }
+            });
+        }
+        
+        // Configurar auto-save
+        function setupDrawerAutoSave() {
+            const fields = [
+                document.getElementById('editTaskTitulo'),
+                document.getElementById('editTaskDescricao'),
+                document.getElementById('editTaskStatus'),
+                document.getElementById('editTaskDataConclusao')
+            ];
+            
+            fields.forEach(field => {
+                if (!field) return;
+                
+                field.addEventListener('input', () => {
+                    clearTimeout(autoSaveTimeout);
+                    updateAutoSaveStatus('editando');
+                    autoSaveTimeout = setTimeout(() => {
+                        saveTaskFromDrawer();
+                    }, 2000);
+                });
+                
+                field.addEventListener('change', () => {
+                    clearTimeout(autoSaveTimeout);
+                    saveTaskFromDrawer();
+                });
+            });
+        }
+        
+        // Atualizar status de auto-save
+        function updateAutoSaveStatus(status) {
+            const statusEl = document.getElementById('autoSaveStatus');
+            if (!statusEl) return;
+            
+            if (status === 'editando') {
+                statusEl.innerHTML = '<i class="fas fa-pencil-alt me-1"></i>Editando...';
+                statusEl.className = 'text-muted small';
+            } else if (status === 'salvando') {
+                statusEl.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Salvando...';
+                statusEl.className = 'text-warning small';
+            } else if (status === 'salvo') {
+                statusEl.innerHTML = '<i class="fas fa-check me-1"></i>Salvo automaticamente';
+                statusEl.className = 'text-success small';
+                setTimeout(() => { statusEl.innerHTML = ''; }, 3000);
+            } else if (status === 'erro') {
+                statusEl.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i>Erro ao salvar';
+                statusEl.className = 'text-danger small';
+            }
+        }
+        
+        // Salvar tarefa via drawer
+        function saveTaskFromDrawer() {
+            if (!currentTaskId) return;
+            
+            updateAutoSaveStatus('salvando');
+            
+            const formData = {
+                titulo: document.getElementById('editTaskTitulo').value,
+                descricao: document.getElementById('editTaskDescricao').value,
+                status: document.getElementById('editTaskStatus').value,
+                data_conclusao: document.getElementById('editTaskDataConclusao').value || null,
+                todos: getCurrentTodos()
+            };
+            
+            fetch(`/public/task/${currentTaskId}/${PUBLIC_CODE}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateAutoSaveStatus('salvo');
+                    
+                    // Recarregar to-dos do servidor
+                    fetch(`/public/task/${currentTaskId}/${PUBLIC_CODE}`)
+                        .then(response => response.json())
+                        .then(taskData => {
+                            if (taskData.success && taskData.task.todos) {
+                                loadTodos(taskData.task.todos);
+                            }
+                        });
+                    
+                    // Atualizar card no Kanban
+                    updateTaskCardInKanban(currentTaskId, data.task);
+                } else {
+                    updateAutoSaveStatus('erro');
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                updateAutoSaveStatus('erro');
+            });
+        }
+        
+        // Atualizar card no Kanban após edição
+        function updateTaskCardInKanban(taskId, taskData) {
+            // Recarregar as tarefas para refletir mudanças
+            if (selectedProjectId) {
+                loadProjectTasks(selectedProjectId, '');
+            }
+        }
+        
+        // Enter para adicionar to-do
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && e.target.id === 'newTodoText') {
+                e.preventDefault();
+                addTodo();
+            }
+        });
     </script>
+    
+    <!-- Backdrop do Drawer -->
+    <div class="task-drawer-backdrop" id="taskDrawerBackdrop" onclick="closeTaskDrawer()"></div>
+    
+    <!-- Drawer Lateral de Edição de Tarefa -->
+    <div class="task-drawer" id="taskDrawer">
+        <div class="task-drawer-header">
+            <button type="button" class="task-drawer-close" onclick="closeTaskDrawer()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="task-drawer-content">
+            <form id="editTaskForm" onsubmit="return false;">
+                <input type="hidden" id="editTaskId">
+                
+                <!-- Título da Tarefa -->
+                <div class="task-field-clean">
+                    <input type="text" 
+                           class="task-title-input" 
+                           id="editTaskTitulo" 
+                           placeholder="Nome da tarefa"
+                           required>
+                </div>
+                
+                <!-- Projeto/Cliente -->
+                <div class="task-field-clean" id="taskProjectInfo">
+                    <i class="fas fa-folder text-muted me-2"></i>
+                    <span class="text-muted" style="font-size: 14px;">Carregando...</span>
+                </div>
+                
+                <!-- Responsável (somente leitura) -->
+                <div class="task-field-clean" id="taskAssignedInfo">
+                    <i class="fas fa-user text-muted me-2"></i>
+                    <span class="text-muted" style="font-size: 14px;">Carregando...</span>
+                </div>
+                
+                <!-- Status -->
+                <div class="task-field-row">
+                    <div class="task-field-label">
+                        <i class="fas fa-circle-notch text-muted"></i>
+                        <span>Status</span>
+                    </div>
+                    <select class="task-select-clean" id="editTaskStatus" required>
+                        <option value="pendente">Pendente</option>
+                        <option value="em_andamento">Em Andamento</option>
+                        <option value="concluida">Concluída</option>
+                    </select>
+                </div>
+                
+                <!-- Data de Conclusão -->
+                <div class="task-field-row">
+                    <div class="task-field-label">
+                        <i class="fas fa-calendar text-muted"></i>
+                        <span>Data de conclusão</span>
+                    </div>
+                    <input type="date" class="task-date-clean" id="editTaskDataConclusao">
+                </div>
+                
+                <div class="task-divider"></div>
+                
+                <!-- Descrição -->
+                <div class="task-section">
+                    <label class="task-section-label">Descrição</label>
+                    <textarea class="task-textarea-bordered" 
+                              id="editTaskDescricao" 
+                              rows="4"
+                              placeholder="Do que se trata esta tarefa?"></textarea>
+                </div>
+                
+                <div class="task-divider"></div>
+                
+                <!-- Subtarefas / To-Do's -->
+                <div class="task-section">
+                    <label class="task-section-label">Subtarefas</label>
+                    <div id="todosList" class="task-todos-list">
+                        <!-- To-do's serão carregados aqui -->
+                    </div>
+                    <div class="task-add-todo">
+                        <input type="text" 
+                               class="task-add-todo-input" 
+                               id="newTodoText" 
+                               placeholder="Adicionar subtarefa..." 
+                               maxlength="300">
+                        <button type="button" class="task-add-todo-btn" onclick="addTodo()">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Status de salvamento -->
+                <div class="task-drawer-actions">
+                    <div id="autoSaveStatus" class="text-muted small"></div>
+                </div>
+            </form>
+        </div>
+    </div>
 </body>
 </html>

@@ -1228,6 +1228,53 @@ def public_update_task(task_id, code):
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
+@app.route('/public/task/<int:project_id>/<code>', methods=['POST'])
+def public_create_task(project_id, code):
+    """Criar nova tarefa pelo portal público do cliente"""
+    try:
+        client = Client.query.filter_by(public_code=code).first_or_404()
+        project = Project.query.get_or_404(project_id)
+        
+        # Verificar se o projeto pertence ao cliente
+        if project.client_id != client.id:
+            return jsonify({'success': False, 'message': 'Acesso negado'}), 403
+        
+        data = request.get_json()
+        
+        # Validar dados obrigatórios
+        if not data.get('titulo', '').strip():
+            return jsonify({'success': False, 'message': 'Título é obrigatório'}), 400
+        
+        # Criar nova tarefa
+        task = Task(
+            titulo=data['titulo'].strip(),
+            descricao=data.get('descricao', '').strip() or None,
+            status=data.get('status', 'pendente'),
+            project_id=project.id,
+            created_at=datetime.utcnow()
+        )
+        
+        # Data de conclusão
+        if data.get('data_conclusao'):
+            task.data_conclusao = datetime.strptime(data['data_conclusao'], '%Y-%m-%d').date()
+        
+        db.session.add(task)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Tarefa criada com sucesso!',
+            'task': {
+                'id': task.id,
+                'titulo': task.titulo,
+                'status': task.status,
+                'data_conclusao': task.data_conclusao.strftime('%d/%m/%Y') if task.data_conclusao else None
+            }
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 @app.route('/public/todo/<int:todo_id>/<code>', methods=['PUT'])
 def public_toggle_todo(todo_id, code):
     """Marcar/desmarcar to-do como concluído pelo portal público"""

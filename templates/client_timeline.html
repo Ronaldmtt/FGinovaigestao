@@ -625,6 +625,9 @@
                             <i class="fas fa-clock me-2"></i>Timeline
                         </button>
                     </div>
+                    <button class="btn btn-success" onclick="openNewTaskDrawer()">
+                        <i class="fas fa-plus me-2"></i>Nova Tarefa
+                    </button>
                     <button class="btn btn-outline-light" onclick="clearSelection()">
                         <i class="fas fa-arrow-left me-2"></i>Voltar aos Projetos
                     </button>
@@ -1606,6 +1609,95 @@
                 addTodo();
             }
         });
+        
+        // ============================================
+        // NOVA TAREFA - CRIAR TAREFA
+        // ============================================
+        
+        // Abrir drawer para criar nova tarefa
+        function openNewTaskDrawer() {
+            if (!selectedProjectId) {
+                alert('Selecione um projeto primeiro');
+                return;
+            }
+            
+            // Mostrar drawer
+            document.getElementById('newTaskDrawer').classList.add('show');
+            document.getElementById('newTaskDrawerBackdrop').classList.add('show');
+            document.body.style.overflow = 'hidden';
+            
+            // Limpar campos
+            document.getElementById('newTaskTitulo').value = '';
+            document.getElementById('newTaskDescricao').value = '';
+            document.getElementById('newTaskStatus').value = 'pendente';
+            document.getElementById('newTaskDataConclusao').value = '';
+            
+            // Focar no título
+            setTimeout(() => {
+                document.getElementById('newTaskTitulo').focus();
+            }, 300);
+        }
+        
+        // Fechar drawer de nova tarefa
+        function closeNewTaskDrawer() {
+            document.getElementById('newTaskDrawer').classList.remove('show');
+            document.getElementById('newTaskDrawerBackdrop').classList.remove('show');
+            document.body.style.overflow = '';
+        }
+        
+        // Salvar nova tarefa
+        function saveNewTask() {
+            const titulo = document.getElementById('newTaskTitulo').value.trim();
+            
+            if (!titulo) {
+                alert('O título é obrigatório');
+                return;
+            }
+            
+            const formData = {
+                titulo: titulo,
+                descricao: document.getElementById('newTaskDescricao').value.trim(),
+                status: document.getElementById('newTaskStatus').value,
+                data_conclusao: document.getElementById('newTaskDataConclusao').value || null
+            };
+            
+            // Mostrar loading
+            const saveBtn = document.getElementById('saveNewTaskBtn');
+            const originalText = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Salvando...';
+            saveBtn.disabled = true;
+            
+            fetch(`/public/task/${selectedProjectId}/${PUBLIC_CODE}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Fechar drawer
+                    closeNewTaskDrawer();
+                    
+                    // Recarregar tarefas
+                    if (selectedProjectId) {
+                        loadProjectTasks(selectedProjectId, '');
+                    }
+                    
+                    // Mostrar mensagem de sucesso
+                    alert('Tarefa criada com sucesso!');
+                } else {
+                    alert('Erro: ' + (data.message || 'Erro ao criar tarefa'));
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro ao criar tarefa');
+            })
+            .finally(() => {
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
+            });
+        }
     </script>
     
     <!-- Backdrop do Drawer -->
@@ -1700,6 +1792,77 @@
                 <!-- Status de salvamento -->
                 <div class="task-drawer-actions">
                     <div id="autoSaveStatus" class="text-muted small"></div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Backdrop do Drawer de Nova Tarefa -->
+    <div class="task-drawer-backdrop" id="newTaskDrawerBackdrop" onclick="closeNewTaskDrawer()"></div>
+    
+    <!-- Drawer Lateral de Nova Tarefa -->
+    <div class="task-drawer" id="newTaskDrawer">
+        <div class="task-drawer-header">
+            <span class="text-white fw-bold" style="font-size: 16px;">
+                <i class="fas fa-plus-circle me-2 text-success"></i>Nova Tarefa
+            </span>
+            <button type="button" class="task-drawer-close" onclick="closeNewTaskDrawer()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="task-drawer-content">
+            <form id="newTaskForm" onsubmit="event.preventDefault(); saveNewTask();">
+                <!-- Título da Tarefa -->
+                <div class="task-field-clean">
+                    <input type="text" 
+                           class="task-title-input" 
+                           id="newTaskTitulo" 
+                           placeholder="Nome da tarefa"
+                           required>
+                </div>
+                
+                <!-- Status -->
+                <div class="task-field-row">
+                    <div class="task-field-label">
+                        <i class="fas fa-circle-notch text-muted"></i>
+                        <span>Status</span>
+                    </div>
+                    <select class="task-select-clean" id="newTaskStatus" required>
+                        <option value="pendente">Pendente</option>
+                        <option value="em_andamento">Em Andamento</option>
+                        <option value="concluida">Concluída</option>
+                    </select>
+                </div>
+                
+                <!-- Data de Conclusão -->
+                <div class="task-field-row">
+                    <div class="task-field-label">
+                        <i class="fas fa-calendar text-muted"></i>
+                        <span>Data de conclusão</span>
+                    </div>
+                    <input type="date" class="task-date-clean" id="newTaskDataConclusao">
+                </div>
+                
+                <div class="task-divider"></div>
+                
+                <!-- Descrição -->
+                <div class="task-section">
+                    <label class="task-section-label">Descrição</label>
+                    <textarea class="task-textarea-bordered" 
+                              id="newTaskDescricao" 
+                              rows="4"
+                              placeholder="Do que se trata esta tarefa?"></textarea>
+                </div>
+                
+                <!-- Botão de Salvar -->
+                <div class="task-drawer-actions">
+                    <button type="submit" class="btn btn-success w-100" id="saveNewTaskBtn">
+                        <i class="fas fa-save me-2"></i>Criar Tarefa
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary w-100" onclick="closeNewTaskDrawer()">
+                        <i class="fas fa-times me-2"></i>Cancelar
+                    </button>
                 </div>
             </form>
         </div>

@@ -49,8 +49,8 @@
 
 <div class="row mt-4">
     <div class="col-md-8">
-        <!-- Informações do Projeto processadas pela IA -->
-        {% if project.contexto_justificativa %}
+        <!-- Informações do Projeto - exibe se qualquer campo de contexto/escopo estiver preenchido -->
+        {% if project.descricao_resumida or project.problema_oportunidade or project.objetivos or project.alinhamento_estrategico %}
         <div class="card mb-3">
             <div class="card-header">
                 <h5><i class="fas fa-lightbulb me-2"></i>Contexto e Justificativa</h5>
@@ -69,10 +69,12 @@
                 <p>{{ project.alinhamento_estrategico or 'Não informado' }}</p>
             </div>
         </div>
+        {% endif %}
 
+        {% if project.escopo_projeto or project.fora_escopo or project.premissas or project.restricoes %}
         <div class="card mb-3">
             <div class="card-header">
-                <h5><i class="fas fa-scope me-2"></i>Escopo</h5>
+                <h5><i class="fas fa-bullseye me-2"></i>Escopo</h5>
             </div>
             <div class="card-body">
                 <p><strong>Escopo do Projeto:</strong></p>

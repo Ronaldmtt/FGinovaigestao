@@ -1132,6 +1132,137 @@ def public_project_stats(project_id, code):
             'error': str(e)
         })
 
+# APIs públicas para edição de tarefas pelo cliente
+@app.route('/public/task/<int:task_id>/<code>')
+def public_get_task(task_id, code):
+    """Obter dados completos de uma tarefa para o portal público"""
+    try:
+        client = Client.query.filter_by(public_code=code).first_or_404()
+        task = Task.query.get_or_404(task_id)
+        
+        # Verificar se a tarefa pertence a um projeto do cliente
+        if task.project.client_id != client.id:
+            return jsonify({'success': False, 'message': 'Acesso negado'}), 403
+        
+        todos = [{'id': todo.id, 'texto': todo.texto, 'completed': todo.completed} for todo in task.todos]
+        
+        return jsonify({
+            'success': True,
+            'task': {
+                'id': task.id,
+                'titulo': task.titulo,
+                'descricao': task.descricao,
+                'status': task.status,
+                'data_conclusao': task.data_conclusao.isoformat() if task.data_conclusao else None,
+                'assigned_user': task.assigned_user.full_name if task.assigned_user else None,
+                'project_name': task.project.nome,
+                'project_client_name': task.project.client.nome,
+                'todos': todos,
+                'created_at': task.created_at.strftime('%d/%m/%Y às %H:%M') if task.created_at else None
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/public/task/<int:task_id>/<code>', methods=['PUT'])
+def public_update_task(task_id, code):
+    """Atualizar tarefa pelo portal público do cliente"""
+    try:
+        client = Client.query.filter_by(public_code=code).first_or_404()
+        task = Task.query.get_or_404(task_id)
+        
+        # Verificar se a tarefa pertence a um projeto do cliente
+        if task.project.client_id != client.id:
+            return jsonify({'success': False, 'message': 'Acesso negado'}), 403
+        
+        data = request.get_json()
+        
+        # Atualizar campos permitidos
+        if 'titulo' in data:
+            task.titulo = data['titulo']
+        if 'descricao' in data:
+            task.descricao = data['descricao']
+        if 'status' in data:
+            task.status = data['status']
+            if data['status'] == 'concluida':
+                task.completed_at = datetime.utcnow()
+            else:
+                task.completed_at = None
+        if 'data_conclusao' in data:
+            if data['data_conclusao']:
+                task.data_conclusao = datetime.strptime(data['data_conclusao'], '%Y-%m-%d').date()
+            else:
+                task.data_conclusao = None
+        
+        # Atualizar to-do's
+        if 'todos' in data:
+            TodoItem.query.filter_by(task_id=task.id).delete()
+            for todo_data in data['todos']:
+                if todo_data.get('texto', '').strip():
+                    todo = TodoItem(
+                        texto=todo_data['texto'],
+                        completed=todo_data.get('completed', False),
+                        task_id=task.id
+                    )
+                    if todo_data.get('completed'):
+                        todo.completed_at = datetime.utcnow()
+                    db.session.add(todo)
+        
+        db.session.commit()
+        
+        # Contar to-dos pendentes
+        pending_todos_count = sum(1 for todo in task.todos if not todo.completed)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Tarefa atualizada com sucesso!',
+            'task': {
+                'id': task.id,
+                'titulo': task.titulo,
+                'status': task.status,
+                'data_conclusao': task.data_conclusao.strftime('%d/%m/%Y') if task.data_conclusao else None,
+                'pending_todos_count': pending_todos_count
+            }
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/public/todo/<int:todo_id>/<code>', methods=['PUT'])
+def public_toggle_todo(todo_id, code):
+    """Marcar/desmarcar to-do como concluído pelo portal público"""
+    try:
+        client = Client.query.filter_by(public_code=code).first_or_404()
+        todo = TodoItem.query.get_or_404(todo_id)
+        
+        # Verificar se o to-do pertence a uma tarefa de um projeto do cliente
+        if todo.task.project.client_id != client.id:
+            return jsonify({'success': False, 'message': 'Acesso negado'}), 403
+        
+        data = request.get_json()
+        todo.completed = data.get('completed', not todo.completed)
+        if todo.completed:
+            todo.completed_at = datetime.utcnow()
+        else:
+            todo.completed_at = None
+        
+        db.session.commit()
+        
+        # Contar to-dos pendentes da tarefa
+        pending_todos_count = sum(1 for t in todo.task.todos if not t.completed)
+        
+        return jsonify({
+            'success': True,
+            'todo': {
+                'id': todo.id,
+                'completed': todo.completed
+            },
+            'pending_todos_count': pending_todos_count
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 @app.route('/projects/<int:id>/data')
 @login_required
 def get_project_data(id):

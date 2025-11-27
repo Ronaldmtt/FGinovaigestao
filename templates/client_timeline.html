@@ -1406,15 +1406,36 @@
             
             if (!texto) return;
             
-            // Obter todos atuais
-            const currentTodos = getCurrentTodos();
-            currentTodos.push({ texto: texto, completed: false });
+            // Adicionar ao DOM primeiro (com ID temporário negativo)
+            const todosList = document.getElementById('todosList');
             
-            // Salvar
-            saveTaskFromDrawer();
+            // Remover mensagem "Nenhuma subtarefa" se existir
+            const emptyMsg = todosList.querySelector('p.text-muted');
+            if (emptyMsg) {
+                emptyMsg.remove();
+            }
+            
+            const tempId = -Date.now(); // ID temporário negativo
+            const todoDiv = document.createElement('div');
+            todoDiv.className = 'd-flex align-items-center mb-2';
+            todoDiv.dataset.todoId = tempId;
+            todoDiv.innerHTML = `
+                <input type="checkbox" class="form-check-input me-2" onchange="toggleTodo(${tempId}, this.checked)">
+                <span class="todo-text text-light" 
+                      style="flex-grow: 1; cursor: pointer;" 
+                      data-todo-id="${tempId}"
+                      onclick="enableTodoEdit(this)">${texto}</span>
+                <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="removeTodo(${tempId})">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            `;
+            todosList.appendChild(todoDiv);
             
             // Limpar input
             input.value = '';
+            
+            // Salvar (vai ler do DOM e incluirá o novo to-do)
+            saveTaskFromDrawer();
         }
         
         // Remover to-do

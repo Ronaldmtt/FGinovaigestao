@@ -1207,6 +1207,9 @@ def public_update_task(task_id, code):
                     )
                     if todo_data.get('completed'):
                         todo.completed_at = datetime.utcnow()
+                    # Adicionar data de vencimento se fornecida
+                    if todo_data.get('due_date'):
+                        todo.due_date = datetime.strptime(todo_data['due_date'], '%Y-%m-%d').date()
                     db.session.add(todo)
         
         db.session.commit()
@@ -1630,6 +1633,9 @@ def api_update_task(task_id):
                     )
                     if todo_data.get('completed'):
                         todo.completed_at = datetime.utcnow()
+                    # Adicionar data de vencimento se fornecida
+                    if todo_data.get('due_date'):
+                        todo.due_date = datetime.strptime(todo_data['due_date'], '%Y-%m-%d').date()
                     db.session.add(todo)
         
         db.session.commit()

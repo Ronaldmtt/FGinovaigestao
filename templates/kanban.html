@@ -662,12 +662,28 @@ function loadTodos(todos) {
     todos.forEach(todo => {
         const todoDiv = document.createElement('div');
         todoDiv.className = 'd-flex align-items-center mb-2';
+        
+        // Formatar data de vencimento com cores
+        const dueDateInfo = formatDueDate(todo.due_date);
+        
         todoDiv.innerHTML = `
             <input type="checkbox" class="form-check-input me-2" ${todo.completed ? 'checked' : ''} onchange="toggleTodo(this, ${todo.id})">
             <span class="todo-text ${todo.completed ? 'text-decoration-line-through text-muted' : ''}" 
                   style="flex-grow: 1; cursor: pointer;" 
                   data-todo-id="${todo.id}"
                   onclick="enableTodoEdit(this)">${todo.texto}</span>
+            <div class="todo-date-picker position-relative" data-todo-id="${todo.id}">
+                <span class="todo-date-display ${dueDateInfo.colorClass}" 
+                      onclick="toggleTodoDatePicker(this, ${todo.id})"
+                      style="cursor: pointer; font-size: 12px; padding: 2px 6px; border-radius: 4px;">
+                    <i class="fas fa-calendar-alt me-1"></i>${dueDateInfo.text}
+                </span>
+                <input type="date" 
+                       class="todo-date-input" 
+                       style="position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;"
+                       value="${todo.due_date || ''}"
+                       onchange="updateTodoDueDate(${todo.id}, this.value)">
+            </div>
             <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="removeTodo(this, ${todo.id})">
                 <i class="fas fa-trash-alt"></i>
             </button>
@@ -675,8 +691,105 @@ function loadTodos(todos) {
         todoDiv.dataset.todoId = todo.id;
         todoDiv.dataset.todoText = todo.texto;
         todoDiv.dataset.todoCompleted = todo.completed;
+        todoDiv.dataset.todoDueDate = todo.due_date || '';
         todosList.appendChild(todoDiv);
     });
+}
+
+// Função para formatar data de vencimento com lógica de cores e dia da semana
+function formatDueDate(dueDateStr) {
+    if (!dueDateStr) {
+        return { text: '', colorClass: 'text-muted' };
+    }
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const dueDate = new Date(dueDateStr + 'T00:00:00');
+    const diffTime = dueDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    // Determinar cor
+    let colorClass = '';
+    if (diffDays < 0) {
+        colorClass = 'todo-date-overdue'; // Vermelho - atrasado
+    } else if (diffDays <= 1) {
+        colorClass = 'todo-date-soon'; // Verde - hoje ou amanhã
+    } else {
+        colorClass = 'todo-date-future'; // Cinza - futuro
+    }
+    
+    // Formatar texto
+    let text = '';
+    const dayNames = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+    
+    // Se estiver dentro de 7 dias, mostrar nome do dia
+    if (diffDays >= 0 && diffDays <= 6) {
+        if (diffDays === 0) {
+            text = 'hoje';
+        } else if (diffDays === 1) {
+            text = 'amanhã';
+        } else {
+            text = dayNames[dueDate.getDay()];
+        }
+    } else {
+        // Mostrar dd/mm
+        const day = String(dueDate.getDate()).padStart(2, '0');
+        const month = String(dueDate.getMonth() + 1).padStart(2, '0');
+        text = `${day}/${month}`;
+    }
+    
+    return { text, colorClass };
+}
+
+// Função para abrir o datepicker do to-do
+function toggleTodoDatePicker(element, todoId) {
+    const container = element.closest('.todo-date-picker');
+    const dateInput = container.querySelector('.todo-date-input');
+    
+    // Forçar click no input de data nativo
+    dateInput.style.pointerEvents = 'auto';
+    dateInput.showPicker ? dateInput.showPicker() : dateInput.click();
+    
+    // Ocultar novamente após selecionar
+    setTimeout(() => {
+        dateInput.style.pointerEvents = 'none';
+    }, 100);
+}
+
+// Função para atualizar data de vencimento do to-do
+async function updateTodoDueDate(todoId, dateValue) {
+    try {
+        const response = await fetch(`/api/todos/${todoId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ due_date: dateValue || null })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Atualizar a exibição
+            const container = document.querySelector(`.todo-date-picker[data-todo-id="${todoId}"]`);
+            if (container) {
+                const display = container.querySelector('.todo-date-display');
+                const dueDateInfo = formatDueDate(dateValue);
+                
+                // Remover classes antigas
+                display.classList.remove('todo-date-overdue', 'todo-date-soon', 'todo-date-future', 'text-muted');
+                display.classList.add(dueDateInfo.colorClass);
+                display.innerHTML = `<i class="fas fa-calendar-alt me-1"></i>${dueDateInfo.text}`;
+                
+                // Atualizar dataset
+                const todoDiv = container.closest('[data-todo-id]');
+                if (todoDiv) {
+                    todoDiv.dataset.todoDueDate = dateValue || '';
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Erro ao atualizar data:', error);
+    }
 }
 
 // Função para habilitar edição inline do to-do (estilo Trello)
@@ -765,17 +878,32 @@ function addTodo() {
     if (text) {
         const todosList = document.getElementById('todosList');
         const todoDiv = document.createElement('div');
+        const tempId = 'new-' + Date.now();
+        
         todoDiv.className = 'd-flex align-items-center mb-2';
         todoDiv.innerHTML = `
             <input type="checkbox" class="form-check-input me-2" onchange="toggleTodo(this)">
-            <span class="todo-text" style="flex-grow: 1; cursor: pointer;" data-todo-id="new-${Date.now()}" onclick="enableTodoEdit(this)">${text}</span>
+            <span class="todo-text" style="flex-grow: 1; cursor: pointer;" data-todo-id="${tempId}" onclick="enableTodoEdit(this)">${text}</span>
+            <div class="todo-date-picker position-relative" data-todo-id="${tempId}">
+                <span class="todo-date-display text-muted" 
+                      onclick="toggleTodoDatePicker(this, '${tempId}')"
+                      style="cursor: pointer; font-size: 12px; padding: 2px 6px; border-radius: 4px;">
+                    <i class="fas fa-calendar-alt me-1"></i>
+                </span>
+                <input type="date" 
+                       class="todo-date-input" 
+                       style="position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;"
+                       value=""
+                       onchange="handleNewTodoDateChange(this, '${tempId}')">
+            </div>
             <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="removeTodo(this)">
                 <i class="fas fa-trash-alt"></i>
             </button>
         `;
-        todoDiv.dataset.todoId = 'new-' + Date.now();
+        todoDiv.dataset.todoId = tempId;
         todoDiv.dataset.todoText = text;
         todoDiv.dataset.todoCompleted = 'false';
+        todoDiv.dataset.todoDueDate = '';
         
         todosList.appendChild(todoDiv);
         newTodoText.value = '';
@@ -786,6 +914,31 @@ function addTodo() {
             saveTaskFromDrawer();
         }, 1000);
     }
+}
+
+// Função para lidar com mudança de data em to-do novo (ainda não salvo)
+function handleNewTodoDateChange(input, todoId) {
+    const dateValue = input.value;
+    const container = input.closest('.todo-date-picker');
+    const display = container.querySelector('.todo-date-display');
+    const dueDateInfo = formatDueDate(dateValue);
+    
+    // Atualizar exibição
+    display.classList.remove('todo-date-overdue', 'todo-date-soon', 'todo-date-future', 'text-muted');
+    display.classList.add(dueDateInfo.colorClass);
+    display.innerHTML = `<i class="fas fa-calendar-alt me-1"></i>${dueDateInfo.text}`;
+    
+    // Atualizar dataset
+    const todoDiv = container.closest('[data-todo-id]');
+    if (todoDiv) {
+        todoDiv.dataset.todoDueDate = dateValue || '';
+    }
+    
+    // Disparar auto-save
+    clearTimeout(autoSaveTimeout);
+    autoSaveTimeout = setTimeout(() => {
+        saveTaskFromDrawer();
+    }, 1000);
 }
 
 function toggleTodo(checkbox, todoId = null) {
@@ -828,7 +981,8 @@ function getCurrentTodos() {
         todos.push({
             id: todoDiv.dataset.todoId.startsWith('new-') ? null : parseInt(todoDiv.dataset.todoId),
             texto: todoDiv.dataset.todoText,
-            completed: todoDiv.dataset.todoCompleted === 'true'
+            completed: todoDiv.dataset.todoCompleted === 'true',
+            due_date: todoDiv.dataset.todoDueDate || null
         });
     });
     
@@ -1944,6 +2098,59 @@ body:not([data-theme]) .modern-modal .modal-footer .btn-light {
 body:not([data-theme]) .modern-modal .modal-footer .btn-light:hover {
     background-color: #718096;
     border-color: #718096;
+}
+
+/* Estilos para data de vencimento dos to-dos */
+.todo-date-picker {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 8px;
+}
+
+.todo-date-display {
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.todo-date-display:hover {
+    opacity: 0.8;
+}
+
+/* Cores de data de vencimento - Tema Escuro */
+[data-theme="dark"] .todo-date-overdue,
+body:not([data-theme]) .todo-date-overdue {
+    color: #fc8181 !important;
+    background-color: rgba(252, 129, 129, 0.15);
+}
+
+[data-theme="dark"] .todo-date-soon,
+body:not([data-theme]) .todo-date-soon {
+    color: #68d391 !important;
+    background-color: rgba(104, 211, 145, 0.15);
+}
+
+[data-theme="dark"] .todo-date-future,
+body:not([data-theme]) .todo-date-future {
+    color: #a0aec0 !important;
+    background-color: rgba(160, 174, 192, 0.15);
+}
+
+/* Cores de data de vencimento - Tema Claro */
+[data-theme="light"] .todo-date-overdue {
+    color: #e53e3e !important;
+    background-color: rgba(229, 62, 62, 0.1);
+}
+
+[data-theme="light"] .todo-date-soon {
+    color: #38a169 !important;
+    background-color: rgba(56, 161, 105, 0.1);
+}
+
+[data-theme="light"] .todo-date-future {
+    color: #718096 !important;
+    background-color: rgba(113, 128, 150, 0.1);
 }
 </style>
 {% endblock %}

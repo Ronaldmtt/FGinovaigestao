@@ -472,6 +472,9 @@ function openTaskDrawer() {
     const drawer = document.getElementById('taskDrawer');
     const backdrop = document.getElementById('taskDrawerBackdrop');
     
+    // Resetar flag de mudanças ao abrir
+    hasUnsavedChanges = false;
+    
     drawer.classList.add('show');
     backdrop.classList.add('show');
     document.body.style.overflow = 'hidden';
@@ -480,6 +483,9 @@ function openTaskDrawer() {
 function closeTaskDrawer() {
     const drawer = document.getElementById('taskDrawer');
     const backdrop = document.getElementById('taskDrawerBackdrop');
+    
+    // Salvar antes de fechar
+    saveTaskFromDrawer();
     
     drawer.classList.remove('show');
     backdrop.classList.remove('show');
@@ -567,8 +573,8 @@ function updateTaskCard(taskData) {
     cardBody.innerHTML = newContent;
 }
 
-// Auto-save para o drawer
-let autoSaveTimeout = null;
+// Variável para controlar se há mudanças pendentes
+let hasUnsavedChanges = false;
 
 function setupDrawerAutoSave() {
     const fields = [
@@ -583,17 +589,13 @@ function setupDrawerAutoSave() {
         if (!field) return;
         
         field.addEventListener('input', () => {
-            clearTimeout(autoSaveTimeout);
+            hasUnsavedChanges = true;
             updateDrawerAutoSaveStatus('editando');
-            
-            autoSaveTimeout = setTimeout(() => {
-                saveTaskFromDrawer();
-            }, 2000);
         });
         
         field.addEventListener('change', () => {
-            clearTimeout(autoSaveTimeout);
-            saveTaskFromDrawer();
+            hasUnsavedChanges = true;
+            updateDrawerAutoSaveStatus('editando');
         });
     });
 }
@@ -625,7 +627,11 @@ function saveTaskFromDrawer() {
     const taskId = document.getElementById('editTaskId').value;
     if (!taskId) return;
     
+    // Se não há mudanças pendentes, não salvar
+    if (!hasUnsavedChanges) return;
+    
     updateDrawerAutoSaveStatus('salvando');
+    hasUnsavedChanges = false;
     
     const formData = {
         titulo: document.getElementById('editTaskTitulo').value,
@@ -939,11 +945,9 @@ function addTodo() {
         todosList.appendChild(todoDiv);
         newTodoText.value = '';
         
-        // Salvar automaticamente após adicionar to-do
-        clearTimeout(autoSaveTimeout);
-        autoSaveTimeout = setTimeout(() => {
-            saveTaskFromDrawer();
-        }, 1000);
+        // Marcar que há mudanças pendentes
+        hasUnsavedChanges = true;
+        updateDrawerAutoSaveStatus('editando');
     }
 }
 
@@ -965,11 +969,9 @@ function handleNewTodoDateChange(input, todoId) {
         todoDiv.dataset.todoDueDate = dateValue || '';
     }
     
-    // Disparar auto-save
-    clearTimeout(autoSaveTimeout);
-    autoSaveTimeout = setTimeout(() => {
-        saveTaskFromDrawer();
-    }, 1000);
+    // Marcar que há mudanças pendentes
+    hasUnsavedChanges = true;
+    updateDrawerAutoSaveStatus('editando');
 }
 
 function toggleTodo(checkbox, todoId = null) {
@@ -985,22 +987,18 @@ function toggleTodo(checkbox, todoId = null) {
     
     todoDiv.dataset.todoCompleted = isCompleted.toString();
     
-    // Salvar automaticamente após marcar/desmarcar to-do
-    clearTimeout(autoSaveTimeout);
-    autoSaveTimeout = setTimeout(() => {
-        saveTaskFromDrawer();
-    }, 1000);
+    // Marcar que há mudanças pendentes
+    hasUnsavedChanges = true;
+    updateDrawerAutoSaveStatus('editando');
 }
 
 function removeTodo(button, todoId = null) {
     const todoDiv = button.closest('div');
     todoDiv.remove();
     
-    // Salvar automaticamente após remover to-do
-    clearTimeout(autoSaveTimeout);
-    autoSaveTimeout = setTimeout(() => {
-        saveTaskFromDrawer();
-    }, 1000);
+    // Marcar que há mudanças pendentes
+    hasUnsavedChanges = true;
+    updateDrawerAutoSaveStatus('editando');
 }
 
 function getCurrentTodos() {

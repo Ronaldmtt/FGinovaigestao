@@ -475,9 +475,10 @@
         // Load saved theme or default to dark
         const savedTheme = localStorage.getItem('theme') || 'dark';
         htmlElement.setAttribute('data-bs-theme', savedTheme);
-        updateThemeIcon(savedTheme);
         
         if (themeToggle) {
+            updateThemeIcon(savedTheme);
+            
             themeToggle.addEventListener('click', function() {
                 const currentTheme = htmlElement.getAttribute('data-bs-theme');
                 const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
@@ -489,7 +490,9 @@
         }
         
         function updateThemeIcon(theme) {
+            if (!themeToggle) return;
             const icon = themeToggle.querySelector('i');
+            if (!icon) return;
             if (theme === 'dark') {
                 icon.className = 'fas fa-sun';
                 themeToggle.title = 'Mudar para tema claro';

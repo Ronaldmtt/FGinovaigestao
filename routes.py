@@ -918,7 +918,8 @@ def get_task_data(task_id):
     todos_list = [{
         'id': todo.id,
         'texto': todo.texto,
-        'completed': todo.completed
+        'completed': todo.completed,
+        'due_date': todo.due_date.isoformat() if todo.due_date else None
     } for todo in task.todos]
     
     task_data = {
@@ -1144,7 +1145,7 @@ def public_get_task(task_id, code):
         if task.project.client_id != client.id:
             return jsonify({'success': False, 'message': 'Acesso negado'}), 403
         
-        todos = [{'id': todo.id, 'texto': todo.texto, 'completed': todo.completed} for todo in task.todos]
+        todos = [{'id': todo.id, 'texto': todo.texto, 'completed': todo.completed, 'due_date': todo.due_date.isoformat() if todo.due_date else None} for todo in task.todos]
         
         return jsonify({
             'success': True,
@@ -1276,8 +1277,8 @@ def public_create_task(project_id, code):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/public/todo/<int:todo_id>/<code>', methods=['PUT'])
-def public_toggle_todo(todo_id, code):
-    """Marcar/desmarcar to-do como concluído pelo portal público"""
+def public_update_todo(todo_id, code):
+    """Atualizar to-do pelo portal público (status, data de vencimento)"""
     try:
         client = Client.query.filter_by(public_code=code).first_or_404()
         todo = TodoItem.query.get_or_404(todo_id)
@@ -1287,11 +1288,22 @@ def public_toggle_todo(todo_id, code):
             return jsonify({'success': False, 'message': 'Acesso negado'}), 403
         
         data = request.get_json()
-        todo.completed = data.get('completed', not todo.completed)
-        if todo.completed:
-            todo.completed_at = datetime.utcnow()
-        else:
-            todo.completed_at = None
+        
+        # Atualizar status de completed se fornecido
+        if 'completed' in data:
+            todo.completed = data.get('completed', not todo.completed)
+            if todo.completed:
+                todo.completed_at = datetime.utcnow()
+            else:
+                todo.completed_at = None
+        
+        # Atualizar data de vencimento se fornecida
+        if 'due_date' in data:
+            due_date_str = data.get('due_date')
+            if due_date_str:
+                todo.due_date = datetime.strptime(due_date_str, '%Y-%m-%d').date()
+            else:
+                todo.due_date = None
         
         db.session.commit()
         
@@ -1302,7 +1314,8 @@ def public_toggle_todo(todo_id, code):
             'success': True,
             'todo': {
                 'id': todo.id,
-                'completed': todo.completed
+                'completed': todo.completed,
+                'due_date': todo.due_date.isoformat() if todo.due_date else None
             },
             'pending_todos_count': pending_todos_count
         })
@@ -1543,7 +1556,7 @@ def kanban():
 def api_get_task(task_id):
     task = Task.query.get_or_404(task_id)
     
-    todos = [{'id': todo.id, 'texto': todo.texto, 'completed': todo.completed} for todo in task.todos]
+    todos = [{'id': todo.id, 'texto': todo.texto, 'completed': todo.completed, 'due_date': todo.due_date.isoformat() if todo.due_date else None} for todo in task.todos]
     
     return jsonify({
         'id': task.id,
@@ -1732,7 +1745,7 @@ def update_task_status(task_id):
 @app.route('/api/todos/<int:todo_id>', methods=['PUT'])
 @login_required
 def api_update_todo(todo_id):
-    """Atualizar o texto de um to-do específico"""
+    """Atualizar o texto e/ou data de vencimento de um to-do específico"""
     todo = TodoItem.query.get_or_404(todo_id)
     
     # Verificar permissão (usuário deve ter acesso à tarefa)
@@ -1743,15 +1756,34 @@ def api_update_todo(todo_id):
             return jsonify({'error': 'Sem permissão'}), 403
     
     data = request.get_json()
-    novo_texto = data.get('texto', '').strip()
-    
-    if not novo_texto:
-        return jsonify({'success': False, 'message': 'Texto não pode ser vazio'}), 400
     
     try:
-        todo.texto = novo_texto
+        # Atualizar texto se fornecido
+        if 'texto' in data:
+            novo_texto = data.get('texto', '').strip()
+            if not novo_texto:
+                return jsonify({'success': False, 'message': 'Texto não pode ser vazio'}), 400
+            todo.texto = novo_texto
+        
+        # Atualizar data de vencimento se fornecida
+        if 'due_date' in data:
+            due_date_str = data.get('due_date')
+            if due_date_str:
+                todo.due_date = datetime.strptime(due_date_str, '%Y-%m-%d').date()
+            else:
+                todo.due_date = None
+        
         db.session.commit()
-        return jsonify({'success': True, 'message': 'To-do atualizado com sucesso!'})
+        return jsonify({
+            'success': True, 
+            'message': 'To-do atualizado com sucesso!',
+            'todo': {
+                'id': todo.id,
+                'texto': todo.texto,
+                'completed': todo.completed,
+                'due_date': todo.due_date.isoformat() if todo.due_date else None
+            }
+        })
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Erro ao atualizar: {str(e)}'}), 500

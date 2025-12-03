@@ -117,6 +117,7 @@ class TodoItem(db.Model):
     completed = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     completed_at = db.Column(db.DateTime)
+    due_date = db.Column(db.Date)  # Data de vencimento do to-do
     
     # Foreign key
     task_id = db.Column(db.Integer, db.ForeignKey('task.id'), nullable=False)

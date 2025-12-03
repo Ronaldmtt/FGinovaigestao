@@ -500,6 +500,25 @@ function updateTaskCard(taskData) {
     
     const cardBody = taskCard.querySelector('.card-body');
     
+    // Atualizar badge de notificação de to-dos pendentes
+    let existingBadge = taskCard.querySelector('.todo-notification-badge');
+    const pendingCount = taskData.pending_todos_count || 0;
+    
+    if (pendingCount > 0) {
+        if (existingBadge) {
+            existingBadge.textContent = pendingCount;
+        } else {
+            const newBadge = document.createElement('span');
+            newBadge.className = 'todo-notification-badge';
+            newBadge.textContent = pendingCount;
+            taskCard.insertBefore(newBadge, taskCard.firstChild);
+        }
+    } else {
+        if (existingBadge) {
+            existingBadge.remove();
+        }
+    }
+    
     // Atualizar o conteúdo do card
     let newContent = `
         <div class="d-flex justify-content-between align-items-start">
@@ -536,11 +555,11 @@ function updateTaskCard(taskData) {
     }
     
     // Adicionar contador de to-dos pendentes
-    if (taskData.pending_todos_count && taskData.pending_todos_count > 0) {
-        const plural = taskData.pending_todos_count > 1 ? 's' : '';
+    if (pendingCount > 0) {
+        const plural = pendingCount > 1 ? 's' : '';
         newContent += `
         <small class="d-block" style="color: #17a2b8; font-size: 12px;">
-            <i class="fas fa-list-check me-1"></i>${taskData.pending_todos_count} to-do${plural} pendente${plural}
+            <i class="fas fa-list-check me-1"></i>${pendingCount} to-do${plural} pendente${plural}
         </small>
         `;
     }

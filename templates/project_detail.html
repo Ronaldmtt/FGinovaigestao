@@ -47,136 +47,402 @@
     </div>
 </div>
 
-<div class="row mt-4">
-    <div class="col-md-8">
-        <!-- Informações do Projeto - exibe se qualquer campo de contexto/escopo estiver preenchido -->
-        {% if project.descricao_resumida or project.problema_oportunidade or project.objetivos or project.alinhamento_estrategico %}
-        <div class="card mb-3">
-            <div class="card-header">
-                <h5><i class="fas fa-lightbulb me-2"></i>Contexto e Justificativa</h5>
-            </div>
-            <div class="card-body">
-                <p><strong>Descrição Resumida:</strong></p>
-                <p>{{ project.descricao_resumida or 'Não informado' }}</p>
-                
-                <p><strong>Problema/Oportunidade:</strong></p>
-                <p>{{ project.problema_oportunidade or 'Não informado' }}</p>
-                
-                <p><strong>Objetivos:</strong></p>
-                <p>{{ project.objetivos or 'Não informado' }}</p>
-                
-                <p><strong>Alinhamento Estratégico:</strong></p>
-                <p>{{ project.alinhamento_estrategico or 'Não informado' }}</p>
-            </div>
-        </div>
-        {% endif %}
+<!-- Sistema de Abas -->
+<ul class="nav nav-tabs mt-4" id="projectTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="detalhes-tab" data-bs-toggle="tab" data-bs-target="#detalhes" type="button" role="tab">
+            <i class="fas fa-info-circle me-1"></i>Detalhes
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="arquivos-tab" data-bs-toggle="tab" data-bs-target="#arquivos" type="button" role="tab">
+            <i class="fas fa-folder-open me-1"></i>Arquivos
+            <span class="badge bg-secondary ms-1" id="filesCount">0</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="api-tab" data-bs-toggle="tab" data-bs-target="#api" type="button" role="tab">
+            <i class="fas fa-plug me-1"></i>API
+            <span class="badge bg-secondary ms-1" id="apiCount">0</span>
+        </button>
+    </li>
+</ul>
 
-        {% if project.escopo_projeto or project.fora_escopo or project.premissas or project.restricoes %}
-        <div class="card mb-3">
-            <div class="card-header">
-                <h5><i class="fas fa-bullseye me-2"></i>Escopo</h5>
-            </div>
-            <div class="card-body">
-                <p><strong>Escopo do Projeto:</strong></p>
-                <p>{{ project.escopo_projeto or 'Não informado' }}</p>
-                
-                <p><strong>Fora do Escopo:</strong></p>
-                <p>{{ project.fora_escopo or 'Não informado' }}</p>
-                
-                <p><strong>Premissas:</strong></p>
-                <p>{{ project.premissas or 'Não informado' }}</p>
-                
-                <p><strong>Restrições:</strong></p>
-                <p>{{ project.restricoes or 'Não informado' }}</p>
-            </div>
-        </div>
-        {% endif %}
-
-        {% if project.transcricao %}
-        <div class="card mb-3">
-            <div class="card-header">
-                <h5><i class="fas fa-file-alt me-2"></i>Transcrição Original</h5>
-            </div>
-            <div class="card-body">
-                <p>{{ project.transcricao }}</p>
-                
-                {% if not project.contexto_justificativa %}
-                <div class="mt-3">
-                    <form method="POST" action="{{ url_for('process_project_ai', id=project.id) }}" style="display: inline;">
-                        <button type="submit" class="btn btn-success" onclick="this.disabled=true; this.innerHTML='<i class=\'fas fa-spinner fa-spin me-1\'></i>Processando...'; this.form.submit();">
-                            <i class="fas fa-robot me-1"></i>Processar com IA
-                        </button>
-                    </form>
-                    <small class="form-text text-muted d-block mt-1">
-                        A IA analisará a transcrição e preencherá automaticamente os campos do projeto
-                    </small>
+<div class="tab-content mt-3" id="projectTabsContent">
+    <!-- Aba Detalhes -->
+    <div class="tab-pane fade show active" id="detalhes" role="tabpanel">
+        <div class="row">
+            <div class="col-md-8">
+                {% if project.descricao_resumida or project.problema_oportunidade or project.objetivos or project.alinhamento_estrategico %}
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5><i class="fas fa-lightbulb me-2"></i>Contexto e Justificativa</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Descrição Resumida:</strong></p>
+                        <p>{{ project.descricao_resumida or 'Não informado' }}</p>
+                        
+                        <p><strong>Problema/Oportunidade:</strong></p>
+                        <p>{{ project.problema_oportunidade or 'Não informado' }}</p>
+                        
+                        <p><strong>Objetivos:</strong></p>
+                        <p>{{ project.objetivos or 'Não informado' }}</p>
+                        
+                        <p><strong>Alinhamento Estratégico:</strong></p>
+                        <p>{{ project.alinhamento_estrategico or 'Não informado' }}</p>
+                    </div>
                 </div>
                 {% endif %}
-            </div>
-        </div>
-        {% endif %}
-    </div>
-    
-    <div class="col-md-4">
-        <!-- Equipe do Projeto -->
-        <div class="card mb-3">
-            <div class="card-header">
-                <h5><i class="fas fa-users me-2"></i>Equipe do Projeto</h5>
-            </div>
-            <div class="card-body">
-                <p><strong>Responsável:</strong></p>
-                <p>{{ project.responsible.full_name }}</p>
-                
-                {% if project.team_members %}
-                <p><strong>Membros da Equipe:</strong></p>
-                <ul class="list-unstyled">
-                    {% for member in project.team_members %}
-                    <li><i class="fas fa-user me-1"></i>{{ member.full_name }}</li>
-                    {% endfor %}
-                </ul>
-                {% endif %}
-            </div>
-        </div>
 
-        <!-- Tarefas do Projeto -->
-        <div class="card mb-3">
-            <div class="card-header">
-                <h5><i class="fas fa-tasks me-2"></i>Tarefas ({{ project.tasks|length }})</h5>
-            </div>
-            <div class="card-body">
-                {% if project.tasks %}
-                <div class="list-group">
-                    {% for task in project.tasks[:5] %}
-                    <div class="list-group-item">
-                        <div class="d-flex w-100 justify-content-between">
-                            <h6 class="mb-1">{{ task.titulo }}</h6>
-                            {% if task.status == 'pendente' %}
-                            <span class="badge bg-secondary">Pendente</span>
-                            {% elif task.status == 'em_andamento' %}
-                            <span class="badge bg-primary">Em Andamento</span>
-                            {% else %}
-                            <span class="badge bg-success">Concluída</span>
-                            {% endif %}
+                {% if project.escopo_projeto or project.fora_escopo or project.premissas or project.restricoes %}
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5><i class="fas fa-bullseye me-2"></i>Escopo</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Escopo do Projeto:</strong></p>
+                        <p>{{ project.escopo_projeto or 'Não informado' }}</p>
+                        
+                        <p><strong>Fora do Escopo:</strong></p>
+                        <p>{{ project.fora_escopo or 'Não informado' }}</p>
+                        
+                        <p><strong>Premissas:</strong></p>
+                        <p>{{ project.premissas or 'Não informado' }}</p>
+                        
+                        <p><strong>Restrições:</strong></p>
+                        <p>{{ project.restricoes or 'Não informado' }}</p>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if project.transcricao %}
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5><i class="fas fa-file-alt me-2"></i>Transcrição Original</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>{{ project.transcricao }}</p>
+                        
+                        {% if not project.contexto_justificativa %}
+                        <div class="mt-3">
+                            <form method="POST" action="{{ url_for('process_project_ai', id=project.id) }}" style="display: inline;">
+                                <button type="submit" class="btn btn-success" onclick="this.disabled=true; this.innerHTML='<i class=\'fas fa-spinner fa-spin me-1\'></i>Processando...'; this.form.submit();">
+                                    <i class="fas fa-robot me-1"></i>Processar com IA
+                                </button>
+                            </form>
+                            <small class="form-text text-muted d-block mt-1">
+                                A IA analisará a transcrição e preencherá automaticamente os campos do projeto
+                            </small>
                         </div>
-                        {% if task.assigned_user %}
-                        <small>{{ task.assigned_user.full_name }}</small>
                         {% endif %}
                     </div>
-                    {% endfor %}
-                </div>
-                {% if project.tasks|length > 5 %}
-                <div class="text-center mt-2">
-                    <small class="text-muted">E mais {{ project.tasks|length - 5 }} tarefas...</small>
                 </div>
                 {% endif %}
-                <div class="mt-3">
-                    <a href="{{ url_for('kanban', project_id=project.id) }}" class="btn btn-sm btn-outline-primary">
-                        <i class="fas fa-columns me-1"></i>Ver no Kanban
-                    </a>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5><i class="fas fa-users me-2"></i>Equipe do Projeto</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Responsável:</strong></p>
+                        <p>{{ project.responsible.full_name }}</p>
+                        
+                        {% if project.team_members %}
+                        <p><strong>Membros da Equipe:</strong></p>
+                        <ul class="list-unstyled">
+                            {% for member in project.team_members %}
+                            <li><i class="fas fa-user me-1"></i>{{ member.full_name }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
                 </div>
-                {% else %}
-                <p class="text-muted">Nenhuma tarefa criada ainda.</p>
-                {% endif %}
+
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5><i class="fas fa-tasks me-2"></i>Tarefas ({{ project.tasks|length }})</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if project.tasks %}
+                        <div class="list-group">
+                            {% for task in project.tasks[:5] %}
+                            <div class="list-group-item">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ task.titulo }}</h6>
+                                    {% if task.status == 'pendente' %}
+                                    <span class="badge bg-secondary">Pendente</span>
+                                    {% elif task.status == 'em_andamento' %}
+                                    <span class="badge bg-primary">Em Andamento</span>
+                                    {% else %}
+                                    <span class="badge bg-success">Concluída</span>
+                                    {% endif %}
+                                </div>
+                                {% if task.assigned_user %}
+                                <small>{{ task.assigned_user.full_name }}</small>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% if project.tasks|length > 5 %}
+                        <div class="text-center mt-2">
+                            <small class="text-muted">E mais {{ project.tasks|length - 5 }} tarefas...</small>
+                        </div>
+                        {% endif %}
+                        <div class="mt-3">
+                            <a href="{{ url_for('kanban', project_id=project.id) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-columns me-1"></i>Ver no Kanban
+                            </a>
+                        </div>
+                        {% else %}
+                        <p class="text-muted">Nenhuma tarefa criada ainda.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Aba Arquivos -->
+    <div class="tab-pane fade" id="arquivos" role="tabpanel">
+        <div class="row">
+            <div class="col-12">
+                <!-- Área de Upload -->
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-cloud-upload-alt me-2"></i>Upload de Arquivos</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="dropZone" class="border border-dashed rounded p-5 text-center" style="border-style: dashed !important; border-width: 2px !important; cursor: pointer; transition: all 0.3s ease;">
+                            <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                            <p class="mb-2">Arraste e solte arquivos aqui ou clique para selecionar</p>
+                            <p class="text-muted small">Formatos aceitos: PDF, Imagens, Vídeos, Documentos, Figma, Sketch, PSD, AI</p>
+                            <input type="file" id="fileInput" multiple style="display: none;" accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.svg,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt,.csv,.mp4,.mov,.avi,.mp3,.wav,.fig,.sketch,.psd,.ai">
+                        </div>
+                        
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Categoria</label>
+                                <select class="form-select" id="uploadCategory">
+                                    <option value="">Sem categoria</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Descrição (opcional)</label>
+                                <input type="text" class="form-control" id="uploadDescription" placeholder="Descrição do arquivo">
+                            </div>
+                        </div>
+                        
+                        <div id="uploadProgress" class="mt-3" style="display: none;">
+                            <div class="progress">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                            </div>
+                            <p class="text-center mt-2 mb-0" id="uploadStatus">Enviando...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filtro por Categoria -->
+                <div class="mb-3">
+                    <div class="btn-group" role="group" id="categoryFilter">
+                        <button type="button" class="btn btn-outline-secondary active" data-category="all">
+                            <i class="fas fa-th me-1"></i>Todos
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Lista de Arquivos -->
+                <div class="row" id="filesList">
+                    <div class="col-12 text-center py-5" id="noFilesMessage">
+                        <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">Nenhum arquivo enviado ainda.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Aba API -->
+    <div class="tab-pane fade" id="api" role="tabpanel">
+        <div class="row">
+            <!-- Credenciais de API -->
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-key me-2"></i>Credenciais de API</h5>
+                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addCredentialModal">
+                            <i class="fas fa-plus me-1"></i>Adicionar
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="credentialsList">
+                            <div class="text-center py-4 text-muted" id="noCredentialsMessage">
+                                <i class="fas fa-key fa-2x mb-2"></i>
+                                <p class="mb-0">Nenhuma credencial cadastrada.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Endpoints de API -->
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-link me-2"></i>Endpoints de API</h5>
+                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addEndpointModal">
+                            <i class="fas fa-plus me-1"></i>Adicionar
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="endpointsList">
+                            <div class="text-center py-4 text-muted" id="noEndpointsMessage">
+                                <i class="fas fa-link fa-2x mb-2"></i>
+                                <p class="mb-0">Nenhum endpoint cadastrado.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Adicionar Credencial -->
+<div class="modal fade" id="addCredentialModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-key me-2"></i>Adicionar Credencial de API</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Nome *</label>
+                    <input type="text" class="form-control" id="credentialNome" placeholder="Ex: OpenAI API Key">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Provedor *</label>
+                    <select class="form-select" id="credentialProvedor">
+                        <option value="">Selecione...</option>
+                        <option value="OpenAI">OpenAI</option>
+                        <option value="Stripe">Stripe</option>
+                        <option value="Firebase">Firebase</option>
+                        <option value="AWS">AWS</option>
+                        <option value="Google Cloud">Google Cloud</option>
+                        <option value="Azure">Azure</option>
+                        <option value="Twilio">Twilio</option>
+                        <option value="SendGrid">SendGrid</option>
+                        <option value="Outro">Outro</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Chave/API Key</label>
+                    <input type="password" class="form-control" id="credentialApiKey" placeholder="sk-...">
+                    <small class="text-muted">A chave será armazenada de forma mascarada</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Ambiente</label>
+                    <select class="form-select" id="credentialAmbiente">
+                        <option value="development">Development</option>
+                        <option value="staging">Staging</option>
+                        <option value="production">Production</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Descrição</label>
+                    <textarea class="form-control" id="credentialDescricao" rows="2" placeholder="Descrição ou observações"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="saveCredential()">
+                    <i class="fas fa-save me-1"></i>Salvar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Adicionar Endpoint -->
+<div class="modal fade" id="addEndpointModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-link me-2"></i>Adicionar Endpoint de API</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-8 mb-3">
+                        <label class="form-label">Nome do Endpoint *</label>
+                        <input type="text" class="form-control" id="endpointNome" placeholder="Ex: Listar Usuários">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Método *</label>
+                        <select class="form-select" id="endpointMetodo">
+                            <option value="GET">GET</option>
+                            <option value="POST">POST</option>
+                            <option value="PUT">PUT</option>
+                            <option value="PATCH">PATCH</option>
+                            <option value="DELETE">DELETE</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">URL *</label>
+                    <input type="url" class="form-control" id="endpointUrl" placeholder="https://api.exemplo.com/v1/users">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Credencial Associada</label>
+                    <select class="form-select" id="endpointCredential">
+                        <option value="">Nenhuma</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Descrição</label>
+                    <textarea class="form-control" id="endpointDescricao" rows="2" placeholder="Descrição do endpoint"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Headers (JSON)</label>
+                    <textarea class="form-control" id="endpointHeaders" rows="3" placeholder='{"Content-Type": "application/json"}'></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Body Exemplo (JSON)</label>
+                    <textarea class="form-control" id="endpointBody" rows="3" placeholder='{"name": "Exemplo"}'></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Link da Documentação</label>
+                    <input type="url" class="form-control" id="endpointDocLink" placeholder="https://docs.api.com/endpoint">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="saveEndpoint()">
+                    <i class="fas fa-save me-1"></i>Salvar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Visualização de Arquivo -->
+<div class="modal fade" id="filePreviewModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="filePreviewTitle">Visualizar Arquivo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div id="filePreviewContent"></div>
+            </div>
+            <div class="modal-footer">
+                <a href="#" class="btn btn-primary" id="fileDownloadBtn" download>
+                    <i class="fas fa-download me-1"></i>Download
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
             </div>
         </div>
     </div>
@@ -243,7 +509,6 @@
                         </div>
                     </div>
                     
-                    <!-- Contexto e Justificativa -->
                     <hr class="my-4">
                     <h6 class="mb-3"><i class="fas fa-lightbulb me-2"></i>Contexto e Justificativa</h6>
                     
@@ -267,7 +532,6 @@
                         <textarea class="form-control" name="alinhamento_estrategico" rows="2">{{ project.alinhamento_estrategico or '' }}</textarea>
                     </div>
                     
-                    <!-- Escopo -->
                     <hr class="my-4">
                     <h6 class="mb-3"><i class="fas fa-bullseye me-2"></i>Escopo</h6>
                     
@@ -300,7 +564,6 @@
     </div>
 </div>
 
-<!-- Modal de confirmação para deletar projeto -->
 <div class="modal fade" id="deleteProjectModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -333,4 +596,530 @@
     </div>
 </div>
 {% endif %}
+
+<style>
+#dropZone.drag-over {
+    background-color: rgba(59, 130, 246, 0.1);
+    border-color: #3b82f6 !important;
+}
+
+.file-card {
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.file-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.file-icon {
+    font-size: 2.5rem;
+}
+
+.file-thumbnail {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.method-badge {
+    font-family: monospace;
+    font-weight: bold;
+}
+
+.method-GET { background-color: #10b981; }
+.method-POST { background-color: #3b82f6; }
+.method-PUT { background-color: #f59e0b; }
+.method-PATCH { background-color: #8b5cf6; }
+.method-DELETE { background-color: #ef4444; }
+
+.credential-card, .endpoint-card {
+    border-left: 3px solid #6b7280;
+    margin-bottom: 12px;
+    padding: 12px;
+    background: var(--bs-body-bg);
+    border-radius: 0 4px 4px 0;
+}
+
+.credential-card:hover, .endpoint-card:hover {
+    background: var(--bs-tertiary-bg);
+}
+
+.nav-tabs .nav-link {
+    color: var(--bs-body-color);
+}
+
+.nav-tabs .nav-link.active {
+    font-weight: 600;
+}
+</style>
+
+<script>
+const projectId = {{ project.id }};
+let filesData = [];
+let categoriesData = [];
+let credentialsData = [];
+let endpointsData = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadFiles();
+    loadCredentials();
+    loadEndpoints();
+    setupDropZone();
+    setupCategoryFilter();
+    
+    // Carregar dados quando a aba for selecionada
+    document.getElementById('arquivos-tab').addEventListener('shown.bs.tab', function() {
+        loadFiles();
+    });
+    
+    document.getElementById('api-tab').addEventListener('shown.bs.tab', function() {
+        loadCredentials();
+        loadEndpoints();
+    });
+});
+
+// ========== ARQUIVOS ==========
+
+function setupDropZone() {
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    
+    dropZone.addEventListener('click', () => fileInput.click());
+    
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('drag-over');
+    });
+    
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('drag-over');
+    });
+    
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        const files = e.dataTransfer.files;
+        uploadFiles(files);
+    });
+    
+    fileInput.addEventListener('change', (e) => {
+        uploadFiles(e.target.files);
+    });
+}
+
+function uploadFiles(files) {
+    const categoryId = document.getElementById('uploadCategory').value;
+    const description = document.getElementById('uploadDescription').value;
+    const progressDiv = document.getElementById('uploadProgress');
+    const progressBar = progressDiv.querySelector('.progress-bar');
+    const statusText = document.getElementById('uploadStatus');
+    
+    progressDiv.style.display = 'block';
+    
+    let uploaded = 0;
+    const total = files.length;
+    
+    Array.from(files).forEach(file => {
+        const formData = new FormData();
+        formData.append('file', file);
+        if (categoryId) formData.append('category_id', categoryId);
+        if (description) formData.append('descricao', description);
+        
+        fetch(`/api/project/${projectId}/files`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            uploaded++;
+            const percent = (uploaded / total) * 100;
+            progressBar.style.width = percent + '%';
+            statusText.textContent = `Enviado ${uploaded} de ${total} arquivos`;
+            
+            if (uploaded === total) {
+                setTimeout(() => {
+                    progressDiv.style.display = 'none';
+                    progressBar.style.width = '0%';
+                    document.getElementById('uploadDescription').value = '';
+                    loadFiles();
+                }, 1000);
+            }
+        })
+        .catch(error => {
+            console.error('Erro no upload:', error);
+            statusText.textContent = 'Erro no upload!';
+        });
+    });
+}
+
+function loadFiles() {
+    fetch(`/api/project/${projectId}/files`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                filesData = data.files;
+                categoriesData = data.categories;
+                renderCategories();
+                renderFiles();
+                document.getElementById('filesCount').textContent = filesData.length;
+            }
+        });
+}
+
+function renderCategories() {
+    const select = document.getElementById('uploadCategory');
+    const filterGroup = document.getElementById('categoryFilter');
+    
+    // Atualizar select de upload
+    select.innerHTML = '<option value="">Sem categoria</option>';
+    categoriesData.forEach(cat => {
+        select.innerHTML += `<option value="${cat.id}">${cat.nome}</option>`;
+    });
+    
+    // Atualizar filtros
+    filterGroup.innerHTML = `
+        <button type="button" class="btn btn-outline-secondary active" data-category="all">
+            <i class="fas fa-th me-1"></i>Todos
+        </button>
+    `;
+    categoriesData.forEach(cat => {
+        filterGroup.innerHTML += `
+            <button type="button" class="btn btn-outline-secondary" data-category="${cat.id}" style="border-left-color: ${cat.cor}; border-left-width: 3px;">
+                <i class="fas ${cat.icone} me-1"></i>${cat.nome}
+            </button>
+        `;
+    });
+    
+    setupCategoryFilter();
+}
+
+function setupCategoryFilter() {
+    document.querySelectorAll('#categoryFilter button').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('#categoryFilter button').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            renderFiles(this.dataset.category);
+        });
+    });
+}
+
+function renderFiles(filterCategory = 'all') {
+    const container = document.getElementById('filesList');
+    const noFilesMsg = document.getElementById('noFilesMessage');
+    
+    let filteredFiles = filesData;
+    if (filterCategory !== 'all') {
+        filteredFiles = filesData.filter(f => f.category_id == filterCategory);
+    }
+    
+    if (filteredFiles.length === 0) {
+        container.innerHTML = '';
+        noFilesMsg.style.display = 'block';
+        container.appendChild(noFilesMsg);
+        return;
+    }
+    
+    noFilesMsg.style.display = 'none';
+    container.innerHTML = filteredFiles.map(file => `
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card file-card h-100" onclick="previewFile(${file.id})">
+                <div class="card-body text-center">
+                    ${file.is_image ? 
+                        `<img src="/project/${projectId}/files/${file.id}/preview" class="file-thumbnail mb-2" alt="${file.original_name}">` :
+                        `<i class="fas ${getFileIcon(file.mime_type)} file-icon mb-2" style="color: ${file.category_cor}"></i>`
+                    }
+                    <h6 class="card-title text-truncate" title="${file.original_name}">${file.original_name}</h6>
+                    <p class="card-text small text-muted mb-1">
+                        <span class="badge" style="background-color: ${file.category_cor}">${file.category_name}</span>
+                    </p>
+                    <p class="card-text small text-muted mb-0">${file.file_size_formatted}</p>
+                </div>
+                <div class="card-footer bg-transparent border-0 pt-0">
+                    <div class="btn-group btn-group-sm w-100">
+                        <a href="/project/${projectId}/files/${file.id}/download" class="btn btn-outline-primary" onclick="event.stopPropagation()">
+                            <i class="fas fa-download"></i>
+                        </a>
+                        <button class="btn btn-outline-danger" onclick="event.stopPropagation(); deleteFile(${file.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function getFileIcon(mimeType) {
+    if (!mimeType) return 'fa-file';
+    if (mimeType.startsWith('image/')) return 'fa-image';
+    if (mimeType.startsWith('video/')) return 'fa-video';
+    if (mimeType.startsWith('audio/')) return 'fa-music';
+    if (mimeType === 'application/pdf') return 'fa-file-pdf';
+    if (mimeType.includes('word')) return 'fa-file-word';
+    if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return 'fa-file-excel';
+    if (mimeType.includes('powerpoint') || mimeType.includes('presentation')) return 'fa-file-powerpoint';
+    if (mimeType.includes('zip') || mimeType.includes('rar')) return 'fa-file-archive';
+    return 'fa-file';
+}
+
+function previewFile(fileId) {
+    const file = filesData.find(f => f.id === fileId);
+    if (!file) return;
+    
+    const modal = new bootstrap.Modal(document.getElementById('filePreviewModal'));
+    document.getElementById('filePreviewTitle').textContent = file.original_name;
+    document.getElementById('fileDownloadBtn').href = `/project/${projectId}/files/${fileId}/download`;
+    
+    const content = document.getElementById('filePreviewContent');
+    
+    if (file.is_image) {
+        content.innerHTML = `<img src="/project/${projectId}/files/${fileId}/preview" class="img-fluid" style="max-height: 70vh;">`;
+    } else if (file.is_pdf) {
+        content.innerHTML = `<iframe src="/project/${projectId}/files/${fileId}/preview" style="width: 100%; height: 70vh; border: none;"></iframe>`;
+    } else if (file.is_video) {
+        content.innerHTML = `<video controls style="max-width: 100%; max-height: 70vh;"><source src="/project/${projectId}/files/${fileId}/preview" type="${file.mime_type}"></video>`;
+    } else {
+        content.innerHTML = `
+            <i class="fas ${getFileIcon(file.mime_type)} fa-5x text-muted mb-3"></i>
+            <p>Preview não disponível para este tipo de arquivo.</p>
+            <p class="text-muted">Clique em Download para baixar o arquivo.</p>
+        `;
+    }
+    
+    modal.show();
+}
+
+function deleteFile(fileId) {
+    if (!confirm('Tem certeza que deseja excluir este arquivo?')) return;
+    
+    fetch(`/api/project/${projectId}/files/${fileId}`, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            loadFiles();
+        } else {
+            alert(data.message || 'Erro ao excluir arquivo');
+        }
+    });
+}
+
+// ========== CREDENCIAIS ==========
+
+function loadCredentials() {
+    fetch(`/api/project/${projectId}/credentials`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                credentialsData = data.credentials;
+                renderCredentials();
+                updateApiCount();
+                updateCredentialSelect();
+            }
+        });
+}
+
+function renderCredentials() {
+    const container = document.getElementById('credentialsList');
+    const noMsg = document.getElementById('noCredentialsMessage');
+    
+    if (credentialsData.length === 0) {
+        container.innerHTML = '';
+        noMsg.style.display = 'block';
+        container.appendChild(noMsg);
+        return;
+    }
+    
+    noMsg.style.display = 'none';
+    container.innerHTML = credentialsData.map(cred => `
+        <div class="credential-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h6 class="mb-1">${cred.nome}</h6>
+                    <p class="mb-1 small">
+                        <span class="badge bg-secondary">${cred.provedor}</span>
+                        <span class="badge bg-info">${cred.ambiente}</span>
+                    </p>
+                    <code class="small">${cred.api_key_masked || '(sem chave)'}</code>
+                </div>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteCredential(${cred.id})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+            ${cred.descricao ? `<p class="small text-muted mt-2 mb-0">${cred.descricao}</p>` : ''}
+        </div>
+    `).join('');
+}
+
+function saveCredential() {
+    const data = {
+        nome: document.getElementById('credentialNome').value,
+        provedor: document.getElementById('credentialProvedor').value,
+        api_key: document.getElementById('credentialApiKey').value,
+        ambiente: document.getElementById('credentialAmbiente').value,
+        descricao: document.getElementById('credentialDescricao').value
+    };
+    
+    if (!data.nome || !data.provedor) {
+        alert('Nome e Provedor são obrigatórios');
+        return;
+    }
+    
+    fetch(`/api/project/${projectId}/credentials`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('addCredentialModal')).hide();
+            document.getElementById('credentialNome').value = '';
+            document.getElementById('credentialProvedor').value = '';
+            document.getElementById('credentialApiKey').value = '';
+            document.getElementById('credentialDescricao').value = '';
+            loadCredentials();
+        } else {
+            alert(data.message || 'Erro ao salvar credencial');
+        }
+    });
+}
+
+function deleteCredential(credentialId) {
+    if (!confirm('Tem certeza que deseja excluir esta credencial?')) return;
+    
+    fetch(`/api/project/${projectId}/credentials/${credentialId}`, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            loadCredentials();
+        } else {
+            alert(data.message || 'Erro ao excluir credencial');
+        }
+    });
+}
+
+// ========== ENDPOINTS ==========
+
+function loadEndpoints() {
+    fetch(`/api/project/${projectId}/endpoints`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                endpointsData = data.endpoints;
+                renderEndpoints();
+                updateApiCount();
+            }
+        });
+}
+
+function updateCredentialSelect() {
+    const select = document.getElementById('endpointCredential');
+    select.innerHTML = '<option value="">Nenhuma</option>';
+    credentialsData.forEach(cred => {
+        select.innerHTML += `<option value="${cred.id}">${cred.nome} (${cred.provedor})</option>`;
+    });
+}
+
+function renderEndpoints() {
+    const container = document.getElementById('endpointsList');
+    const noMsg = document.getElementById('noEndpointsMessage');
+    
+    if (endpointsData.length === 0) {
+        container.innerHTML = '';
+        noMsg.style.display = 'block';
+        container.appendChild(noMsg);
+        return;
+    }
+    
+    noMsg.style.display = 'none';
+    container.innerHTML = endpointsData.map(ep => `
+        <div class="endpoint-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div style="flex: 1; min-width: 0;">
+                    <h6 class="mb-1">${ep.nome}</h6>
+                    <p class="mb-1">
+                        <span class="badge method-badge method-${ep.metodo}">${ep.metodo}</span>
+                        <code class="small text-truncate d-inline-block" style="max-width: 200px;" title="${ep.url}">${ep.url}</code>
+                    </p>
+                    ${ep.credential_nome ? `<span class="badge bg-secondary small"><i class="fas fa-key me-1"></i>${ep.credential_nome}</span>` : ''}
+                </div>
+                <div class="btn-group btn-group-sm">
+                    ${ep.documentacao_link ? `<a href="${ep.documentacao_link}" target="_blank" class="btn btn-outline-info"><i class="fas fa-external-link-alt"></i></a>` : ''}
+                    <button class="btn btn-outline-danger" onclick="deleteEndpoint(${ep.id})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            ${ep.descricao ? `<p class="small text-muted mt-2 mb-0">${ep.descricao}</p>` : ''}
+        </div>
+    `).join('');
+}
+
+function saveEndpoint() {
+    const data = {
+        nome: document.getElementById('endpointNome').value,
+        url: document.getElementById('endpointUrl').value,
+        metodo: document.getElementById('endpointMetodo').value,
+        descricao: document.getElementById('endpointDescricao').value,
+        headers: document.getElementById('endpointHeaders').value,
+        body_exemplo: document.getElementById('endpointBody').value,
+        documentacao_link: document.getElementById('endpointDocLink').value,
+        credential_id: document.getElementById('endpointCredential').value || null
+    };
+    
+    if (!data.nome || !data.url) {
+        alert('Nome e URL são obrigatórios');
+        return;
+    }
+    
+    fetch(`/api/project/${projectId}/endpoints`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('addEndpointModal')).hide();
+            document.getElementById('endpointNome').value = '';
+            document.getElementById('endpointUrl').value = '';
+            document.getElementById('endpointDescricao').value = '';
+            document.getElementById('endpointHeaders').value = '';
+            document.getElementById('endpointBody').value = '';
+            document.getElementById('endpointDocLink').value = '';
+            loadEndpoints();
+        } else {
+            alert(data.message || 'Erro ao salvar endpoint');
+        }
+    });
+}
+
+function deleteEndpoint(endpointId) {
+    if (!confirm('Tem certeza que deseja excluir este endpoint?')) return;
+    
+    fetch(`/api/project/${projectId}/endpoints/${endpointId}`, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            loadEndpoints();
+        } else {
+            alert(data.message || 'Erro ao excluir endpoint');
+        }
+    });
+}
+
+function updateApiCount() {
+    const total = credentialsData.length + endpointsData.length;
+    document.getElementById('apiCount').textContent = total;
+}
+</script>
 {% endblock %}

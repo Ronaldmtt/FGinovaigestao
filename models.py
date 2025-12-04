@@ -167,3 +167,113 @@ class CrmStage(db.Model):
     
     def __repr__(self):
         return f'<CrmStage {self.nome}>'
+
+
+class FileCategory(db.Model):
+    __tablename__ = 'file_categories'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), nullable=False, unique=True)
+    icone = db.Column(db.String(50), default='fa-folder')
+    cor = db.Column(db.String(20), default='#6b7280')
+    ordem = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    files = db.relationship('ProjectFile', backref='category', lazy=True)
+    
+    def __repr__(self):
+        return f'<FileCategory {self.nome}>'
+
+
+class ProjectFile(db.Model):
+    __tablename__ = 'project_files'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    filename = db.Column(db.String(255), nullable=False)
+    original_name = db.Column(db.String(255), nullable=False)
+    mime_type = db.Column(db.String(100))
+    file_size = db.Column(db.Integer)
+    descricao = db.Column(db.Text)
+    storage_path = db.Column(db.String(500), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('file_categories.id'))
+    uploaded_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    project = db.relationship('Project', backref=db.backref('files', lazy=True, cascade='all, delete-orphan'))
+    uploaded_by = db.relationship('User', backref='uploaded_files')
+    
+    def __repr__(self):
+        return f'<ProjectFile {self.original_name}>'
+    
+    @property
+    def file_size_formatted(self):
+        if not self.file_size:
+            return '0 B'
+        for unit in ['B', 'KB', 'MB', 'GB']:
+            if self.file_size < 1024:
+                return f'{self.file_size:.1f} {unit}'
+            self.file_size /= 1024
+        return f'{self.file_size:.1f} TB'
+    
+    @property
+    def is_image(self):
+        return self.mime_type and self.mime_type.startswith('image/')
+    
+    @property
+    def is_video(self):
+        return self.mime_type and self.mime_type.startswith('video/')
+    
+    @property
+    def is_pdf(self):
+        return self.mime_type == 'application/pdf'
+
+
+class ProjectApiCredential(db.Model):
+    __tablename__ = 'project_api_credentials'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), nullable=False)
+    provedor = db.Column(db.String(100), nullable=False)
+    descricao = db.Column(db.Text)
+    api_key_masked = db.Column(db.String(50))
+    api_key_encrypted = db.Column(db.Text)
+    ambiente = db.Column(db.String(20), default='development')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=False)
+    created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    project = db.relationship('Project', backref=db.backref('api_credentials', lazy=True, cascade='all, delete-orphan'))
+    created_by = db.relationship('User', backref='created_credentials')
+    
+    def __repr__(self):
+        return f'<ProjectApiCredential {self.nome}>'
+
+
+class ProjectApiEndpoint(db.Model):
+    __tablename__ = 'project_api_endpoints'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(200), nullable=False)
+    url = db.Column(db.String(500), nullable=False)
+    metodo = db.Column(db.String(10), default='GET')
+    descricao = db.Column(db.Text)
+    headers = db.Column(db.Text)
+    body_exemplo = db.Column(db.Text)
+    documentacao_link = db.Column(db.String(500))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=False)
+    credential_id = db.Column(db.Integer, db.ForeignKey('project_api_credentials.id'))
+    created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    project = db.relationship('Project', backref=db.backref('api_endpoints', lazy=True, cascade='all, delete-orphan'))
+    credential = db.relationship('ProjectApiCredential', backref='endpoints')
+    created_by = db.relationship('User', backref='created_endpoints')
+    
+    def __repr__(self):
+        return f'<ProjectApiEndpoint {self.nome}>'

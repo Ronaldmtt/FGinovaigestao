@@ -1,6 +1,7 @@
-from flask import render_template, request, redirect, url_for, flash, jsonify
+from flask import render_template, request, redirect, url_for, flash, jsonify, send_from_directory
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
 from functools import wraps
 from sqlalchemy import func
@@ -10,8 +11,10 @@ import secrets
 import string
 import json
 import os
-from app import app, db
-from models import User, Client, Project, Task, TodoItem, Contato, Comentario
+import uuid
+import mimetypes
+from app import app, db, ALLOWED_EXTENSIONS
+from models import User, Client, Project, Task, TodoItem, Contato, Comentario, FileCategory, ProjectFile, ProjectApiCredential, ProjectApiEndpoint
 from forms import LoginForm, UserForm, EditUserForm, ClientForm, ProjectForm, TaskForm, TranscriptionTaskForm, ManualProjectForm, ManualTaskForm, ForgotPasswordForm, ResetPasswordForm, ChangePasswordForm, ImportDataForm
 from openai_service import process_project_transcription, generate_tasks_from_transcription
 from email_service import enviar_email_nova_tarefa, enviar_email_mudanca_status, enviar_email_alteracao_data, enviar_email_tarefa_editada, enviar_email_resumo_tarefas
@@ -30,6 +33,9 @@ def requires_permission(permission_field):
             return f(*args, **kwargs)
         return decorated_function
     return decorator
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route('/')
 def index():
@@ -2825,3 +2831,480 @@ def reorder_tasks():
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Erro ao reordenar tarefas: {str(e)}'})
+
+
+# ========================================
+# ROTAS DE ARQUIVOS DO PROJETO
+# ========================================
+
+@app.route('/api/project/<int:project_id>/files', methods=['GET'])
+@login_required
+@requires_permission('acesso_projetos')
+def get_project_files(project_id):
+    """Listar arquivos do projeto"""
+    project = Project.query.get_or_404(project_id)
+    
+    files = ProjectFile.query.filter_by(project_id=project_id).order_by(ProjectFile.created_at.desc()).all()
+    categories = FileCategory.query.order_by(FileCategory.ordem).all()
+    
+    return jsonify({
+        'success': True,
+        'files': [{
+            'id': f.id,
+            'filename': f.filename,
+            'original_name': f.original_name,
+            'mime_type': f.mime_type,
+            'file_size': f.file_size,
+            'file_size_formatted': f.file_size_formatted,
+            'descricao': f.descricao,
+            'category_id': f.category_id,
+            'category_name': f.category.nome if f.category else 'Sem categoria',
+            'category_cor': f.category.cor if f.category else '#6b7280',
+            'category_icone': f.category.icone if f.category else 'fa-folder',
+            'uploaded_by': f.uploaded_by.full_name,
+            'created_at': f.created_at.strftime('%d/%m/%Y %H:%M'),
+            'is_image': f.is_image,
+            'is_video': f.is_video,
+            'is_pdf': f.is_pdf
+        } for f in files],
+        'categories': [{
+            'id': c.id,
+            'nome': c.nome,
+            'icone': c.icone,
+            'cor': c.cor
+        } for c in categories]
+    })
+
+
+@app.route('/api/project/<int:project_id>/files', methods=['POST'])
+@login_required
+@requires_permission('acesso_projetos')
+def upload_project_file(project_id):
+    """Upload de arquivo para o projeto"""
+    project = Project.query.get_or_404(project_id)
+    
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': 'Nenhum arquivo enviado'}), 400
+    
+    file = request.files['file']
+    
+    if file.filename == '':
+        return jsonify({'success': False, 'message': 'Nenhum arquivo selecionado'}), 400
+    
+    if not allowed_file(file.filename):
+        return jsonify({'success': False, 'message': 'Tipo de arquivo não permitido'}), 400
+    
+    try:
+        # Gerar nome único para o arquivo
+        original_filename = secure_filename(file.filename)
+        extension = original_filename.rsplit('.', 1)[1].lower() if '.' in original_filename else ''
+        unique_filename = f"{uuid.uuid4().hex}.{extension}"
+        
+        # Criar pasta do projeto se não existir
+        project_folder = os.path.join(app.config['UPLOAD_FOLDER'], f'project_{project_id}')
+        if not os.path.exists(project_folder):
+            os.makedirs(project_folder)
+        
+        # Salvar arquivo
+        file_path = os.path.join(project_folder, unique_filename)
+        file.save(file_path)
+        
+        # Obter tamanho e tipo
+        file_size = os.path.getsize(file_path)
+        mime_type = mimetypes.guess_type(original_filename)[0] or 'application/octet-stream'
+        
+        # Obter categoria
+        category_id = request.form.get('category_id')
+        if category_id:
+            category_id = int(category_id)
+        else:
+            category_id = None
+        
+        # Obter descrição
+        descricao = request.form.get('descricao', '')
+        
+        # Criar registro no banco
+        project_file = ProjectFile(
+            filename=unique_filename,
+            original_name=file.filename,
+            mime_type=mime_type,
+            file_size=file_size,
+            descricao=descricao,
+            storage_path=file_path,
+            project_id=project_id,
+            category_id=category_id,
+            uploaded_by_id=current_user.id
+        )
+        
+        db.session.add(project_file)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Arquivo enviado com sucesso!',
+            'file': {
+                'id': project_file.id,
+                'filename': project_file.filename,
+                'original_name': project_file.original_name,
+                'file_size_formatted': project_file.file_size_formatted,
+                'category_name': project_file.category.nome if project_file.category else 'Sem categoria',
+                'uploaded_by': current_user.full_name,
+                'created_at': project_file.created_at.strftime('%d/%m/%Y %H:%M'),
+                'is_image': project_file.is_image
+            }
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Erro ao enviar arquivo: {str(e)}'}), 500
+
+
+@app.route('/api/project/<int:project_id>/files/<int:file_id>', methods=['PUT'])
+@login_required
+@requires_permission('acesso_projetos')
+def update_project_file(project_id, file_id):
+    """Atualizar informações do arquivo"""
+    project_file = ProjectFile.query.filter_by(id=file_id, project_id=project_id).first_or_404()
+    
+    data = request.get_json()
+    
+    if 'category_id' in data:
+        project_file.category_id = data['category_id'] if data['category_id'] else None
+    
+    if 'descricao' in data:
+        project_file.descricao = data['descricao']
+    
+    try:
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': 'Arquivo atualizado com sucesso!'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Erro ao atualizar arquivo: {str(e)}'}), 500
+
+
+@app.route('/api/project/<int:project_id>/files/<int:file_id>', methods=['DELETE'])
+@login_required
+@requires_permission('acesso_projetos')
+def delete_project_file(project_id, file_id):
+    """Deletar arquivo do projeto"""
+    project_file = ProjectFile.query.filter_by(id=file_id, project_id=project_id).first_or_404()
+    
+    try:
+        # Remover arquivo físico
+        if os.path.exists(project_file.storage_path):
+            os.remove(project_file.storage_path)
+        
+        db.session.delete(project_file)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Arquivo removido com sucesso!'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Erro ao remover arquivo: {str(e)}'}), 500
+
+
+@app.route('/project/<int:project_id>/files/<int:file_id>/download')
+@login_required
+@requires_permission('acesso_projetos')
+def download_project_file(project_id, file_id):
+    """Download de arquivo do projeto"""
+    project_file = ProjectFile.query.filter_by(id=file_id, project_id=project_id).first_or_404()
+    
+    directory = os.path.dirname(project_file.storage_path)
+    filename = os.path.basename(project_file.storage_path)
+    
+    return send_from_directory(
+        directory,
+        filename,
+        as_attachment=True,
+        download_name=project_file.original_name
+    )
+
+
+@app.route('/project/<int:project_id>/files/<int:file_id>/preview')
+@login_required
+@requires_permission('acesso_projetos')
+def preview_project_file(project_id, file_id):
+    """Preview de arquivo (imagens e PDFs)"""
+    project_file = ProjectFile.query.filter_by(id=file_id, project_id=project_id).first_or_404()
+    
+    directory = os.path.dirname(project_file.storage_path)
+    filename = os.path.basename(project_file.storage_path)
+    
+    return send_from_directory(directory, filename)
+
+
+# ========================================
+# ROTAS DE APIs DO PROJETO
+# ========================================
+
+@app.route('/api/project/<int:project_id>/credentials', methods=['GET'])
+@login_required
+@requires_permission('acesso_projetos')
+def get_project_credentials(project_id):
+    """Listar credenciais de API do projeto"""
+    project = Project.query.get_or_404(project_id)
+    
+    credentials = ProjectApiCredential.query.filter_by(project_id=project_id).order_by(ProjectApiCredential.created_at.desc()).all()
+    
+    return jsonify({
+        'success': True,
+        'credentials': [{
+            'id': c.id,
+            'nome': c.nome,
+            'provedor': c.provedor,
+            'descricao': c.descricao,
+            'api_key_masked': c.api_key_masked,
+            'ambiente': c.ambiente,
+            'created_by': c.created_by.full_name,
+            'created_at': c.created_at.strftime('%d/%m/%Y %H:%M'),
+            'updated_at': c.updated_at.strftime('%d/%m/%Y %H:%M') if c.updated_at else None
+        } for c in credentials]
+    })
+
+
+@app.route('/api/project/<int:project_id>/credentials', methods=['POST'])
+@login_required
+@requires_permission('acesso_projetos')
+def create_project_credential(project_id):
+    """Criar nova credencial de API"""
+    project = Project.query.get_or_404(project_id)
+    
+    data = request.get_json()
+    
+    if not data.get('nome') or not data.get('provedor'):
+        return jsonify({'success': False, 'message': 'Nome e provedor são obrigatórios'}), 400
+    
+    api_key = data.get('api_key', '')
+    api_key_masked = ''
+    if api_key:
+        if len(api_key) > 8:
+            api_key_masked = api_key[:4] + '*' * (len(api_key) - 8) + api_key[-4:]
+        else:
+            api_key_masked = '*' * len(api_key)
+    
+    try:
+        credential = ProjectApiCredential(
+            nome=data['nome'],
+            provedor=data['provedor'],
+            descricao=data.get('descricao', ''),
+            api_key_masked=api_key_masked,
+            api_key_encrypted=api_key,
+            ambiente=data.get('ambiente', 'development'),
+            project_id=project_id,
+            created_by_id=current_user.id
+        )
+        
+        db.session.add(credential)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Credencial criada com sucesso!',
+            'credential': {
+                'id': credential.id,
+                'nome': credential.nome,
+                'provedor': credential.provedor,
+                'api_key_masked': credential.api_key_masked
+            }
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Erro ao criar credencial: {str(e)}'}), 500
+
+
+@app.route('/api/project/<int:project_id>/credentials/<int:credential_id>', methods=['PUT'])
+@login_required
+@requires_permission('acesso_projetos')
+def update_project_credential(project_id, credential_id):
+    """Atualizar credencial de API"""
+    credential = ProjectApiCredential.query.filter_by(id=credential_id, project_id=project_id).first_or_404()
+    
+    data = request.get_json()
+    
+    if 'nome' in data:
+        credential.nome = data['nome']
+    if 'provedor' in data:
+        credential.provedor = data['provedor']
+    if 'descricao' in data:
+        credential.descricao = data['descricao']
+    if 'ambiente' in data:
+        credential.ambiente = data['ambiente']
+    
+    if 'api_key' in data and data['api_key']:
+        api_key = data['api_key']
+        if len(api_key) > 8:
+            credential.api_key_masked = api_key[:4] + '*' * (len(api_key) - 8) + api_key[-4:]
+        else:
+            credential.api_key_masked = '*' * len(api_key)
+        credential.api_key_encrypted = api_key
+    
+    try:
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Credencial atualizada com sucesso!'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Erro ao atualizar credencial: {str(e)}'}), 500
+
+
+@app.route('/api/project/<int:project_id>/credentials/<int:credential_id>', methods=['DELETE'])
+@login_required
+@requires_permission('acesso_projetos')
+def delete_project_credential(project_id, credential_id):
+    """Deletar credencial de API"""
+    credential = ProjectApiCredential.query.filter_by(id=credential_id, project_id=project_id).first_or_404()
+    
+    try:
+        db.session.delete(credential)
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Credencial removida com sucesso!'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Erro ao remover credencial: {str(e)}'}), 500
+
+
+@app.route('/api/project/<int:project_id>/endpoints', methods=['GET'])
+@login_required
+@requires_permission('acesso_projetos')
+def get_project_endpoints(project_id):
+    """Listar endpoints de API do projeto"""
+    project = Project.query.get_or_404(project_id)
+    
+    endpoints = ProjectApiEndpoint.query.filter_by(project_id=project_id).order_by(ProjectApiEndpoint.created_at.desc()).all()
+    credentials = ProjectApiCredential.query.filter_by(project_id=project_id).all()
+    
+    return jsonify({
+        'success': True,
+        'endpoints': [{
+            'id': e.id,
+            'nome': e.nome,
+            'url': e.url,
+            'metodo': e.metodo,
+            'descricao': e.descricao,
+            'headers': e.headers,
+            'body_exemplo': e.body_exemplo,
+            'documentacao_link': e.documentacao_link,
+            'credential_id': e.credential_id,
+            'credential_nome': e.credential.nome if e.credential else None,
+            'created_by': e.created_by.full_name,
+            'created_at': e.created_at.strftime('%d/%m/%Y %H:%M')
+        } for e in endpoints],
+        'credentials': [{
+            'id': c.id,
+            'nome': c.nome,
+            'provedor': c.provedor
+        } for c in credentials]
+    })
+
+
+@app.route('/api/project/<int:project_id>/endpoints', methods=['POST'])
+@login_required
+@requires_permission('acesso_projetos')
+def create_project_endpoint(project_id):
+    """Criar novo endpoint de API"""
+    project = Project.query.get_or_404(project_id)
+    
+    data = request.get_json()
+    
+    if not data.get('nome') or not data.get('url'):
+        return jsonify({'success': False, 'message': 'Nome e URL são obrigatórios'}), 400
+    
+    try:
+        endpoint = ProjectApiEndpoint(
+            nome=data['nome'],
+            url=data['url'],
+            metodo=data.get('metodo', 'GET'),
+            descricao=data.get('descricao', ''),
+            headers=data.get('headers', ''),
+            body_exemplo=data.get('body_exemplo', ''),
+            documentacao_link=data.get('documentacao_link', ''),
+            credential_id=data.get('credential_id') if data.get('credential_id') else None,
+            project_id=project_id,
+            created_by_id=current_user.id
+        )
+        
+        db.session.add(endpoint)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Endpoint criado com sucesso!',
+            'endpoint': {
+                'id': endpoint.id,
+                'nome': endpoint.nome,
+                'url': endpoint.url,
+                'metodo': endpoint.metodo
+            }
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Erro ao criar endpoint: {str(e)}'}), 500
+
+
+@app.route('/api/project/<int:project_id>/endpoints/<int:endpoint_id>', methods=['PUT'])
+@login_required
+@requires_permission('acesso_projetos')
+def update_project_endpoint(project_id, endpoint_id):
+    """Atualizar endpoint de API"""
+    endpoint = ProjectApiEndpoint.query.filter_by(id=endpoint_id, project_id=project_id).first_or_404()
+    
+    data = request.get_json()
+    
+    if 'nome' in data:
+        endpoint.nome = data['nome']
+    if 'url' in data:
+        endpoint.url = data['url']
+    if 'metodo' in data:
+        endpoint.metodo = data['metodo']
+    if 'descricao' in data:
+        endpoint.descricao = data['descricao']
+    if 'headers' in data:
+        endpoint.headers = data['headers']
+    if 'body_exemplo' in data:
+        endpoint.body_exemplo = data['body_exemplo']
+    if 'documentacao_link' in data:
+        endpoint.documentacao_link = data['documentacao_link']
+    if 'credential_id' in data:
+        endpoint.credential_id = data['credential_id'] if data['credential_id'] else None
+    
+    try:
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Endpoint atualizado com sucesso!'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Erro ao atualizar endpoint: {str(e)}'}), 500
+
+
+@app.route('/api/project/<int:project_id>/endpoints/<int:endpoint_id>', methods=['DELETE'])
+@login_required
+@requires_permission('acesso_projetos')
+def delete_project_endpoint(project_id, endpoint_id):
+    """Deletar endpoint de API"""
+    endpoint = ProjectApiEndpoint.query.filter_by(id=endpoint_id, project_id=project_id).first_or_404()
+    
+    try:
+        db.session.delete(endpoint)
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Endpoint removido com sucesso!'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Erro ao remover endpoint: {str(e)}'}), 500
+
+
+@app.route('/api/file-categories', methods=['GET'])
+@login_required
+def get_file_categories():
+    """Listar todas as categorias de arquivos"""
+    categories = FileCategory.query.order_by(FileCategory.ordem).all()
+    return jsonify({
+        'success': True,
+        'categories': [{
+            'id': c.id,
+            'nome': c.nome,
+            'icone': c.icone,
+            'cor': c.cor
+        } for c in categories]
+    })

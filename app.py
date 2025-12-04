@@ -80,6 +80,23 @@ with app.app_context():
         db.session.add(admin_user)
         db.session.commit()
         print("Admin user created: admin@sistema.com / admin123")
+    
+    # Create default file categories if they don't exist
+    from models import FileCategory
+    default_categories = [
+        {'nome': 'UX/Design', 'icone': 'fa-palette', 'cor': '#8b5cf6', 'ordem': 1},
+        {'nome': 'Documentação', 'icone': 'fa-file-alt', 'cor': '#3b82f6', 'ordem': 2},
+        {'nome': 'Desenvolvimento', 'icone': 'fa-code', 'cor': '#10b981', 'ordem': 3},
+        {'nome': 'Imagens', 'icone': 'fa-image', 'cor': '#f59e0b', 'ordem': 4},
+        {'nome': 'Vídeos', 'icone': 'fa-video', 'cor': '#ef4444', 'ordem': 5},
+        {'nome': 'Outros', 'icone': 'fa-folder', 'cor': '#6b7280', 'ordem': 6},
+    ]
+    for cat_data in default_categories:
+        existing = FileCategory.query.filter_by(nome=cat_data['nome']).first()
+        if not existing:
+            category = FileCategory(**cat_data)
+            db.session.add(category)
+    db.session.commit()
 
 # Import routes after app initialization
 import routes

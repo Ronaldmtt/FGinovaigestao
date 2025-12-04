@@ -123,9 +123,9 @@
                                 {% endif %}
                             </div>
                             {% if pending_todos_count > 0 %}
-                            <div class="todo-count-right" style="text-align: right; min-width: 80px;">
-                                <span class="d-flex align-items-center justify-content-end" style="color: #25D366; font-size: 12px; font-weight: 600;">
-                                    <i class="fas fa-list-check me-1"></i>{{ pending_todos_count }} to-do{{ 's' if pending_todos_count > 1 else '' }}
+                            <div class="todo-count-right" style="text-align: right; min-width: 90px;">
+                                <span class="d-flex align-items-center justify-content-end" style="color: #25D366; font-size: 14px; font-weight: 600;">
+                                    <i class="fas fa-list-check me-2" style="font-size: 15px;"></i>{{ pending_todos_count }} to-do{{ 's' if pending_todos_count > 1 else '' }}
                                 </span>
                             </div>
                             {% endif %}
@@ -183,9 +183,9 @@
                                 {% endif %}
                             </div>
                             {% if pending_todos_count > 0 %}
-                            <div class="todo-count-right" style="text-align: right; min-width: 80px;">
-                                <span class="d-flex align-items-center justify-content-end" style="color: #25D366; font-size: 12px; font-weight: 600;">
-                                    <i class="fas fa-list-check me-1"></i>{{ pending_todos_count }} to-do{{ 's' if pending_todos_count > 1 else '' }}
+                            <div class="todo-count-right" style="text-align: right; min-width: 90px;">
+                                <span class="d-flex align-items-center justify-content-end" style="color: #25D366; font-size: 14px; font-weight: 600;">
+                                    <i class="fas fa-list-check me-2" style="font-size: 15px;"></i>{{ pending_todos_count }} to-do{{ 's' if pending_todos_count > 1 else '' }}
                                 </span>
                             </div>
                             {% endif %}
@@ -243,9 +243,9 @@
                                 {% endif %}
                             </div>
                             {% if pending_todos_count > 0 %}
-                            <div class="todo-count-right" style="text-align: right; min-width: 80px;">
-                                <span class="d-flex align-items-center justify-content-end" style="color: #25D366; font-size: 12px; font-weight: 600;">
-                                    <i class="fas fa-list-check me-1"></i>{{ pending_todos_count }} to-do{{ 's' if pending_todos_count > 1 else '' }}
+                            <div class="todo-count-right" style="text-align: right; min-width: 90px;">
+                                <span class="d-flex align-items-center justify-content-end" style="color: #25D366; font-size: 14px; font-weight: 600;">
+                                    <i class="fas fa-list-check me-2" style="font-size: 15px;"></i>{{ pending_todos_count }} to-do{{ 's' if pending_todos_count > 1 else '' }}
                                 </span>
                             </div>
                             {% endif %}
@@ -558,9 +558,9 @@ function updateTaskCard(taskData) {
     if (pendingCount > 0) {
         const plural = pendingCount > 1 ? 's' : '';
         rightContent = `
-            <div class="todo-count-right" style="text-align: right; min-width: 80px;">
-                <span class="d-flex align-items-center justify-content-end" style="color: #25D366; font-size: 12px; font-weight: 600;">
-                    <i class="fas fa-list-check me-1"></i>${pendingCount} to-do${plural}
+            <div class="todo-count-right" style="text-align: right; min-width: 90px;">
+                <span class="d-flex align-items-center justify-content-end" style="color: #25D366; font-size: 14px; font-weight: 600;">
+                    <i class="fas fa-list-check me-2" style="font-size: 15px;"></i>${pendingCount} to-do${plural}
                 </span>
             </div>
         `;

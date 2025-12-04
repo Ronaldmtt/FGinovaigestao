@@ -1210,6 +1210,9 @@ def public_update_task(task_id, code):
                     # Adicionar data de vencimento se fornecida
                     if todo_data.get('due_date'):
                         todo.due_date = datetime.strptime(todo_data['due_date'], '%Y-%m-%d').date()
+                    # Adicionar comentário se fornecido
+                    if todo_data.get('comentario'):
+                        todo.comentario = todo_data['comentario']
                     db.session.add(todo)
         
         db.session.commit()
@@ -1559,7 +1562,7 @@ def kanban():
 def api_get_task(task_id):
     task = Task.query.get_or_404(task_id)
     
-    todos = [{'id': todo.id, 'texto': todo.texto, 'completed': todo.completed, 'due_date': todo.due_date.isoformat() if todo.due_date else None} for todo in task.todos]
+    todos = [{'id': todo.id, 'texto': todo.texto, 'completed': todo.completed, 'due_date': todo.due_date.isoformat() if todo.due_date else None, 'comentario': todo.comentario} for todo in task.todos]
     
     return jsonify({
         'id': task.id,
@@ -1636,6 +1639,9 @@ def api_update_task(task_id):
                     # Adicionar data de vencimento se fornecida
                     if todo_data.get('due_date'):
                         todo.due_date = datetime.strptime(todo_data['due_date'], '%Y-%m-%d').date()
+                    # Adicionar comentário se fornecido
+                    if todo_data.get('comentario'):
+                        todo.comentario = todo_data['comentario']
                     db.session.add(todo)
         
         db.session.commit()
@@ -1779,6 +1785,11 @@ def api_update_todo(todo_id):
             else:
                 todo.due_date = None
         
+        # Atualizar comentário se fornecido
+        if 'comentario' in data:
+            comentario = data.get('comentario')
+            todo.comentario = comentario.strip() if comentario else None
+        
         db.session.commit()
         return jsonify({
             'success': True, 
@@ -1787,7 +1798,8 @@ def api_update_todo(todo_id):
                 'id': todo.id,
                 'texto': todo.texto,
                 'completed': todo.completed,
-                'due_date': todo.due_date.isoformat() if todo.due_date else None
+                'due_date': todo.due_date.isoformat() if todo.due_date else None,
+                'comentario': todo.comentario
             }
         })
     except Exception as e:

@@ -703,37 +703,55 @@ function loadTodos(todos) {
     
     todos.forEach(todo => {
         const todoDiv = document.createElement('div');
-        todoDiv.className = 'd-flex align-items-center mb-2';
+        todoDiv.className = 'todo-item-wrapper mb-3';
         
         // Formatar data de vencimento com cores
         const dueDateInfo = formatDueDate(todo.due_date);
+        const comentario = todo.comentario || '';
         
         todoDiv.innerHTML = `
-            <input type="checkbox" class="form-check-input me-2" ${todo.completed ? 'checked' : ''} onchange="toggleTodo(this, ${todo.id})">
-            <span class="todo-text ${todo.completed ? 'text-decoration-line-through text-muted' : ''}" 
-                  style="flex-grow: 1; cursor: pointer;" 
-                  data-todo-id="${todo.id}"
-                  onclick="enableTodoEdit(this)">${todo.texto}</span>
-            <div class="todo-date-picker position-relative" data-todo-id="${todo.id}">
-                <span class="todo-date-display ${dueDateInfo.colorClass}" 
-                      onclick="toggleTodoDatePicker(this, ${todo.id})"
-                      style="cursor: pointer; font-size: 12px; padding: 2px 6px; border-radius: 4px;">
-                    <i class="fas fa-calendar-alt me-1"></i>${dueDateInfo.text}
-                </span>
-                <input type="date" 
-                       class="todo-date-input" 
-                       style="position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;"
-                       value="${todo.due_date || ''}"
-                       onchange="updateTodoDueDate(${todo.id}, this.value)">
+            <div class="d-flex align-items-center">
+                <input type="checkbox" class="form-check-input me-2" ${todo.completed ? 'checked' : ''} onchange="toggleTodo(this, ${todo.id})">
+                <span class="todo-text ${todo.completed ? 'text-decoration-line-through text-muted' : ''}" 
+                      style="flex-grow: 1; cursor: pointer;" 
+                      data-todo-id="${todo.id}"
+                      onclick="enableTodoEdit(this)">${todo.texto}</span>
+                <div class="todo-date-picker position-relative" data-todo-id="${todo.id}">
+                    <span class="todo-date-display ${dueDateInfo.colorClass}" 
+                          onclick="toggleTodoDatePicker(this, ${todo.id})"
+                          style="cursor: pointer; font-size: 12px; padding: 2px 6px; border-radius: 4px;">
+                        <i class="fas fa-calendar-alt me-1"></i>${dueDateInfo.text}
+                    </span>
+                    <input type="date" 
+                           class="todo-date-input" 
+                           style="position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;"
+                           value="${todo.due_date || ''}"
+                           onchange="updateTodoDueDate(${todo.id}, this.value)">
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="removeTodo(this, ${todo.id})">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
             </div>
-            <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="removeTodo(this, ${todo.id})">
-                <i class="fas fa-trash-alt"></i>
-            </button>
+            <div class="todo-comment-container mt-1 ms-4 ps-2" style="border-left: 2px solid #3d3d3d;">
+                <div class="todo-comment-display ${comentario ? '' : 'd-none'}" 
+                     data-todo-id="${todo.id}" 
+                     onclick="enableCommentEdit(this)"
+                     style="cursor: pointer; font-size: 12px; color: #9ca3af; padding: 4px 8px; background: rgba(255,255,255,0.03); border-radius: 4px;">
+                    <i class="fas fa-comment me-1" style="font-size: 10px;"></i><span class="comment-text">${comentario}</span>
+                </div>
+                <button type="button" class="btn btn-sm btn-link add-comment-btn ${comentario ? 'd-none' : ''}" 
+                        data-todo-id="${todo.id}"
+                        onclick="showCommentInput(this)"
+                        style="font-size: 11px; color: #6b7280; padding: 2px 0;">
+                    <i class="fas fa-plus me-1"></i>Adicionar comentário
+                </button>
+            </div>
         `;
         todoDiv.dataset.todoId = todo.id;
         todoDiv.dataset.todoText = todo.texto;
         todoDiv.dataset.todoCompleted = todo.completed;
         todoDiv.dataset.todoDueDate = todo.due_date || '';
+        todoDiv.dataset.todoComentario = comentario;
         todosList.appendChild(todoDiv);
     });
 }
@@ -913,6 +931,233 @@ function enableTodoEdit(span) {
     });
 }
 
+// Funções para gerenciar comentários dos to-dos
+function showCommentInput(button) {
+    const todoId = button.dataset.todoId;
+    const container = button.closest('.todo-comment-container');
+    
+    // Esconder botão
+    button.classList.add('d-none');
+    
+    // Criar input de comentário
+    const inputDiv = document.createElement('div');
+    inputDiv.className = 'comment-input-wrapper';
+    inputDiv.innerHTML = `
+        <input type="text" 
+               class="form-control form-control-sm comment-input" 
+               placeholder="Digite um comentário..."
+               style="font-size: 12px; background: rgba(255,255,255,0.05); border: 1px solid #3d3d3d;">
+        <div class="mt-1">
+            <button type="button" class="btn btn-sm btn-success me-1" onclick="saveComment(this, ${todoId})">
+                <i class="fas fa-check"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="cancelComment(this)">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    container.appendChild(inputDiv);
+    inputDiv.querySelector('input').focus();
+    
+    // Salvar ao pressionar Enter
+    inputDiv.querySelector('input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            saveComment(inputDiv.querySelector('.btn-success'), todoId);
+        }
+    });
+    inputDiv.querySelector('input').addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            cancelComment(inputDiv.querySelector('.btn-outline-secondary'));
+        }
+    });
+}
+
+async function saveComment(button, todoId) {
+    const wrapper = button.closest('.comment-input-wrapper');
+    const input = wrapper.querySelector('input');
+    const comentario = input.value.trim();
+    const container = button.closest('.todo-comment-container');
+    
+    if (!comentario) {
+        cancelComment(button);
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/todos/${todoId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ comentario: comentario })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Atualizar display do comentário
+            const display = container.querySelector('.todo-comment-display');
+            display.querySelector('.comment-text').textContent = comentario;
+            display.classList.remove('d-none');
+            
+            // Esconder botão de adicionar
+            container.querySelector('.add-comment-btn').classList.add('d-none');
+            
+            // Remover input
+            wrapper.remove();
+            
+            // Atualizar dataset
+            const todoDiv = container.closest('.todo-item-wrapper');
+            if (todoDiv) {
+                todoDiv.dataset.todoComentario = comentario;
+            }
+        } else {
+            alert('Erro ao salvar comentário');
+        }
+    } catch (error) {
+        console.error('Erro ao salvar comentário:', error);
+        alert('Erro ao salvar comentário');
+    }
+}
+
+function cancelComment(button) {
+    const wrapper = button.closest('.comment-input-wrapper');
+    const container = button.closest('.todo-comment-container');
+    
+    // Mostrar botão de adicionar novamente
+    container.querySelector('.add-comment-btn').classList.remove('d-none');
+    
+    // Remover input
+    wrapper.remove();
+}
+
+function enableCommentEdit(div) {
+    if (div.querySelector('input')) return; // Já está editando
+    
+    const todoId = div.dataset.todoId;
+    const currentComment = div.querySelector('.comment-text').textContent;
+    const container = div.closest('.todo-comment-container');
+    
+    // Esconder display
+    div.classList.add('d-none');
+    
+    // Criar input de edição
+    const inputDiv = document.createElement('div');
+    inputDiv.className = 'comment-input-wrapper';
+    inputDiv.innerHTML = `
+        <input type="text" 
+               class="form-control form-control-sm comment-input" 
+               value="${currentComment}"
+               style="font-size: 12px; background: rgba(255,255,255,0.05); border: 1px solid #3d3d3d;">
+        <div class="mt-1">
+            <button type="button" class="btn btn-sm btn-success me-1" onclick="updateComment(this, ${todoId})">
+                <i class="fas fa-check"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-danger me-1" onclick="deleteComment(this, ${todoId})">
+                <i class="fas fa-trash"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="cancelCommentEdit(this)">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    container.appendChild(inputDiv);
+    const inputEl = inputDiv.querySelector('input');
+    inputEl.focus();
+    inputEl.select();
+    
+    inputEl.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            updateComment(inputDiv.querySelector('.btn-success'), todoId);
+        }
+    });
+    inputEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            cancelCommentEdit(inputDiv.querySelector('.btn-outline-secondary'));
+        }
+    });
+}
+
+async function updateComment(button, todoId) {
+    const wrapper = button.closest('.comment-input-wrapper');
+    const input = wrapper.querySelector('input');
+    const comentario = input.value.trim();
+    const container = button.closest('.todo-comment-container');
+    
+    try {
+        const response = await fetch(`/api/todos/${todoId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ comentario: comentario || null })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            const display = container.querySelector('.todo-comment-display');
+            const addBtn = container.querySelector('.add-comment-btn');
+            
+            if (comentario) {
+                display.querySelector('.comment-text').textContent = comentario;
+                display.classList.remove('d-none');
+                addBtn.classList.add('d-none');
+            } else {
+                display.classList.add('d-none');
+                addBtn.classList.remove('d-none');
+            }
+            
+            wrapper.remove();
+            
+            const todoDiv = container.closest('.todo-item-wrapper');
+            if (todoDiv) {
+                todoDiv.dataset.todoComentario = comentario || '';
+            }
+        }
+    } catch (error) {
+        console.error('Erro ao atualizar comentário:', error);
+    }
+}
+
+async function deleteComment(button, todoId) {
+    const wrapper = button.closest('.comment-input-wrapper');
+    const container = button.closest('.todo-comment-container');
+    
+    try {
+        const response = await fetch(`/api/todos/${todoId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ comentario: null })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            const display = container.querySelector('.todo-comment-display');
+            const addBtn = container.querySelector('.add-comment-btn');
+            
+            display.classList.add('d-none');
+            addBtn.classList.remove('d-none');
+            wrapper.remove();
+            
+            const todoDiv = container.closest('.todo-item-wrapper');
+            if (todoDiv) {
+                todoDiv.dataset.todoComentario = '';
+            }
+        }
+    } catch (error) {
+        console.error('Erro ao deletar comentário:', error);
+    }
+}
+
+function cancelCommentEdit(button) {
+    const wrapper = button.closest('.comment-input-wrapper');
+    const container = button.closest('.todo-comment-container');
+    
+    // Mostrar display novamente
+    container.querySelector('.todo-comment-display').classList.remove('d-none');
+    
+    // Remover input
+    wrapper.remove();
+}
+
 function addTodo() {
     const newTodoText = document.getElementById('newTodoText');
     const text = newTodoText.value.trim();
@@ -922,30 +1167,47 @@ function addTodo() {
         const todoDiv = document.createElement('div');
         const tempId = 'new-' + Date.now();
         
-        todoDiv.className = 'd-flex align-items-center mb-2';
+        todoDiv.className = 'todo-item-wrapper mb-3';
         todoDiv.innerHTML = `
-            <input type="checkbox" class="form-check-input me-2" onchange="toggleTodo(this)">
-            <span class="todo-text" style="flex-grow: 1; cursor: pointer;" data-todo-id="${tempId}" onclick="enableTodoEdit(this)">${text}</span>
-            <div class="todo-date-picker position-relative" data-todo-id="${tempId}">
-                <span class="todo-date-display text-muted" 
-                      onclick="toggleTodoDatePicker(this, '${tempId}')"
-                      style="cursor: pointer; font-size: 12px; padding: 2px 6px; border-radius: 4px;">
-                    <i class="fas fa-calendar-alt me-1"></i>
-                </span>
-                <input type="date" 
-                       class="todo-date-input" 
-                       style="position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;"
-                       value=""
-                       onchange="handleNewTodoDateChange(this, '${tempId}')">
+            <div class="d-flex align-items-center">
+                <input type="checkbox" class="form-check-input me-2" onchange="toggleTodo(this)">
+                <span class="todo-text" style="flex-grow: 1; cursor: pointer;" data-todo-id="${tempId}" onclick="enableTodoEdit(this)">${text}</span>
+                <div class="todo-date-picker position-relative" data-todo-id="${tempId}">
+                    <span class="todo-date-display text-muted" 
+                          onclick="toggleTodoDatePicker(this, '${tempId}')"
+                          style="cursor: pointer; font-size: 12px; padding: 2px 6px; border-radius: 4px;">
+                        <i class="fas fa-calendar-alt me-1"></i>
+                    </span>
+                    <input type="date" 
+                           class="todo-date-input" 
+                           style="position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;"
+                           value=""
+                           onchange="handleNewTodoDateChange(this, '${tempId}')">
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="removeTodo(this)">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
             </div>
-            <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="removeTodo(this)">
-                <i class="fas fa-trash-alt"></i>
-            </button>
+            <div class="todo-comment-container mt-1 ms-4 ps-2" style="border-left: 2px solid #3d3d3d;">
+                <div class="todo-comment-display d-none" 
+                     data-todo-id="${tempId}" 
+                     onclick="enableCommentEdit(this)"
+                     style="cursor: pointer; font-size: 12px; color: #9ca3af; padding: 4px 8px; background: rgba(255,255,255,0.03); border-radius: 4px;">
+                    <i class="fas fa-comment me-1" style="font-size: 10px;"></i><span class="comment-text"></span>
+                </div>
+                <button type="button" class="btn btn-sm btn-link add-comment-btn" 
+                        data-todo-id="${tempId}"
+                        onclick="showCommentInput(this)"
+                        style="font-size: 11px; color: #6b7280; padding: 2px 0;">
+                    <i class="fas fa-plus me-1"></i>Adicionar comentário
+                </button>
+            </div>
         `;
         todoDiv.dataset.todoId = tempId;
         todoDiv.dataset.todoText = text;
         todoDiv.dataset.todoCompleted = 'false';
         todoDiv.dataset.todoDueDate = '';
+        todoDiv.dataset.todoComentario = '';
         
         todosList.appendChild(todoDiv);
         newTodoText.value = '';
@@ -980,8 +1242,8 @@ function handleNewTodoDateChange(input, todoId) {
 }
 
 function toggleTodo(checkbox, todoId = null) {
-    const todoDiv = checkbox.closest('div');
-    const span = todoDiv.querySelector('span');
+    const todoWrapper = checkbox.closest('.todo-item-wrapper');
+    const span = todoWrapper.querySelector('.todo-text');
     const isCompleted = checkbox.checked;
     
     if (isCompleted) {
@@ -990,7 +1252,7 @@ function toggleTodo(checkbox, todoId = null) {
         span.classList.remove('text-decoration-line-through', 'text-muted');
     }
     
-    todoDiv.dataset.todoCompleted = isCompleted.toString();
+    todoWrapper.dataset.todoCompleted = isCompleted.toString();
     
     // Marcar que há mudanças pendentes
     hasUnsavedChanges = true;
@@ -998,8 +1260,8 @@ function toggleTodo(checkbox, todoId = null) {
 }
 
 function removeTodo(button, todoId = null) {
-    const todoDiv = button.closest('div');
-    todoDiv.remove();
+    const todoWrapper = button.closest('.todo-item-wrapper');
+    todoWrapper.remove();
     
     // Marcar que há mudanças pendentes
     hasUnsavedChanges = true;
@@ -1008,15 +1270,17 @@ function removeTodo(button, todoId = null) {
 
 function getCurrentTodos() {
     const todosList = document.getElementById('todosList');
-    const todoDivs = todosList.querySelectorAll('[data-todo-id]');
+    const todoWrappers = todosList.querySelectorAll('.todo-item-wrapper');
     const todos = [];
     
-    todoDivs.forEach(todoDiv => {
+    todoWrappers.forEach(todoDiv => {
+        const todoId = todoDiv.dataset.todoId;
         todos.push({
-            id: todoDiv.dataset.todoId.startsWith('new-') ? null : parseInt(todoDiv.dataset.todoId),
+            id: todoId.startsWith('new-') ? null : parseInt(todoId),
             texto: todoDiv.dataset.todoText,
             completed: todoDiv.dataset.todoCompleted === 'true',
-            due_date: todoDiv.dataset.todoDueDate || null
+            due_date: todoDiv.dataset.todoDueDate || null,
+            comentario: todoDiv.dataset.todoComentario || null
         });
     });
     

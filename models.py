@@ -114,6 +114,7 @@ class Task(db.Model):
 class TodoItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     texto = db.Column(db.String(300), nullable=False)
+    comentario = db.Column(db.Text)  # Comentário/observação do to-do
     completed = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     completed_at = db.Column(db.DateTime)

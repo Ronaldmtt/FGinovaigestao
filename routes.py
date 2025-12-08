@@ -925,7 +925,8 @@ def get_task_data(task_id):
         'id': todo.id,
         'texto': todo.texto,
         'completed': todo.completed,
-        'due_date': todo.due_date.isoformat() if todo.due_date else None
+        'due_date': todo.due_date.isoformat() if todo.due_date else None,
+        'comentario': todo.comentario
     } for todo in task.todos]
     
     task_data = {

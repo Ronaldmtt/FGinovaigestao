@@ -499,12 +499,52 @@ function closeTaskDrawer() {
     const drawer = document.getElementById('taskDrawer');
     const backdrop = document.getElementById('taskDrawerBackdrop');
     
+    // Capturar valores de inputs de comentário abertos antes de salvar
+    captureOpenCommentInputs();
+    
     // Salvar antes de fechar
     saveTaskFromDrawer();
     
     drawer.classList.remove('show');
     backdrop.classList.remove('show');
     document.body.style.overflow = '';
+}
+
+// Capturar valores de inputs de comentário que estão abertos
+function captureOpenCommentInputs() {
+    const todosList = document.getElementById('todosList');
+    if (!todosList) return;
+    
+    // Buscar todos os inputs de comentário abertos
+    const openInputs = todosList.querySelectorAll('.comment-input-wrapper input.comment-input');
+    
+    openInputs.forEach(input => {
+        const value = input.value.trim();
+        const wrapper = input.closest('.comment-input-wrapper');
+        const container = wrapper.closest('.todo-comment-container');
+        const todoDiv = container.closest('.todo-item-wrapper');
+        
+        if (todoDiv && value) {
+            // Atualizar o dataset com o valor digitado
+            todoDiv.dataset.todoComentario = value;
+            hasUnsavedChanges = true;
+            
+            // Atualizar também o display visual
+            const display = container.querySelector('.todo-comment-display');
+            if (display) {
+                display.querySelector('.comment-text').textContent = value;
+                display.classList.remove('d-none');
+            }
+            
+            const addBtn = container.querySelector('.add-comment-btn');
+            if (addBtn) {
+                addBtn.classList.add('d-none');
+            }
+        }
+        
+        // Remover o input wrapper
+        wrapper.remove();
+    });
 }
 
 // Fechar drawer ao pressionar ESC
@@ -977,9 +1017,33 @@ async function saveComment(button, todoId) {
     const input = wrapper.querySelector('input');
     const comentario = input.value.trim();
     const container = button.closest('.todo-comment-container');
+    const todoDiv = container.closest('.todo-item-wrapper');
     
     if (!comentario) {
         cancelComment(button);
+        return;
+    }
+    
+    // Verificar se é um to-do novo (ainda não salvo no banco)
+    const isNewTodo = String(todoId).startsWith('new-');
+    
+    if (isNewTodo) {
+        // Para to-dos novos, apenas atualizar o dataset localmente
+        // O comentário será salvo junto com a tarefa ao fechar o drawer
+        const display = container.querySelector('.todo-comment-display');
+        display.querySelector('.comment-text').textContent = comentario;
+        display.classList.remove('d-none');
+        
+        container.querySelector('.add-comment-btn').classList.add('d-none');
+        wrapper.remove();
+        
+        if (todoDiv) {
+            todoDiv.dataset.todoComentario = comentario;
+        }
+        
+        // Marcar que há mudanças pendentes para salvar ao fechar
+        hasUnsavedChanges = true;
+        updateDrawerAutoSaveStatus('editando');
         return;
     }
     
@@ -1005,7 +1069,6 @@ async function saveComment(button, todoId) {
             wrapper.remove();
             
             // Atualizar dataset
-            const todoDiv = container.closest('.todo-item-wrapper');
             if (todoDiv) {
                 todoDiv.dataset.todoComentario = comentario;
             }
@@ -1081,6 +1144,34 @@ async function updateComment(button, todoId) {
     const input = wrapper.querySelector('input');
     const comentario = input.value.trim();
     const container = button.closest('.todo-comment-container');
+    const todoDiv = container.closest('.todo-item-wrapper');
+    const display = container.querySelector('.todo-comment-display');
+    const addBtn = container.querySelector('.add-comment-btn');
+    
+    // Verificar se é um to-do novo (ainda não salvo no banco)
+    const isNewTodo = String(todoId).startsWith('new-');
+    
+    if (isNewTodo) {
+        // Para to-dos novos, apenas atualizar localmente
+        if (comentario) {
+            display.querySelector('.comment-text').textContent = comentario;
+            display.classList.remove('d-none');
+            addBtn.classList.add('d-none');
+        } else {
+            display.classList.add('d-none');
+            addBtn.classList.remove('d-none');
+        }
+        
+        wrapper.remove();
+        
+        if (todoDiv) {
+            todoDiv.dataset.todoComentario = comentario || '';
+        }
+        
+        hasUnsavedChanges = true;
+        updateDrawerAutoSaveStatus('editando');
+        return;
+    }
     
     try {
         const response = await fetch(`/api/todos/${todoId}`, {
@@ -1092,9 +1183,6 @@ async function updateComment(button, todoId) {
         const data = await response.json();
         
         if (data.success) {
-            const display = container.querySelector('.todo-comment-display');
-            const addBtn = container.querySelector('.add-comment-btn');
-            
             if (comentario) {
                 display.querySelector('.comment-text').textContent = comentario;
                 display.classList.remove('d-none');
@@ -1106,7 +1194,6 @@ async function updateComment(button, todoId) {
             
             wrapper.remove();
             
-            const todoDiv = container.closest('.todo-item-wrapper');
             if (todoDiv) {
                 todoDiv.dataset.todoComentario = comentario || '';
             }
@@ -1119,6 +1206,27 @@ async function updateComment(button, todoId) {
 async function deleteComment(button, todoId) {
     const wrapper = button.closest('.comment-input-wrapper');
     const container = button.closest('.todo-comment-container');
+    const todoDiv = container.closest('.todo-item-wrapper');
+    const display = container.querySelector('.todo-comment-display');
+    const addBtn = container.querySelector('.add-comment-btn');
+    
+    // Verificar se é um to-do novo (ainda não salvo no banco)
+    const isNewTodo = String(todoId).startsWith('new-');
+    
+    if (isNewTodo) {
+        // Para to-dos novos, apenas atualizar localmente
+        display.classList.add('d-none');
+        addBtn.classList.remove('d-none');
+        wrapper.remove();
+        
+        if (todoDiv) {
+            todoDiv.dataset.todoComentario = '';
+        }
+        
+        hasUnsavedChanges = true;
+        updateDrawerAutoSaveStatus('editando');
+        return;
+    }
     
     try {
         const response = await fetch(`/api/todos/${todoId}`, {
@@ -1130,14 +1238,10 @@ async function deleteComment(button, todoId) {
         const data = await response.json();
         
         if (data.success) {
-            const display = container.querySelector('.todo-comment-display');
-            const addBtn = container.querySelector('.add-comment-btn');
-            
             display.classList.add('d-none');
             addBtn.classList.remove('d-none');
             wrapper.remove();
             
-            const todoDiv = container.closest('.todo-item-wrapper');
             if (todoDiv) {
                 todoDiv.dataset.todoComentario = '';
             }

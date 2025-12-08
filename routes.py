@@ -1520,10 +1520,14 @@ def kanban():
         project_ids = [p.id for p in user_projects]
         
         # Incluir tarefas dos projetos do usuário OU tarefas diretamente atribuídas a ele
-        query = query.filter(
-            (Task.project_id.in_(project_ids)) |
-            (Task.assigned_user_id == current_user.id)
-        )
+        if project_ids:
+            query = query.filter(
+                (Task.project_id.in_(project_ids)) |
+                (Task.assigned_user_id == current_user.id)
+            )
+        else:
+            # Se usuário não participa de nenhum projeto, mostrar apenas tarefas atribuídas a ele
+            query = query.filter(Task.assigned_user_id == current_user.id)
     
     if project_filter:
         query = query.filter_by(project_id=project_filter)

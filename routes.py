@@ -1508,20 +1508,22 @@ def kanban():
     project_filter = request.args.get('project_id', type=int)
     client_filter = request.args.get('client_id', type=int)
     user_filter = request.args.get('user_id', type=int)
-    my_tasks = request.args.get('my_tasks', type=bool)
     
     query = Task.query
     
-    if not current_user.is_admin and my_tasks:
-        query = query.filter_by(assigned_user_id=current_user.id)
-    elif not current_user.is_admin and not my_tasks:
-        # Mostrar tarefas dos projetos que o usuário participa
+    if not current_user.is_admin:
+        # Mostrar tarefas dos projetos onde o usuário participa OU tarefas atribuídas a ele
         user_projects = Project.query.filter(
             (Project.responsible_id == current_user.id) |
             (Project.team_members.contains(current_user))
         ).distinct().all()
         project_ids = [p.id for p in user_projects]
-        query = query.filter(Task.project_id.in_(project_ids))
+        
+        # Incluir tarefas dos projetos do usuário OU tarefas diretamente atribuídas a ele
+        query = query.filter(
+            (Task.project_id.in_(project_ids)) |
+            (Task.assigned_user_id == current_user.id)
+        )
     
     if project_filter:
         query = query.filter_by(project_id=project_filter)
@@ -1559,8 +1561,7 @@ def kanban():
                          current_filters={
                              'project_id': project_filter,
                              'client_id': client_filter,
-                             'user_id': user_filter,
-                             'my_tasks': my_tasks
+                             'user_id': user_filter
                          })
 
 # API Routes para tarefas

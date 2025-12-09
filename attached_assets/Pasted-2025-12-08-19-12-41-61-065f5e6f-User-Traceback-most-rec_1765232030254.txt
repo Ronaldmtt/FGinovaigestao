@@ -1,0 +1,164 @@
+2025-12-08 19:12:41.61
+065f5e6f
+User
+Traceback (most recent call last):
+2025-12-08 19:12:41.61
+065f5e6f
+User
+^^^^^^^^^^^^^^^^^^^^^^^
+2025-12-08 19:12:41.61
+065f5e6f
+User
+^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-12-08 19:12:41.61
+065f5e6f
+User
+rv = template.render(context)
+2025-12-08 19:12:41.61
+065f5e6f
+User
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-12-08 19:12:41.61
+065f5e6f
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+2025-12-08 19:12:41.61
+065f5e6f
+User
+return current_app.ensure_sync(func)(*args, **kwargs)
+2025-12-08 19:12:41.61
+065f5e6f
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+2025-12-08 19:12:41.61
+065f5e6f
+User
+File "/home/runner/workspace/templates/projects.html", line 33, in block 'content'
+2025-12-08 19:12:41.61
+065f5e6f
+User
+File "/home/runner/workspace/routes.py", line 581, in new_project
+2025-12-08 19:12:41.61
+065f5e6f
+User
+response = self.full_dispatch_request()
+2025-12-08 19:12:41.61
+065f5e6f
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/jinja2/environment.py", line 490, in getattr
+2025-12-08 19:12:41.61
+065f5e6f
+User
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-12-08 19:12:41.61
+065f5e6f
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+2025-12-08 19:12:41.61
+065f5e6f
+User
+File "/home/runner/workspace/templates/projects.html", line 1, in top-level template code
+2025-12-08 19:12:41.61
+065f5e6f
+User
+rv = self.handle_user_exception(e)
+2025-12-08 19:12:41.61
+065f5e6f
+User
+return _render(app, template, context)
+2025-12-08 19:12:41.61
+065f5e6f
+User
+{% extends "base.html" %}
+2025-12-08 19:12:41.61
+065f5e6f
+User
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-12-08 19:12:41.61
+065f5e6f
+User
+jinja2.exceptions.UndefinedError: 'current_filters' is undefined
+2025-12-08 19:12:41.61
+065f5e6f
+User
+{% block content %}{% endblock %}
+2025-12-08 19:12:41.61
+065f5e6f
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_login/utils.py", line 290, in decorated_view
+2025-12-08 19:12:41.61
+065f5e6f
+User
+raise rewrite_traceback_stack(source=source)
+2025-12-08 19:12:41.61
+065f5e6f
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/jinja2/environment.py", line 1295, in render
+2025-12-08 19:12:41.61
+065f5e6f
+User
+return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args) # type: ignore[no-any-return]
+2025-12-08 19:12:41.61
+065f5e6f
+User
+self.environment.handle_exception()
+2025-12-08 19:12:41.61
+065f5e6f
+User
+ERROR:app:Exception on /projects/new [POST]
+2025-12-08 19:12:41.61
+065f5e6f
+User
+rv = self.dispatch_request()
+2025-12-08 19:12:41.61
+065f5e6f
+User
+return render_template('projects.html', form=form, clients=clients, users=users)
+2025-12-08 19:12:41.61
+065f5e6f
+User
+File "/home/runner/workspace/templates/base.html", line 430, in top-level template code
+2025-12-08 19:12:41.61
+065f5e6f
+User
+File "/home/runner/workspace/routes.py", line 30, in decorated_function
+2025-12-08 19:12:41.61
+065f5e6f
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/templating.py", line 131, in _render
+2025-12-08 19:12:41.61
+065f5e6f
+User
+return f(*args, **kwargs)
+2025-12-08 19:12:41.61
+065f5e6f
+User
+^^^^^^^^^^^^^^^^^^
+2025-12-08 19:12:41.61
+065f5e6f
+User
+^^^^^^^^^^^^^^^^^^^^^^^^
+2025-12-08 19:12:41.61
+065f5e6f
+User
+^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-12-08 19:12:41.61
+065f5e6f
+User
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-12-08 19:12:41.61
+065f5e6f
+User
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+2025-12-08 19:12:41.61
+065f5e6f
+User
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-12-08 19:12:41.61
+065f5e6f
+User
+^^^^^^^^^^^^^^^^^^^^^^^
+2025-12-08 19:12:41.61
+065f5e6f
+User

@@ -1004,6 +1004,8 @@ def new_manual_task():
     db.session.add(task)
     db.session.commit()
     
+    rpa_log.info(f"Tarefa criada manualmente: {titulo} (ID: {task.id}) por {current_user.email}", regiao="tarefas")
+    
     # Enviar notificação por email se houver usuário atribuído
     if task.assigned_user_id:
         usuario = User.query.get(task.assigned_user_id)
@@ -1470,6 +1472,7 @@ def new_task_kanban():
     db.session.add(task)
     db.session.commit()
     
+    rpa_log.info(f"Tarefa criada via Kanban: {titulo} (ID: {task.id}) por {current_user.email}", regiao="tarefas")
     flash('Tarefa criada com sucesso!', 'success')
     return redirect(url_for('kanban'))
 
@@ -1496,10 +1499,12 @@ def transcription_task():
                     tasks_created += 1
                 
                 db.session.commit()
+                rpa_log.info(f"Tarefas geradas por IA (transcrição): {tasks_created} tarefas no projeto {project.nome} por {current_user.email}", regiao="ia")
                 flash(f'{tasks_created} tarefas foram geradas automaticamente!', 'success')
                 
             except Exception as e:
                 print(f"Erro ao gerar tarefas: {e}")
+                rpa_log.error(f"Erro ao gerar tarefas por IA: {str(e)}", exc=e, regiao="ia")
                 flash('Erro ao processar a transcrição. Tente novamente mais tarde.', 'warning')
             
             return redirect(url_for('kanban'))
@@ -1686,6 +1691,8 @@ def api_update_task(task_id):
         
         db.session.commit()
         
+        rpa_log.info(f"Tarefa atualizada via drawer: {task.titulo} (ID: {task.id}) por {current_user.email}", regiao="tarefas")
+        
         # Enviar notificações por email conforme apropriado
         if task.assigned_user_id:
             usuario = User.query.get(task.assigned_user_id)
@@ -1837,6 +1844,7 @@ def api_update_todo(todo_id):
             todo.comentario = comentario.strip() if comentario else None
         
         db.session.commit()
+        rpa_log.info(f"To-do atualizado: {todo.texto} (ID: {todo.id}) por {current_user.email}", regiao="tarefas")
         return jsonify({
             'success': True, 
             'message': 'To-do atualizado com sucesso!',
@@ -1850,6 +1858,7 @@ def api_update_todo(todo_id):
         })
     except Exception as e:
         db.session.rollback()
+        rpa_log.error(f"Erro ao atualizar to-do: {str(e)}", exc=e, regiao="tarefas")
         return jsonify({'success': False, 'message': f'Erro ao atualizar: {str(e)}'}), 500
 
 @app.route('/api/tasks/<int:task_id>/dispatch', methods=['POST'])
@@ -1869,6 +1878,8 @@ def dispatch_task(task_id):
         task.disparada_at = None
     
     db.session.commit()
+    
+    rpa_log.info(f"Tarefa disparada: {task.titulo} (ID: {task.id}) - Estado: {task.disparada} por {current_user.email}", regiao="tarefas")
     
     return jsonify({
         'success': True,
@@ -1987,6 +1998,8 @@ def kanban_transcription():
         
         db.session.commit()
         
+        rpa_log.info(f"Tarefas geradas por IA via Kanban: {tasks_created} tarefas no projeto {project.nome} por {current_user.email}", regiao="ia")
+        
         return jsonify({
             'success': True, 
             'message': f'{tasks_created} tarefas foram geradas com sucesso!',
@@ -1996,6 +2009,7 @@ def kanban_transcription():
     except Exception as e:
         db.session.rollback()
         print(f"Erro ao processar transcrição: {e}")
+        rpa_log.error(f"Erro ao gerar tarefas por IA via Kanban: {str(e)}", exc=e, regiao="ia")
         return jsonify({
             'success': False, 
             'message': 'Erro ao processar a transcrição. Tente novamente mais tarde.'

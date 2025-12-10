@@ -244,6 +244,7 @@ def admin_new_user():
         # Debug: Confirmar o que foi salvo
         app.logger.debug(f"Usuário salvo - is_admin: {user.is_admin}, acesso_tarefas: {user.acesso_tarefas}, acesso_kanban: {user.acesso_kanban}")
         
+        rpa_log.info(f"Usuário criado: {user.email} (ID: {user.id}) por {current_user.email}", regiao="usuarios")
         flash('Usuário criado com sucesso!', 'success')
         return redirect(url_for('admin_users'))
     
@@ -276,6 +277,7 @@ def admin_edit_user(user_id):
             user.password_hash = generate_password_hash(form.password.data)
         
         db.session.commit()
+        rpa_log.info(f"Usuário atualizado: {user.email} (ID: {user.id}) por {current_user.email}", regiao="usuarios")
         flash('Usuário atualizado com sucesso!', 'success')
         return redirect(url_for('admin_users'))
     
@@ -300,8 +302,11 @@ def admin_delete_user(user_id):
         flash('Não é possível deletar este usuário pois ele tem projetos ou tarefas associadas.', 'danger')
         return redirect(url_for('admin_users'))
     
+    user_email = user.email
+    user_id_log = user.id
     db.session.delete(user)
     db.session.commit()
+    rpa_log.info(f"Usuário deletado: {user_email} (ID: {user_id_log}) por {current_user.email}", regiao="usuarios")
     flash('Usuário removido com sucesso!', 'success')
     return redirect(url_for('admin_users'))
 
@@ -446,8 +451,11 @@ def delete_client(client_id):
         flash('Não é possível excluir este cliente pois ele tem projetos associados.', 'danger')
         return redirect(url_for('clients'))
     
+    client_nome = client.nome
+    client_id_log = client.id
     db.session.delete(client)
     db.session.commit()
+    rpa_log.info(f"Cliente deletado: {client_nome} (ID: {client_id_log}) por {current_user.email}", regiao="clientes")
     flash('Cliente removido com sucesso!', 'success')
     return redirect(url_for('clients'))
 
@@ -649,6 +657,7 @@ def new_manual_project():
                 project.team_members.append(user)
     
     db.session.commit()
+    rpa_log.info(f"Projeto criado manualmente: {project.nome} (ID: {project.id}) por {current_user.email}", regiao="projetos")
     flash('Projeto criado manualmente com sucesso!', 'success')
     return redirect(url_for('projects'))
 
@@ -716,9 +725,11 @@ def edit_project(id):
     
     try:
         db.session.commit()
+        rpa_log.info(f"Projeto atualizado: {project.nome} (ID: {project.id}) por {current_user.email}", regiao="projetos")
         flash('Projeto atualizado com sucesso!', 'success')
     except Exception as e:
         db.session.rollback()
+        rpa_log.error(f"Erro ao atualizar projeto {id}: {str(e)}", exc=e, regiao="projetos")
         flash('Erro ao atualizar o projeto. Tente novamente.', 'danger')
         print(f"Erro ao editar projeto: {e}")
     

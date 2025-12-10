@@ -11,6 +11,29 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 # Configure logging for debugging
 logging.basicConfig(level=logging.DEBUG)
 
+# RPA Monitor - Setup
+from rpa_monitor_client import setup_rpa_monitor, rpa_log
+
+def init_rpa_monitor():
+    """Inicializa o RPA Monitor com as configurações das secrets"""
+    try:
+        rpa_id = os.environ.get('RPA_MONITOR_ID', 'APP-GESTAO-INOVAILAB')
+        host = os.environ.get('RPA_MONITOR_HOST', 'wss://app-in-sight.replit.app/ws')
+        region = os.environ.get('RPA_MONITOR_REGION', 'Sudeste')
+        transport = os.environ.get('RPA_MONITOR_TRANSPORT', 'ws')
+        
+        setup_rpa_monitor(
+            rpa_id=rpa_id,
+            host=host,
+            port=None,
+            region=region,
+            transport=transport,
+        )
+        logging.info(f"RPA Monitor inicializado: {rpa_id} -> {host}")
+        rpa_log.info(f"Sistema iniciado - RPA Monitor conectado", regiao="startup")
+    except Exception as e:
+        logging.warning(f"RPA Monitor não pôde ser inicializado: {e}")
+
 class Base(DeclarativeBase):
     pass
 
@@ -97,6 +120,9 @@ with app.app_context():
             category = FileCategory(**cat_data)
             db.session.add(category)
     db.session.commit()
+
+# Inicializar RPA Monitor
+init_rpa_monitor()
 
 # Import routes after app initialization
 import routes

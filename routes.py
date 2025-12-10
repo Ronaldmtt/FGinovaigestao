@@ -19,6 +19,17 @@ from forms import LoginForm, UserForm, EditUserForm, ClientForm, ProjectForm, Ta
 from openai_service import process_project_transcription, generate_tasks_from_transcription
 from email_service import enviar_email_nova_tarefa, enviar_email_mudanca_status, enviar_email_alteracao_data, enviar_email_tarefa_editada, enviar_email_resumo_tarefas
 
+# RPA Monitor - Logging
+try:
+    from rpa_monitor_client import rpa_log
+except ImportError:
+    class DummyRpaLog:
+        def info(self, *args, **kwargs): pass
+        def warn(self, *args, **kwargs): pass
+        def error(self, *args, **kwargs): pass
+        def screenshot(self, *args, **kwargs): pass
+    rpa_log = DummyRpaLog()
+
 def requires_permission(permission_field):
     def decorator(f):
         @wraps(f)
@@ -53,7 +64,9 @@ def login():
         user = User.query.filter_by(email=form.email.data).first()
         if user and user.password_hash and form.password.data and check_password_hash(user.password_hash, form.password.data):
             login_user(user)
+            rpa_log.info(f"Login realizado: {user.email}", regiao="autenticacao")
             return redirect(url_for('dashboard'))
+        rpa_log.warn(f"Tentativa de login falhou: {form.email.data}", regiao="autenticacao")
         flash('Email ou senha inválidos.', 'danger')
     
     return render_template('login.html', form=form)
@@ -61,7 +74,9 @@ def login():
 @app.route('/logout')
 @login_required
 def logout():
+    user_email = current_user.email
     logout_user()
+    rpa_log.info(f"Logout realizado: {user_email}", regiao="autenticacao")
     return redirect(url_for('login'))
 
 @app.route('/dashboard')
@@ -340,6 +355,7 @@ def new_client():
         )
         db.session.add(client)
         db.session.commit()
+        rpa_log.info(f"Cliente criado: {client.nome} (ID: {client.id}) por {current_user.email}", regiao="clientes")
         flash('Cliente cadastrado com sucesso!', 'success')
         return redirect(url_for('clients'))
     
@@ -389,11 +405,13 @@ def edit_client(client_id):
             client.observacoes = form.observacoes.data
             
             db.session.commit()
+            rpa_log.info(f"Cliente atualizado: {client.nome} (ID: {client.id}) por {current_user.email}", regiao="clientes")
             flash('Cliente atualizado com sucesso!', 'success')
             return redirect('/clients')
         except Exception as e:
             db.session.rollback()
             app.logger.error(f'Erro ao atualizar cliente: {e}')
+            rpa_log.error(f"Erro ao atualizar cliente {client_id}: {str(e)}", exc=e, regiao="clientes")
             flash('Erro ao atualizar cliente. Tente novamente.', 'danger')
             return redirect(f'/clients/edit/{client_id}')
     
@@ -579,12 +597,13 @@ def new_project():
         # Commit inicial para salvar o projeto
         db.session.commit()
         
+        rpa_log.info(f"Projeto criado: {project.nome} (ID: {project.id}) por {current_user.email}", regiao="projetos")
         flash('Projeto criado com sucesso! Use o botão "Processar com IA" para analisar a transcrição.', 'success')
         return redirect(url_for('projects'))
     
     clients = Client.query.order_by(Client.nome).all()
     users = User.query.filter_by(is_admin=False).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
-    return render_template('projects.html', form=form, clients=clients, users=users)
+    return render_template('projects.html', form=form, clients=clients, users=users, current_filters={'client_id': None, 'responsible_id': None, 'status': None})
 
 @app.route('/projects/new-manual', methods=['POST'])
 @login_required
@@ -720,6 +739,8 @@ def process_project_ai(id):
         return redirect(url_for('project_detail', id=id))
     
     try:
+        rpa_log.info(f"Iniciando processamento IA do projeto: {project.nome} (ID: {project.id}) por {current_user.email}", regiao="ia")
+        
         # Processar transcrição com IA
         ai_result = process_project_transcription(project.transcricao)
         if ai_result:
@@ -746,12 +767,15 @@ def process_project_ai(id):
                     db.session.add(task)
             
             db.session.commit()
+            rpa_log.info(f"Processamento IA concluído com sucesso: {project.nome} (ID: {project.id})", regiao="ia")
             flash('Projeto processado com IA com sucesso!', 'success')
         else:
+            rpa_log.warn(f"Processamento IA sem resultado: {project.nome} (ID: {project.id})", regiao="ia")
             flash('Houve problema no processamento da IA. Tente novamente mais tarde.', 'warning')
             
     except Exception as e:
         print(f"Erro no processamento da IA: {e}")
+        rpa_log.error(f"Erro no processamento IA do projeto {project.id}: {str(e)}", exc=e, regiao="ia")
         flash('Erro ao processar com IA. Tente novamente mais tarde.', 'warning')
     
     return redirect(url_for('project_detail', id=id))
@@ -772,13 +796,16 @@ def delete_project(id):
         
         # Deletar o projeto
         project_name = project.nome
+        project_id_log = project.id
         db.session.delete(project)
         db.session.commit()
         
+        rpa_log.info(f"Projeto deletado: {project_name} (ID: {project_id_log}) por {current_user.email}", regiao="projetos")
         flash(f'Projeto "{project_name}" foi deletado com sucesso!', 'success')
         
     except Exception as e:
         db.session.rollback()
+        rpa_log.error(f"Erro ao deletar projeto {id}: {str(e)}", exc=e, regiao="projetos")
         flash('Erro ao deletar o projeto. Tente novamente.', 'danger')
         print(f"Erro ao deletar projeto: {e}")
         return redirect(url_for('project_detail', id=id))
@@ -854,6 +881,7 @@ def new_task():
         )
         db.session.add(task)
         db.session.commit()
+        rpa_log.info(f"Tarefa criada: {task.titulo} (ID: {task.id}) por {current_user.email}", regiao="tarefas")
         flash('Tarefa criada com sucesso!', 'success')
         return redirect(url_for('tasks'))
     
@@ -1717,9 +1745,12 @@ def api_delete_task(task_id):
         TodoItem.query.filter_by(task_id=task.id).delete()
         
         # Deletar a tarefa
+        task_titulo = task.titulo
+        task_id_log = task.id
         db.session.delete(task)
         db.session.commit()
         
+        rpa_log.info(f"Tarefa deletada: {task_titulo} (ID: {task_id_log}) por {current_user.email}", regiao="tarefas")
         return jsonify({'success': True, 'message': 'Tarefa deletada com sucesso!'})
         
     except Exception as e:
@@ -1751,6 +1782,8 @@ def update_task_status(task_id):
             
         db.session.commit()
         
+        rpa_log.info(f"Status da tarefa alterado: {task.titulo} (ID: {task.id}) de {status_antigo} para {new_status} por {current_user.email}", regiao="tarefas")
+        
         # Enviar notificação de mudança de status
         if task.assigned_user_id and status_antigo != new_status:
             usuario = User.query.get(task.assigned_user_id)
@@ -1761,6 +1794,7 @@ def update_task_status(task_id):
                     enviar_email_mudanca_status(usuario, task, projeto, status_antigo, new_status)
                 except Exception as e:
                     app.logger.error(f"Erro ao enviar email de mudança de status: {e}")
+                    rpa_log.error(f"Erro ao enviar email de mudança de status: {str(e)}", exc=e, regiao="email")
         
         return jsonify({'success': True})
     
@@ -3314,3 +3348,21 @@ def get_file_categories():
             'cor': c.cor
         } for c in categories]
     })
+
+
+# Error handlers globais com RPA Monitor
+@app.errorhandler(500)
+def internal_error(error):
+    db.session.rollback()
+    rpa_log.error(f"Erro 500: {str(error)}", regiao="erro_sistema")
+    return render_template('error.html', error_code=500, error_message="Erro interno do servidor"), 500
+
+@app.errorhandler(404)
+def not_found_error(error):
+    rpa_log.warn(f"Erro 404: {request.url}", regiao="erro_sistema")
+    return render_template('error.html', error_code=404, error_message="Página não encontrada"), 404
+
+@app.errorhandler(403)
+def forbidden_error(error):
+    rpa_log.warn(f"Erro 403 - Acesso negado: {request.url} por {current_user.email if current_user.is_authenticated else 'anônimo'}", regiao="erro_sistema")
+    return render_template('error.html', error_code=403, error_message="Acesso negado"), 403

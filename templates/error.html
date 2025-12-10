@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Erro {{ error_code }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 text-center">
+            <div class="card shadow-sm">
+                <div class="card-body py-5">
+                    <h1 class="display-1 text-muted mb-3">{{ error_code }}</h1>
+                    <h4 class="mb-3">{{ error_message }}</h4>
+                    <p class="text-muted mb-4">
+                        {% if error_code == 404 %}
+                        A página que você está procurando não foi encontrada.
+                        {% elif error_code == 403 %}
+                        Você não tem permissão para acessar esta página.
+                        {% elif error_code == 500 %}
+                        Ocorreu um erro interno. Por favor, tente novamente mais tarde.
+                        {% else %}
+                        Ocorreu um erro inesperado.
+                        {% endif %}
+                    </p>
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-primary">
+                        <i class="fas fa-home me-2"></i>Voltar ao Início
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -2658,6 +2658,7 @@ def novo_contato():
         )
         db.session.add(contato)
         db.session.commit()
+        rpa_log.info(f"Contato CRM criado: {contato.nome_empresa} (ID: {contato.id}) por {current_user.email}", regiao="crm")
         flash('Contato cadastrado com sucesso!', 'success')
         return redirect(url_for('crm'))
     
@@ -2696,6 +2697,7 @@ def editar_contato(id):
         contato.data_atualizacao = datetime.utcnow()
         
         db.session.commit()
+        rpa_log.info(f"Contato CRM atualizado: {contato.nome_empresa} (ID: {contato.id}) por {current_user.email}", regiao="crm")
         flash('Contato atualizado com sucesso!', 'success')
         return redirect(url_for('ver_contato', id=id))
     
@@ -2711,8 +2713,11 @@ def deletar_contato(id):
         return redirect(url_for('dashboard'))
     
     contato = Contato.query.get_or_404(id)
+    contato_nome = contato.nome_empresa
+    contato_id_log = contato.id
     db.session.delete(contato)
     db.session.commit()
+    rpa_log.info(f"Contato CRM deletado: {contato_nome} (ID: {contato_id_log}) por {current_user.email}", regiao="crm")
     flash('Contato deletado com sucesso!', 'success')
     return redirect(url_for('crm'))
 
@@ -2732,6 +2737,7 @@ def mudar_estagio(id):
         contato.estagio = novo_estagio
         contato.data_atualizacao = datetime.utcnow()
         db.session.commit()
+        rpa_log.info(f"Estágio CRM alterado: {contato.nome_empresa} (ID: {contato.id}) para {novo_estagio} por {current_user.email}", regiao="crm")
         return jsonify({'success': True})
     
     return jsonify({'success': False, 'error': 'Estágio inválido'}), 400
@@ -2750,6 +2756,7 @@ def adicionar_comentario(id):
         comentario = Comentario(contato_id=id, texto=texto)
         db.session.add(comentario)
         db.session.commit()
+        rpa_log.info(f"Comentário CRM adicionado ao contato: {contato.nome_empresa} (ID: {id}) por {current_user.email}", regiao="crm")
         flash('Comentário adicionado com sucesso!', 'success')
     
     return redirect(url_for('ver_contato', id=id))
@@ -3004,6 +3011,8 @@ def upload_project_file(project_id):
         db.session.add(project_file)
         db.session.commit()
         
+        rpa_log.info(f"Arquivo enviado: {project_file.original_name} no projeto {project_id} por {current_user.email}", regiao="arquivos")
+        
         return jsonify({
             'success': True,
             'message': 'Arquivo enviado com sucesso!',
@@ -3021,6 +3030,7 @@ def upload_project_file(project_id):
         
     except Exception as e:
         db.session.rollback()
+        rpa_log.error(f"Erro ao enviar arquivo no projeto {project_id}: {str(e)}", exc=e, regiao="arquivos")
         return jsonify({'success': False, 'message': f'Erro ao enviar arquivo: {str(e)}'}), 500
 
 
@@ -3041,12 +3051,14 @@ def update_project_file(project_id, file_id):
     
     try:
         db.session.commit()
+        rpa_log.info(f"Arquivo atualizado: {project_file.original_name} (ID: {file_id}) no projeto {project_id} por {current_user.email}", regiao="arquivos")
         return jsonify({
             'success': True,
             'message': 'Arquivo atualizado com sucesso!'
         })
     except Exception as e:
         db.session.rollback()
+        rpa_log.error(f"Erro ao atualizar arquivo {file_id}: {str(e)}", exc=e, regiao="arquivos")
         return jsonify({'success': False, 'message': f'Erro ao atualizar arquivo: {str(e)}'}), 500
 
 
@@ -3059,15 +3071,18 @@ def delete_project_file(project_id, file_id):
     
     try:
         # Remover arquivo físico
+        file_name = project_file.original_name
         if os.path.exists(project_file.storage_path):
             os.remove(project_file.storage_path)
         
         db.session.delete(project_file)
         db.session.commit()
         
+        rpa_log.info(f"Arquivo deletado: {file_name} (ID: {file_id}) no projeto {project_id} por {current_user.email}", regiao="arquivos")
         return jsonify({'success': True, 'message': 'Arquivo removido com sucesso!'})
     except Exception as e:
         db.session.rollback()
+        rpa_log.error(f"Erro ao remover arquivo {file_id}: {str(e)}", exc=e, regiao="arquivos")
         return jsonify({'success': False, 'message': f'Erro ao remover arquivo: {str(e)}'}), 500
 
 
@@ -3166,6 +3181,8 @@ def create_project_credential(project_id):
         db.session.add(credential)
         db.session.commit()
         
+        rpa_log.info(f"Credencial API criada: {credential.nome} no projeto {project_id} por {current_user.email}", regiao="api")
+        
         return jsonify({
             'success': True,
             'message': 'Credencial criada com sucesso!',
@@ -3178,6 +3195,7 @@ def create_project_credential(project_id):
         })
     except Exception as e:
         db.session.rollback()
+        rpa_log.error(f"Erro ao criar credencial no projeto {project_id}: {str(e)}", exc=e, regiao="api")
         return jsonify({'success': False, 'message': f'Erro ao criar credencial: {str(e)}'}), 500
 
 
@@ -3209,9 +3227,11 @@ def update_project_credential(project_id, credential_id):
     
     try:
         db.session.commit()
+        rpa_log.info(f"Credencial API atualizada: {credential.nome} (ID: {credential_id}) no projeto {project_id} por {current_user.email}", regiao="api")
         return jsonify({'success': True, 'message': 'Credencial atualizada com sucesso!'})
     except Exception as e:
         db.session.rollback()
+        rpa_log.error(f"Erro ao atualizar credencial {credential_id}: {str(e)}", exc=e, regiao="api")
         return jsonify({'success': False, 'message': f'Erro ao atualizar credencial: {str(e)}'}), 500
 
 
@@ -3223,11 +3243,14 @@ def delete_project_credential(project_id, credential_id):
     credential = ProjectApiCredential.query.filter_by(id=credential_id, project_id=project_id).first_or_404()
     
     try:
+        cred_nome = credential.nome
         db.session.delete(credential)
         db.session.commit()
+        rpa_log.info(f"Credencial API deletada: {cred_nome} (ID: {credential_id}) no projeto {project_id} por {current_user.email}", regiao="api")
         return jsonify({'success': True, 'message': 'Credencial removida com sucesso!'})
     except Exception as e:
         db.session.rollback()
+        rpa_log.error(f"Erro ao remover credencial {credential_id}: {str(e)}", exc=e, regiao="api")
         return jsonify({'success': False, 'message': f'Erro ao remover credencial: {str(e)}'}), 500
 
 
@@ -3294,6 +3317,8 @@ def create_project_endpoint(project_id):
         db.session.add(endpoint)
         db.session.commit()
         
+        rpa_log.info(f"Endpoint API criado: {endpoint.nome} no projeto {project_id} por {current_user.email}", regiao="api")
+        
         return jsonify({
             'success': True,
             'message': 'Endpoint criado com sucesso!',
@@ -3306,6 +3331,7 @@ def create_project_endpoint(project_id):
         })
     except Exception as e:
         db.session.rollback()
+        rpa_log.error(f"Erro ao criar endpoint no projeto {project_id}: {str(e)}", exc=e, regiao="api")
         return jsonify({'success': False, 'message': f'Erro ao criar endpoint: {str(e)}'}), 500
 
 
@@ -3337,9 +3363,11 @@ def update_project_endpoint(project_id, endpoint_id):
     
     try:
         db.session.commit()
+        rpa_log.info(f"Endpoint API atualizado: {endpoint.nome} (ID: {endpoint_id}) no projeto {project_id} por {current_user.email}", regiao="api")
         return jsonify({'success': True, 'message': 'Endpoint atualizado com sucesso!'})
     except Exception as e:
         db.session.rollback()
+        rpa_log.error(f"Erro ao atualizar endpoint {endpoint_id}: {str(e)}", exc=e, regiao="api")
         return jsonify({'success': False, 'message': f'Erro ao atualizar endpoint: {str(e)}'}), 500
 
 
@@ -3351,11 +3379,14 @@ def delete_project_endpoint(project_id, endpoint_id):
     endpoint = ProjectApiEndpoint.query.filter_by(id=endpoint_id, project_id=project_id).first_or_404()
     
     try:
+        endpoint_nome = endpoint.nome
         db.session.delete(endpoint)
         db.session.commit()
+        rpa_log.info(f"Endpoint API deletado: {endpoint_nome} (ID: {endpoint_id}) no projeto {project_id} por {current_user.email}", regiao="api")
         return jsonify({'success': True, 'message': 'Endpoint removido com sucesso!'})
     except Exception as e:
         db.session.rollback()
+        rpa_log.error(f"Erro ao remover endpoint {endpoint_id}: {str(e)}", exc=e, regiao="api")
         return jsonify({'success': False, 'message': f'Erro ao remover endpoint: {str(e)}'}), 500
 
 

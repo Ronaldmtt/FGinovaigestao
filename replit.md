@@ -70,6 +70,14 @@ Preferred communication style: Simple, everyday language.
 - **WSGI Configuration**: ProxyFix middleware for deployment compatibility
 - **Logging**: Debug-level logging for development and troubleshooting
 
+## RPA Monitor Integration
+- **Real-time monitoring**: WebSocket connection to RPA Monitor server
+- **Activity logging**: All user actions (login, logout, CRUD operations) are logged
+- **Error tracking**: Automatic error capture with severity levels (INFO, WARN, ERROR)
+- **Screenshot capability**: Support for screenshot capture on errors
+- **Configuration**: Via environment variables (RPA_MONITOR_ID, RPA_MONITOR_HOST, RPA_MONITOR_REGION, RPA_MONITOR_TRANSPORT)
+- **Library location**: `/rpa_monitor_client/` folder with `rpa_log` functions
+
 ## Database
 - **SQL Database**: Configured via DATABASE_URL environment variable
 - **Connection Management**: Pool recycling and health checks for stability

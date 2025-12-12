@@ -718,7 +718,14 @@ function uploadFiles(files) {
     const progressBar = progressDiv.querySelector('.progress-bar');
     const statusText = document.getElementById('uploadStatus');
     
-    console.log('Upload - Category ID selecionado:', categoryId, 'Tipo:', typeof categoryId);
+    // Validar se categoria foi selecionada
+    if (!categoryId || categoryId === '') {
+        alert('Por favor, selecione uma categoria antes de fazer upload.');
+        categorySelect.focus();
+        categorySelect.classList.add('is-invalid');
+        return;
+    }
+    categorySelect.classList.remove('is-invalid');
     
     progressDiv.style.display = 'block';
     
@@ -728,10 +735,7 @@ function uploadFiles(files) {
     Array.from(files).forEach(file => {
         const formData = new FormData();
         formData.append('file', file);
-        if (categoryId && categoryId !== '') {
-            formData.append('category_id', categoryId);
-            console.log('Enviando category_id:', categoryId);
-        }
+        formData.append('category_id', categoryId);
         if (description) formData.append('descricao', description);
         
         fetch(`/api/project/${projectId}/files`, {
@@ -819,28 +823,23 @@ function setupCategoryFilter() {
 
 function renderFiles(filterCategory = 'all') {
     const container = document.getElementById('filesList');
-    const noFilesMsg = document.getElementById('noFilesMessage');
-    
-    console.log('Renderizando arquivos. Filtro:', filterCategory, 'Total arquivos:', filesData.length);
+    if (!container) return;
     
     let filteredFiles = filesData;
     if (filterCategory !== 'all') {
         const categoryIdNum = parseInt(filterCategory);
-        filteredFiles = filesData.filter(f => {
-            const match = f.category_id === categoryIdNum;
-            console.log(`Arquivo ${f.original_name}: category_id=${f.category_id}, filtro=${categoryIdNum}, match=${match}`);
-            return match;
-        });
+        filteredFiles = filesData.filter(f => f.category_id === categoryIdNum);
     }
     
     if (filteredFiles.length === 0) {
-        container.innerHTML = '';
-        noFilesMsg.style.display = 'block';
-        container.appendChild(noFilesMsg);
+        container.innerHTML = `
+            <div class="col-12 text-center text-muted py-4">
+                <i class="fas fa-folder-open fa-3x mb-3"></i>
+                <p>Nenhum arquivo ${filterCategory !== 'all' ? 'nesta categoria' : 'enviado ainda'}.</p>
+            </div>
+        `;
         return;
     }
-    
-    noFilesMsg.style.display = 'none';
     container.innerHTML = filteredFiles.map(file => `
         <div class="col-md-3 col-sm-6 mb-3">
             <div class="card file-card h-100" onclick="previewFile(${file.id})">

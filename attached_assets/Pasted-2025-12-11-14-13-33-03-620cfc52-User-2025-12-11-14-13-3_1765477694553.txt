@@ -1,0 +1,165 @@
+2025-12-11 14:13:33.03
+620cfc52
+User
+^^^^^^^^^^^^^^^^^^^^^^^
+2025-12-11 14:13:33.03
+620cfc52
+User
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-12-11 14:13:33.03
+620cfc52
+User
+psycopg2.OperationalError: SSL connection has been closed unexpectedly
+2025-12-11 14:13:33.03
+620cfc52
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+2025-12-11 14:13:33.03
+620cfc52
+User
+cursor.execute(statement, parameters)
+2025-12-11 14:13:33.03
+620cfc52
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 951, in do_execute
+2025-12-11 14:13:33.03
+620cfc52
+User
+self.dialect.do_execute(
+2025-12-11 14:13:33.03
+620cfc52
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/sql/elements.py", line 526, in _execute_on_connection
+2025-12-11 14:13:33.03
+620cfc52
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/query.py", line 2857, in _iter
+2025-12-11 14:13:33.03
+620cfc52
+User
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-12-11 14:13:33.03
+620cfc52
+User
+return type.__call__(cls, *args, **kwargs)
+2025-12-11 14:13:33.03
+620cfc52
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 2365, in execute
+2025-12-11 14:13:33.03
+620cfc52
+User
+File "/home/runner/workspace/routes.py", line 33, in decorated_function
+2025-12-11 14:13:33.03
+620cfc52
+User
+return f(*args, **kwargs)
+2025-12-11 14:13:33.03
+620cfc52
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+2025-12-11 14:13:33.03
+620cfc52
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+2025-12-11 14:13:33.03
+620cfc52
+User
+^^^^^^^^^^^^
+2025-12-11 14:13:33.03
+620cfc52
+User
+result: Result[Any] = compile_state_cls.orm_execute_statement(
+2025-12-11 14:13:33.03
+620cfc52
+User
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-12-11 14:13:33.03
+620cfc52
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/wtforms/form.py", line 209, in __call__
+2025-12-11 14:13:33.03
+620cfc52
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+2025-12-11 14:13:33.03
+620cfc52
+User
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-12-11 14:13:33.03
+620cfc52
+User
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-12-11 14:13:33.03
+620cfc52
+User
+^^^^^^^^^^^^^^^^^^
+2025-12-11 14:13:33.03
+620cfc52
+User
+^^^^^^^^^^^^^
+2025-12-11 14:13:33.03
+620cfc52
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 2251, in _execute_internal
+2025-12-11 14:13:33.03
+620cfc52
+User
+response = self.full_dispatch_request()
+2025-12-11 14:13:33.03
+620cfc52
+User
+^^^^^^^^^^^^^^^^^^^^^^^
+2025-12-11 14:13:33.03
+620cfc52
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_login/utils.py", line 290, in decorated_view
+2025-12-11 14:13:33.03
+620cfc52
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+2025-12-11 14:13:33.03
+620cfc52
+User
+Traceback (most recent call last):
+2025-12-11 14:13:33.03
+620cfc52
+User
+File "/home/runner/workspace/routes.py", line 823, in tasks
+2025-12-11 14:13:33.03
+620cfc52
+User
+return connection._execute_clauseelement(
+2025-12-11 14:13:33.03
+620cfc52
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+2025-12-11 14:13:33.03
+620cfc52
+User
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-12-11 14:13:33.03
+620cfc52
+User
+ERROR:app:Exception on /tasks [GET]
+
+2025-12-11 14:13:33.03
+620cfc52
+User
+^^^^^^^^^^^^^^^^^^^^^^^
+2025-12-11 14:13:33.03
+620cfc52
+User
+Traceback (most recent call last):
+2025-12-11 14:13:33.03
+620cfc52
+User
+return current_app.ensure_sync(func)(*args, **kwargs)
+2025-12-11 14:13:33.03
+620cfc52
+User
+^^^^^^^^^^^^^^^^^^^^^
+2025-12-11 14:13:33.03
+620cfc52
+User
+transcription_form = TranscriptionTaskForm()

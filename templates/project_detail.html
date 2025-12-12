@@ -711,11 +711,14 @@ function setupDropZone() {
 }
 
 function uploadFiles(files) {
-    const categoryId = document.getElementById('uploadCategory').value;
+    const categorySelect = document.getElementById('uploadCategory');
+    const categoryId = categorySelect.value;
     const description = document.getElementById('uploadDescription').value;
     const progressDiv = document.getElementById('uploadProgress');
     const progressBar = progressDiv.querySelector('.progress-bar');
     const statusText = document.getElementById('uploadStatus');
+    
+    console.log('Upload - Category ID selecionado:', categoryId, 'Tipo:', typeof categoryId);
     
     progressDiv.style.display = 'block';
     
@@ -725,7 +728,10 @@ function uploadFiles(files) {
     Array.from(files).forEach(file => {
         const formData = new FormData();
         formData.append('file', file);
-        if (categoryId) formData.append('category_id', categoryId);
+        if (categoryId && categoryId !== '') {
+            formData.append('category_id', categoryId);
+            console.log('Enviando category_id:', categoryId);
+        }
         if (description) formData.append('descricao', description);
         
         fetch(`/api/project/${projectId}/files`, {
@@ -773,10 +779,15 @@ function renderCategories() {
     const select = document.getElementById('uploadCategory');
     const filterGroup = document.getElementById('categoryFilter');
     
+    console.log('Renderizando categorias:', categoriesData);
+    
     // Atualizar select de upload
     select.innerHTML = '<option value="">Sem categoria</option>';
     categoriesData.forEach(cat => {
-        select.innerHTML += `<option value="${cat.id}">${cat.nome}</option>`;
+        const option = document.createElement('option');
+        option.value = cat.id;
+        option.textContent = cat.nome;
+        select.appendChild(option);
     });
     
     // Atualizar filtros
@@ -810,9 +821,16 @@ function renderFiles(filterCategory = 'all') {
     const container = document.getElementById('filesList');
     const noFilesMsg = document.getElementById('noFilesMessage');
     
+    console.log('Renderizando arquivos. Filtro:', filterCategory, 'Total arquivos:', filesData.length);
+    
     let filteredFiles = filesData;
     if (filterCategory !== 'all') {
-        filteredFiles = filesData.filter(f => f.category_id == filterCategory);
+        const categoryIdNum = parseInt(filterCategory);
+        filteredFiles = filesData.filter(f => {
+            const match = f.category_id === categoryIdNum;
+            console.log(`Arquivo ${f.original_name}: category_id=${f.category_id}, filtro=${categoryIdNum}, match=${match}`);
+            return match;
+        });
     }
     
     if (filteredFiles.length === 0) {

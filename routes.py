@@ -2920,6 +2920,161 @@ def api_delete_crm_stage(stage_id):
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Erro ao deletar: {str(e)}'}), 500
 
+
+# ========================================
+# ROTAS DE ARQUIVOS DO CRM (CONTATOS)
+# ========================================
+
+@app.route('/api/crm/contato/<int:contato_id>/files', methods=['GET'])
+@login_required
+def get_contato_files(contato_id):
+    """Listar arquivos do contato"""
+    if not current_user.is_admin and not current_user.acesso_crm:
+        return jsonify({'success': False, 'error': 'Sem permissão'}), 403
+    
+    from models import ContatoFile
+    contato = Contato.query.get_or_404(contato_id)
+    
+    files = ContatoFile.query.filter_by(contato_id=contato_id).order_by(ContatoFile.created_at.desc()).all()
+    
+    return jsonify({
+        'success': True,
+        'files': [{
+            'id': f.id,
+            'filename': f.filename,
+            'original_name': f.original_name,
+            'mime_type': f.mime_type,
+            'file_size': f.file_size,
+            'file_size_formatted': f.file_size_formatted,
+            'descricao': f.descricao,
+            'is_image': f.is_image,
+            'is_pdf': f.is_pdf,
+            'uploaded_by': f.uploaded_by.full_name if f.uploaded_by else 'Sistema',
+            'created_at': f.created_at.strftime('%d/%m/%Y %H:%M')
+        } for f in files]
+    })
+
+
+@app.route('/api/crm/contato/<int:contato_id>/files', methods=['POST'])
+@login_required
+def upload_contato_file(contato_id):
+    """Upload de arquivo para contato do CRM"""
+    if not current_user.is_admin and not current_user.acesso_crm:
+        return jsonify({'success': False, 'error': 'Sem permissão'}), 403
+    
+    from models import ContatoFile
+    contato = Contato.query.get_or_404(contato_id)
+    
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': 'Nenhum arquivo enviado'}), 400
+    
+    file = request.files['file']
+    
+    if file.filename == '':
+        return jsonify({'success': False, 'message': 'Nenhum arquivo selecionado'}), 400
+    
+    if not allowed_file(file.filename):
+        return jsonify({'success': False, 'message': 'Tipo de arquivo não permitido'}), 400
+    
+    try:
+        original_filename = secure_filename(file.filename)
+        extension = original_filename.rsplit('.', 1)[1].lower() if '.' in original_filename else ''
+        unique_filename = f"{uuid.uuid4().hex}.{extension}"
+        
+        crm_folder = os.path.join(app.config['UPLOAD_FOLDER'], 'crm', f'contato_{contato_id}')
+        if not os.path.exists(crm_folder):
+            os.makedirs(crm_folder)
+        
+        file_path = os.path.join(crm_folder, unique_filename)
+        file.save(file_path)
+        
+        file_size = os.path.getsize(file_path)
+        mime_type = mimetypes.guess_type(original_filename)[0] or 'application/octet-stream'
+        
+        descricao = request.form.get('descricao', '')
+        
+        contato_file = ContatoFile(
+            filename=unique_filename,
+            original_name=file.filename,
+            mime_type=mime_type,
+            file_size=file_size,
+            descricao=descricao,
+            storage_path=file_path,
+            contato_id=contato_id,
+            uploaded_by_id=current_user.id
+        )
+        
+        db.session.add(contato_file)
+        db.session.commit()
+        
+        rpa_log.info(f"Arquivo enviado no CRM: {contato_file.original_name} para contato {contato.nome_empresa} por {current_user.email}", regiao="crm")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Arquivo enviado com sucesso!',
+            'file': {
+                'id': contato_file.id,
+                'filename': contato_file.filename,
+                'original_name': contato_file.original_name,
+                'file_size_formatted': contato_file.file_size_formatted,
+                'uploaded_by': current_user.full_name,
+                'created_at': contato_file.created_at.strftime('%d/%m/%Y %H:%M'),
+                'is_image': contato_file.is_image
+            }
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        rpa_log.error(f"Erro ao enviar arquivo no CRM contato {contato_id}: {str(e)}", exc=e, regiao="crm")
+        return jsonify({'success': False, 'message': f'Erro ao enviar arquivo: {str(e)}'}), 500
+
+
+@app.route('/crm/contato/<int:contato_id>/files/<int:file_id>/download')
+@login_required
+def download_contato_file(contato_id, file_id):
+    """Download de arquivo do contato"""
+    if not current_user.is_admin and not current_user.acesso_crm:
+        flash('Sem permissão para acessar arquivos do CRM.', 'danger')
+        return redirect(url_for('crm'))
+    
+    from models import ContatoFile
+    contato_file = ContatoFile.query.filter_by(id=file_id, contato_id=contato_id).first_or_404()
+    
+    return send_file(
+        contato_file.storage_path,
+        as_attachment=True,
+        download_name=contato_file.original_name
+    )
+
+
+@app.route('/api/crm/contato/<int:contato_id>/files/<int:file_id>', methods=['DELETE'])
+@login_required
+def delete_contato_file(contato_id, file_id):
+    """Deletar arquivo do contato"""
+    if not current_user.is_admin and not current_user.acesso_crm:
+        return jsonify({'success': False, 'error': 'Sem permissão'}), 403
+    
+    from models import ContatoFile
+    contato_file = ContatoFile.query.filter_by(id=file_id, contato_id=contato_id).first_or_404()
+    
+    try:
+        if os.path.exists(contato_file.storage_path):
+            os.remove(contato_file.storage_path)
+        
+        filename = contato_file.original_name
+        db.session.delete(contato_file)
+        db.session.commit()
+        
+        rpa_log.info(f"Arquivo deletado no CRM: {filename} do contato {contato_id} por {current_user.email}", regiao="crm")
+        
+        return jsonify({'success': True, 'message': 'Arquivo deletado com sucesso!'})
+        
+    except Exception as e:
+        db.session.rollback()
+        rpa_log.error(f"Erro ao deletar arquivo do CRM {file_id}: {str(e)}", exc=e, regiao="crm")
+        return jsonify({'success': False, 'message': f'Erro ao deletar arquivo: {str(e)}'}), 500
+
+
 @app.route('/api/tasks/reorder', methods=['POST'])
 @login_required
 def reorder_tasks():

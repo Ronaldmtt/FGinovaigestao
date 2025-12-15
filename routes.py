@@ -859,8 +859,19 @@ def tasks():
     simple_form = TaskForm()
     manual_form = ManualTaskForm()
     transcription_form = TranscriptionTaskForm()
-    all_projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
-    all_clients = Client.query.order_by(Client.nome).all()
+    
+    # Filtrar projetos para usuários não-admin
+    if current_user.is_admin:
+        all_projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
+        all_clients = Client.query.order_by(Client.nome).all()
+    else:
+        all_projects = Project.query.join(Client).filter(
+            (Project.responsible_id == current_user.id) |
+            (Project.team_members.contains(current_user))
+        ).order_by(Client.nome, Project.nome).all()
+        client_ids = list(set([p.client_id for p in all_projects]))
+        all_clients = Client.query.filter(Client.id.in_(client_ids)).order_by(Client.nome).all() if client_ids else []
+    
     all_users = User.query.filter_by(is_admin=False).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
     
     return render_template('tasks.html', 
@@ -900,8 +911,19 @@ def new_task():
     manual_form = ManualTaskForm()
     transcription_form = TranscriptionTaskForm()
     tasks = Task.query.all()
-    all_projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
-    all_clients = Client.query.order_by(Client.nome).all()
+    
+    # Filtrar projetos para usuários não-admin
+    if current_user.is_admin:
+        all_projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
+        all_clients = Client.query.order_by(Client.nome).all()
+    else:
+        all_projects = Project.query.join(Client).filter(
+            (Project.responsible_id == current_user.id) |
+            (Project.team_members.contains(current_user))
+        ).order_by(Client.nome, Project.nome).all()
+        client_ids = list(set([p.client_id for p in all_projects]))
+        all_clients = Client.query.filter(Client.id.in_(client_ids)).order_by(Client.nome).all() if client_ids else []
+    
     all_users = User.query.filter_by(is_admin=False).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
     
     return render_template('tasks.html',
@@ -944,8 +966,15 @@ def get_task_data(task_id):
         if current_user.id != project.responsible_id and current_user not in project.team_members:
             return jsonify({'success': False, 'message': 'Sem permissão'}), 403
     
-    # Buscar todos os projetos e usuários para os selects
-    projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
+    # Buscar projetos filtrados para usuários não-admin
+    if current_user.is_admin:
+        projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
+    else:
+        projects = Project.query.join(Client).filter(
+            (Project.responsible_id == current_user.id) |
+            (Project.team_members.contains(current_user))
+        ).order_by(Client.nome, Project.nome).all()
+    
     users = User.query.filter_by(is_admin=False).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
     
     projects_list = [{
@@ -1594,9 +1623,19 @@ def kanban():
     for task in tasks:
         task_columns[task.status].append(task)
     
-    # Para os filtros
-    projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
-    clients = Client.query.order_by(Client.nome).all()
+    # Para os filtros - mostrar apenas projetos que o usuário participa (exceto admin)
+    if current_user.is_admin:
+        projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
+        clients = Client.query.order_by(Client.nome).all()
+    else:
+        # Filtrar projetos onde o usuário é responsável ou membro da equipe
+        projects = Project.query.join(Client).filter(
+            (Project.responsible_id == current_user.id) |
+            (Project.team_members.contains(current_user))
+        ).order_by(Client.nome, Project.nome).all()
+        # Filtrar apenas clientes dos projetos do usuário
+        client_ids = list(set([p.client_id for p in projects]))
+        clients = Client.query.filter(Client.id.in_(client_ids)).order_by(Client.nome).all() if client_ids else []
     
     # Todos os usuários para o modal de edição e filtros
     all_users = User.query.filter_by(is_admin=False).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()

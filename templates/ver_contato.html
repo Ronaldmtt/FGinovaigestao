@@ -68,6 +68,52 @@
             </div>
         </div>
 
+        <!-- Seção de Arquivos -->
+        <div class="card bg-dark text-light border-secondary mb-4">
+            <div class="card-header bg-success text-white border-secondary d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-folder-open"></i> Arquivos e Documentos
+                    <span class="badge bg-light text-dark ms-2" id="filesCount">0</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Área de Upload -->
+                <div id="dropZone" class="border border-secondary rounded p-4 text-center mb-3" style="border-style: dashed !important; border-width: 2px !important; cursor: pointer; transition: all 0.3s ease;">
+                    <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
+                    <p class="mb-1">Arraste e solte arquivos aqui ou clique para selecionar</p>
+                    <small class="text-muted">PDF, Imagens, Documentos, etc.</small>
+                    <input type="file" id="fileInput" multiple style="display: none;" accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.txt,.csv">
+                </div>
+                
+                <!-- Arquivos selecionados para upload -->
+                <div id="selectedFilesPreview" class="mb-3" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <strong><i class="fas fa-file-alt me-1"></i>Arquivos selecionados:</strong>
+                        <button type="button" class="btn btn-sm btn-primary" onclick="uploadContatoFiles()">
+                            <i class="fas fa-upload me-1"></i>Enviar
+                        </button>
+                    </div>
+                    <div id="selectedFilesList" class="border rounded p-2 bg-dark"></div>
+                </div>
+                
+                <!-- Progresso de upload -->
+                <div id="uploadProgress" class="mb-3" style="display: none;">
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <p class="text-center mt-2 mb-0 text-muted" id="uploadStatus">Enviando...</p>
+                </div>
+                
+                <!-- Lista de arquivos -->
+                <div id="filesList">
+                    <div class="text-center text-muted p-3" id="noFilesMessage">
+                        <i class="fas fa-folder-open fa-2x mb-2"></i>
+                        <p class="mb-0">Nenhum arquivo anexado ainda.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="card bg-dark text-light border-secondary">
             <div class="card-header bg-secondary text-white border-secondary">
                 <h5 class="mb-0">
@@ -158,6 +204,9 @@
 
 {% block scripts %}
 <script>
+const CONTATO_ID = {{ contato.id }};
+let selectedFiles = [];
+
 document.getElementById('estagioSelect').addEventListener('change', function() {
     const novoEstagio = this.value;
     
@@ -181,5 +230,243 @@ document.getElementById('estagioSelect').addEventListener('change', function() {
         this.value = '{{ contato.estagio }}';
     }
 });
+
+// File Upload Functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    
+    dropZone.addEventListener('click', () => fileInput.click());
+    
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = '#198754';
+        dropZone.style.backgroundColor = 'rgba(25, 135, 84, 0.1)';
+    });
+    
+    dropZone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = '';
+        dropZone.style.backgroundColor = '';
+    });
+    
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = '';
+        dropZone.style.backgroundColor = '';
+        handleFiles(e.dataTransfer.files);
+    });
+    
+    fileInput.addEventListener('change', (e) => {
+        handleFiles(e.target.files);
+    });
+    
+    loadContatoFiles();
+});
+
+function handleFiles(files) {
+    selectedFiles = Array.from(files);
+    updateFilesPreview();
+}
+
+function updateFilesPreview() {
+    const preview = document.getElementById('selectedFilesPreview');
+    const list = document.getElementById('selectedFilesList');
+    
+    if (selectedFiles.length === 0) {
+        preview.style.display = 'none';
+        return;
+    }
+    
+    preview.style.display = 'block';
+    list.innerHTML = selectedFiles.map((file, index) => `
+        <div class="d-flex justify-content-between align-items-center p-2 border-bottom border-secondary">
+            <span><i class="fas fa-file me-2"></i>${file.name}</span>
+            <div>
+                <small class="text-muted me-2">${formatFileSize(file.size)}</small>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeSelectedFile(${index})">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function removeSelectedFile(index) {
+    selectedFiles.splice(index, 1);
+    updateFilesPreview();
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function uploadContatoFiles() {
+    if (selectedFiles.length === 0) {
+        alert('Selecione pelo menos um arquivo.');
+        return;
+    }
+    
+    const progressDiv = document.getElementById('uploadProgress');
+    const progressBar = progressDiv.querySelector('.progress-bar');
+    const statusText = document.getElementById('uploadStatus');
+    
+    progressDiv.style.display = 'block';
+    progressBar.style.width = '0%';
+    
+    let uploaded = 0;
+    const total = selectedFiles.length;
+    
+    selectedFiles.forEach((file, index) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        fetch(`/api/crm/contato/${CONTATO_ID}/files`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            uploaded++;
+            const percent = Math.round((uploaded / total) * 100);
+            progressBar.style.width = percent + '%';
+            statusText.textContent = `Enviando... ${uploaded}/${total}`;
+            
+            if (uploaded === total) {
+                setTimeout(() => {
+                    progressDiv.style.display = 'none';
+                    selectedFiles = [];
+                    updateFilesPreview();
+                    document.getElementById('fileInput').value = '';
+                    loadContatoFiles();
+                }, 500);
+            }
+        })
+        .catch(error => {
+            console.error('Erro no upload:', error);
+            uploaded++;
+            if (uploaded === total) {
+                progressDiv.style.display = 'none';
+                alert('Alguns arquivos falharam no upload.');
+            }
+        });
+    });
+}
+
+function loadContatoFiles() {
+    fetch(`/api/crm/contato/${CONTATO_ID}/files`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                renderFiles(data.files);
+                document.getElementById('filesCount').textContent = data.files.length;
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao carregar arquivos:', error);
+        });
+}
+
+function renderFiles(files) {
+    const container = document.getElementById('filesList');
+    const noFilesMsg = document.getElementById('noFilesMessage');
+    
+    if (files.length === 0) {
+        container.innerHTML = '';
+        container.appendChild(noFilesMsg.cloneNode(true));
+        return;
+    }
+    
+    container.innerHTML = files.map(file => {
+        const displayName = file.original_name || file.filename;
+        const safeName = displayName.replace(/'/g, "\\'");
+        return `
+        <div class="d-flex justify-content-between align-items-center p-2 border-bottom border-secondary">
+            <div class="d-flex align-items-center">
+                <i class="fas ${getFileIcon(displayName)} fa-lg text-${getFileColor(displayName)} me-3"></i>
+                <div>
+                    <div class="fw-bold">${displayName}</div>
+                    <small class="text-muted">${file.file_size_formatted} • ${file.created_at}</small>
+                </div>
+            </div>
+            <div>
+                <a href="/crm/contato/${CONTATO_ID}/files/${file.id}/download" class="btn btn-sm btn-outline-primary me-1" title="Download">
+                    <i class="fas fa-download"></i>
+                </a>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteContatoFile(${file.id}, '${safeName}')" title="Deletar">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `}).join('');
+}
+
+function getFileIcon(filename) {
+    const ext = filename.split('.').pop().toLowerCase();
+    const icons = {
+        'pdf': 'fa-file-pdf',
+        'doc': 'fa-file-word',
+        'docx': 'fa-file-word',
+        'xls': 'fa-file-excel',
+        'xlsx': 'fa-file-excel',
+        'ppt': 'fa-file-powerpoint',
+        'pptx': 'fa-file-powerpoint',
+        'png': 'fa-file-image',
+        'jpg': 'fa-file-image',
+        'jpeg': 'fa-file-image',
+        'gif': 'fa-file-image',
+        'webp': 'fa-file-image',
+        'zip': 'fa-file-archive',
+        'rar': 'fa-file-archive',
+        'txt': 'fa-file-alt',
+        'csv': 'fa-file-csv'
+    };
+    return icons[ext] || 'fa-file';
+}
+
+function getFileColor(filename) {
+    const ext = filename.split('.').pop().toLowerCase();
+    const colors = {
+        'pdf': 'danger',
+        'doc': 'primary',
+        'docx': 'primary',
+        'xls': 'success',
+        'xlsx': 'success',
+        'ppt': 'warning',
+        'pptx': 'warning',
+        'png': 'info',
+        'jpg': 'info',
+        'jpeg': 'info',
+        'gif': 'info',
+        'webp': 'info'
+    };
+    return colors[ext] || 'secondary';
+}
+
+function deleteContatoFile(fileId, filename) {
+    if (!confirm(`Tem certeza que deseja deletar o arquivo "${filename}"?`)) {
+        return;
+    }
+    
+    fetch(`/api/crm/contato/${CONTATO_ID}/files/${fileId}`, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            loadContatoFiles();
+        } else {
+            alert(data.message || 'Erro ao deletar arquivo.');
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao deletar:', error);
+        alert('Erro ao deletar arquivo.');
+    });
+}
 </script>
 {% endblock %}

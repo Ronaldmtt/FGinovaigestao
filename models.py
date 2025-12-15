@@ -278,3 +278,44 @@ class ProjectApiEndpoint(db.Model):
     
     def __repr__(self):
         return f'<ProjectApiEndpoint {self.nome}>'
+
+
+class ContatoFile(db.Model):
+    __tablename__ = 'contato_files'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    filename = db.Column(db.String(255), nullable=False)
+    original_name = db.Column(db.String(255), nullable=False)
+    mime_type = db.Column(db.String(100))
+    file_size = db.Column(db.Integer)
+    descricao = db.Column(db.Text)
+    storage_path = db.Column(db.String(500), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    contato_id = db.Column(db.Integer, db.ForeignKey('contatos.id'), nullable=False)
+    uploaded_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    contato = db.relationship('Contato', backref=db.backref('arquivos', lazy=True, cascade='all, delete-orphan'))
+    uploaded_by = db.relationship('User', backref='uploaded_contato_files')
+    
+    def __repr__(self):
+        return f'<ContatoFile {self.original_name}>'
+    
+    @property
+    def file_size_formatted(self):
+        if not self.file_size:
+            return '0 B'
+        size = self.file_size
+        for unit in ['B', 'KB', 'MB', 'GB']:
+            if size < 1024:
+                return f'{size:.1f} {unit}'
+            size /= 1024
+        return f'{size:.1f} TB'
+    
+    @property
+    def is_image(self):
+        return self.mime_type and self.mime_type.startswith('image/')
+    
+    @property
+    def is_pdf(self):
+        return self.mime_type == 'application/pdf'

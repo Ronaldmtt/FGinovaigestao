@@ -498,6 +498,9 @@ def projects():
     
     if status_filter:
         query = query.filter_by(status=status_filter)
+    else:
+        # Por padrão, ocultar projetos concluídos para manter a lista limpa
+        query = query.filter(Project.status != 'concluido')
     
     # Ordenar por prazo (mais próximo primeiro) e depois por nome
     # Usar eager loading para evitar N+1 queries

@@ -733,7 +733,13 @@ function loadTodos(todos) {
     const todosList = document.getElementById('todosList');
     todosList.innerHTML = '';
     
-    todos.forEach(todo => {
+    // Ordenar: não concluídas primeiro, concluídas por último
+    const sortedTodos = [...todos].sort((a, b) => {
+        if (a.completed === b.completed) return 0;
+        return a.completed ? 1 : -1;
+    });
+    
+    sortedTodos.forEach(todo => {
         const todoDiv = document.createElement('div');
         todoDiv.className = 'todo-item-wrapper mb-3';
         
@@ -1308,6 +1314,9 @@ function addTodo() {
         todosList.appendChild(todoDiv);
         newTodoText.value = '';
         
+        // Reordenar para manter não concluídas primeiro
+        reorderTodosInDOM();
+        
         // Marcar que há mudanças pendentes
         hasUnsavedChanges = true;
         updateDrawerAutoSaveStatus('editando');
@@ -1353,6 +1362,25 @@ function toggleTodo(checkbox, todoId = null) {
     // Marcar que há mudanças pendentes
     hasUnsavedChanges = true;
     updateDrawerAutoSaveStatus('editando');
+    
+    // Reordenar subtarefas: não concluídas primeiro
+    reorderTodosInDOM();
+}
+
+function reorderTodosInDOM() {
+    const todosList = document.getElementById('todosList');
+    const todoWrappers = Array.from(todosList.querySelectorAll('.todo-item-wrapper'));
+    
+    // Ordenar: não concluídas primeiro
+    todoWrappers.sort((a, b) => {
+        const aCompleted = a.dataset.todoCompleted === 'true';
+        const bCompleted = b.dataset.todoCompleted === 'true';
+        if (aCompleted === bCompleted) return 0;
+        return aCompleted ? 1 : -1;
+    });
+    
+    // Reinserir na ordem correta
+    todoWrappers.forEach(wrapper => todosList.appendChild(wrapper));
 }
 
 function removeTodo(button, todoId = null) {

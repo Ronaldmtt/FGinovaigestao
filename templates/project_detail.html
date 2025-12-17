@@ -277,6 +277,29 @@
     
     <!-- Aba API -->
     <div class="tab-pane fade" id="api" role="tabpanel">
+        <!-- Chaves de Acesso API v1 -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-shield-alt me-2"></i>Chaves de Acesso - API v1</h5>
+                <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#generateApiKeyModal">
+                    <i class="fas fa-plus-circle me-1"></i>Gerar Nova Chave
+                </button>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Use estas chaves para acessar a API REST v1 do sistema. Endpoints disponíveis: 
+                    <code>/api/v1/project</code>, <code>/api/v1/tasks</code>, <code>/api/v1/todos</code>
+                </p>
+                <div id="apiKeysList">
+                    <div class="text-center py-4 text-muted" id="noApiKeysMessage">
+                        <i class="fas fa-shield-alt fa-2x mb-2"></i>
+                        <p class="mb-0">Nenhuma chave de acesso gerada.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="row">
             <!-- Credenciais de API -->
             <div class="col-md-6">
@@ -433,6 +456,95 @@
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-primary" onclick="saveEndpoint()">
                     <i class="fas fa-save me-1"></i>Salvar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Gerar API Key -->
+<div class="modal fade" id="generateApiKeyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-shield-alt me-2"></i>Gerar Nova Chave de Acesso</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Nome da Chave *</label>
+                    <input type="text" class="form-control" id="apiKeyName" placeholder="Ex: Integração n8n">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Permissões *</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="scopeProjectsRead" checked>
+                        <label class="form-check-label" for="scopeProjectsRead">
+                            <code>projects:read</code> - Ler dados do projeto
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="scopeTasksRead" checked>
+                        <label class="form-check-label" for="scopeTasksRead">
+                            <code>tasks:read</code> - Ler tarefas
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="scopeTasksWrite" checked>
+                        <label class="form-check-label" for="scopeTasksWrite">
+                            <code>tasks:write</code> - Criar/editar/deletar tarefas
+                        </label>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Validade</label>
+                    <select class="form-select" id="apiKeyExpiresDays">
+                        <option value="7">7 dias</option>
+                        <option value="30" selected>30 dias</option>
+                        <option value="90">90 dias</option>
+                        <option value="365">1 ano</option>
+                        <option value="0">Sem expiração</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="generateApiKey()">
+                    <i class="fas fa-key me-1"></i>Gerar Chave
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Exibir Token Gerado -->
+<div class="modal fade" id="showTokenModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-check-circle me-2"></i>Chave Gerada com Sucesso!</h5>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Atenção:</strong> Copie o token abaixo agora. Ele não será exibido novamente!
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Seu Token de Acesso:</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control font-monospace" id="generatedToken" readonly>
+                        <button class="btn btn-outline-secondary" type="button" onclick="copyToken()">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                <p class="small text-muted">
+                    <strong>Como usar:</strong> Envie o token no header <code>Authorization: Bearer SEU_TOKEN</code> ou <code>X-API-Key: SEU_TOKEN</code>
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="loadApiKeys()">
+                    <i class="fas fa-check me-1"></i>Entendi, copiei o token
                 </button>
             </div>
         </div>
@@ -1221,8 +1333,183 @@ function deleteEndpoint(endpointId) {
 }
 
 function updateApiCount() {
-    const total = credentialsData.length + endpointsData.length;
+    const total = credentialsData.length + endpointsData.length + apiKeysData.length;
     document.getElementById('apiCount').textContent = total;
 }
+
+// ========== API KEYS v1 ==========
+let apiKeysData = [];
+
+function loadApiKeys() {
+    fetch(`/api/project/${projectId}/api-keys`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                apiKeysData = data.api_keys;
+                renderApiKeys();
+                updateApiCount();
+            }
+        });
+}
+
+function renderApiKeys() {
+    const container = document.getElementById('apiKeysList');
+    const noMsg = document.getElementById('noApiKeysMessage');
+    
+    if (apiKeysData.length === 0) {
+        container.innerHTML = '';
+        noMsg.style.display = 'block';
+        container.appendChild(noMsg);
+        return;
+    }
+    
+    noMsg.style.display = 'none';
+    container.innerHTML = `
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Prefixo</th>
+                        <th>Permissões</th>
+                        <th>Criada em</th>
+                        <th>Expira em</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${apiKeysData.map(key => `
+                        <tr class="${key.is_expired || key.is_revoked ? 'text-muted' : ''}">
+                            <td><strong>${key.name}</strong></td>
+                            <td><code class="small">${key.prefix}...</code></td>
+                            <td class="small">${key.scopes.map(s => `<span class="badge bg-secondary me-1">${s}</span>`).join('')}</td>
+                            <td class="small">${formatDate(key.created_at)}</td>
+                            <td class="small">${key.expires_at ? formatDate(key.expires_at) : '<span class="text-success">Nunca</span>'}</td>
+                            <td>
+                                ${key.is_revoked ? '<span class="badge bg-danger">Revogada</span>' : 
+                                  key.is_expired ? '<span class="badge bg-warning">Expirada</span>' : 
+                                  '<span class="badge bg-success">Ativa</span>'}
+                            </td>
+                            <td class="text-end">
+                                ${!key.is_revoked && !key.is_expired ? `
+                                    <button class="btn btn-outline-warning btn-sm" onclick="revokeApiKey(${key.id})" title="Revogar">
+                                        <i class="fas fa-ban"></i>
+                                    </button>
+                                ` : ''}
+                                <button class="btn btn-outline-danger btn-sm" onclick="deleteApiKey(${key.id})" title="Excluir">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return '-';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('pt-BR') + ' ' + date.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
+}
+
+function generateApiKey() {
+    const name = document.getElementById('apiKeyName').value.trim();
+    if (!name) {
+        alert('Nome da chave é obrigatório');
+        return;
+    }
+    
+    const scopes = [];
+    if (document.getElementById('scopeProjectsRead').checked) scopes.push('projects:read');
+    if (document.getElementById('scopeTasksRead').checked) scopes.push('tasks:read');
+    if (document.getElementById('scopeTasksWrite').checked) scopes.push('tasks:write');
+    
+    if (scopes.length === 0) {
+        alert('Selecione pelo menos uma permissão');
+        return;
+    }
+    
+    const expiresDays = parseInt(document.getElementById('apiKeyExpiresDays').value);
+    
+    fetch(`/api/project/${projectId}/api-keys`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            name: name,
+            scopes: scopes,
+            expires_days: expiresDays
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('generateApiKeyModal')).hide();
+            document.getElementById('apiKeyName').value = '';
+            document.getElementById('scopeProjectsRead').checked = true;
+            document.getElementById('scopeTasksRead').checked = true;
+            document.getElementById('scopeTasksWrite').checked = true;
+            document.getElementById('apiKeyExpiresDays').value = '30';
+            
+            document.getElementById('generatedToken').value = data.token;
+            new bootstrap.Modal(document.getElementById('showTokenModal')).show();
+        } else {
+            alert(data.message || 'Erro ao gerar chave');
+        }
+    })
+    .catch(err => {
+        alert('Erro ao gerar chave: ' + err.message);
+    });
+}
+
+function copyToken() {
+    const tokenInput = document.getElementById('generatedToken');
+    tokenInput.select();
+    document.execCommand('copy');
+    
+    const btn = event.target.closest('button');
+    const originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check text-success"></i>';
+    setTimeout(() => { btn.innerHTML = originalHtml; }, 2000);
+}
+
+function revokeApiKey(keyId) {
+    if (!confirm('Tem certeza que deseja revogar esta chave? Esta ação não pode ser desfeita.')) return;
+    
+    fetch(`/api/project/${projectId}/api-keys/${keyId}/revoke`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            loadApiKeys();
+        } else {
+            alert(data.message || 'Erro ao revogar chave');
+        }
+    });
+}
+
+function deleteApiKey(keyId) {
+    if (!confirm('Tem certeza que deseja excluir esta chave permanentemente?')) return;
+    
+    fetch(`/api/project/${projectId}/api-keys/${keyId}`, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            loadApiKeys();
+        } else {
+            alert(data.message || 'Erro ao excluir chave');
+        }
+    });
+}
+
+// Load API keys on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadApiKeys();
+});
 </script>
 {% endblock %}

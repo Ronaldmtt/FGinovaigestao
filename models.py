@@ -372,15 +372,18 @@ class ProjectApiKey(db.Model):
         return f"{self.prefix}..."
     
     def to_dict(self, include_sensitive=False):
+        from datetime import datetime
+        is_expired = self.expires_at and datetime.utcnow() > self.expires_at
         data = {
             'id': self.id,
             'name': self.name,
             'prefix': self.prefix,
             'scopes': self.scopes,
-            'created_at': self.created_at.strftime('%d/%m/%Y %H:%M') if self.created_at else None,
-            'last_used_at': self.last_used_at.strftime('%d/%m/%Y %H:%M') if self.last_used_at else None,
-            'expires_at': self.expires_at.strftime('%d/%m/%Y %H:%M') if self.expires_at else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'last_used_at': self.last_used_at.isoformat() if self.last_used_at else None,
+            'expires_at': self.expires_at.isoformat() if self.expires_at else None,
             'is_active': self.is_active(),
-            'revoked': self.revoked_at is not None
+            'is_revoked': self.revoked_at is not None,
+            'is_expired': bool(is_expired)
         }
         return data

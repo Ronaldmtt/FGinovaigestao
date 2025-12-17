@@ -1,0 +1,171 @@
+Desenho da solução: Project-scoped + User-scoped API Key
+1) Modelo de dados (recomendado)
+
+Crie uma tabela nova (não salvar “chave crua” no campo do projeto):
+
+project_api_keys
+
+id (pk)
+
+project_id (fk)
+
+user_id (fk) ✅ dono da chave
+
+name (ex.: “iPhone Renan”, “Tablet Estoque”)
+
+prefix (10–12 chars, único) ✅ lookup rápido
+
+key_hash (hash forte) ✅ nunca guardar o token puro
+
+scopes_json (ex.: ["tasks:read","tasks:write","projects:read"])
+
+created_at
+
+last_used_at
+
+expires_at (recomendo curto no MVP, tipo 7–30 dias)
+
+revoked_at
+
+O “local de armazenar API no projeto” vira a UI para listar/gerenciar chaves, mas o projeto não guarda a chave pura — guarda só registros mascarados (prefix/name/last_used/expires).
+
+2) Fluxo de geração (dentro do projeto)
+
+No projeto (aba “API” / “Credenciais”):
+
+Usuário com permissão (admin ou membro autorizado do projeto) clica “Gerar chave”
+
+Backend gera token forte (ex.: secrets.token_urlsafe(32))
+
+Salva apenas prefix + key_hash
+
+Retorna o token UMA única vez na resposta (pra copiar)
+
+Depois disso, na listagem, exibe só:
+
+name, prefix, expires_at, last_used_at, revoked
+
+3) Autenticação da API (header)
+
+Aceitar:
+
+Authorization: Bearer <token> (preferido)
+
+ou X-API-Key: <token>
+
+Validação:
+
+extrai token
+
+busca por prefix = token[:10]
+
+checa is_active (não revogada, não expirada)
+
+check_password_hash(key_hash, token)
+
+valida scopes
+
+seta contexto: g.api_user, g.api_project, g.api_key
+
+Regra de ouro: essa chave só vale para 1 projeto (o project_id dela).
+
+4) Autorização (anti-IDOR)
+
+Se endpoint tem project_id na URL: exigir project_id == api_key.project_id
+
+Se endpoint só tem task_id: carregar task e exigir task.project_id == api_key.project_id
+
+Assim, mesmo que alguém tente “forçar outro ID”, não passa.
+
+Endpoints que eu faria (MVP enxuto e forte)
+A) Gestão da chave (dentro do sistema / painel do projeto)
+
+POST /api/project/<project_id>/api-keys
+Gera chave para o usuário logado (ou admin pode gerar para outro usuário). Retorna o token uma única vez.
+
+GET /api/project/<project_id>/api-keys
+Lista chaves do projeto (somente masked/prefix).
+
+POST /api/project/<project_id>/api-keys/<key_id>/revoke
+Revoga.
+
+B) API v1 para o app interno (com API key)
+
+Como a key já “define” o projeto, você pode simplificar muito:
+
+GET /api/v1/project (scope projects:read) → retorna o projeto da chave
+
+GET /api/v1/tasks?page&per_page&status&assigned_user_id (scope tasks:read) → lista tarefas do projeto da chave
+
+POST /api/v1/tasks (scope tasks:write) → cria tarefa no projeto da chave
+
+POST /api/v1/tasks/<task_id>/update (scope tasks:write) → update por whitelist
+
+POST /api/v1/tasks/<task_id>/status (scope tasks:write) → move coluna
+
+POST /api/v1/tasks/reorder (scope tasks:write) → reordena tarefas do projeto da chave (e valida pertencimento)
+
+Isso evita o app ter que enviar project_id e elimina uma classe inteira de bug/abuso.
+
+Logs (ficam bons com esse modelo)
+
+Em todo request autenticado, logar:
+
+api_key_id / prefix
+
+user_id (dono)
+
+project_id
+
+endpoint + status code
+
+ip, user_agent
+
+(opcional) request_id
+
+Prompt atualizado pra Replit (já alinhado com “chave por usuário por projeto”)
+
+Se quiser colar direto no Replit, use este (substitui o anterior):
+
+Tenho um sistema Flask + SQLAlchemy. Quero implementar uma API v1 autenticada por API Key, mas a chave deve ser POR USUÁRIO e POR PROJETO (project-scoped + user-scoped). O objetivo é um app interno consumir Projetos e Tarefas do Kanban. Não incluir clientes.
+
+REGRAS
+- NUNCA salvar token em texto puro no banco. Salvar apenas hash + prefix.
+- Cada API key pertence a exatamente 1 projeto e 1 usuário (owner).
+- API key tem scopes (projects:read, tasks:read, tasks:write), expires_at, revoked_at, last_used_at.
+- A API v1 deve permitir mexer 100% nas tarefas do projeto amarrado à chave.
+- Sempre validar pertencimento (anti-IDOR): task_id só pode operar se task.project_id == api_key.project_id.
+- Retornar erros padronizados: {"error":{"code":"...","message":"..."}}.
+
+IMPLEMENTAÇÃO
+1) Criar model ProjectApiKey:
+   - id, project_id, user_id, name, prefix(unique), key_hash, scopes_json
+   - created_at, last_used_at, expires_at, revoked_at
+   - is_active()
+
+2) Criar gerador de chave:
+   - token seguro (secrets.token_urlsafe(32))
+   - prefix = token[:10]
+   - key_hash = generate_password_hash(token)
+   - retornar token UMA vez
+
+3) Criar decorator require_project_api_key(required_scopes=[]):
+   - ler Authorization: Bearer ou X-API-Key
+   - lookup por prefix, validar hash, ativo, scopes
+   - setar g.api_key, g.api_user (owner), g.api_project (project)
+   - atualizar last_used_at
+
+4) Criar endpoints de gestão (no painel do projeto):
+   - POST /api/project/<project_id>/api-keys -> gera chave para o usuário logado, retorna token UMA vez
+   - GET /api/project/<project_id>/api-keys -> lista chaves masked (name, prefix, expires_at, last_used_at, revoked)
+   - POST /api/project/<project_id>/api-keys/<key_id>/revoke -> revoga
+
+5) Criar blueprint /api/v1 com API key:
+   - GET /api/v1/project (projects:read) -> retorna projeto da chave
+   - GET /api/v1/tasks?page&per_page&status&assigned_user_id (tasks:read) -> lista tasks do projeto da chave com paginação (per_page max 200)
+   - POST /api/v1/tasks (tasks:write) -> cria task no projeto da chave
+   - POST /api/v1/tasks/<task_id>/update (tasks:write) -> update por whitelist (titulo, descricao, assigned_user_id, data_conclusao, ordem). Não permitir trocar project_id.
+   - POST /api/v1/tasks/<task_id>/status (tasks:write) -> mover status/coluna
+   - POST /api/v1/tasks/reorder (tasks:write) -> body {task_ids:[...]} e validar que todas pertencem ao projeto da chave
+
+6) Fornecer exemplos curl (sem token em query string).

@@ -1,0 +1,129 @@
+Você é um engenheiro de software sênior. Eu tenho um sistema Flask + SQLAlchemy (com autenticação via sessão/Flask-Login) e quero adicionar uma API REST v1 autenticada por API Key para um app interno da empresa, focada SOMENTE em Projetos e Tarefas do Kanban (sem clientes por enquanto).
+
+OBJETIVO
+Implementar /api/v1/* com autenticação por API Key (via header Authorization: Bearer <token> ou X-API-Key), com escopos e restrição por projeto (allowed projects). A API deve permitir ler projetos e ler/criar/atualizar/mover/reordenar tarefas.
+
+REGRAS IMPORTANTES
+1) Não quebrar as rotas atuais nem o login por sessão. A API v1 é adicional.
+2) API Key NUNCA deve ser salva em texto puro no banco. Salvar apenas hash + prefix.
+3) A API Key deve ter scopes (ex.: projects:read, tasks:read, tasks:write).
+4) A API Key pode ser limitada a uma lista de projetos permitidos (allowed_projects). Se houver projetos associados, o acesso deve ser somente a eles.
+5) Sempre validar autorização por projeto (evitar IDOR). Mesmo com chave válida, não permitir acessar projeto/tarefa fora das permissões.
+6) Respostas JSON padronizadas em erro: {"error": {"code": "...", "message": "..."}} com status adequado.
+7) Implementar paginação e filtros no list de tarefas (page, per_page, status, assigned_user_id).
+8) Usar SOMENTE GET/POST (pode manter endpoints de update/status/reorder como POST).
+
+PASSOS (FAÇA NA ORDEM)
+A) Inspecione o repo e identifique:
+   - Onde o app Flask é criado e onde registrar blueprints
+   - Onde ficam os models SQLAlchemy
+   - Se existe Flask-Migrate/Alembic. Se existir, criar migration. Se não, adaptar para criar tabela na inicialização (sem destruir dados).
+
+B) CRIAR MODELS
+1) Criar model ApiKey com campos:
+   - id (pk)
+   - name (string)
+   - prefix (string, único, ~10-12 chars)
+   - key_hash (string)
+   - scopes_json (text JSON)
+   - user_id (fk para User) para auditoria/identidade
+   - created_at, last_used_at
+   - expires_at (nullable)
+   - revoked_at (nullable)
+   - método is_active()
+2) Criar tabela de associação api_key_projects (api_key_id, project_id) e relacionamento ApiKey.projects
+3) Garantir que Project exista (já existe). Se não houver relação de “team_members”, não inventar; use pelo menos (is_admin) ou (responsible_id) como regra mínima.
+
+C) GERADOR DE API KEY (admin/dev)
+Criar uma função util create_api_key(name, user, scopes, expires_days=7/30) que:
+   - gera token seguro (secrets.token_urlsafe(32))
+   - define prefix = token[:10]
+   - salva apenas hash (werkzeug.security.generate_password_hash)
+   - retorna o token puro UMA ÚNICA VEZ (para ser copiado)
+Opcional: criar um script/CLI ou rota protegida por admin para gerar e listar chaves (sem mostrar o token puro depois).
+
+D) MIDDLEWARE/DECORATOR DE AUTH
+Criar require_api_key(required_scopes=[]):
+   - lê Authorization: Bearer <token> (preferencial) ou X-API-Key
+   - faz lookup por prefix, valida is_active, valida hash (check_password_hash)
+   - valida scopes
+   - atualiza last_used_at
+   - coloca g.api_key e g.api_user para uso nos handlers
+
+E) AUTORIZAÇÃO POR PROJETO
+Criar helper can_access_project(project):
+   - se g.api_user.is_admin: True
+   - se api_key tiver projetos vinculados: permitir somente se project.id estiver nessa lista
+   - senão: permitir se user é responsável pelo projeto (responsible_id) OU se existir relação de membros e o user for membro (use o que já existir no código)
+Criar can_edit_task(task) semelhante, mas no mínimo exigir can_access_project(task.project) + permissão de kanban (se existir flag tipo acesso_kanban).
+
+F) BLUEPRINT /api/v1
+Criar blueprint api_v1 e registrar no app.
+
+ENDPOINTS (MVP)
+1) GET /api/v1/projects
+   - scope: projects:read
+   - retorna somente projetos permitidos
+   - formato mínimo: [{id, nome, status}]
+
+2) GET /api/v1/projects/<project_id>/tasks?page=1&per_page=50&status=&assigned_user_id=
+   - scope: tasks:read
+   - valida can_access_project
+   - paginação (per_page max 200)
+   - retorna:
+     {
+       "items":[{id,titulo,descricao,status,ordem,assigned_user_id,data_conclusao}],
+       "page":1,"per_page":50,"total":123
+     }
+
+3) POST /api/v1/projects/<project_id>/tasks
+   - scope: tasks:write
+   - valida can_access_project
+   - body json: {titulo, descricao?, status?, assigned_user_id?, ordem?}
+   - valida titulo obrigatório
+   - retorna 201 {"id": <task_id>}
+
+4) POST /api/v1/tasks/<task_id>/update
+   - scope: tasks:write
+   - valida can_edit_task
+   - aceitar APENAS whitelist de campos: titulo, descricao, assigned_user_id, data_conclusao (se existir), ordem (se fizer sentido)
+   - não permitir trocar project_id
+   - retorna {"success": true}
+
+5) POST /api/v1/tasks/<task_id>/status
+   - scope: tasks:write
+   - valida can_edit_task
+   - body: {status: "pendente"|"em_andamento"|"concluida"} (ou os status reais do seu sistema)
+   - atualiza campos de conclusão se existirem (completed_at etc.)
+   - retorna {"success": true}
+
+6) POST /api/v1/tasks/reorder
+   - scope: tasks:write
+   - body: {project_id: 123, task_ids: [5,9,2,...]}
+   - valida can_access_project
+   - valida que todas as tarefas pertencem ao project_id
+   - aplica ordem incremental no campo ordem
+   - retorna {"success": true}
+
+G) TESTES (DEVE FUNCIONAR)
+1) Com chave inválida -> 401
+2) Sem scope -> 403
+3) Projeto fora da lista branca -> 403
+4) Paginação funcionando
+5) Reorder rejeita task_id fora do projeto
+
+FORNEÇA:
+- Arquivos criados/modificados (nomes)
+- Como gerar uma chave de API (ex.: comando ou rota admin)
+- Exemplos de curl:
+  - listar projetos
+  - listar tasks por projeto
+  - criar task
+  - mudar status
+  - reorder
+
+OBS:
+- Não exponha campos sensíveis no JSON.
+- Não use query string para token.
+- Use HTTPS na prática (mas aqui só implemente o backend).
+Comece implementando o model ApiKey e o decorator, depois o blueprint e endpoints.

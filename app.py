@@ -135,3 +135,7 @@ init_rpa_monitor()
 
 # Import routes after app initialization
 import routes
+
+# Register API v1 Blueprint
+from api_v1 import api_v1
+app.register_blueprint(api_v1)

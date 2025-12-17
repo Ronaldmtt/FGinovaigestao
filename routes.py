@@ -14,7 +14,7 @@ import os
 import uuid
 import mimetypes
 from app import app, db, ALLOWED_EXTENSIONS
-from models import User, Client, Project, Task, TodoItem, Contato, Comentario, FileCategory, ProjectFile, ProjectApiCredential, ProjectApiEndpoint
+from models import User, Client, Project, Task, TodoItem, Contato, Comentario, FileCategory, ProjectFile, ProjectApiCredential, ProjectApiEndpoint, ProjectApiKey
 from forms import LoginForm, UserForm, EditUserForm, ClientForm, ProjectForm, TaskForm, TranscriptionTaskForm, ManualProjectForm, ManualTaskForm, ForgotPasswordForm, ResetPasswordForm, ChangePasswordForm, ImportDataForm
 from openai_service import process_project_transcription, generate_tasks_from_transcription
 from email_service import enviar_email_nova_tarefa, enviar_email_mudanca_status, enviar_email_alteracao_data, enviar_email_tarefa_editada, enviar_email_resumo_tarefas
@@ -3597,6 +3597,118 @@ def get_file_categories():
             'icone': c.icone,
             'cor': c.cor
         } for c in categories]
+    })
+
+
+# ============================================
+# API Keys Management (Project-scoped)
+# ============================================
+
+@app.route('/api/project/<int:project_id>/api-keys', methods=['GET'])
+@login_required
+@requires_permission('acesso_projetos')
+def list_project_api_keys(project_id):
+    """Lista chaves de API do projeto (masked)"""
+    project = Project.query.get_or_404(project_id)
+    
+    if not current_user.is_admin and current_user.id != project.responsible_id and current_user not in project.team_members:
+        return jsonify({'success': False, 'message': 'Sem permissão para este projeto'}), 403
+    
+    api_keys = ProjectApiKey.query.filter_by(project_id=project_id).order_by(ProjectApiKey.created_at.desc()).all()
+    
+    return jsonify({
+        'success': True,
+        'api_keys': [key.to_dict() for key in api_keys]
+    })
+
+
+@app.route('/api/project/<int:project_id>/api-keys', methods=['POST'])
+@login_required
+@requires_permission('acesso_projetos')
+def create_project_api_key(project_id):
+    """Gera nova API Key para o projeto. Retorna o token UMA única vez."""
+    project = Project.query.get_or_404(project_id)
+    
+    if not current_user.is_admin and current_user.id != project.responsible_id and current_user not in project.team_members:
+        return jsonify({'success': False, 'message': 'Sem permissão para este projeto'}), 403
+    
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'message': 'Dados inválidos'}), 400
+    
+    name = data.get('name', '').strip()
+    if not name:
+        return jsonify({'success': False, 'message': 'Nome da chave é obrigatório'}), 400
+    
+    scopes = data.get('scopes', ['projects:read', 'tasks:read', 'tasks:write'])
+    expires_days = data.get('expires_days', 30)
+    
+    from api_v1 import generate_api_key
+    api_key, token = generate_api_key(
+        project_id=project_id,
+        user_id=current_user.id,
+        name=name,
+        scopes=scopes,
+        expires_days=expires_days
+    )
+    
+    rpa_log.info(f"API Key criada: {name} (prefix: {api_key.prefix}) para projeto {project_id} por {current_user.email}", regiao="api")
+    
+    return jsonify({
+        'success': True,
+        'message': 'API Key gerada com sucesso! Copie o token abaixo - ele não será exibido novamente.',
+        'api_key': api_key.to_dict(),
+        'token': token
+    }), 201
+
+
+@app.route('/api/project/<int:project_id>/api-keys/<int:key_id>/revoke', methods=['POST'])
+@login_required
+@requires_permission('acesso_projetos')
+def revoke_project_api_key(project_id, key_id):
+    """Revoga uma API Key"""
+    project = Project.query.get_or_404(project_id)
+    
+    if not current_user.is_admin and current_user.id != project.responsible_id:
+        return jsonify({'success': False, 'message': 'Apenas o responsável ou admin pode revogar chaves'}), 403
+    
+    api_key = ProjectApiKey.query.filter_by(id=key_id, project_id=project_id).first_or_404()
+    
+    if api_key.revoked_at:
+        return jsonify({'success': False, 'message': 'Esta chave já foi revogada'}), 400
+    
+    api_key.revoked_at = datetime.utcnow()
+    db.session.commit()
+    
+    rpa_log.info(f"API Key revogada: {api_key.name} (prefix: {api_key.prefix}) por {current_user.email}", regiao="api")
+    
+    return jsonify({
+        'success': True,
+        'message': 'API Key revogada com sucesso!'
+    })
+
+
+@app.route('/api/project/<int:project_id>/api-keys/<int:key_id>', methods=['DELETE'])
+@login_required
+@requires_permission('acesso_projetos')
+def delete_project_api_key(project_id, key_id):
+    """Deleta uma API Key permanentemente"""
+    project = Project.query.get_or_404(project_id)
+    
+    if not current_user.is_admin and current_user.id != project.responsible_id:
+        return jsonify({'success': False, 'message': 'Apenas o responsável ou admin pode deletar chaves'}), 403
+    
+    api_key = ProjectApiKey.query.filter_by(id=key_id, project_id=project_id).first_or_404()
+    
+    key_name = api_key.name
+    db.session.delete(api_key)
+    db.session.commit()
+    
+    rpa_log.info(f"API Key deletada: {key_name} por {current_user.email}", regiao="api")
+    
+    return jsonify({
+        'success': True,
+        'message': 'API Key deletada com sucesso!'
     })
 
 

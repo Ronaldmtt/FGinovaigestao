@@ -219,7 +219,16 @@ def create_task():
     if assigned_user_id:
         user = User.query.get(assigned_user_id)
         if user:
-            task.assigned_user_id = user.id
+            project = g.api_project
+            is_authorized = (
+                user.id == project.responsible_id or
+                user in project.team_members or
+                user.is_admin
+            )
+            if is_authorized:
+                task.assigned_user_id = user.id
+            else:
+                return api_error('invalid_user', 'Usuário não faz parte deste projeto', 400)
     
     db.session.add(task)
     db.session.commit()
@@ -265,7 +274,16 @@ def update_task(task_id):
                 else:
                     user = User.query.get(data[field])
                     if user:
-                        task.assigned_user_id = user.id
+                        project = g.api_project
+                        is_authorized = (
+                            user.id == project.responsible_id or
+                            user in project.team_members or
+                            user.is_admin
+                        )
+                        if is_authorized:
+                            task.assigned_user_id = user.id
+                        else:
+                            return api_error('invalid_user', 'Usuário não faz parte deste projeto', 400)
             elif field == 'data_conclusao':
                 if data[field]:
                     try:

@@ -68,6 +68,7 @@ if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
+app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True  # Format JSON responses with indentation
 ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'rar', 'txt', 'csv', 'mp4', 'mov', 'avi', 'mp3', 'wav', 'fig', 'sketch', 'psd', 'ai'}
 
 # configure Flask-Mail

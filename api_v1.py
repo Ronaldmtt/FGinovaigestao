@@ -1033,9 +1033,11 @@ def list_all_tasks():
             'titulo': t.titulo,
             'descricao': t.descricao,
             'status': t.status,
-            'prioridade': t.prioridade,
+            'ordem': t.ordem,
+            'disparada': t.disparada,
             'data_conclusao': t.data_conclusao.isoformat() if t.data_conclusao else None,
             'created_at': t.created_at.isoformat() if t.created_at else None,
+            'completed_at': t.completed_at.isoformat() if t.completed_at else None,
             'project': {
                 'id': t.project.id,
                 'nome': t.project.nome
@@ -1070,7 +1072,6 @@ def create_task_system():
         titulo=data['titulo'],
         descricao=data.get('descricao', ''),
         status=data.get('status', 'pendente'),
-        prioridade=data.get('prioridade', 'media'),
         project_id=data['project_id']
     )
     

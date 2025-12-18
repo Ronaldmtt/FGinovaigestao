@@ -819,6 +819,158 @@ def delete_client(client_id):
     })
 
 
+# ============================================================================
+# CRM API ENDPOINTS (Organized under /crm/ prefix)
+# ============================================================================
+
+@api_v1.route('/crm/clients', methods=['GET'])
+@require_system_api_key(required_scopes=['clients:read'])
+def crm_list_clients():
+    """Lista todos os clientes (CRM)"""
+    clients = Client.query.order_by(Client.nome).all()
+    
+    return jsonify({
+        'success': True,
+        'clients': [{
+            'id': c.id,
+            'nome': c.nome,
+            'email': c.email,
+            'telefone': c.telefone,
+            'endereco': c.endereco,
+            'observacoes': c.observacoes,
+            'created_at': c.created_at.isoformat() if c.created_at else None,
+            'projects_count': len(c.projects) if c.projects else 0
+        } for c in clients],
+        'total': len(clients)
+    })
+
+
+@api_v1.route('/crm/clients/<int:client_id>', methods=['GET'])
+@require_system_api_key(required_scopes=['clients:read'])
+def crm_get_client(client_id):
+    """Retorna detalhes de um cliente (CRM)"""
+    client = Client.query.get(client_id)
+    if not client:
+        return api_error('client_not_found', 'Cliente não encontrado', 404)
+    
+    return jsonify({
+        'success': True,
+        'client': {
+            'id': client.id,
+            'nome': client.nome,
+            'email': client.email,
+            'telefone': client.telefone,
+            'endereco': client.endereco,
+            'observacoes': client.observacoes,
+            'created_at': client.created_at.isoformat() if client.created_at else None,
+            'projects': [{
+                'id': p.id,
+                'nome': p.nome,
+                'status': p.status
+            } for p in client.projects] if client.projects else []
+        }
+    })
+
+
+@api_v1.route('/crm/clients', methods=['POST'])
+@require_system_api_key(required_scopes=['clients:write'])
+def crm_create_client():
+    """Cria um novo cliente (CRM)"""
+    data = request.get_json()
+    if not data:
+        return api_error('invalid_json', 'JSON inválido ou não fornecido', 400)
+    
+    if not data.get('nome'):
+        return api_error('missing_field', 'Campo obrigatório: nome', 400)
+    
+    system_api_key = g.get('system_api_key')
+    creator_id = system_api_key.user_id if system_api_key else 1
+    
+    client = Client(
+        nome=data['nome'],
+        email=data.get('email'),
+        telefone=data.get('telefone'),
+        endereco=data.get('endereco'),
+        observacoes=data.get('observacoes'),
+        creator_id=creator_id
+    )
+    
+    db.session.add(client)
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'client': {
+            'id': client.id,
+            'nome': client.nome,
+            'email': client.email,
+            'telefone': client.telefone,
+            'endereco': client.endereco
+        }
+    }), 201
+
+
+@api_v1.route('/crm/clients/<int:client_id>', methods=['PUT'])
+@require_system_api_key(required_scopes=['clients:write'])
+def crm_update_client(client_id):
+    """Atualiza um cliente (CRM)"""
+    client = Client.query.get(client_id)
+    if not client:
+        return api_error('client_not_found', 'Cliente não encontrado', 404)
+    
+    data = request.get_json()
+    if not data:
+        return api_error('invalid_json', 'JSON inválido ou não fornecido', 400)
+    
+    if 'nome' in data and data['nome']:
+        client.nome = data['nome']
+    if 'email' in data:
+        client.email = data.get('email')
+    if 'telefone' in data:
+        client.telefone = data.get('telefone')
+    if 'endereco' in data:
+        client.endereco = data.get('endereco')
+    if 'observacoes' in data:
+        client.observacoes = data.get('observacoes')
+    
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'client': {
+            'id': client.id,
+            'nome': client.nome,
+            'email': client.email,
+            'telefone': client.telefone,
+            'endereco': client.endereco
+        }
+    })
+
+
+@api_v1.route('/crm/clients/<int:client_id>', methods=['DELETE'])
+@require_system_api_key(required_scopes=['clients:write'])
+def crm_delete_client(client_id):
+    """Deleta um cliente (CRM)"""
+    client = Client.query.get(client_id)
+    if not client:
+        return api_error('client_not_found', 'Cliente não encontrado', 404)
+    
+    if client.projects:
+        return api_error('client_has_projects', 'Cliente possui projetos vinculados. Remova os projetos primeiro.', 400)
+    
+    db.session.delete(client)
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': 'Cliente deletado com sucesso'
+    })
+
+
+# ============================================================================
+# PROJECT SYSTEM API ENDPOINTS
+# ============================================================================
+
 @api_v1.route('/projects', methods=['GET'])
 @require_system_api_key(required_scopes=['projects:read'])
 def list_projects():

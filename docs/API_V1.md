@@ -342,16 +342,18 @@ Os endpoints abaixo requerem uma **Chave de Sistema** (System API Key), criada p
 
 ---
 
-## 4. Clientes
+## 4. CRM - Gestão de Clientes
 
-### GET /api/v1/clients
+O módulo CRM está organizado sob o prefixo `/api/v1/crm/`. Os endpoints legados `/api/v1/clients` continuam funcionando para compatibilidade.
+
+### GET /api/v1/crm/clients
 Lista todos os clientes.
 
 **Permissão necessária:** `clients:read`
 
 **Exemplo:**
 ```bash
-curl -H "Authorization: Bearer SUA_CHAVE_SISTEMA" https://seu-dominio.com/api/v1/clients
+curl -H "Authorization: Bearer SUA_CHAVE_SISTEMA" https://seu-dominio.com/api/v1/crm/clients
 ```
 
 **Resposta:**
@@ -364,7 +366,9 @@ curl -H "Authorization: Bearer SUA_CHAVE_SISTEMA" https://seu-dominio.com/api/v1
       "nome": "Empresa ABC",
       "email": "contato@empresa.com",
       "telefone": "(11) 99999-9999",
-      "empresa": "ABC Ltda",
+      "endereco": "Rua Principal, 123",
+      "observacoes": "Cliente desde 2020",
+      "created_at": "2025-08-25T14:20:47.417670",
       "projects_count": 5
     }
   ],
@@ -374,14 +378,39 @@ curl -H "Authorization: Bearer SUA_CHAVE_SISTEMA" https://seu-dominio.com/api/v1
 
 ---
 
-### GET /api/v1/clients/{id}
-Retorna detalhes de um cliente específico.
+### GET /api/v1/crm/clients/{id}
+Retorna detalhes de um cliente específico, incluindo seus projetos.
 
 **Permissão necessária:** `clients:read`
 
+**Exemplo:**
+```bash
+curl -H "Authorization: Bearer SUA_CHAVE_SISTEMA" https://seu-dominio.com/api/v1/crm/clients/1
+```
+
+**Resposta:**
+```json
+{
+  "success": true,
+  "client": {
+    "id": 1,
+    "nome": "Empresa ABC",
+    "email": "contato@empresa.com",
+    "telefone": "(11) 99999-9999",
+    "endereco": "Rua Principal, 123",
+    "observacoes": "Cliente desde 2020",
+    "created_at": "2025-08-25T14:20:47.417670",
+    "projects": [
+      {"id": 1, "nome": "Projeto X", "status": "em_andamento"},
+      {"id": 2, "nome": "Projeto Y", "status": "concluido"}
+    ]
+  }
+}
+```
+
 ---
 
-### POST /api/v1/clients
+### POST /api/v1/crm/clients
 Cria um novo cliente.
 
 **Permissão necessária:** `clients:write`
@@ -392,23 +421,70 @@ Cria um novo cliente.
   "nome": "Novo Cliente",
   "email": "cliente@empresa.com",
   "telefone": "(11) 98888-8888",
-  "empresa": "Empresa XYZ"
+  "endereco": "Av. Brasil, 1000",
+  "observacoes": "Observações sobre o cliente"
+}
+```
+
+**Resposta (201):**
+```json
+{
+  "success": true,
+  "client": {
+    "id": 10,
+    "nome": "Novo Cliente",
+    "email": "cliente@empresa.com",
+    "telefone": "(11) 98888-8888",
+    "endereco": "Av. Brasil, 1000"
+  }
 }
 ```
 
 ---
 
-### PUT /api/v1/clients/{id}
+### PUT /api/v1/crm/clients/{id}
 Atualiza um cliente.
 
 **Permissão necessária:** `clients:write`
 
+**Exemplo:**
+```bash
+curl -X PUT \
+  -H "Authorization: Bearer SUA_CHAVE_SISTEMA" \
+  -H "Content-Type: application/json" \
+  -d '{"nome": "Nome Atualizado", "telefone": "(11) 97777-7777"}' \
+  https://seu-dominio.com/api/v1/crm/clients/1
+```
+
 ---
 
-### DELETE /api/v1/clients/{id}
+### DELETE /api/v1/crm/clients/{id}
 Remove um cliente (apenas se não tiver projetos vinculados).
 
 **Permissão necessária:** `clients:write`
+
+**Exemplo:**
+```bash
+curl -X DELETE \
+  -H "Authorization: Bearer SUA_CHAVE_SISTEMA" \
+  https://seu-dominio.com/api/v1/crm/clients/10
+```
+
+**Nota:** Retorna erro `client_has_projects` se o cliente tiver projetos vinculados.
+
+---
+
+## 4.1 Clientes (Endpoints Legados)
+
+Os endpoints abaixo são mantidos para compatibilidade com integrações existentes.
+
+| Método | Endpoint | Equivalente CRM |
+|--------|----------|-----------------|
+| GET | `/api/v1/clients` | `/api/v1/crm/clients` |
+| GET | `/api/v1/clients/{id}` | `/api/v1/crm/clients/{id}` |
+| POST | `/api/v1/clients` | `/api/v1/crm/clients` |
+| PUT | `/api/v1/clients/{id}` | `/api/v1/crm/clients/{id}` |
+| DELETE | `/api/v1/clients/{id}` | `/api/v1/crm/clients/{id}` |
 
 ---
 

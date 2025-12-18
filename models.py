@@ -46,6 +46,7 @@ class Client(db.Model):
     nome = db.Column(db.String(200), nullable=False)
     email = db.Column(db.String(120))
     telefone = db.Column(db.String(20))
+    empresa = db.Column(db.String(200))
     endereco = db.Column(db.Text)
     observacoes = db.Column(db.Text)
     public_code = db.Column(db.String(32), unique=True)  # Código único para acesso público

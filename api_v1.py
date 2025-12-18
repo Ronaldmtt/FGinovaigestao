@@ -688,6 +688,7 @@ def list_clients():
             'nome': c.nome,
             'email': c.email,
             'telefone': c.telefone,
+            'empresa': c.empresa,
             'endereco': c.endereco,
             'observacoes': c.observacoes,
             'created_at': c.created_at.isoformat() if c.created_at else None,
@@ -712,6 +713,7 @@ def get_client(client_id):
             'nome': client.nome,
             'email': client.email,
             'telefone': client.telefone,
+            'empresa': client.empresa,
             'endereco': client.endereco,
             'observacoes': client.observacoes,
             'created_at': client.created_at.isoformat() if client.created_at else None,
@@ -742,6 +744,7 @@ def create_client():
         nome=data['nome'],
         email=data.get('email'),
         telefone=data.get('telefone'),
+        empresa=data.get('empresa'),
         endereco=data.get('endereco'),
         observacoes=data.get('observacoes'),
         creator_id=creator_id
@@ -757,6 +760,7 @@ def create_client():
             'nome': client.nome,
             'email': client.email,
             'telefone': client.telefone,
+            'empresa': client.empresa,
             'endereco': client.endereco
         }
     }), 201
@@ -780,6 +784,8 @@ def update_client(client_id):
         client.email = data.get('email')
     if 'telefone' in data:
         client.telefone = data.get('telefone')
+    if 'empresa' in data:
+        client.empresa = data.get('empresa')
     if 'endereco' in data:
         client.endereco = data.get('endereco')
     if 'observacoes' in data:
@@ -794,6 +800,7 @@ def update_client(client_id):
             'nome': client.nome,
             'email': client.email,
             'telefone': client.telefone,
+            'empresa': client.empresa,
             'endereco': client.endereco
         }
     })
@@ -836,6 +843,7 @@ def crm_list_clients():
             'nome': c.nome,
             'email': c.email,
             'telefone': c.telefone,
+            'empresa': c.empresa,
             'endereco': c.endereco,
             'observacoes': c.observacoes,
             'created_at': c.created_at.isoformat() if c.created_at else None,
@@ -860,6 +868,7 @@ def crm_get_client(client_id):
             'nome': client.nome,
             'email': client.email,
             'telefone': client.telefone,
+            'empresa': client.empresa,
             'endereco': client.endereco,
             'observacoes': client.observacoes,
             'created_at': client.created_at.isoformat() if client.created_at else None,
@@ -890,6 +899,7 @@ def crm_create_client():
         nome=data['nome'],
         email=data.get('email'),
         telefone=data.get('telefone'),
+        empresa=data.get('empresa'),
         endereco=data.get('endereco'),
         observacoes=data.get('observacoes'),
         creator_id=creator_id
@@ -905,6 +915,7 @@ def crm_create_client():
             'nome': client.nome,
             'email': client.email,
             'telefone': client.telefone,
+            'empresa': client.empresa,
             'endereco': client.endereco
         }
     }), 201
@@ -928,6 +939,8 @@ def crm_update_client(client_id):
         client.email = data.get('email')
     if 'telefone' in data:
         client.telefone = data.get('telefone')
+    if 'empresa' in data:
+        client.empresa = data.get('empresa')
     if 'endereco' in data:
         client.endereco = data.get('endereco')
     if 'observacoes' in data:
@@ -942,6 +955,7 @@ def crm_update_client(client_id):
             'nome': client.nome,
             'email': client.email,
             'telefone': client.telefone,
+            'empresa': client.empresa,
             'endereco': client.endereco
         }
     })

@@ -1178,9 +1178,8 @@ def list_all_tasks():
     
     tasks = query.order_by(Task.created_at.desc()).limit(100).all()
     
-    return jsonify({
-        'success': True,
-        'tasks': [{
+    def build_task_response(t):
+        task_data = {
             'id': t.id,
             'titulo': t.titulo,
             'descricao': t.descricao,
@@ -1198,7 +1197,24 @@ def list_all_tasks():
                 'id': t.assigned_user.id,
                 'nome': t.assigned_user.nome
             } if t.assigned_user else None
-        } for t in tasks],
+        }
+        
+        if t.status in ('pendente', 'em_andamento'):
+            task_data['todos'] = [{
+                'id': todo.id,
+                'texto': todo.texto,
+                'comentario': todo.comentario,
+                'completed': todo.completed,
+                'due_date': todo.due_date.isoformat() if todo.due_date else None,
+                'created_at': todo.created_at.isoformat() if todo.created_at else None,
+                'completed_at': todo.completed_at.isoformat() if todo.completed_at else None
+            } for todo in t.todos]
+        
+        return task_data
+    
+    return jsonify({
+        'success': True,
+        'tasks': [build_task_response(t) for t in tasks],
         'total': len(tasks)
     })
 

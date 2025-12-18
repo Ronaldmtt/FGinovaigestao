@@ -354,6 +354,12 @@
                             <span>Usuários</span>
                         </a>
                     </div>
+                    <div class="nav-item">
+                        <a href="{{ url_for('system_api_keys_page') }}" class="nav-link {% if request.endpoint == 'system_api_keys_page' %}active{% endif %}">
+                            <i class="fas fa-key"></i>
+                            <span>API do Sistema</span>
+                        </a>
+                    </div>
                     {% endif %}
                     
                     {% if current_user.is_admin or current_user.acesso_kanban %}

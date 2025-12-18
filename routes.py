@@ -14,7 +14,7 @@ import os
 import uuid
 import mimetypes
 from app import app, db, ALLOWED_EXTENSIONS
-from models import User, Client, Project, Task, TodoItem, Contato, Comentario, FileCategory, ProjectFile, ProjectApiCredential, ProjectApiEndpoint, ProjectApiKey
+from models import User, Client, Project, Task, TodoItem, Contato, Comentario, FileCategory, ProjectFile, ProjectApiCredential, ProjectApiEndpoint, ProjectApiKey, SystemApiKey
 from forms import LoginForm, UserForm, EditUserForm, ClientForm, ProjectForm, TaskForm, TranscriptionTaskForm, ManualProjectForm, ManualTaskForm, ForgotPasswordForm, ResetPasswordForm, ChangePasswordForm, ImportDataForm
 from openai_service import process_project_transcription, generate_tasks_from_transcription
 from email_service import enviar_email_nova_tarefa, enviar_email_mudanca_status, enviar_email_alteracao_data, enviar_email_tarefa_editada, enviar_email_resumo_tarefas
@@ -3709,6 +3709,117 @@ def delete_project_api_key(project_id, key_id):
     return jsonify({
         'success': True,
         'message': 'API Key deletada com sucesso!'
+    })
+
+
+# ============================================
+# System API Keys Management (Admin only)
+# ============================================
+
+@app.route('/admin/system-api-keys')
+@login_required
+def system_api_keys_page():
+    """Página de gerenciamento de chaves de API do sistema"""
+    if not current_user.is_admin:
+        flash('Apenas administradores podem acessar esta página.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    api_keys = SystemApiKey.query.order_by(SystemApiKey.created_at.desc()).all()
+    return render_template('admin_system_api_keys.html', api_keys=api_keys, now=datetime.utcnow())
+
+
+@app.route('/api/system-api-keys', methods=['GET'])
+@login_required
+def list_system_api_keys():
+    """Lista chaves de API do sistema (apenas admin)"""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'message': 'Acesso negado'}), 403
+    
+    api_keys = SystemApiKey.query.order_by(SystemApiKey.created_at.desc()).all()
+    
+    return jsonify({
+        'success': True,
+        'api_keys': [key.to_dict() for key in api_keys]
+    })
+
+
+@app.route('/api/system-api-keys', methods=['POST'])
+@login_required
+def create_system_api_key():
+    """Gera nova System API Key. Retorna o token UMA única vez."""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'message': 'Apenas administradores podem criar chaves de sistema'}), 403
+    
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'message': 'Dados inválidos'}), 400
+    
+    name = data.get('name', '').strip()
+    if not name:
+        return jsonify({'success': False, 'message': 'Nome da chave é obrigatório'}), 400
+    
+    scopes = data.get('scopes', ['clients:read', 'projects:read', 'tasks:read', 'users:read'])
+    expires_days = data.get('expires_days', 90)
+    
+    from api_v1 import generate_system_api_key
+    api_key, token = generate_system_api_key(
+        user_id=current_user.id,
+        name=name,
+        scopes=scopes,
+        expires_days=expires_days
+    )
+    
+    rpa_log.info(f"System API Key criada: {name} (prefix: {api_key.prefix}) por {current_user.email}", regiao="api")
+    
+    return jsonify({
+        'success': True,
+        'message': 'System API Key gerada com sucesso! Copie o token abaixo - ele não será exibido novamente.',
+        'api_key': api_key.to_dict(),
+        'token': token
+    }), 201
+
+
+@app.route('/api/system-api-keys/<int:key_id>/revoke', methods=['POST'])
+@login_required
+def revoke_system_api_key(key_id):
+    """Revoga uma System API Key"""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'message': 'Acesso negado'}), 403
+    
+    api_key = SystemApiKey.query.get_or_404(key_id)
+    
+    if api_key.revoked_at:
+        return jsonify({'success': False, 'message': 'Esta chave já foi revogada'}), 400
+    
+    api_key.revoked_at = datetime.utcnow()
+    db.session.commit()
+    
+    rpa_log.info(f"System API Key revogada: {api_key.name} (prefix: {api_key.prefix}) por {current_user.email}", regiao="api")
+    
+    return jsonify({
+        'success': True,
+        'message': 'System API Key revogada com sucesso!'
+    })
+
+
+@app.route('/api/system-api-keys/<int:key_id>', methods=['DELETE'])
+@login_required
+def delete_system_api_key(key_id):
+    """Deleta uma System API Key permanentemente"""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'message': 'Acesso negado'}), 403
+    
+    api_key = SystemApiKey.query.get_or_404(key_id)
+    
+    key_name = api_key.name
+    db.session.delete(api_key)
+    db.session.commit()
+    
+    rpa_log.info(f"System API Key deletada: {key_name} por {current_user.email}", regiao="api")
+    
+    return jsonify({
+        'success': True,
+        'message': 'System API Key deletada com sucesso!'
     })
 
 

@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+
+{% block title %}Chaves de API do Sistema - Administração{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 pt-3">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-key me-3" style="font-size: 1.5rem; color: #6c757d;"></i>
+            <h2 class="mb-0 fw-bold">Chaves de API do Sistema</h2>
+        </div>
+        <button type="button" class="btn btn-primary px-4" data-bs-toggle="modal" data-bs-target="#newKeyModal">
+            <i class="fas fa-plus me-2"></i>Nova Chave
+        </button>
+    </div>
+
+    <div class="alert alert-info mb-4">
+        <i class="fas fa-info-circle me-2"></i>
+        <strong>API Geral:</strong> Estas chaves permitem acesso a todos os dados do sistema (clientes, projetos, tarefas, usuários) sem restrição de projeto específico. Use com cuidado.
+    </div>
+
+    <div class="card bg-dark border-secondary">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>NOME</th>
+                            <th>PREFIXO</th>
+                            <th>PERMISSÕES</th>
+                            <th>CRIADO POR</th>
+                            <th>CRIADO EM</th>
+                            <th>EXPIRA EM</th>
+                            <th>STATUS</th>
+                            <th class="text-end">AÇÕES</th>
+                        </tr>
+                    </thead>
+                    <tbody id="apiKeysTableBody">
+                        {% if api_keys %}
+                        {% for key in api_keys %}
+                        <tr id="key-row-{{ key.id }}">
+                            <td>
+                                <span class="fw-semibold">{{ key.name }}</span>
+                            </td>
+                            <td>
+                                <code class="text-info">{{ key.prefix }}...</code>
+                            </td>
+                            <td>
+                                {% for scope in key.scopes %}
+                                <span class="badge bg-secondary me-1">{{ scope }}</span>
+                                {% endfor %}
+                            </td>
+                            <td class="text-secondary">{{ key.user.full_name if key.user else '-' }}</td>
+                            <td class="text-secondary">
+                                {{ key.created_at.strftime('%d/%m/%Y %H:%M') if key.created_at else '-' }}
+                            </td>
+                            <td class="text-secondary">
+                                {{ key.expires_at.strftime('%d/%m/%Y') if key.expires_at else 'Nunca' }}
+                            </td>
+                            <td>
+                                {% if key.revoked_at %}
+                                <span class="badge bg-danger">Revogada</span>
+                                {% elif key.expires_at and key.expires_at < now %}
+                                <span class="badge bg-warning text-dark">Expirada</span>
+                                {% else %}
+                                <span class="badge bg-success">Ativa</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end bg-dark border-secondary">
+                                        {% if not key.revoked_at and (not key.expires_at or key.expires_at > now) %}
+                                        <li>
+                                            <button class="dropdown-item text-warning" onclick="revokeKey({{ key.id }})">
+                                                <i class="fas fa-ban me-2"></i>Revogar
+                                            </button>
+                                        </li>
+                                        {% endif %}
+                                        <li>
+                                            <button class="dropdown-item text-danger" onclick="deleteKey({{ key.id }})">
+                                                <i class="fas fa-trash me-2"></i>Deletar
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center py-5">
+                                <i class="fas fa-key fa-3x text-muted mb-3 d-block"></i>
+                                <p class="text-muted mb-0">Nenhuma chave de API do sistema cadastrada</p>
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card bg-dark border-secondary mt-4">
+        <div class="card-header border-secondary">
+            <h5 class="mb-0"><i class="fas fa-book me-2"></i>Endpoints Disponíveis</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-dark table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th>Método</th>
+                            <th>Endpoint</th>
+                            <th>Permissão</th>
+                            <th>Descrição</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><span class="badge bg-success">GET</span></td><td><code>/api/v1/clients</code></td><td>clients:read</td><td>Lista todos os clientes</td></tr>
+                        <tr><td><span class="badge bg-success">GET</span></td><td><code>/api/v1/clients/{id}</code></td><td>clients:read</td><td>Detalhes de um cliente</td></tr>
+                        <tr><td><span class="badge bg-primary">POST</span></td><td><code>/api/v1/clients</code></td><td>clients:write</td><td>Criar cliente</td></tr>
+                        <tr><td><span class="badge bg-warning text-dark">PUT</span></td><td><code>/api/v1/clients/{id}</code></td><td>clients:write</td><td>Atualizar cliente</td></tr>
+                        <tr><td><span class="badge bg-danger">DELETE</span></td><td><code>/api/v1/clients/{id}</code></td><td>clients:write</td><td>Deletar cliente</td></tr>
+                        <tr><td colspan="4" class="border-top border-secondary"></td></tr>
+                        <tr><td><span class="badge bg-success">GET</span></td><td><code>/api/v1/projects</code></td><td>projects:read</td><td>Lista todos os projetos</td></tr>
+                        <tr><td><span class="badge bg-success">GET</span></td><td><code>/api/v1/projects/{id}</code></td><td>projects:read</td><td>Detalhes de um projeto</td></tr>
+                        <tr><td><span class="badge bg-primary">POST</span></td><td><code>/api/v1/projects</code></td><td>projects:write</td><td>Criar projeto</td></tr>
+                        <tr><td><span class="badge bg-warning text-dark">PUT</span></td><td><code>/api/v1/projects/{id}</code></td><td>projects:write</td><td>Atualizar projeto</td></tr>
+                        <tr><td><span class="badge bg-danger">DELETE</span></td><td><code>/api/v1/projects/{id}</code></td><td>projects:write</td><td>Deletar projeto</td></tr>
+                        <tr><td colspan="4" class="border-top border-secondary"></td></tr>
+                        <tr><td><span class="badge bg-success">GET</span></td><td><code>/api/v1/system/tasks</code></td><td>tasks:read</td><td>Lista todas as tarefas</td></tr>
+                        <tr><td><span class="badge bg-primary">POST</span></td><td><code>/api/v1/system/tasks</code></td><td>tasks:write</td><td>Criar tarefa em qualquer projeto</td></tr>
+                        <tr><td colspan="4" class="border-top border-secondary"></td></tr>
+                        <tr><td><span class="badge bg-success">GET</span></td><td><code>/api/v1/users</code></td><td>users:read</td><td>Lista todos os usuários</td></tr>
+                        <tr><td><span class="badge bg-success">GET</span></td><td><code>/api/v1/users/{id}</code></td><td>users:read</td><td>Detalhes de um usuário</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="newKeyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title"><i class="fas fa-key me-2"></i>Nova Chave de API do Sistema</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="newKeyForm">
+                    <div class="mb-3">
+                        <label class="form-label">Nome da Chave</label>
+                        <input type="text" class="form-control bg-dark text-light border-secondary" id="keyName" placeholder="Ex: Integração ERP" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Permissões</label>
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="scope_clients_read" checked>
+                                    <label class="form-check-label" for="scope_clients_read">clients:read</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="scope_clients_write">
+                                    <label class="form-check-label" for="scope_clients_write">clients:write</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="scope_projects_read" checked>
+                                    <label class="form-check-label" for="scope_projects_read">projects:read</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="scope_projects_write">
+                                    <label class="form-check-label" for="scope_projects_write">projects:write</label>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="scope_tasks_read" checked>
+                                    <label class="form-check-label" for="scope_tasks_read">tasks:read</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="scope_tasks_write">
+                                    <label class="form-check-label" for="scope_tasks_write">tasks:write</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="scope_users_read" checked>
+                                    <label class="form-check-label" for="scope_users_read">users:read</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Validade</label>
+                        <select class="form-select bg-dark text-light border-secondary" id="keyExpiry">
+                            <option value="30">30 dias</option>
+                            <option value="90" selected>90 dias</option>
+                            <option value="180">6 meses</option>
+                            <option value="365">1 ano</option>
+                            <option value="">Sem expiração</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="generateKey()">
+                    <i class="fas fa-key me-2"></i>Gerar Chave
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="tokenModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header border-secondary bg-success bg-opacity-25">
+                <h5 class="modal-title"><i class="fas fa-check-circle me-2"></i>Chave Gerada com Sucesso!</h5>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>IMPORTANTE:</strong> Copie esta chave agora. Ela não será exibida novamente!
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Sua Chave de API:</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control bg-dark text-light border-secondary font-monospace" id="generatedToken" readonly>
+                        <button class="btn btn-outline-primary" type="button" onclick="copyToken()">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="small text-muted">
+                    Use esta chave no header da requisição:<br>
+                    <code>Authorization: Bearer [sua-chave]</code>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="location.reload()">
+                    Entendi, já copiei
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function generateKey() {
+    const name = document.getElementById('keyName').value.trim();
+    if (!name) {
+        alert('Informe o nome da chave');
+        return;
+    }
+    
+    const scopes = [];
+    if (document.getElementById('scope_clients_read').checked) scopes.push('clients:read');
+    if (document.getElementById('scope_clients_write').checked) scopes.push('clients:write');
+    if (document.getElementById('scope_projects_read').checked) scopes.push('projects:read');
+    if (document.getElementById('scope_projects_write').checked) scopes.push('projects:write');
+    if (document.getElementById('scope_tasks_read').checked) scopes.push('tasks:read');
+    if (document.getElementById('scope_tasks_write').checked) scopes.push('tasks:write');
+    if (document.getElementById('scope_users_read').checked) scopes.push('users:read');
+    
+    const expiryValue = document.getElementById('keyExpiry').value;
+    const expires_days = expiryValue ? parseInt(expiryValue) : null;
+    
+    fetch('/api/system-api-keys', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            name: name,
+            scopes: scopes,
+            expires_days: expires_days
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('newKeyModal')).hide();
+            document.getElementById('generatedToken').value = data.token;
+            new bootstrap.Modal(document.getElementById('tokenModal')).show();
+        } else {
+            alert(data.message || 'Erro ao gerar chave');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Erro ao gerar chave');
+    });
+}
+
+function copyToken() {
+    const tokenInput = document.getElementById('generatedToken');
+    tokenInput.select();
+    document.execCommand('copy');
+    
+    const btn = event.target.closest('button');
+    const originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check"></i>';
+    setTimeout(() => { btn.innerHTML = originalHtml; }, 2000);
+}
+
+function revokeKey(keyId) {
+    if (!confirm('Tem certeza que deseja revogar esta chave? Ela não poderá mais ser usada.')) return;
+    
+    fetch(`/api/system-api-keys/${keyId}/revoke`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.message || 'Erro ao revogar chave');
+        }
+    });
+}
+
+function deleteKey(keyId) {
+    if (!confirm('Tem certeza que deseja deletar esta chave permanentemente?')) return;
+    
+    fetch(`/api/system-api-keys/${keyId}`, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById(`key-row-${keyId}`).remove();
+        } else {
+            alert(data.message || 'Erro ao deletar chave');
+        }
+    });
+}
+</script>
+{% endblock %}

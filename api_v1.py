@@ -688,8 +688,7 @@ def list_clients():
             'nome': c.nome,
             'email': c.email,
             'telefone': c.telefone,
-            'empresa': c.empresa,
-            'cargo': c.cargo,
+            'endereco': c.endereco,
             'observacoes': c.observacoes,
             'created_at': c.created_at.isoformat() if c.created_at else None,
             'projects_count': len(c.projects) if c.projects else 0
@@ -713,8 +712,7 @@ def get_client(client_id):
             'nome': client.nome,
             'email': client.email,
             'telefone': client.telefone,
-            'empresa': client.empresa,
-            'cargo': client.cargo,
+            'endereco': client.endereco,
             'observacoes': client.observacoes,
             'created_at': client.created_at.isoformat() if client.created_at else None,
             'projects': [{
@@ -737,13 +735,16 @@ def create_client():
     if not data.get('nome'):
         return api_error('missing_field', 'Campo obrigatório: nome', 400)
     
+    system_api_key = g.get('system_api_key')
+    creator_id = system_api_key.user_id if system_api_key else 1
+    
     client = Client(
         nome=data['nome'],
         email=data.get('email'),
         telefone=data.get('telefone'),
-        empresa=data.get('empresa'),
-        cargo=data.get('cargo'),
-        observacoes=data.get('observacoes')
+        endereco=data.get('endereco'),
+        observacoes=data.get('observacoes'),
+        creator_id=creator_id
     )
     
     db.session.add(client)
@@ -756,8 +757,7 @@ def create_client():
             'nome': client.nome,
             'email': client.email,
             'telefone': client.telefone,
-            'empresa': client.empresa,
-            'cargo': client.cargo
+            'endereco': client.endereco
         }
     }), 201
 
@@ -780,10 +780,8 @@ def update_client(client_id):
         client.email = data.get('email')
     if 'telefone' in data:
         client.telefone = data.get('telefone')
-    if 'empresa' in data:
-        client.empresa = data.get('empresa')
-    if 'cargo' in data:
-        client.cargo = data.get('cargo')
+    if 'endereco' in data:
+        client.endereco = data.get('endereco')
     if 'observacoes' in data:
         client.observacoes = data.get('observacoes')
     
@@ -796,8 +794,7 @@ def update_client(client_id):
             'nome': client.nome,
             'email': client.email,
             'telefone': client.telefone,
-            'empresa': client.empresa,
-            'cargo': client.cargo
+            'endereco': client.endereco
         }
     })
 

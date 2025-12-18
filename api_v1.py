@@ -10,7 +10,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_required, current_user
 
 from app import db
-from models import Project, Task, TodoItem, User, ProjectApiKey, SystemApiKey, Client
+from models import Project, Task, TodoItem, User, ProjectApiKey, SystemApiKey, Client, Lead
 
 api_v1 = Blueprint('api_v1', __name__, url_prefix='/api/v1')
 
@@ -1319,5 +1319,220 @@ def get_user(user_id):
             'email': user.email,
             'is_admin': user.is_admin,
             'tasks_count': Task.query.filter_by(assigned_user_id=user.id).count()
+        }
+    })
+
+
+# ============================================================================
+# CRM LEADS ENDPOINTS
+# ============================================================================
+
+def parse_bool_param(value):
+    """Converte parâmetro string para boolean de forma robusta"""
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    str_val = str(value).lower().strip()
+    if str_val in ('true', '1', 'yes', 'sim'):
+        return True
+    if str_val in ('false', '0', 'no', 'nao', 'não'):
+        return False
+    return None
+
+
+@api_v1.route('/crm/leads', methods=['GET'])
+@require_system_api_key(required_scopes=['leads:read'])
+def list_leads():
+    """Lista todos os leads do CRM"""
+    etapa = request.args.get('etapa')
+    convertido = parse_bool_param(request.args.get('convertido'))
+    perdido = parse_bool_param(request.args.get('perdido'))
+    responsavel_id = request.args.get('responsavel_id', type=int)
+    limit = request.args.get('limit', 100, type=int)
+    offset = request.args.get('offset', 0, type=int)
+    
+    query = Lead.query
+    
+    if etapa:
+        query = query.filter_by(etapa=etapa)
+    if convertido is not None:
+        query = query.filter_by(convertido=convertido)
+    if perdido is not None:
+        query = query.filter_by(perdido=perdido)
+    if responsavel_id:
+        query = query.filter_by(responsavel_id=responsavel_id)
+    
+    total = query.count()
+    leads = query.order_by(Lead.created_at.desc()).offset(offset).limit(limit).all()
+    
+    return jsonify({
+        'success': True,
+        'leads': [lead.to_dict() for lead in leads],
+        'total': total,
+        'limit': limit,
+        'offset': offset
+    })
+
+
+@api_v1.route('/crm/leads/<int:lead_id>', methods=['GET'])
+@require_system_api_key(required_scopes=['leads:read'])
+def get_lead(lead_id):
+    """Retorna detalhes de um lead específico"""
+    lead = Lead.query.get(lead_id)
+    if not lead:
+        return api_error('lead_not_found', 'Lead não encontrado', 404)
+    
+    return jsonify({
+        'success': True,
+        'lead': lead.to_dict()
+    })
+
+
+@api_v1.route('/crm/leads', methods=['POST'])
+@require_system_api_key(required_scopes=['leads:write'])
+def create_lead():
+    """Cria um novo lead"""
+    data = request.get_json()
+    if not data:
+        return api_error('invalid_json', 'JSON inválido ou não fornecido', 400)
+    
+    if not data.get('nome'):
+        return api_error('missing_field', 'Campo obrigatório: nome', 400)
+    
+    lead = Lead(
+        nome=data['nome'],
+        empresa=data.get('empresa'),
+        email=data.get('email'),
+        telefone=data.get('telefone'),
+        cargo=data.get('cargo'),
+        origem=data.get('origem'),
+        valor_estimado=data.get('valor_estimado'),
+        etapa=data.get('etapa', 'Novo'),
+        observacoes=data.get('observacoes'),
+        responsavel_id=data.get('responsavel_id')
+    )
+    
+    if data.get('responsavel_id'):
+        user = User.query.get(data['responsavel_id'])
+        if not user:
+            return api_error('user_not_found', 'Responsável não encontrado', 404)
+    
+    db.session.add(lead)
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'lead': lead.to_dict()
+    }), 201
+
+
+@api_v1.route('/crm/leads/<int:lead_id>', methods=['PUT'])
+@require_system_api_key(required_scopes=['leads:write'])
+def update_lead(lead_id):
+    """Atualiza um lead existente"""
+    lead = Lead.query.get(lead_id)
+    if not lead:
+        return api_error('lead_not_found', 'Lead não encontrado', 404)
+    
+    data = request.get_json()
+    if not data:
+        return api_error('invalid_json', 'JSON inválido ou não fornecido', 400)
+    
+    if 'nome' in data:
+        lead.nome = data['nome']
+    if 'empresa' in data:
+        lead.empresa = data['empresa']
+    if 'email' in data:
+        lead.email = data['email']
+    if 'telefone' in data:
+        lead.telefone = data['telefone']
+    if 'cargo' in data:
+        lead.cargo = data['cargo']
+    if 'origem' in data:
+        lead.origem = data['origem']
+    if 'valor_estimado' in data:
+        lead.valor_estimado = data['valor_estimado']
+    if 'etapa' in data:
+        lead.etapa = data['etapa']
+    if 'observacoes' in data:
+        lead.observacoes = data['observacoes']
+    if 'convertido' in data:
+        lead.convertido = data['convertido']
+    if 'perdido' in data:
+        lead.perdido = data['perdido']
+    if 'motivo_perda' in data:
+        lead.motivo_perda = data['motivo_perda']
+    if 'responsavel_id' in data:
+        if data['responsavel_id']:
+            user = User.query.get(data['responsavel_id'])
+            if not user:
+                return api_error('user_not_found', 'Responsável não encontrado', 404)
+        lead.responsavel_id = data['responsavel_id']
+    
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'lead': lead.to_dict()
+    })
+
+
+@api_v1.route('/crm/leads/<int:lead_id>', methods=['DELETE'])
+@require_system_api_key(required_scopes=['leads:write'])
+def delete_lead(lead_id):
+    """Deleta um lead"""
+    lead = Lead.query.get(lead_id)
+    if not lead:
+        return api_error('lead_not_found', 'Lead não encontrado', 404)
+    
+    db.session.delete(lead)
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': 'Lead deletado com sucesso'
+    })
+
+
+@api_v1.route('/crm/leads/<int:lead_id>/convert', methods=['POST'])
+@require_system_api_key(required_scopes=['leads:write'])
+def convert_lead_to_client(lead_id):
+    """Converte um lead em cliente"""
+    lead = Lead.query.get(lead_id)
+    if not lead:
+        return api_error('lead_not_found', 'Lead não encontrado', 404)
+    
+    if lead.convertido:
+        return api_error('already_converted', 'Lead já foi convertido em cliente', 400)
+    
+    data = request.get_json() or {}
+    
+    client = Client(
+        nome=data.get('nome') or lead.nome,
+        email=lead.email,
+        telefone=lead.telefone,
+        empresa=lead.empresa,
+        observacoes=lead.observacoes,
+        creator_id=g.api_user.id
+    )
+    
+    db.session.add(client)
+    db.session.flush()
+    
+    lead.convertido = True
+    lead.converted_to_client_id = client.id
+    
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': 'Lead convertido em cliente com sucesso',
+        'lead': lead.to_dict(),
+        'client': {
+            'id': client.id,
+            'nome': client.nome,
+            'email': client.email,
+            'empresa': client.empresa
         }
     })

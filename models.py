@@ -390,6 +390,58 @@ class ProjectApiKey(db.Model):
         return data
 
 
+class Lead(db.Model):
+    """Lead/Prospecto do CRM"""
+    __tablename__ = 'lead'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(200), nullable=False)
+    empresa = db.Column(db.String(200))
+    email = db.Column(db.String(120))
+    telefone = db.Column(db.String(50))
+    cargo = db.Column(db.String(100))
+    origem = db.Column(db.String(100))
+    valor_estimado = db.Column(db.Float)
+    etapa = db.Column(db.String(50), nullable=False, default='Novo')
+    convertido = db.Column(db.Boolean, default=False, nullable=False)
+    perdido = db.Column(db.Boolean, default=False, nullable=False)
+    motivo_perda = db.Column(db.Text)
+    observacoes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    responsavel_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    converted_to_client_id = db.Column(db.Integer, db.ForeignKey('client.id'))
+    
+    responsavel = db.relationship('User', backref=db.backref('leads_responsavel', lazy=True))
+    converted_to_client = db.relationship('Client', backref=db.backref('converted_from_leads', lazy=True))
+    
+    def __repr__(self):
+        return f'<Lead {self.nome}>'
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'nome': self.nome,
+            'empresa': self.empresa,
+            'email': self.email,
+            'telefone': self.telefone,
+            'cargo': self.cargo,
+            'origem': self.origem,
+            'valor_estimado': self.valor_estimado,
+            'etapa': self.etapa,
+            'convertido': self.convertido,
+            'perdido': self.perdido,
+            'motivo_perda': self.motivo_perda,
+            'observacoes': self.observacoes,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'responsavel_id': self.responsavel_id,
+            'responsavel_nome': self.responsavel.full_name if self.responsavel else None,
+            'converted_to_client_id': self.converted_to_client_id
+        }
+
+
 class SystemApiKey(db.Model):
     """Chave de API geral do sistema (não vinculada a projeto específico)"""
     __tablename__ = 'system_api_keys'

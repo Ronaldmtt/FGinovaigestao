@@ -136,6 +136,13 @@
                         <tr><td colspan="4" class="border-top border-secondary"></td></tr>
                         <tr><td><span class="badge bg-success">GET</span></td><td><code>/api/v1/users</code></td><td>users:read</td><td>Lista todos os usuários</td></tr>
                         <tr><td><span class="badge bg-success">GET</span></td><td><code>/api/v1/users/{id}</code></td><td>users:read</td><td>Detalhes de um usuário</td></tr>
+                        <tr><td colspan="4" class="border-top border-secondary"></td></tr>
+                        <tr><td><span class="badge bg-success">GET</span></td><td><code>/api/v1/crm/leads</code></td><td>leads:read</td><td>Lista todos os leads do CRM</td></tr>
+                        <tr><td><span class="badge bg-success">GET</span></td><td><code>/api/v1/crm/leads/{id}</code></td><td>leads:read</td><td>Detalhes de um lead</td></tr>
+                        <tr><td><span class="badge bg-primary">POST</span></td><td><code>/api/v1/crm/leads</code></td><td>leads:write</td><td>Criar lead</td></tr>
+                        <tr><td><span class="badge bg-warning text-dark">PUT</span></td><td><code>/api/v1/crm/leads/{id}</code></td><td>leads:write</td><td>Atualizar lead</td></tr>
+                        <tr><td><span class="badge bg-danger">DELETE</span></td><td><code>/api/v1/crm/leads/{id}</code></td><td>leads:write</td><td>Deletar lead</td></tr>
+                        <tr><td><span class="badge bg-primary">POST</span></td><td><code>/api/v1/crm/leads/{id}/convert</code></td><td>leads:write</td><td>Converter lead em cliente</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -189,6 +196,14 @@
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="scope_users_read" checked>
                                     <label class="form-check-label" for="scope_users_read">users:read</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="scope_leads_read" checked>
+                                    <label class="form-check-label" for="scope_leads_read">leads:read</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="scope_leads_write">
+                                    <label class="form-check-label" for="scope_leads_write">leads:write</label>
                                 </div>
                             </div>
                         </div>
@@ -268,6 +283,8 @@ function generateKey() {
     if (document.getElementById('scope_tasks_read').checked) scopes.push('tasks:read');
     if (document.getElementById('scope_tasks_write').checked) scopes.push('tasks:write');
     if (document.getElementById('scope_users_read').checked) scopes.push('users:read');
+    if (document.getElementById('scope_leads_read').checked) scopes.push('leads:read');
+    if (document.getElementById('scope_leads_write').checked) scopes.push('leads:write');
     
     const expiryValue = document.getElementById('keyExpiry').value;
     const expires_days = expiryValue ? parseInt(expiryValue) : null;

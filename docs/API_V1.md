@@ -1,15 +1,18 @@
 # API v1 - Documentação
 
-Esta API permite integrar sistemas externos com o sistema de gestão de projetos. Cada chave de API é vinculada a um projeto específico e possui permissões (scopes) configuráveis.
+Esta API permite integrar sistemas externos com o sistema de gestão de projetos. Existem dois tipos de chaves de API:
+
+1. **Chaves de Projeto**: Vinculadas a um projeto específico
+2. **Chaves de Sistema**: Acesso geral a todos os dados (apenas admin)
 
 ## Resumo das Mudanças Recentes
 
 | Commit | Descrição |
 |--------|-----------|
-| Formatação JSON | Respostas da API agora são formatadas com indentação para facilitar leitura |
+| API Geral | Novos endpoints para clientes, projetos, tarefas e usuários com acesso global |
+| Chaves de Sistema | Administradores podem criar chaves com acesso a todo o sistema |
+| Formatação JSON | Respostas da API formatadas com indentação |
 | Validação de usuários | Tarefas só podem ser atribuídas a membros do projeto (proteção anti-IDOR) |
-| Gestão de chaves | Interface para gerar, listar e revogar chaves de API no painel do projeto |
-| API v1 completa | 13 endpoints RESTful para projetos, tarefas e subtarefas |
 
 ---
 
@@ -29,24 +32,57 @@ curl -H "X-API-Key: SUA_CHAVE_AQUI" https://seu-dominio.com/api/v1/project
 
 ---
 
+## Tipos de Chaves de API
+
+### Chaves de Projeto (Project API Key)
+- Vinculadas a um projeto específico
+- Criadas na aba "API" de cada projeto
+- Acesso restrito ao projeto da chave
+
+### Chaves de Sistema (System API Key)
+- Acesso geral a todo o sistema
+- Criadas apenas por administradores
+- Menu: **API do Sistema** (barra lateral)
+- Permitem acesso a clientes, todos os projetos, todas as tarefas e usuários
+
+---
+
 ## Como Obter uma Chave de API
 
+### Chave de Projeto
 1. Acesse o projeto no sistema
 2. Clique na aba **"API"**
 3. Clique em **"Gerar Nova Chave"**
-4. Configure:
-   - **Nome**: identificação da chave (ex: "Integração ERP")
-   - **Permissões**: escolha os escopos necessários
-   - **Validade**: defina quando a chave expira (opcional)
-5. **IMPORTANTE**: Copie a chave imediatamente! Ela só é exibida uma vez.
+4. Configure nome, permissões e validade
+5. **IMPORTANTE**: Copie a chave imediatamente!
 
-### Permissões Disponíveis (Scopes)
+### Chave de Sistema (Admin)
+1. No menu lateral, clique em **"API do Sistema"**
+2. Clique em **"Nova Chave"**
+3. Configure nome, permissões e validade
+4. **IMPORTANTE**: Copie a chave imediatamente!
 
+---
+
+## Permissões Disponíveis (Scopes)
+
+### Chaves de Projeto
 | Scope | Descrição |
 |-------|-----------|
 | `projects:read` | Ler informações do projeto |
 | `tasks:read` | Listar e visualizar tarefas |
 | `tasks:write` | Criar, editar e excluir tarefas |
+
+### Chaves de Sistema
+| Scope | Descrição |
+|-------|-----------|
+| `clients:read` | Listar e visualizar clientes |
+| `clients:write` | Criar, editar e excluir clientes |
+| `projects:read` | Listar e visualizar todos os projetos |
+| `projects:write` | Criar, editar e excluir projetos |
+| `tasks:read` | Listar e visualizar todas as tarefas |
+| `tasks:write` | Criar, editar e excluir tarefas |
+| `users:read` | Listar e visualizar usuários |
 
 ---
 
@@ -297,6 +333,224 @@ curl -X PUT \
 Remove uma subtarefa.
 
 **Permissão necessária:** `tasks:write`
+
+---
+
+# API GERAL DO SISTEMA (Chaves de Sistema)
+
+Os endpoints abaixo requerem uma **Chave de Sistema** (System API Key), criada por administradores no menu "API do Sistema".
+
+---
+
+## 4. Clientes
+
+### GET /api/v1/clients
+Lista todos os clientes.
+
+**Permissão necessária:** `clients:read`
+
+**Exemplo:**
+```bash
+curl -H "Authorization: Bearer SUA_CHAVE_SISTEMA" https://seu-dominio.com/api/v1/clients
+```
+
+**Resposta:**
+```json
+{
+  "success": true,
+  "clients": [
+    {
+      "id": 1,
+      "nome": "Empresa ABC",
+      "email": "contato@empresa.com",
+      "telefone": "(11) 99999-9999",
+      "empresa": "ABC Ltda",
+      "projects_count": 5
+    }
+  ],
+  "total": 1
+}
+```
+
+---
+
+### GET /api/v1/clients/{id}
+Retorna detalhes de um cliente específico.
+
+**Permissão necessária:** `clients:read`
+
+---
+
+### POST /api/v1/clients
+Cria um novo cliente.
+
+**Permissão necessária:** `clients:write`
+
+**Body (JSON):**
+```json
+{
+  "nome": "Novo Cliente",
+  "email": "cliente@empresa.com",
+  "telefone": "(11) 98888-8888",
+  "empresa": "Empresa XYZ"
+}
+```
+
+---
+
+### PUT /api/v1/clients/{id}
+Atualiza um cliente.
+
+**Permissão necessária:** `clients:write`
+
+---
+
+### DELETE /api/v1/clients/{id}
+Remove um cliente (apenas se não tiver projetos vinculados).
+
+**Permissão necessária:** `clients:write`
+
+---
+
+## 5. Projetos (Geral)
+
+### GET /api/v1/projects
+Lista todos os projetos do sistema.
+
+**Permissão necessária:** `projects:read`
+
+**Parâmetros de query (opcionais):**
+| Parâmetro | Tipo | Descrição |
+|-----------|------|-----------|
+| `status` | string | Filtrar por status |
+| `client_id` | integer | Filtrar por cliente |
+
+**Exemplo:**
+```bash
+curl -H "Authorization: Bearer SUA_CHAVE_SISTEMA" "https://seu-dominio.com/api/v1/projects?status=em_andamento"
+```
+
+---
+
+### GET /api/v1/projects/{id}
+Retorna detalhes completos de um projeto.
+
+**Permissão necessária:** `projects:read`
+
+---
+
+### POST /api/v1/projects
+Cria um novo projeto.
+
+**Permissão necessária:** `projects:write`
+
+**Body (JSON):**
+```json
+{
+  "nome": "Novo Projeto",
+  "client_id": 1,
+  "responsible_id": 5,
+  "status": "em_andamento",
+  "prazo": "2025-12-31",
+  "descricao_resumida": "Descrição do projeto"
+}
+```
+
+**Campos obrigatórios:** `nome`, `client_id`
+
+---
+
+### PUT /api/v1/projects/{id}
+Atualiza um projeto.
+
+**Permissão necessária:** `projects:write`
+
+---
+
+### DELETE /api/v1/projects/{id}
+Remove um projeto.
+
+**Permissão necessária:** `projects:write`
+
+---
+
+## 6. Tarefas (Geral)
+
+### GET /api/v1/system/tasks
+Lista todas as tarefas do sistema (sem filtro de projeto).
+
+**Permissão necessária:** `tasks:read`
+
+**Parâmetros de query (opcionais):**
+| Parâmetro | Tipo | Descrição |
+|-----------|------|-----------|
+| `status` | string | Filtrar por status |
+| `project_id` | integer | Filtrar por projeto |
+| `assigned_user_id` | integer | Filtrar por responsável |
+
+**Exemplo:**
+```bash
+curl -H "Authorization: Bearer SUA_CHAVE_SISTEMA" "https://seu-dominio.com/api/v1/system/tasks?status=pendente"
+```
+
+---
+
+### POST /api/v1/system/tasks
+Cria uma tarefa em qualquer projeto.
+
+**Permissão necessária:** `tasks:write`
+
+**Body (JSON):**
+```json
+{
+  "titulo": "Nova tarefa via API",
+  "project_id": 42,
+  "descricao": "Descrição da tarefa",
+  "status": "pendente",
+  "prioridade": "alta",
+  "assigned_user_id": 5
+}
+```
+
+**Campos obrigatórios:** `titulo`, `project_id`
+
+---
+
+## 7. Usuários
+
+### GET /api/v1/users
+Lista todos os usuários do sistema.
+
+**Permissão necessária:** `users:read`
+
+**Exemplo:**
+```bash
+curl -H "Authorization: Bearer SUA_CHAVE_SISTEMA" https://seu-dominio.com/api/v1/users
+```
+
+**Resposta:**
+```json
+{
+  "success": true,
+  "users": [
+    {
+      "id": 1,
+      "nome": "João",
+      "sobrenome": "Silva",
+      "email": "joao@empresa.com",
+      "is_admin": false
+    }
+  ],
+  "total": 1
+}
+```
+
+---
+
+### GET /api/v1/users/{id}
+Retorna detalhes de um usuário.
+
+**Permissão necessária:** `users:read`
 
 ---
 

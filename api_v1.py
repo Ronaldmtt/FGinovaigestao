@@ -10,7 +10,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_required, current_user
 
 from app import db
-from models import Project, Task, TodoItem, User, ProjectApiKey, SystemApiKey, Client, Lead
+from models import Project, Task, TodoItem, User, ProjectApiKey, SystemApiKey, Client, Lead, Contato
 
 api_v1 = Blueprint('api_v1', __name__, url_prefix='/api/v1')
 
@@ -1535,4 +1535,164 @@ def convert_lead_to_client(lead_id):
             'email': client.email,
             'empresa': client.empresa
         }
+    })
+
+
+# ============================================================================
+# CRM CONTATOS ENDPOINTS (Tabela principal do CRM)
+# ============================================================================
+
+@api_v1.route('/crm/contatos', methods=['GET'])
+@require_system_api_key(required_scopes=['leads:read'])
+def list_contatos():
+    """Lista todos os contatos do CRM"""
+    estagio = request.args.get('estagio')
+    limit = request.args.get('limit', 100, type=int)
+    offset = request.args.get('offset', 0, type=int)
+    
+    query = Contato.query
+    
+    if estagio:
+        query = query.filter_by(estagio=estagio)
+    
+    total = query.count()
+    contatos = query.order_by(Contato.data_criacao.desc()).offset(offset).limit(limit).all()
+    
+    return jsonify({
+        'success': True,
+        'contatos': [{
+            'id': c.id,
+            'nome_empresa': c.nome_empresa,
+            'nome_contato': c.nome_contato,
+            'email': c.email,
+            'telefone': c.telefone,
+            'observacoes': c.observacoes,
+            'estagio': c.estagio,
+            'data_criacao': c.data_criacao.isoformat() if c.data_criacao else None,
+            'data_atualizacao': c.data_atualizacao.isoformat() if c.data_atualizacao else None
+        } for c in contatos],
+        'total': total,
+        'limit': limit,
+        'offset': offset
+    })
+
+
+@api_v1.route('/crm/contatos/<int:contato_id>', methods=['GET'])
+@require_system_api_key(required_scopes=['leads:read'])
+def get_contato(contato_id):
+    """Retorna detalhes de um contato específico"""
+    contato = Contato.query.get(contato_id)
+    if not contato:
+        return api_error('contato_not_found', 'Contato não encontrado', 404)
+    
+    return jsonify({
+        'success': True,
+        'contato': {
+            'id': contato.id,
+            'nome_empresa': contato.nome_empresa,
+            'nome_contato': contato.nome_contato,
+            'email': contato.email,
+            'telefone': contato.telefone,
+            'observacoes': contato.observacoes,
+            'estagio': contato.estagio,
+            'data_criacao': contato.data_criacao.isoformat() if contato.data_criacao else None,
+            'data_atualizacao': contato.data_atualizacao.isoformat() if contato.data_atualizacao else None
+        }
+    })
+
+
+@api_v1.route('/crm/contatos', methods=['POST'])
+@require_system_api_key(required_scopes=['leads:write'])
+def create_contato():
+    """Cria um novo contato"""
+    data = request.get_json()
+    if not data:
+        return api_error('invalid_json', 'JSON inválido ou não fornecido', 400)
+    
+    required_fields = ['nome_empresa', 'nome_contato', 'email', 'telefone']
+    for field in required_fields:
+        if not data.get(field):
+            return api_error('missing_field', f'Campo obrigatório: {field}', 400)
+    
+    contato = Contato(
+        nome_empresa=data['nome_empresa'],
+        nome_contato=data['nome_contato'],
+        email=data['email'],
+        telefone=data['telefone'],
+        observacoes=data.get('observacoes'),
+        estagio=data.get('estagio', 'Captação')
+    )
+    
+    db.session.add(contato)
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'contato': {
+            'id': contato.id,
+            'nome_empresa': contato.nome_empresa,
+            'nome_contato': contato.nome_contato,
+            'email': contato.email,
+            'telefone': contato.telefone,
+            'estagio': contato.estagio
+        }
+    }), 201
+
+
+@api_v1.route('/crm/contatos/<int:contato_id>', methods=['PUT'])
+@require_system_api_key(required_scopes=['leads:write'])
+def update_contato(contato_id):
+    """Atualiza um contato existente"""
+    contato = Contato.query.get(contato_id)
+    if not contato:
+        return api_error('contato_not_found', 'Contato não encontrado', 404)
+    
+    data = request.get_json()
+    if not data:
+        return api_error('invalid_json', 'JSON inválido ou não fornecido', 400)
+    
+    if 'nome_empresa' in data:
+        contato.nome_empresa = data['nome_empresa']
+    if 'nome_contato' in data:
+        contato.nome_contato = data['nome_contato']
+    if 'email' in data:
+        contato.email = data['email']
+    if 'telefone' in data:
+        contato.telefone = data['telefone']
+    if 'observacoes' in data:
+        contato.observacoes = data['observacoes']
+    if 'estagio' in data:
+        contato.estagio = data['estagio']
+    
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'contato': {
+            'id': contato.id,
+            'nome_empresa': contato.nome_empresa,
+            'nome_contato': contato.nome_contato,
+            'email': contato.email,
+            'telefone': contato.telefone,
+            'observacoes': contato.observacoes,
+            'estagio': contato.estagio,
+            'data_atualizacao': contato.data_atualizacao.isoformat() if contato.data_atualizacao else None
+        }
+    })
+
+
+@api_v1.route('/crm/contatos/<int:contato_id>', methods=['DELETE'])
+@require_system_api_key(required_scopes=['leads:write'])
+def delete_contato(contato_id):
+    """Deleta um contato"""
+    contato = Contato.query.get(contato_id)
+    if not contato:
+        return api_error('contato_not_found', 'Contato não encontrado', 404)
+    
+    db.session.delete(contato)
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': 'Contato deletado com sucesso'
     })

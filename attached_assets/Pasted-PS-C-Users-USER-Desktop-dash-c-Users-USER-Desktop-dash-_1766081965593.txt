@@ -1,0 +1,73 @@
+PS C:\Users\USER\Desktop\dash> & c:/Users/USER/Desktop/dash/.venv/Scripts/python.exe c:/Users/USER/Desktop/dash/main.py
+============================================================
+Sistema de Integração - API Gestão InovaLab
+============================================================
+
+1. Testando conexão com a API...
+2025-12-18 15:18:45,663 - api_client - INFO - Testando conexão com a API...
+2025-12-18 15:18:45,663 - api_client - INFO - Fazendo requisição GET para https://gestao-inovailab.replit.app/api/v1/clients
+2025-12-18 15:18:46,867 - api_client - INFO - Requisição bem-sucedida: https://gestao-inovailab.replit.app/api/v1/clients
+--- Logging error ---
+Traceback (most recent call last):
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\logging\__init__.py", line 1153, in emit
+    stream.write(msg + self.terminator)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2713' in position 46: character maps to <undefined>
+Call stack:
+  File "c:\Users\USER\Desktop\dash\main.py", line 146, in <module>
+    main()
+  File "c:\Users\USER\Desktop\dash\main.py", line 27, in main
+    if not client.test_connection():
+  File "c:\Users\USER\Desktop\dash\api_client.py", line 296, in test_connection
+    self.logger.info("✓ Conexão bem-sucedida!")
+Message: '✓ Conexão bem-sucedida!'
+Arguments: ()
+2025-12-18 15:18:46,867 - api_client - INFO - ✓ Conexão bem-sucedida!
+
+------------------------------------------------------------
+
+2. Buscando clientes...
+2025-12-18 15:18:46,871 - api_client - INFO - Fazendo requisição GET para https://gestao-inovailab.replit.app/api/v1/clients
+2025-12-18 15:18:47,615 - api_client - INFO - Requisição bem-sucedida: https://gestao-inovailab.replit.app/api/v1/clients
+✓ Total de clientes: 8
+
+------------------------------------------------------------
+
+3. Buscando projetos...
+2025-12-18 15:18:47,616 - api_client - INFO - Fazendo requisição GET para https://gestao-inovailab.replit.app/api/v1/projects
+2025-12-18 15:18:49,497 - api_client - INFO - Requisição bem-sucedida: https://gestao-inovailab.replit.app/api/v1/projects
+✓ Total de projetos: 48
+
+------------------------------------------------------------
+
+4. Buscando tarefas...
+2025-12-18 15:18:49,498 - api_client - INFO - Fazendo requisição GET para https://gestao-inovailab.replit.app/api/v1/system/tasks
+2025-12-18 15:18:50,002 - api_client - ERROR - Erro HTTP 500: 500 Server Error: Internal Server Error for url: https://gestao-inovailab.replit.app/api/v1/system/tasks
+❌ Erro ao buscar tarefas: 500 Server Error: Internal Server Error for url: https://gestao-inovailab.replit.app/api/v1/system/tasks
+
+------------------------------------------------------------
+
+5. Buscando usuários...
+2025-12-18 15:18:50,003 - api_client - INFO - Fazendo requisição GET para https://gestao-inovailab.replit.app/api/v1/users
+2025-12-18 15:18:50,531 - api_client - INFO - Requisição bem-sucedida: https://gestao-inovailab.replit.app/api/v1/users
+✓ Total de usuários: 13
+
+------------------------------------------------------------
+
+6. Coletando TODOS os dados da API...
+2025-12-18 15:18:50,532 - api_client - INFO - Iniciando coleta de todos os dados...
+2025-12-18 15:18:50,533 - api_client - INFO - Fazendo requisição GET para https://gestao-inovailab.replit.app/api/v1/clients
+2025-12-18 15:18:51,184 - api_client - INFO - Requisição bem-sucedida: https://gestao-inovailab.replit.app/api/v1/clients
+2025-12-18 15:18:51,684 - api_client - INFO - Fazendo requisição GET para https://gestao-inovailab.replit.app/api/v1/projects
+2025-12-18 15:18:53,572 - api_client - INFO - Requisição bem-sucedida: https://gestao-inovailab.replit.app/api/v1/projects
+2025-12-18 15:18:54,073 - api_client - INFO - Fazendo requisição GET para https://gestao-inovailab.replit.app/api/v1/system/tasks
+2025-12-18 15:18:54,603 - api_client - ERROR - Erro HTTP 500: 500 Server Error: Internal Server Error for url: https://gestao-inovailab.replit.app/api/v1/system/tasks
+2025-12-18 15:18:54,603 - api_client - ERROR - Erro ao coletar todos os dados: 500 Server Error: Internal Server Error for url: https://gestao-inovailab.replit.app/api/v1/system/tasks
+❌ Erro ao coletar todos os dados: 500 Server Error: Internal Server Error for url: https://gestao-inovailab.replit.app/api/v1/system/tasks
+
+============================================================
+Processo concluído!
+============================================================

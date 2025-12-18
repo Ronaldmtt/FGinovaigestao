@@ -1,0 +1,39 @@
+1. Testando conexão com a API...
+2025-12-18 15:09:35,656 - api_client - INFO - Testando conexão com a API...
+2025-12-18 15:09:35,656 - api_client - INFO - Fazendo requisição GET para https://gestao-inovailab.replit.app/api/v1/clients
+2025-12-18 15:09:36,209 - api_client - ERROR - Erro HTTP 404: 404 Client Error: Not Found for url: https://gestao-inovailab.replit.app/api/v1/clients
+--- Logging error ---
+Traceback (most recent call last):
+  File "c:\Users\USER\Desktop\dash\api_client.py", line 293, in test_connection
+    response = self.get_clients()
+  File "c:\Users\USER\Desktop\dash\api_client.py", line 111, in get_clients
+    return self._make_request('GET', '/clients', params=params)
+           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\USER\Desktop\dash\api_client.py", line 77, in _make_request
+    response.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\USER\Desktop\dash\.venv\Lib\site-packages\requests\models.py", line 1021, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 404 Client Error: Not Found for url: https://gestao-inovailab.replit.app/api/v1/clients
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\logging\__init__.py", line 1153, in emit
+    stream.write(msg + self.terminator)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2717' in position 47: character maps to <undefined>
+Call stack:
+  File "c:\Users\USER\Desktop\dash\main.py", line 146, in <module>
+    main()
+  File "c:\Users\USER\Desktop\dash\main.py", line 27, in main
+    if not client.test_connection():
+  File "c:\Users\USER\Desktop\dash\api_client.py", line 303, in test_connection
+    self.logger.error(f"✗ Erro ao testar conexão: {e}")
+Message: '✗ Erro ao testar conexão: 404 Client Error: Not Found for url: https://gestao-inovailab.replit.app/api/v1/clients'
+Arguments: ()
+2025-12-18 15:09:36,210 - api_client - ERROR - ✗ Erro ao testar conexão: 404 Client Error: Not Found for url: https://gestao-inovailab.replit.app/api/v1/clients
+❌ Não foi possível conectar à API. Verifique as credenciais.

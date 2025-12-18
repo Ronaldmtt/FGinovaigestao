@@ -387,3 +387,69 @@ class ProjectApiKey(db.Model):
             'is_expired': bool(is_expired)
         }
         return data
+
+
+class SystemApiKey(db.Model):
+    """Chave de API geral do sistema (não vinculada a projeto específico)"""
+    __tablename__ = 'system_api_keys'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    prefix = db.Column(db.String(12), unique=True, nullable=False, index=True)
+    key_hash = db.Column(db.String(256), nullable=False)
+    scopes_json = db.Column(db.Text, default='[]')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_used_at = db.Column(db.DateTime)
+    expires_at = db.Column(db.DateTime)
+    revoked_at = db.Column(db.DateTime)
+    
+    user = db.relationship('User', backref=db.backref('system_api_keys', lazy=True))
+    
+    def __repr__(self):
+        return f'<SystemApiKey {self.name} ({self.prefix}...)>'
+    
+    @property
+    def scopes(self):
+        import json
+        try:
+            return json.loads(self.scopes_json) if self.scopes_json else []
+        except:
+            return []
+    
+    @scopes.setter
+    def scopes(self, value):
+        import json
+        self.scopes_json = json.dumps(value) if value else '[]'
+    
+    def has_scope(self, required_scope):
+        return required_scope in self.scopes
+    
+    def is_active(self):
+        from datetime import datetime
+        if self.revoked_at:
+            return False
+        if self.expires_at and datetime.utcnow() > self.expires_at:
+            return False
+        return True
+    
+    @property
+    def masked_prefix(self):
+        return f"{self.prefix}..."
+    
+    def to_dict(self, include_sensitive=False):
+        from datetime import datetime
+        is_expired = self.expires_at and datetime.utcnow() > self.expires_at
+        data = {
+            'id': self.id,
+            'name': self.name,
+            'prefix': self.prefix,
+            'scopes': self.scopes,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'last_used_at': self.last_used_at.isoformat() if self.last_used_at else None,
+            'expires_at': self.expires_at.isoformat() if self.expires_at else None,
+            'is_active': self.is_active(),
+            'is_revoked': self.revoked_at is not None,
+            'is_expired': bool(is_expired)
+        }
+        return data

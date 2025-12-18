@@ -10,7 +10,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_required, current_user
 
 from app import db
-from models import Project, Task, TodoItem, User, ProjectApiKey
+from models import Project, Task, TodoItem, User, ProjectApiKey, SystemApiKey, Client
 
 api_v1 = Blueprint('api_v1', __name__, url_prefix='/api/v1')
 
@@ -79,6 +79,66 @@ def require_project_api_key(required_scopes=None):
             g.api_key = api_key
             g.api_user = api_key.user
             g.api_project = api_key.project
+            
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+
+def require_system_api_key(required_scopes=None):
+    """
+    Decorator para autenticação via System API Key (acesso geral ao sistema).
+    - Lê Authorization: Bearer <token> ou X-API-Key: <token>
+    - Valida prefix, hash, ativo, scopes
+    - Seta g.api_key, g.api_user
+    - Atualiza last_used_at
+    """
+    if required_scopes is None:
+        required_scopes = []
+    
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            token = None
+            
+            auth_header = request.headers.get('Authorization')
+            if auth_header and auth_header.startswith('Bearer '):
+                token = auth_header[7:]
+            
+            if not token:
+                token = request.headers.get('X-API-Key')
+            
+            if not token:
+                return api_error('missing_api_key', 'API Key não fornecida. Use Authorization: Bearer <token> ou X-API-Key: <token>', 401)
+            
+            if len(token) < 10:
+                return api_error('invalid_api_key', 'API Key inválida', 401)
+            
+            prefix = token[:10]
+            api_key = SystemApiKey.query.filter_by(prefix=prefix).first()
+            
+            if not api_key:
+                return api_error('invalid_api_key', 'API Key não encontrada ou não é uma chave de sistema', 401)
+            
+            if not check_password_hash(api_key.key_hash, token):
+                return api_error('invalid_api_key', 'API Key inválida', 401)
+            
+            if not api_key.is_active():
+                if api_key.revoked_at:
+                    return api_error('api_key_revoked', 'Esta API Key foi revogada', 401)
+                else:
+                    return api_error('api_key_expired', 'Esta API Key expirou', 401)
+            
+            for scope in required_scopes:
+                if not api_key.has_scope(scope):
+                    return api_error('insufficient_scope', f'Permissão insuficiente. Escopo necessário: {scope}', 403)
+            
+            api_key.last_used_at = datetime.utcnow()
+            db.session.commit()
+            
+            g.api_key = api_key
+            g.api_user = api_key.user
+            g.is_system_key = True
             
             return f(*args, **kwargs)
         return decorated_function
@@ -583,3 +643,501 @@ def generate_api_key(project_id, user_id, name, scopes, expires_days=30):
     db.session.commit()
     
     return api_key, token
+
+
+def generate_system_api_key(user_id, name, scopes, expires_days=30):
+    """
+    Gera uma nova System API Key para acesso geral ao sistema.
+    Retorna o token UMA única vez (não é armazenado em texto puro).
+    """
+    token = secrets.token_urlsafe(32)
+    prefix = token[:10]
+    key_hash = generate_password_hash(token)
+    
+    expires_at = datetime.utcnow() + timedelta(days=expires_days) if expires_days else None
+    
+    api_key = SystemApiKey(
+        user_id=user_id,
+        name=name,
+        prefix=prefix,
+        key_hash=key_hash,
+        scopes_json=json.dumps(scopes) if scopes else '[]',
+        expires_at=expires_at
+    )
+    
+    db.session.add(api_key)
+    db.session.commit()
+    
+    return api_key, token
+
+
+# ============================================================================
+# SYSTEM API ENDPOINTS (General access - not project-scoped)
+# ============================================================================
+
+@api_v1.route('/clients', methods=['GET'])
+@require_system_api_key(required_scopes=['clients:read'])
+def list_clients():
+    """Lista todos os clientes"""
+    clients = Client.query.order_by(Client.nome).all()
+    
+    return jsonify({
+        'success': True,
+        'clients': [{
+            'id': c.id,
+            'nome': c.nome,
+            'email': c.email,
+            'telefone': c.telefone,
+            'empresa': c.empresa,
+            'cargo': c.cargo,
+            'observacoes': c.observacoes,
+            'created_at': c.created_at.isoformat() if c.created_at else None,
+            'projects_count': len(c.projects) if c.projects else 0
+        } for c in clients],
+        'total': len(clients)
+    })
+
+
+@api_v1.route('/clients/<int:client_id>', methods=['GET'])
+@require_system_api_key(required_scopes=['clients:read'])
+def get_client(client_id):
+    """Retorna detalhes de um cliente"""
+    client = Client.query.get(client_id)
+    if not client:
+        return api_error('client_not_found', 'Cliente não encontrado', 404)
+    
+    return jsonify({
+        'success': True,
+        'client': {
+            'id': client.id,
+            'nome': client.nome,
+            'email': client.email,
+            'telefone': client.telefone,
+            'empresa': client.empresa,
+            'cargo': client.cargo,
+            'observacoes': client.observacoes,
+            'created_at': client.created_at.isoformat() if client.created_at else None,
+            'projects': [{
+                'id': p.id,
+                'nome': p.nome,
+                'status': p.status
+            } for p in client.projects] if client.projects else []
+        }
+    })
+
+
+@api_v1.route('/clients', methods=['POST'])
+@require_system_api_key(required_scopes=['clients:write'])
+def create_client():
+    """Cria um novo cliente"""
+    data = request.get_json()
+    if not data:
+        return api_error('invalid_json', 'JSON inválido ou não fornecido', 400)
+    
+    if not data.get('nome'):
+        return api_error('missing_field', 'Campo obrigatório: nome', 400)
+    
+    client = Client(
+        nome=data['nome'],
+        email=data.get('email'),
+        telefone=data.get('telefone'),
+        empresa=data.get('empresa'),
+        cargo=data.get('cargo'),
+        observacoes=data.get('observacoes')
+    )
+    
+    db.session.add(client)
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'client': {
+            'id': client.id,
+            'nome': client.nome,
+            'email': client.email,
+            'telefone': client.telefone,
+            'empresa': client.empresa,
+            'cargo': client.cargo
+        }
+    }), 201
+
+
+@api_v1.route('/clients/<int:client_id>', methods=['PUT'])
+@require_system_api_key(required_scopes=['clients:write'])
+def update_client(client_id):
+    """Atualiza um cliente"""
+    client = Client.query.get(client_id)
+    if not client:
+        return api_error('client_not_found', 'Cliente não encontrado', 404)
+    
+    data = request.get_json()
+    if not data:
+        return api_error('invalid_json', 'JSON inválido ou não fornecido', 400)
+    
+    if 'nome' in data and data['nome']:
+        client.nome = data['nome']
+    if 'email' in data:
+        client.email = data.get('email')
+    if 'telefone' in data:
+        client.telefone = data.get('telefone')
+    if 'empresa' in data:
+        client.empresa = data.get('empresa')
+    if 'cargo' in data:
+        client.cargo = data.get('cargo')
+    if 'observacoes' in data:
+        client.observacoes = data.get('observacoes')
+    
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'client': {
+            'id': client.id,
+            'nome': client.nome,
+            'email': client.email,
+            'telefone': client.telefone,
+            'empresa': client.empresa,
+            'cargo': client.cargo
+        }
+    })
+
+
+@api_v1.route('/clients/<int:client_id>', methods=['DELETE'])
+@require_system_api_key(required_scopes=['clients:write'])
+def delete_client(client_id):
+    """Deleta um cliente"""
+    client = Client.query.get(client_id)
+    if not client:
+        return api_error('client_not_found', 'Cliente não encontrado', 404)
+    
+    if client.projects:
+        return api_error('client_has_projects', 'Cliente possui projetos vinculados. Remova os projetos primeiro.', 400)
+    
+    db.session.delete(client)
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': 'Cliente deletado com sucesso'
+    })
+
+
+@api_v1.route('/projects', methods=['GET'])
+@require_system_api_key(required_scopes=['projects:read'])
+def list_projects():
+    """Lista todos os projetos"""
+    status = request.args.get('status')
+    client_id = request.args.get('client_id', type=int)
+    
+    query = Project.query
+    
+    if status:
+        query = query.filter_by(status=status)
+    if client_id:
+        query = query.filter_by(client_id=client_id)
+    
+    projects = query.order_by(Project.created_at.desc()).all()
+    
+    return jsonify({
+        'success': True,
+        'projects': [{
+            'id': p.id,
+            'nome': p.nome,
+            'status': p.status,
+            'progress_percent': p.progress_percent,
+            'prazo': p.prazo.isoformat() if p.prazo else None,
+            'created_at': p.created_at.isoformat() if p.created_at else None,
+            'client': {
+                'id': p.client.id,
+                'nome': p.client.nome
+            } if p.client else None,
+            'responsible': {
+                'id': p.responsible.id,
+                'nome': p.responsible.nome
+            } if p.responsible else None,
+            'tasks_count': len(p.tasks) if p.tasks else 0
+        } for p in projects],
+        'total': len(projects)
+    })
+
+
+@api_v1.route('/projects/<int:project_id>', methods=['GET'])
+@require_system_api_key(required_scopes=['projects:read'])
+def get_project_detail(project_id):
+    """Retorna detalhes de um projeto"""
+    project = Project.query.get(project_id)
+    if not project:
+        return api_error('project_not_found', 'Projeto não encontrado', 404)
+    
+    return jsonify({
+        'success': True,
+        'project': {
+            'id': project.id,
+            'nome': project.nome,
+            'status': project.status,
+            'progress_percent': project.progress_percent,
+            'prazo': project.prazo.isoformat() if project.prazo else None,
+            'created_at': project.created_at.isoformat() if project.created_at else None,
+            'descricao_resumida': project.descricao_resumida,
+            'objetivos': project.objetivos,
+            'escopo': project.escopo,
+            'restricoes': project.restricoes,
+            'client': {
+                'id': project.client.id,
+                'nome': project.client.nome
+            } if project.client else None,
+            'responsible': {
+                'id': project.responsible.id,
+                'nome': project.responsible.nome
+            } if project.responsible else None,
+            'team_members': [{
+                'id': m.id,
+                'nome': m.nome
+            } for m in project.team_members] if project.team_members else [],
+            'tasks': [{
+                'id': t.id,
+                'titulo': t.titulo,
+                'status': t.status
+            } for t in project.tasks] if project.tasks else []
+        }
+    })
+
+
+@api_v1.route('/projects', methods=['POST'])
+@require_system_api_key(required_scopes=['projects:write'])
+def create_project_system():
+    """Cria um novo projeto"""
+    data = request.get_json()
+    if not data:
+        return api_error('invalid_json', 'JSON inválido ou não fornecido', 400)
+    
+    if not data.get('nome'):
+        return api_error('missing_field', 'Campo obrigatório: nome', 400)
+    if not data.get('client_id'):
+        return api_error('missing_field', 'Campo obrigatório: client_id', 400)
+    
+    client = Client.query.get(data['client_id'])
+    if not client:
+        return api_error('client_not_found', 'Cliente não encontrado', 404)
+    
+    project = Project(
+        nome=data['nome'],
+        client_id=data['client_id'],
+        responsible_id=data.get('responsible_id'),
+        status=data.get('status', 'em_andamento'),
+        descricao_resumida=data.get('descricao_resumida'),
+        objetivos=data.get('objetivos'),
+        escopo=data.get('escopo'),
+        restricoes=data.get('restricoes')
+    )
+    
+    if data.get('prazo'):
+        try:
+            project.prazo = datetime.fromisoformat(data['prazo']).date()
+        except:
+            pass
+    
+    db.session.add(project)
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'project': {
+            'id': project.id,
+            'nome': project.nome,
+            'status': project.status
+        }
+    }), 201
+
+
+@api_v1.route('/projects/<int:project_id>', methods=['PUT'])
+@require_system_api_key(required_scopes=['projects:write'])
+def update_project_system(project_id):
+    """Atualiza um projeto"""
+    project = Project.query.get(project_id)
+    if not project:
+        return api_error('project_not_found', 'Projeto não encontrado', 404)
+    
+    data = request.get_json()
+    if not data:
+        return api_error('invalid_json', 'JSON inválido ou não fornecido', 400)
+    
+    updatable_fields = ['nome', 'status', 'descricao_resumida', 'objetivos', 'escopo', 'restricoes', 'responsible_id', 'client_id']
+    
+    for field in updatable_fields:
+        if field in data:
+            setattr(project, field, data[field])
+    
+    if 'prazo' in data:
+        if data['prazo']:
+            try:
+                project.prazo = datetime.fromisoformat(data['prazo']).date()
+            except:
+                pass
+        else:
+            project.prazo = None
+    
+    if 'progress_percent' in data:
+        project.progress_percent = max(0, min(100, int(data['progress_percent'])))
+    
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'project': {
+            'id': project.id,
+            'nome': project.nome,
+            'status': project.status,
+            'progress_percent': project.progress_percent
+        }
+    })
+
+
+@api_v1.route('/projects/<int:project_id>', methods=['DELETE'])
+@require_system_api_key(required_scopes=['projects:write'])
+def delete_project_system(project_id):
+    """Deleta um projeto"""
+    project = Project.query.get(project_id)
+    if not project:
+        return api_error('project_not_found', 'Projeto não encontrado', 404)
+    
+    db.session.delete(project)
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': 'Projeto deletado com sucesso'
+    })
+
+
+@api_v1.route('/system/tasks', methods=['GET'])
+@require_system_api_key(required_scopes=['tasks:read'])
+def list_all_tasks():
+    """Lista todas as tarefas do sistema (sem filtro de projeto)"""
+    status = request.args.get('status')
+    project_id = request.args.get('project_id', type=int)
+    assigned_user_id = request.args.get('assigned_user_id', type=int)
+    
+    query = Task.query
+    
+    if status:
+        query = query.filter_by(status=status)
+    if project_id:
+        query = query.filter_by(project_id=project_id)
+    if assigned_user_id:
+        query = query.filter_by(assigned_user_id=assigned_user_id)
+    
+    tasks = query.order_by(Task.created_at.desc()).limit(100).all()
+    
+    return jsonify({
+        'success': True,
+        'tasks': [{
+            'id': t.id,
+            'titulo': t.titulo,
+            'descricao': t.descricao,
+            'status': t.status,
+            'prioridade': t.prioridade,
+            'data_conclusao': t.data_conclusao.isoformat() if t.data_conclusao else None,
+            'created_at': t.created_at.isoformat() if t.created_at else None,
+            'project': {
+                'id': t.project.id,
+                'nome': t.project.nome
+            } if t.project else None,
+            'assigned_user': {
+                'id': t.assigned_user.id,
+                'nome': t.assigned_user.nome
+            } if t.assigned_user else None
+        } for t in tasks],
+        'total': len(tasks)
+    })
+
+
+@api_v1.route('/system/tasks', methods=['POST'])
+@require_system_api_key(required_scopes=['tasks:write'])
+def create_task_system():
+    """Cria uma tarefa em qualquer projeto"""
+    data = request.get_json()
+    if not data:
+        return api_error('invalid_json', 'JSON inválido ou não fornecido', 400)
+    
+    if not data.get('titulo'):
+        return api_error('missing_field', 'Campo obrigatório: titulo', 400)
+    if not data.get('project_id'):
+        return api_error('missing_field', 'Campo obrigatório: project_id', 400)
+    
+    project = Project.query.get(data['project_id'])
+    if not project:
+        return api_error('project_not_found', 'Projeto não encontrado', 404)
+    
+    task = Task(
+        titulo=data['titulo'],
+        descricao=data.get('descricao', ''),
+        status=data.get('status', 'pendente'),
+        prioridade=data.get('prioridade', 'media'),
+        project_id=data['project_id']
+    )
+    
+    if data.get('assigned_user_id'):
+        user = User.query.get(data['assigned_user_id'])
+        if user:
+            task.assigned_user_id = user.id
+    
+    if data.get('data_conclusao'):
+        try:
+            task.data_conclusao = datetime.fromisoformat(data['data_conclusao']).date()
+        except:
+            pass
+    
+    db.session.add(task)
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'task': {
+            'id': task.id,
+            'titulo': task.titulo,
+            'status': task.status,
+            'project_id': task.project_id
+        }
+    }), 201
+
+
+@api_v1.route('/users', methods=['GET'])
+@require_system_api_key(required_scopes=['users:read'])
+def list_users():
+    """Lista todos os usuários do sistema"""
+    users = User.query.order_by(User.nome).all()
+    
+    return jsonify({
+        'success': True,
+        'users': [{
+            'id': u.id,
+            'nome': u.nome,
+            'sobrenome': u.sobrenome,
+            'email': u.email,
+            'is_admin': u.is_admin,
+            'created_at': u.created_at.isoformat() if hasattr(u, 'created_at') and u.created_at else None
+        } for u in users],
+        'total': len(users)
+    })
+
+
+@api_v1.route('/users/<int:user_id>', methods=['GET'])
+@require_system_api_key(required_scopes=['users:read'])
+def get_user(user_id):
+    """Retorna detalhes de um usuário"""
+    user = User.query.get(user_id)
+    if not user:
+        return api_error('user_not_found', 'Usuário não encontrado', 404)
+    
+    return jsonify({
+        'success': True,
+        'user': {
+            'id': user.id,
+            'nome': user.nome,
+            'sobrenome': user.sobrenome,
+            'email': user.email,
+            'is_admin': user.is_admin,
+            'tasks_count': Task.query.filter_by(assigned_user_id=user.id).count()
+        }
+    })

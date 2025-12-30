@@ -1282,6 +1282,129 @@ def create_task_system():
     }), 201
 
 
+@api_v1.route('/system/tasks/<int:task_id>', methods=['GET'])
+@require_system_api_key(required_scopes=['tasks:read'])
+def get_task_system(task_id):
+    """Busca uma tarefa específica pelo ID"""
+    task = Task.query.get(task_id)
+    if not task:
+        return api_error('task_not_found', 'Tarefa não encontrada', 404)
+    
+    task_data = {
+        'id': task.id,
+        'titulo': task.titulo,
+        'descricao': task.descricao,
+        'status': task.status,
+        'ordem': task.ordem,
+        'disparada': task.disparada,
+        'data_conclusao': task.data_conclusao.isoformat() if task.data_conclusao else None,
+        'created_at': task.created_at.isoformat() if task.created_at else None,
+        'completed_at': task.completed_at.isoformat() if task.completed_at else None,
+        'project': {
+            'id': task.project.id,
+            'nome': task.project.nome
+        } if task.project else None,
+        'assigned_user': {
+            'id': task.assigned_user.id,
+            'nome': task.assigned_user.nome
+        } if task.assigned_user else None,
+        'todos': [{
+            'id': todo.id,
+            'texto': todo.texto,
+            'comentario': todo.comentario,
+            'completed': todo.completed,
+            'due_date': todo.due_date.isoformat() if todo.due_date else None
+        } for todo in task.todos]
+    }
+    
+    return jsonify({
+        'success': True,
+        'task': task_data
+    })
+
+
+@api_v1.route('/system/tasks/<int:task_id>', methods=['PUT'])
+@require_system_api_key(required_scopes=['tasks:write'])
+def update_task_system(task_id):
+    """Atualiza uma tarefa existente"""
+    task = Task.query.get(task_id)
+    if not task:
+        return api_error('task_not_found', 'Tarefa não encontrada', 404)
+    
+    data = request.get_json()
+    if not data:
+        return api_error('invalid_json', 'JSON inválido ou não fornecido', 400)
+    
+    if 'titulo' in data:
+        task.titulo = data['titulo']
+    if 'descricao' in data:
+        task.descricao = data['descricao']
+    if 'status' in data:
+        valid_statuses = ['pendente', 'em_andamento', 'concluida']
+        if data['status'] not in valid_statuses:
+            return api_error('invalid_status', f"Status inválido. Valores aceitos: {', '.join(valid_statuses)}", 400)
+        old_status = task.status
+        task.status = data['status']
+        if data['status'] == 'concluida' and old_status != 'concluida':
+            task.completed_at = datetime.utcnow()
+        elif data['status'] != 'concluida':
+            task.completed_at = None
+    if 'ordem' in data:
+        task.ordem = data['ordem']
+    if 'disparada' in data:
+        task.disparada = bool(data['disparada'])
+    if 'assigned_user_id' in data:
+        if data['assigned_user_id']:
+            user = User.query.get(data['assigned_user_id'])
+            if not user:
+                return api_error('user_not_found', 'Usuário não encontrado', 404)
+            task.assigned_user_id = user.id
+        else:
+            task.assigned_user_id = None
+    if 'data_conclusao' in data:
+        if data['data_conclusao']:
+            try:
+                task.data_conclusao = datetime.fromisoformat(data['data_conclusao']).date()
+            except:
+                pass
+        else:
+            task.data_conclusao = None
+    
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'task': {
+            'id': task.id,
+            'titulo': task.titulo,
+            'descricao': task.descricao,
+            'status': task.status,
+            'ordem': task.ordem,
+            'disparada': task.disparada,
+            'data_conclusao': task.data_conclusao.isoformat() if task.data_conclusao else None,
+            'completed_at': task.completed_at.isoformat() if task.completed_at else None,
+            'assigned_user_id': task.assigned_user_id
+        }
+    })
+
+
+@api_v1.route('/system/tasks/<int:task_id>', methods=['DELETE'])
+@require_system_api_key(required_scopes=['tasks:write'])
+def delete_task_system(task_id):
+    """Deleta uma tarefa"""
+    task = Task.query.get(task_id)
+    if not task:
+        return api_error('task_not_found', 'Tarefa não encontrada', 404)
+    
+    db.session.delete(task)
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': 'Tarefa deletada com sucesso'
+    })
+
+
 @api_v1.route('/users', methods=['GET'])
 @require_system_api_key(required_scopes=['users:read'])
 def list_users():

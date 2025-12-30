@@ -1,0 +1,41 @@
+elatório de Erro de Integração API - Endpoint de Tarefas
+Problema Crítico: Não estamos conseguindo atualizar tarefas via API. O sistema rejeita as requisições com erro 401 Unauthorized (Chave inválida), mesmo usando a chave correta que funciona em outros endpoints (como /projects).
+
+Diagnóstico: O endpoint indicado para edição de tarefas (PUT /api/v1/todos/{id}) parece não estar compartilhando a mesma validação de autenticação dos outros endpoints, ou a chave fornecida não tem permissão de escrita específica para este recurso.
+
+Evidências Técnicas:
+
+Endpoint Testado: PUT https://gestao-inovailab.replit.app/api/v1/todos/{task_id}
+Chave Utilizada: REtc...VkEc ( Nova chave fornecida)
+Métodos de Envio Testados (e falhados):
+Header Authorization: Bearer {key} -> Retorna 401
+Header X-API-Key: {key} -> Retorna 401
+Query Param ?api_key={key} -> Retorna 401
+Resposta do Servidor:
+json
+{
+  "error": {
+    "code": "invalid_api_key",
+    "message": "API Key não encontrada"
+  }
+}
+Comparação: O mesmo tipo de requisição para /api/v1/projects/{id} funciona perfeitamente (retorna 200). Isso isola o problema no endpoint /todos.
+🛠️ Solicitação para o Desenvolvedor Backend
+Por favor, verifique os seguintes pontos no código da API (gestao-inovailab):
+
+Middleware de Autenticação na Rota /todos:
+Certifique-se de que a rota /api/v1/todos (e seus métodos PUT/PATCH) está "protegida" pelo mesmo middleware que protege /projects e /clients.
+Parece que a rota pode estar fora do grupo de rotas autenticadas ou usando um guard diferente.
+Escopo da API Key:
+Verifique se a chave gerada (REtc...) possui permissão de escrita (write) na tabela de Todos/Tarefas.
+Tratamento de ID:
+Confirme se o endpoint espera receber o ID da tarefa ({id}) como Inteiro ou String na URL.
+Confirmação do Endpoint:
+Confirme se PUT /api/v1/todos/{id} é de fato o endpoint para editar a tarefa principal (título, prazo, status) ou se ele serve apenas para itens de checklist. Se for checklist, qual é a rota para editar a Tarefa Pai (System Task)?
+Exemplo de Requisição que precisamos que funcione (cURL):
+
+bash
+curl -X PUT "https://gestao-inovailab.replit.app/api/v1/todos/345" \
+     -H "Authorization: Bearer REtcZgGkjGkMyWAuQylde3WlIOqAmCDyE1iCiVFNkEc" \
+     -H "Content-Type: application/json" \
+     -d '{"status": "concluida", "data_conclusao": "2025-12-30"}'

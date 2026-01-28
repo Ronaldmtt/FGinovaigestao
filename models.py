@@ -1,4 +1,4 @@
-from app import db
+from extensions import db
 from flask_login import UserMixin
 from datetime import datetime
 
@@ -19,6 +19,7 @@ class User(UserMixin, db.Model):
     reset_token_expires = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
+
     # Permissões de acesso às abas
     acesso_clientes = db.Column(db.Boolean, default=True, nullable=False)
     acesso_projetos = db.Column(db.Boolean, default=True, nullable=False)
@@ -46,9 +47,10 @@ class Client(db.Model):
     nome = db.Column(db.String(200), nullable=False)
     email = db.Column(db.String(120))
     telefone = db.Column(db.String(20))
-    empresa = db.Column(db.String(200))
+
     endereco = db.Column(db.Text)
     observacoes = db.Column(db.Text)
+    empresa = db.Column(db.String(200))
     public_code = db.Column(db.String(32), unique=True)  # Código único para acesso público
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -66,7 +68,10 @@ class Project(db.Model):
     status = db.Column(db.String(20), default='em_andamento', nullable=False)  # em_andamento, pausado, cancelado, concluido
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     progress_percent = db.Column(db.Integer, default=0)  # Progresso do projeto em percentagem (0-100)
-    prazo = db.Column(db.Date)  # Data de prazo do projeto
+    progress_percent = db.Column(db.Integer, default=0)  # Progresso do projeto em percentagem (0-100)
+    prazo = db.Column(db.Date)  # Data de prazo do projeto (mantido por compatibilidade ou redundância)
+    data_inicio = db.Column(db.Date)  # Data de início do projeto
+    data_fim = db.Column(db.Date)  # Data de previsão de término (entrega)
     
     # Foreign keys
     client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
@@ -82,6 +87,9 @@ class Project(db.Model):
     fora_escopo = db.Column(db.Text)
     premissas = db.Column(db.Text)
     restricoes = db.Column(db.Text)
+    
+    # Controle de visibilidade no Kanban
+    show_in_kanban = db.Column(db.Boolean, default=True, nullable=False)
     
     # Relacionamentos many-to-many com usuários (equipe)
     team_members = db.relationship('User', secondary=project_users, backref=db.backref('team_projects', lazy='dynamic'))

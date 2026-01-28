@@ -7,7 +7,8 @@ Execute este script no ambiente de produção após o deploy
 import os
 from datetime import datetime
 from werkzeug.security import generate_password_hash
-from app import app, db
+from app import app
+from extensions import db
 from models import User, Client, Project, Task, TodoItem
 
 def migrate_data_to_production():

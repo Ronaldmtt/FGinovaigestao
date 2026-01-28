@@ -9,7 +9,7 @@ from flask import Blueprint, request, jsonify, g
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_required, current_user
 
-from app import db
+from extensions import db
 from models import Project, Task, TodoItem, User, ProjectApiKey, SystemApiKey, Client, Lead, Contato
 
 api_v1 = Blueprint('api_v1', __name__, url_prefix='/api/v1')

@@ -13,7 +13,8 @@ import json
 import os
 import uuid
 import mimetypes
-from app import app, db, ALLOWED_EXTENSIONS
+from app import app, ALLOWED_EXTENSIONS
+from extensions import db, mail
 from models import User, Client, Project, Task, TodoItem, Contato, Comentario, FileCategory, ProjectFile, ProjectApiCredential, ProjectApiEndpoint, ProjectApiKey, SystemApiKey
 from forms import LoginForm, UserForm, EditUserForm, ClientForm, ProjectForm, TaskForm, TranscriptionTaskForm, ManualProjectForm, ManualTaskForm, ForgotPasswordForm, ResetPasswordForm, ChangePasswordForm, ImportDataForm
 from openai_service import process_project_transcription, generate_tasks_from_transcription
@@ -499,13 +500,13 @@ def projects():
     if status_filter:
         query = query.filter_by(status=status_filter)
     
-    # Ordenar por prazo (mais próximo primeiro) e depois por nome
+    # Ordenar por data de entrega (mais próximo primeiro) e depois por nome
     # Usar eager loading para evitar N+1 queries
     projects = query.options(
         joinedload(Project.responsible),
         joinedload(Project.client),
         selectinload(Project.tasks)
-    ).order_by(Project.prazo.asc().nullslast(), Project.nome).all()
+    ).order_by(Project.data_fim.asc().nullslast(), Project.nome).all()
     
     # Preparar dados dos projetos para o template
     projects_data = []
@@ -520,7 +521,7 @@ def projects():
         
         # Status para label e classe CSS
         status_map = {
-            'em_andamento': {'label': 'Ativo', 'class': 'status-active'},
+            'em_andamento': {'label': 'Em Andamento', 'class': 'status-active'},
             'concluido': {'label': 'Concluído', 'class': 'status-completed'},
             'pausado': {'label': 'Em Espera', 'class': 'status-pending'},
             'cancelado': {'label': 'Cancelado', 'class': 'status-delayed'}
@@ -528,12 +529,43 @@ def projects():
         status_info = status_map.get(project.status, {'label': project.status, 'class': 'status-pending'})
         
         # Cor da barra de progresso
+        # Cor da barra de progresso
         if computed_progress <= 25:
             progress_color = 'progress-danger'
         elif computed_progress <= 75:
             progress_color = 'progress-warning'
         else:
             progress_color = 'progress-success'
+            
+        # Lógica de Brilho (Glow) baseada no tempo
+        glow_class = ''
+        if project.status == 'concluido':
+            glow_class = 'glow-complete'
+        elif project.data_inicio and project.data_fim:
+            from datetime import date
+            today = date.today()
+            
+            # Se data inicio for futura, não brilha ou verde? Assumindo verde (inicio do ciclo)
+            if today < project.data_inicio:
+                percent_time = 0.0
+            elif today > project.data_fim:
+                percent_time = 1.1 # Passou do prazo
+            else:
+                total_days = (project.data_fim - project.data_inicio).days
+                if total_days > 0:
+                    elapsed_days = (today - project.data_inicio).days
+                    percent_time = elapsed_days / total_days
+                else:
+                    percent_time = 1.0 # Inicio e fim iguais
+            
+            if percent_time < 0.6:
+                glow_class = 'glow-green'
+            elif percent_time < 0.9:
+                glow_class = 'glow-orange'
+            elif percent_time <= 1.0:
+                glow_class = 'glow-red'
+            else:
+                glow_class = 'glow-purple' # Atrasado
         
         projects_data.append({
             'id': project.id,
@@ -545,9 +577,12 @@ def projects():
             'prazo': project.prazo,
             'progress': computed_progress,
             'progress_color': progress_color,
+            'glow_class': glow_class,
+            'data_inicio': project.data_inicio.strftime('%Y-%m-%d') if project.data_inicio else '',
+            'data_fim': project.data_fim.strftime('%Y-%m-%d') if project.data_fim else '',
             'created_at': project.created_at,
             'can_edit': current_user.is_admin or current_user.id == project.responsible_id,
-            'project': project  # Passar o objeto completo também para compatibilidade
+            'project': project
         })
     
     form = ProjectForm()
@@ -581,7 +616,9 @@ def new_project():
             status=form.status.data,
             transcricao=form.transcricao.data,
             progress_percent=form.progress_percent.data or 0,
-            prazo=form.prazo.data,
+            # Prazo descontinuado em favor de data_fim
+            data_inicio=form.data_inicio.data,
+            data_fim=form.data_fim.data,
             descricao_resumida=form.descricao_resumida.data,
             problema_oportunidade=form.problema_oportunidade.data,
             objetivos=form.objetivos.data,
@@ -628,6 +665,12 @@ def new_manual_project():
     from datetime import datetime as dt
     prazo = dt.strptime(prazo_str, '%Y-%m-%d').date() if prazo_str else None
     
+    data_inicio_str = request.form.get('data_inicio')
+    data_inicio = dt.strptime(data_inicio_str, '%Y-%m-%d').date() if data_inicio_str else None
+    
+    data_fim_str = request.form.get('data_fim')
+    data_fim = dt.strptime(data_fim_str, '%Y-%m-%d').date() if data_fim_str else None
+    
     project = Project(
         nome=nome,
         client_id=client_id,
@@ -635,6 +678,8 @@ def new_manual_project():
         status=status,
         progress_percent=int(progress_percent) if progress_percent else 0,
         prazo=prazo,
+        data_inicio=data_inicio,
+        data_fim=data_fim,
         contexto_justificativa=request.form.get('descricao_resumida'),
         descricao_resumida=request.form.get('descricao_resumida'),
         problema_oportunidade=request.form.get('problema_oportunidade'),
@@ -695,12 +740,24 @@ def edit_project(id):
     progress_percent = request.form.get('progress_percent', 0)
     project.progress_percent = int(progress_percent) if progress_percent else 0
     
+    from datetime import datetime as dt
     prazo_str = request.form.get('prazo')
     if prazo_str:
-        from datetime import datetime as dt
         project.prazo = dt.strptime(prazo_str, '%Y-%m-%d').date()
     else:
         project.prazo = None
+        
+    data_inicio_str = request.form.get('data_inicio')
+    if data_inicio_str:
+        project.data_inicio = dt.strptime(data_inicio_str, '%Y-%m-%d').date()
+    else:
+         project.data_inicio = None
+         
+    data_fim_str = request.form.get('data_fim')
+    if data_fim_str:
+        project.data_fim = dt.strptime(data_fim_str, '%Y-%m-%d').date()
+    else:
+        project.data_fim = None
     
     # Atualizar campos de Contexto e Justificativa
     project.descricao_resumida = request.form.get('descricao_resumida', '')
@@ -712,7 +769,11 @@ def edit_project(id):
     project.escopo_projeto = request.form.get('escopo_projeto', '')
     project.fora_escopo = request.form.get('fora_escopo', '')
     project.premissas = request.form.get('premissas', '')
+
     project.restricoes = request.form.get('restricoes', '')
+    
+    # Atualizar visibilidade no Kanban
+    project.show_in_kanban = True if request.form.get('show_in_kanban') else False
     
     # Atualizar membros da equipe (limpar e adicionar novos)
     team_member_ids = request.form.getlist('team_member_ids')  # Múltiplos membros
@@ -733,7 +794,7 @@ def edit_project(id):
         flash('Erro ao atualizar o projeto. Tente novamente.', 'danger')
         print(f"Erro ao editar projeto: {e}")
     
-    return redirect(url_for('project_detail', id=id))
+    return redirect(url_for('projects'))
 
 @app.route('/projects/<int:id>/process-ai', methods=['POST'])
 @login_required
@@ -1434,7 +1495,13 @@ def get_project_data(id):
         'escopo_projeto': project.escopo_projeto,
         'fora_escopo': project.fora_escopo,
         'premissas': project.premissas,
-        'restricoes': project.restricoes
+        'premissas': project.premissas,
+        'restricoes': project.restricoes,
+        'premissas': project.premissas,
+        'restricoes': project.restricoes,
+        'show_in_kanban': project.show_in_kanban,
+        'data_inicio': project.data_inicio.isoformat() if project.data_inicio else None,
+        'data_fim': project.data_fim.isoformat() if project.data_fim else None
     }
     
     clients_data = [{'id': c.id, 'nome': c.nome} for c in clients]
@@ -1469,7 +1536,23 @@ def update_project(id):
     project.escopo_projeto = request.form.get('escopo_projeto')
     project.fora_escopo = request.form.get('fora_escopo')
     project.premissas = request.form.get('premissas')
+    project.premissas = request.form.get('premissas')
     project.restricoes = request.form.get('restricoes')
+
+    # Dates
+    data_inicio_str = request.form.get('data_inicio')
+    if data_inicio_str:
+        from datetime import datetime as dt
+        project.data_inicio = dt.strptime(data_inicio_str, '%Y-%m-%d').date()
+    else:
+        project.data_inicio = None
+
+    data_fim_str = request.form.get('data_fim')
+    if data_fim_str:
+        from datetime import datetime as dt
+        project.data_fim = dt.strptime(data_fim_str, '%Y-%m-%d').date()
+    else:
+        project.data_fim = None
     
     # Limpar membros atuais da equipe e adicionar novo se selecionado
     project.team_members.clear()
@@ -1625,14 +1708,14 @@ def kanban():
     
     # Para os filtros - mostrar apenas projetos que o usuário participa (exceto admin)
     if current_user.is_admin:
-        projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
+        projects = Project.query.join(Client).filter(Project.show_in_kanban == True).order_by(Client.nome, Project.nome).all()
         clients = Client.query.order_by(Client.nome).all()
     else:
         # Filtrar projetos onde o usuário é responsável ou membro da equipe
         projects = Project.query.join(Client).filter(
             (Project.responsible_id == current_user.id) |
             (Project.team_members.contains(current_user))
-        ).order_by(Client.nome, Project.nome).all()
+        ).filter(Project.show_in_kanban == True).order_by(Client.nome, Project.nome).all()
         # Filtrar apenas clientes dos projetos do usuário
         client_ids = list(set([p.client_id for p in projects]))
         clients = Client.query.filter(Client.id.in_(client_ids)).order_by(Client.nome).all() if client_ids else []

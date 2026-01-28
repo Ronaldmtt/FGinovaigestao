@@ -8,9 +8,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4 pt-3">
         <h2 class="mb-0 fw-bold">Projetos</h2>
         <div class="d-flex gap-2">
-            <button class="btn btn-outline-secondary btn-icon-filter" type="button" data-bs-toggle="collapse" data-bs-target="#advancedFilters">
-                <i class="fas fa-filter"></i>
-            </button>
+            <!-- Filter toggle removed -->
             <button class="btn btn-outline-secondary btn-icon-filter">
                 <i class="fas fa-calendar-alt"></i>
             </button>
@@ -20,17 +18,19 @@
         </div>
     </div>
 
-    <!-- Filtros Avançados (Colapsável) -->
-    <div class="collapse mb-3" id="advancedFilters">
+    <!-- Filtros Avançados (Sempre visível) -->
+    <div class="mb-3" id="advancedFilters">
         <div class="card bg-dark border-secondary">
             <div class="card-body">
                 <form method="GET" class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label small">Cliente</label>
-                        <select name="client_id" class="form-select form-select-sm bg-dark text-light border-secondary">
+                        <select name="client_id" class="form-select form-select-sm bg-dark text-light border-secondary"
+                            onchange="this.form.submit()">
                             <option value="">Todos os clientes</option>
                             {% for client in clients %}
-                            <option value="{{ client.id }}" {% if current_filters.client_id == client.id %}selected{% endif %}>
+                            <option value="{{ client.id }}" {% if current_filters.client_id==client.id %}selected{%
+                                endif %}>
                                 {{ client.nome }}
                             </option>
                             {% endfor %}
@@ -38,18 +38,20 @@
                     </div>
                     <div class="col-md-4">
                         <label class="form-label small">Responsável</label>
-                        <select name="responsible_id" class="form-select form-select-sm bg-dark text-light border-secondary">
+                        <select name="responsible_id"
+                            class="form-select form-select-sm bg-dark text-light border-secondary"
+                            onchange="this.form.submit()">
                             <option value="">Todos</option>
                             {% for user in users %}
-                            <option value="{{ user.id }}" {% if current_filters.responsible_id == user.id %}selected{% endif %}>
+                            <option value="{{ user.id }}" {% if current_filters.responsible_id==user.id %}selected{%
+                                endif %}>
                                 {{ user.full_name }}
                             </option>
                             {% endfor %}
                         </select>
                     </div>
                     <div class="col-md-4 d-flex align-items-end">
-                        <button type="submit" class="btn btn-sm btn-primary me-2">Aplicar</button>
-                        <a href="{{ url_for('projects') }}" class="btn btn-sm btn-outline-secondary">Limpar</a>
+                        <a href="{{ url_for('projects') }}" class="btn btn-sm btn-outline-secondary">Limpar Filtros</a>
                     </div>
                 </form>
             </div>
@@ -59,16 +61,20 @@
     <!-- Pills de Status -->
     <div class="mb-4">
         <div class="status-pills-container">
-            <a href="{{ url_for('projects') }}" class="status-pill {% if not current_filters.status %}active{% endif %}">
+            <a href="{{ url_for('projects', client_id=current_filters.client_id, responsible_id=current_filters.responsible_id) }}"
+                class="status-pill {% if not current_filters.status %}active{% endif %}">
                 Todos
             </a>
-            <a href="{{ url_for('projects', status='em_andamento') }}" class="status-pill {% if current_filters.status == 'em_andamento' %}active{% endif %}">
-                Ativos
+            <a href="{{ url_for('projects', status='em_andamento', client_id=current_filters.client_id, responsible_id=current_filters.responsible_id) }}"
+                class="status-pill {% if current_filters.status == 'em_andamento' %}active{% endif %}">
+                Em Andamento
             </a>
-            <a href="{{ url_for('projects', status='concluido') }}" class="status-pill {% if current_filters.status == 'concluido' %}active{% endif %}">
+            <a href="{{ url_for('projects', status='concluido', client_id=current_filters.client_id, responsible_id=current_filters.responsible_id) }}"
+                class="status-pill {% if current_filters.status == 'concluido' %}active{% endif %}">
                 Concluídos
             </a>
-            <a href="{{ url_for('projects', status='pausado') }}" class="status-pill {% if current_filters.status == 'pausado' %}active{% endif %}">
+            <a href="{{ url_for('projects', status='pausado', client_id=current_filters.client_id, responsible_id=current_filters.responsible_id) }}"
+                class="status-pill {% if current_filters.status == 'pausado' %}active{% endif %}">
                 Em Espera
             </a>
         </div>
@@ -77,75 +83,90 @@
     <!-- Grid de Cards de Projetos -->
     <div class="projects-grid">
         {% if projects_data %}
-            {% for p in projects_data %}
-            <div class="project-card" onclick="window.location.href='{{ url_for('project_detail', id=p.id) }}'">
-                <div class="project-card-header">
-                    <h5 class="project-card-title mb-0">{{ p.nome }}</h5>
-                    <div class="dropdown" onclick="event.stopPropagation()">
-                        <button class="project-card-actions" type="button" data-bs-toggle="dropdown" data-bs-auto-close="true">
-                            <i class="fas fa-ellipsis-v"></i>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end bg-dark border-secondary">
-                            <li>
-                                <a class="dropdown-item text-light" href="{{ url_for('project_detail', id=p.id) }}">
-                                    <i class="fas fa-eye me-2"></i>Ver detalhes
-                                </a>
-                            </li>
-                            {% if p.can_edit %}
-                            <li>
-                                <button class="dropdown-item text-light" onclick="editProject({{ p.id }})">
-                                    <i class="fas fa-edit me-2"></i>Editar
-                                </button>
-                            </li>
-                            <li><hr class="dropdown-divider border-secondary"></li>
-                            <li>
-                                <button class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ p.id }}">
-                                    <i class="fas fa-trash me-2"></i>Deletar
-                                </button>
-                            </li>
-                            {% endif %}
-                        </ul>
-                    </div>
+        {% for p in projects_data %}
+        <div class="project-card {{ p.glow_class }}"
+            onclick="window.location.href='{{ url_for('project_detail', id=p.id) }}'">
+            <div class="project-card-header">
+                <h5 class="project-card-title mb-0">{{ p.nome }}</h5>
+                <div class="dropdown" onclick="event.stopPropagation()">
+                    <button class="project-card-actions" type="button" data-bs-toggle="dropdown"
+                        data-bs-auto-close="true">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end bg-dark border-secondary">
+                        <li>
+                            <a class="dropdown-item text-light" href="{{ url_for('project_detail', id=p.id) }}">
+                                <i class="fas fa-eye me-2"></i>Ver detalhes
+                            </a>
+                        </li>
+                        {% if p.can_edit %}
+                        <li>
+                            <button class="dropdown-item text-light" onclick="editProject({{ p.id }})">
+                                <i class="fas fa-edit me-2"></i>Editar
+                            </button>
+                        </li>
+                        <li>
+                            <hr class="dropdown-divider border-secondary">
+                        </li>
+                        <li>
+                            <button class="dropdown-item text-danger" data-bs-toggle="modal"
+                                data-bs-target="#deleteModal{{ p.id }}">
+                                <i class="fas fa-trash me-2"></i>Deletar
+                            </button>
+                        </li>
+                        {% endif %}
+                    </ul>
                 </div>
-                <div class="project-card-body">
-                    <div class="project-card-info">
-                        <i class="fas fa-user-tie text-muted me-2"></i>
-                        <span class="text-secondary">{{ p.leader }}</span>
-                    </div>
-                    <div class="project-card-info">
-                        <i class="fas fa-building text-muted me-2"></i>
-                        <span class="text-secondary">{{ p.client }}</span>
-                    </div>
-                    <div class="project-card-info">
-                        <span class="status-badge {{ p.status_class }}">{{ p.status_label }}</span>
-                    </div>
-                    <div class="project-card-info">
-                        <i class="fas fa-calendar-alt text-muted me-2"></i>
-                        <span class="text-secondary">
-                            {% if p.prazo %}
-                                {{ p.prazo.strftime('%d/%m/%Y') }}
+            </div>
+            <div class="project-card-body">
+                <div class="project-card-info">
+                    <i class="fas fa-user-tie text-muted me-2"></i>
+                    <span class="text-secondary">{{ p.leader }}</span>
+                </div>
+                <div class="project-card-info">
+                    <i class="fas fa-building text-muted me-2"></i>
+                    <span class="text-secondary">{{ p.client }}</span>
+                </div>
+                <div class="project-card-info">
+                    <span class="status-badge {{ p.status_class }}">{{ p.status_label }}</span>
+                </div>
+                <div class="project-card-info">
+                    <div class="d-flex flex-column small">
+                        <span class="text-secondary mb-1">
+                            <i class="fas fa-play text-muted me-2" style="font-size: 0.8em;"></i>
+                            {% if p.project.data_inicio %}
+                            {{ p.project.data_inicio.strftime('%d/%m/%Y') }}
                             {% else %}
-                                Sem prazo
+                            -
+                            {% endif %}
+                        </span>
+                        <span class="text-secondary">
+                            <i class="fas fa-flag-checkered text-muted me-2" style="font-size: 0.8em;"></i>
+                            {% if p.project.data_fim %}
+                            {{ p.project.data_fim.strftime('%d/%m/%Y') }}
+                            {% else %}
+                            -
                             {% endif %}
                         </span>
                     </div>
                 </div>
-                <div class="project-card-footer">
-                    <div class="progress-container-card">
-                        <div class="progress-bar-custom">
-                            <div class="progress-fill {{ p.progress_color }}" style="width: {{ p.progress }}%;"></div>
-                        </div>
-                        <span class="progress-text">{{ p.progress }}%</span>
+            </div>
+            <div class="project-card-footer">
+                <div class="progress-container-card">
+                    <div class="progress-bar-custom">
+                        <div class="progress-fill {{ p.progress_color }}" style="width: {{ p.progress }}%;"></div>
                     </div>
+                    <span class="progress-text">{{ p.progress }}%</span>
                 </div>
             </div>
-            {% endfor %}
+        </div>
+        {% endfor %}
         {% else %}
-            <div class="empty-state">
-                <i class="fas fa-folder-open fa-4x text-muted mb-3"></i>
-                <p class="text-muted fs-5">Nenhum projeto encontrado</p>
-                <p class="text-secondary small">Clique em "Criar Novo Projeto" para começar</p>
-            </div>
+        <div class="empty-state">
+            <i class="fas fa-folder-open fa-4x text-muted mb-3"></i>
+            <p class="text-muted fs-5">Nenhum projeto encontrado</p>
+            <p class="text-secondary small">Clique em "Criar Novo Projeto" para começar</p>
+        </div>
         {% endif %}
     </div>
 </div>
@@ -162,12 +183,13 @@
             </div>
             <div class="modal-body">
                 <p>Tem certeza que deseja deletar o projeto <strong>"{{ project.nome }}"</strong>?</p>
-                <p class="text-warning"><i class="fas fa-exclamation-triangle me-2"></i>Esta ação não pode ser desfeita.</p>
+                <p class="text-warning"><i class="fas fa-exclamation-triangle me-2"></i>Esta ação não pode ser desfeita.
+                </p>
             </div>
             <div class="modal-footer border-secondary">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <form method="POST" action="{{ url_for('delete_project', id=project.id) }}" style="display: inline;">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}"/>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}" />
                     <button type="submit" class="btn btn-danger">Deletar</button>
                 </form>
             </div>
@@ -189,7 +211,7 @@
                 <div class="modal-body">
                     {% if form %}
                     {{ form.hidden_tag() }}
-                    
+
                     <div class="row mb-3">
                         <div class="col-md-6">
                             {{ form.nome.label(class="form-label") }}
@@ -200,7 +222,7 @@
                             {{ form.client_id(class="form-select bg-dark text-light border-secondary") }}
                         </div>
                     </div>
-                    
+
                     <div class="row mb-3">
                         <div class="col-md-4">
                             {{ form.responsible_id.label(class="form-label") }}
@@ -212,71 +234,82 @@
                         </div>
                         <div class="col-md-4">
                             {{ form.team_members.label(class="form-label") }}
-                            {{ form.team_members(class="form-select bg-dark text-light border-secondary", multiple=True, size=3) }}
+                            {{ form.team_members(class="form-select bg-dark text-light border-secondary", multiple=True,
+                            size=3) }}
                         </div>
                     </div>
-                    
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            {{ form.progress_percent.label(class="form-label") }}
+                            {{ form.progress_percent(class="form-control bg-dark text-light border-secondary",
+                            placeholder="0-100") }}
+                        </div>
+                    </div>
+
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            {{ form.prazo.label(class="form-label") }}
-                            {{ form.prazo(class="form-control bg-dark text-light border-secondary") }}
+                            {{ form.data_inicio.label(class="form-label") }}
+                            {{ form.data_inicio(class="form-control bg-dark text-light border-secondary", type="date")
+                            }}
                         </div>
                         <div class="col-md-6">
-                            {{ form.progress_percent.label(class="form-label") }}
-                            {{ form.progress_percent(class="form-control bg-dark text-light border-secondary", placeholder="0-100") }}
+                            {{ form.data_fim.label(class="form-label") }}
+                            {{ form.data_fim(class="form-control bg-dark text-light border-secondary", type="date") }}
                         </div>
                     </div>
-                    
+
                     <div class="mb-3">
                         {{ form.transcricao.label(class="form-label") }}
                         <small class="form-text text-muted d-block mb-2">
                             <i class="fas fa-magic me-1"></i>
-                            Cole uma transcrição e depois use o botão "Processar com IA" na página do projeto para preencher os campos automaticamente.
+                            Cole uma transcrição e depois use o botão "Processar com IA" na página do projeto para
+                            preencher os campos automaticamente.
                         </small>
                         {{ form.transcricao(class="form-control bg-dark text-light border-secondary") }}
                     </div>
-                    
+
                     <hr class="border-secondary my-4">
                     <h6 class="mb-3"><i class="fas fa-file-alt me-2"></i>Contexto e Justificativa</h6>
-                    
+
                     <div class="mb-3">
                         {{ form.descricao_resumida.label(class="form-label") }}
                         {{ form.descricao_resumida(class="form-control bg-dark text-light border-secondary") }}
                     </div>
-                    
+
                     <div class="mb-3">
                         {{ form.problema_oportunidade.label(class="form-label") }}
                         {{ form.problema_oportunidade(class="form-control bg-dark text-light border-secondary") }}
                     </div>
-                    
+
                     <div class="mb-3">
                         {{ form.objetivos.label(class="form-label") }}
                         {{ form.objetivos(class="form-control bg-dark text-light border-secondary") }}
                     </div>
-                    
+
                     <div class="mb-3">
                         {{ form.alinhamento_estrategico.label(class="form-label") }}
                         {{ form.alinhamento_estrategico(class="form-control bg-dark text-light border-secondary") }}
                     </div>
-                    
+
                     <hr class="border-secondary my-4">
                     <h6 class="mb-3"><i class="fas fa-bullseye me-2"></i>Escopo</h6>
-                    
+
                     <div class="mb-3">
                         {{ form.escopo_projeto.label(class="form-label") }}
                         {{ form.escopo_projeto(class="form-control bg-dark text-light border-secondary") }}
                     </div>
-                    
+
                     <div class="mb-3">
                         {{ form.fora_escopo.label(class="form-label") }}
                         {{ form.fora_escopo(class="form-control bg-dark text-light border-secondary") }}
                     </div>
-                    
+
                     <div class="mb-3">
                         {{ form.premissas.label(class="form-label") }}
                         {{ form.premissas(class="form-control bg-dark text-light border-secondary") }}
                     </div>
-                    
+
                     <div class="mb-3">
                         {{ form.restricoes.label(class="form-label") }}
                         {{ form.restricoes(class="form-control bg-dark text-light border-secondary") }}
@@ -320,309 +353,421 @@
 </div>
 
 <style>
-/* Botões de ícone */
-.btn-icon-filter {
-    width: 38px;
-    height: 38px;
-    padding: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 6px;
-    font-size: 14px;
-}
-
-/* Pills de status (filtros) */
-.status-pills-container {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.status-pill {
-    background: transparent;
-    border: none;
-    color: #8b92a8;
-    padding: 8px 18px;
-    font-size: 13px;
-    font-weight: 500;
-    text-decoration: none;
-    border-radius: 6px;
-    transition: all 0.2s;
-}
-
-.status-pill:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: #fff;
-}
-
-.status-pill.active {
-    background: #0d6efd;
-    color: #fff;
-}
-
-/* Grid de Cards de Projetos */
-.projects-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 20px;
-    padding: 10px 0;
-}
-
-/* Card de Projeto */
-.project-card {
-    background: #1e2228;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    overflow: hidden;
-    transition: all 0.3s ease;
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.project-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
-    border-color: rgba(13, 110, 253, 0.5);
-    background: #242933;
-}
-
-/* Header do Card */
-.project-card-header {
-    padding: 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 10px;
-    background: rgba(255, 255, 255, 0.02);
-}
-
-.project-card-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #e9ecef;
-    flex: 1;
-    line-height: 1.4;
-    margin: 0;
-}
-
-.project-card-actions {
-    background: transparent;
-    border: none;
-    color: #6c757d;
-    padding: 4px 8px;
-    cursor: pointer;
-    border-radius: 4px;
-    transition: all 0.2s;
-    font-size: 14px;
-}
-
-.project-card-actions:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
-}
-
-/* Body do Card */
-.project-card-body {
-    padding: 20px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.project-card-info {
-    display: flex;
-    align-items: center;
-    font-size: 14px;
-    color: #e9ecef;
-}
-
-.project-card-info i {
-    font-size: 13px;
-    width: 16px;
-}
-
-/* Footer do Card */
-.project-card-footer {
-    padding: 16px 20px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(0, 0, 0, 0.2);
-}
-
-.progress-container-card {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.progress-bar-custom {
-    flex: 1;
-    height: 8px;
-    background: #2a2f38;
-    border-radius: 4px;
-    overflow: hidden;
-}
-
-.progress-fill {
-    height: 100%;
-    border-radius: 4px;
-    transition: width 0.3s ease;
-}
-
-.progress-danger {
-    background: linear-gradient(90deg, #ff6b7a 0%, #dc3545 100%);
-}
-
-.progress-warning {
-    background: linear-gradient(90deg, #ffc107 0%, #ffb300 100%);
-}
-
-.progress-success {
-    background: linear-gradient(90deg, #4ec991 0%, #198754 100%);
-}
-
-.progress-text {
-    font-size: 14px;
-    color: #e9ecef;
-    font-weight: 600;
-    min-width: 45px;
-    text-align: right;
-}
-
-/* Badges de status */
-.status-badge {
-    padding: 6px 12px;
-    border-radius: 16px;
-    font-size: 11px;
-    font-weight: 600;
-    display: inline-block;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.status-active {
-    background: rgba(13, 110, 253, 0.2);
-    color: #5ba3ff;
-    border: 1px solid rgba(13, 110, 253, 0.3);
-}
-
-.status-completed {
-    background: rgba(25, 135, 84, 0.2);
-    color: #4ec991;
-    border: 1px solid rgba(25, 135, 84, 0.3);
-}
-
-.status-pending {
-    background: rgba(255, 193, 7, 0.2);
-    color: #ffc107;
-    border: 1px solid rgba(255, 193, 7, 0.3);
-}
-
-.status-delayed {
-    background: rgba(220, 53, 69, 0.2);
-    color: #ff6b7a;
-    border: 1px solid rgba(220, 53, 69, 0.3);
-}
-
-/* Empty State */
-.empty-state {
-    grid-column: 1 / -1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 80px 20px;
-    text-align: center;
-}
-
-/* Dropdown */
-.dropdown {
-    position: relative;
-}
-
-.dropdown .dropdown-menu {
-    z-index: 9999 !important;
-}
-
-/* Responsivo */
-@media (max-width: 768px) {
-    .projects-grid {
-        grid-template-columns: 1fr;
-        gap: 16px;
+    /* Botões de ícone */
+    .btn-icon-filter {
+        width: 38px;
+        height: 38px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        font-size: 14px;
     }
-    
+
+    /* Pills de status (filtros) */
+    .status-pills-container {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .status-pill {
+        background: transparent;
+        border: none;
+        color: #8b92a8;
+        padding: 8px 18px;
+        font-size: 13px;
+        font-weight: 500;
+        text-decoration: none;
+        border-radius: 6px;
+        transition: all 0.2s;
+    }
+
+    .status-pill:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: #fff;
+    }
+
+    .status-pill.active {
+        background: #0d6efd;
+        color: #fff;
+    }
+
+    /* Grid de Cards de Projetos */
+    .projects-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 20px;
+        padding: 10px 0;
+    }
+
+    /* Card de Projeto */
+    .project-card {
+        background: #1e2228;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .project-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+        border-color: rgba(13, 110, 253, 0.5);
+        background: #242933;
+    }
+
+    /* Glow Effects */
+    /* Glow Effects - Intense Blinking */
+    @keyframes blink-green {
+
+        0%,
+        100% {
+            box-shadow: 0 0 5px rgba(78, 201, 145, 0.2);
+            border-color: rgba(78, 201, 145, 0.5);
+        }
+
+        50% {
+            box-shadow: 0 0 20px rgba(78, 201, 145, 0.8), 0 0 40px rgba(78, 201, 145, 0.4);
+            border-color: #4ec991;
+        }
+    }
+
+    @keyframes blink-orange {
+
+        0%,
+        100% {
+            box-shadow: 0 0 5px rgba(255, 193, 7, 0.2);
+            border-color: rgba(255, 193, 7, 0.5);
+        }
+
+        50% {
+            box-shadow: 0 0 20px rgba(255, 193, 7, 0.8), 0 0 40px rgba(255, 193, 7, 0.4);
+            border-color: #ffc107;
+        }
+    }
+
+    @keyframes blink-red {
+
+        0%,
+        100% {
+            box-shadow: 0 0 5px rgba(220, 53, 69, 0.2);
+            border-color: rgba(220, 53, 69, 0.5);
+        }
+
+        50% {
+            box-shadow: 0 0 30px rgba(220, 53, 69, 0.9), 0 0 50px rgba(220, 53, 69, 0.5);
+            border-color: #dc3545;
+        }
+    }
+
+    @keyframes blink-purple {
+
+        0%,
+        100% {
+            box-shadow: 0 0 5px rgba(111, 66, 193, 0.2);
+            border-color: rgba(111, 66, 193, 0.5);
+        }
+
+        50% {
+            box-shadow: 0 0 20px rgba(111, 66, 193, 0.8), 0 0 40px rgba(111, 66, 193, 0.4);
+            border-color: #6f42c1;
+        }
+    }
+
+    @keyframes blink-complete {
+
+        0%,
+        100% {
+            box-shadow: 0 0 5px rgba(13, 202, 240, 0.2);
+            border-color: rgba(13, 202, 240, 0.5);
+        }
+
+        50% {
+            box-shadow: 0 0 25px rgba(13, 202, 240, 0.9), 0 0 45px rgba(13, 202, 240, 0.5);
+            border-color: #0dcaf0;
+        }
+    }
+
+    .glow-green {
+        animation: blink-green 1.5s infinite ease-in-out !important;
+    }
+
+    .glow-orange {
+        animation: blink-orange 1.5s infinite ease-in-out !important;
+    }
+
+    .glow-red {
+        animation: blink-red 1s infinite ease-in-out !important;
+    }
+
+    .glow-purple {
+        animation: blink-purple 1s infinite ease-in-out !important;
+    }
+
+    .glow-complete {
+        animation: blink-complete 2.5s infinite ease-in-out !important;
+    }
+
+    /* Header do Card */
     .project-card-header {
-        padding: 16px;
+        padding: 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 10px;
+        background: rgba(255, 255, 255, 0.02);
     }
-    
-    .project-card-body {
-        padding: 16px;
-    }
-    
-    .project-card-footer {
-        padding: 12px 16px;
-    }
-}
 
-@media (min-width: 1400px) {
-    .projects-grid {
-        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    .project-card-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #e9ecef;
+        flex: 1;
+        line-height: 1.4;
+        margin: 0;
     }
-}
+
+    .project-card-actions {
+        background: transparent;
+        border: none;
+        color: #6c757d;
+        padding: 4px 8px;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: all 0.2s;
+        font-size: 14px;
+    }
+
+    .project-card-actions:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+    }
+
+    /* Body do Card */
+    .project-card-body {
+        padding: 20px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .project-card-info {
+        display: flex;
+        align-items: center;
+        font-size: 14px;
+        color: #e9ecef;
+    }
+
+    .project-card-info i {
+        font-size: 13px;
+        width: 16px;
+    }
+
+    /* Footer do Card */
+    .project-card-footer {
+        padding: 16px 20px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.2);
+    }
+
+    .progress-container-card {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .progress-bar-custom {
+        flex: 1;
+        height: 8px;
+        background: #2a2f38;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.3s ease;
+    }
+
+    .progress-danger {
+        background: linear-gradient(90deg, #ff6b7a 0%, #dc3545 100%);
+    }
+
+    .progress-warning {
+        background: linear-gradient(90deg, #ffc107 0%, #ffb300 100%);
+    }
+
+    .progress-success {
+        background: linear-gradient(90deg, #4ec991 0%, #198754 100%);
+    }
+
+    .progress-text {
+        font-size: 14px;
+        color: #e9ecef;
+        font-weight: 600;
+        min-width: 45px;
+        text-align: right;
+    }
+
+    /* Badges de status */
+    .status-badge {
+        padding: 6px 12px;
+        border-radius: 16px;
+        font-size: 11px;
+        font-weight: 600;
+        display: inline-block;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .status-active {
+        background: rgba(13, 110, 253, 0.2);
+        color: #5ba3ff;
+        border: 1px solid rgba(13, 110, 253, 0.3);
+    }
+
+    .status-completed {
+        background: rgba(25, 135, 84, 0.2);
+        color: #4ec991;
+        border: 1px solid rgba(25, 135, 84, 0.3);
+    }
+
+    .status-pending {
+        background: rgba(255, 193, 7, 0.2);
+        color: #ffc107;
+        border: 1px solid rgba(255, 193, 7, 0.3);
+    }
+
+    .status-delayed {
+        background: rgba(220, 53, 69, 0.2);
+        color: #ff6b7a;
+        border: 1px solid rgba(220, 53, 69, 0.3);
+    }
+
+    /* Empty State */
+    .empty-state {
+        grid-column: 1 / -1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 80px 20px;
+        text-align: center;
+    }
+
+    /* Dropdown */
+    .dropdown {
+        position: relative;
+    }
+
+    .dropdown .dropdown-menu {
+        z-index: 9999 !important;
+    }
+
+    /* Responsivo */
+    @media (max-width: 768px) {
+        .projects-grid {
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        .project-card-header {
+            padding: 16px;
+        }
+
+        .project-card-body {
+            padding: 16px;
+        }
+
+        .project-card-footer {
+            padding: 12px 16px;
+        }
+    }
+
+    @media (min-width: 1400px) {
+        .projects-grid {
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        }
+    }
 </style>
 
 <script>
-function editProject(projectId) {
-    const modal = new bootstrap.Modal(document.getElementById('editProjectModal'));
-    const content = document.getElementById('editProjectContent');
-    const form = document.getElementById('editProjectForm');
-    
-    form.action = `/projects/${projectId}/edit`;
-    
-    content.innerHTML = `
+    function editProject(projectId) {
+        const modal = new bootstrap.Modal(document.getElementById('editProjectModal'));
+        const content = document.getElementById('editProjectContent');
+        const form = document.getElementById('editProjectForm');
+
+        form.action = `/projects/${projectId}/edit`;
+
+        content.innerHTML = `
         <div class="text-center py-4">
             <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">Carregando...</span>
             </div>
         </div>
     `;
-    
-    modal.show();
-    
-    fetch(`/projects/${projectId}/data`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                content.innerHTML = buildEditProjectHTML(data.project, data.clients, data.users);
-            } else {
-                content.innerHTML = `
+
+        modal.show();
+
+        fetch(`/projects/${projectId}/data`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    content.innerHTML = buildEditProjectHTML(data.project, data.clients, data.users);
+
+                    // Listener para status "Concluído"
+                    const statusSelect = content.querySelector('select[name="status"]');
+                    const kanbanToggle = content.querySelector('input[name="show_in_kanban"]');
+
+                    if (statusSelect && kanbanToggle) {
+                        statusSelect.addEventListener('change', function () {
+                            if (this.value === 'concluido') {
+                                kanbanToggle.checked = false;
+                            } else {
+                                // Opcional: Reativar se mudar de concluído para outro?
+                                // Por enquanto, mantemos a decisão do usuário ou o estado anterior, 
+                                // mas se ele estava concluído e o usuário mudou, talvez queira ver no kanban.
+                                // Vamos deixar manual para ativar, mas auto para desativar.
+                                if (!kanbanToggle.checked && this.value !== 'concluido' && data.project.status === 'concluido') {
+                                    kanbanToggle.checked = true;
+                                }
+                            }
+                        });
+                    }
+                } else {
+                    content.innerHTML = `
                     <div class="alert alert-danger">
                         <i class="fas fa-exclamation-triangle me-2"></i>
                         Erro ao carregar dados do projeto.
                     </div>
                 `;
-            }
-        })
-        .catch(error => {
-            console.error('Erro:', error);
-            content.innerHTML = `
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                content.innerHTML = `
                 <div class="alert alert-danger">
                     <i class="fas fa-exclamation-triangle me-2"></i>
                     Erro ao carregar dados do projeto.
                 </div>
             `;
-        });
-}
+            });
+    }
 
-function buildEditProjectHTML(project, clients, users) {
-    const teamMemberIds = project.team_members ? project.team_members.map(m => m.id) : [];
-    const prazoFormatted = project.prazo ? project.prazo : '';
-    
-    return `
+    function buildEditProjectHTML(project, clients, users) {
+        const teamMemberIds = project.team_members ? project.team_members.map(m => m.id) : [];
+        const prazoFormatted = project.prazo ? project.prazo : '';
+
+        return `
         <div class="row mb-3">
             <div class="col-md-6">
                 <label class="form-label">Nome do Projeto</label>
@@ -631,9 +776,9 @@ function buildEditProjectHTML(project, clients, users) {
             <div class="col-md-6">
                 <label class="form-label">Cliente</label>
                 <select class="form-select bg-dark text-light border-secondary" name="client_id" required>
-                    ${clients.map(client => 
-                        `<option value="${client.id}" ${client.id === project.client_id ? 'selected' : ''}>${escapeHtml(client.nome)}</option>`
-                    ).join('')}
+                    ${clients.map(client =>
+            `<option value="${client.id}" ${client.id === project.client_id ? 'selected' : ''}>${escapeHtml(client.nome)}</option>`
+        ).join('')}
                 </select>
             </div>
         </div>
@@ -642,9 +787,9 @@ function buildEditProjectHTML(project, clients, users) {
             <div class="col-md-4">
                 <label class="form-label">Responsável</label>
                 <select class="form-select bg-dark text-light border-secondary" name="responsible_id" required>
-                    ${users.map(user => 
-                        `<option value="${user.id}" ${user.id === project.responsible_id ? 'selected' : ''}>${escapeHtml(user.full_name)}</option>`
-                    ).join('')}
+                    ${users.map(user =>
+            `<option value="${user.id}" ${user.id === project.responsible_id ? 'selected' : ''}>${escapeHtml(user.full_name)}</option>`
+        ).join('')}
                 </select>
             </div>
             <div class="col-md-4">
@@ -659,30 +804,47 @@ function buildEditProjectHTML(project, clients, users) {
             <div class="col-md-4">
                 <label class="form-label">Equipe</label>
                 <select class="form-select bg-dark text-light border-secondary" name="team_member_ids" multiple size="3">
-                    ${users.map(user => 
-                        `<option value="${user.id}" ${teamMemberIds.includes(user.id) ? 'selected' : ''}>${escapeHtml(user.full_name)}</option>`
-                    ).join('')}
+                    ${users.map(user =>
+            `<option value="${user.id}" ${teamMemberIds.includes(user.id) ? 'selected' : ''}>${escapeHtml(user.full_name)}</option>`
+        ).join('')}
                 </select>
             </div>
         </div>
         
         <div class="row mb-3">
-            <div class="col-md-6">
-                <label class="form-label">Prazo</label>
-                <input type="date" class="form-control bg-dark text-light border-secondary" name="prazo" value="${prazoFormatted}">
-            </div>
-            <div class="col-md-6">
+            <div class="col-md-12">
                 <label class="form-label">Progresso (%)</label>
                 <input type="number" class="form-control bg-dark text-light border-secondary" name="progress_percent" value="${project.progress_percent || 0}" min="0" max="100">
             </div>
         </div>
+        
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="form-label">Data de Início</label>
+                <input type="date" class="form-control bg-dark text-light border-secondary" name="data_inicio" value="${project.data_inicio || ''}">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Data de Entrega</label>
+                <input type="date" class="form-control bg-dark text-light border-secondary" name="data_fim" value="${project.data_fim || ''}">
+            </div>
+        </div>
+        
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="showInKanban" name="show_in_kanban" ${project.show_in_kanban !== false ? 'checked' : ''}>
+                    <label class="form-check-label" for="showInKanban">Exibir projeto no filtro do Kanban</label>
+                </div>
+                <div class="form-text text-white-50">Projetos concluídos são ocultados automaticamente, mas você pode reativá-los aqui.</div>
+            </div>
+        </div>
     `;
-}
+    }
 
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
 </script>
 {% endblock %}

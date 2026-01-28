@@ -7,7 +7,8 @@ Execute este script no ambiente de desenvolvimento
 import json
 import os
 from datetime import datetime
-from app import app, db
+from app import app
+from extensions import db
 from models import User, Client, Project, Task, TodoItem
 
 def export_database_data():

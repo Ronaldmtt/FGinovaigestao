@@ -9,7 +9,8 @@ import os
 import sys
 from datetime import datetime
 from werkzeug.security import generate_password_hash
-from app import app, db
+from app import app
+from extensions import db
 from models import User, Client, Project, Task, TodoItem, project_users
 
 def import_database_data(filename=None):

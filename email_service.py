@@ -1,5 +1,6 @@
 from flask_mail import Message
-from app import mail, app
+from extensions import mail
+from app import app
 from flask import render_template
 from datetime import datetime
 import logging

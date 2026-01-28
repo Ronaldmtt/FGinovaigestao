@@ -1,11 +1,10 @@
 import os
 import logging
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager
-from flask_mail import Mail
-from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Configure logging for debugging
@@ -34,12 +33,7 @@ def init_rpa_monitor():
     except Exception as e:
         logging.warning(f"RPA Monitor não pôde ser inicializado: {e}")
 
-class Base(DeclarativeBase):
-    pass
-
-db = SQLAlchemy(model_class=Base)
-login_manager = LoginManager()
-mail = Mail()
+from extensions import db, login_manager, mail
 
 # create the app
 app = Flask(__name__)
@@ -48,19 +42,24 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 # configure the database
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "pool_recycle": 280,
-    "pool_pre_ping": True,
-    "pool_size": 5,
-    "max_overflow": 10,
-    "pool_timeout": 30,
-    "connect_args": {
-        "keepalives": 1,
-        "keepalives_idle": 30,
-        "keepalives_interval": 10,
-        "keepalives_count": 5,
+
+# Define engine options based on database type
+if app.config["SQLALCHEMY_DATABASE_URI"] and app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite"):
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {}
+else:
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "pool_recycle": 280,
+        "pool_pre_ping": True,
+        "pool_size": 5,
+        "max_overflow": 10,
+        "pool_timeout": 30,
+        "connect_args": {
+            "keepalives": 1,
+            "keepalives_idle": 30,
+            "keepalives_interval": 10,
+            "keepalives_count": 5,
+        }
     }
-}
 
 # configure file uploads
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
@@ -132,7 +131,11 @@ with app.app_context():
     db.session.commit()
 
 # Inicializar RPA Monitor
-init_rpa_monitor()
+# Inicializar RPA Monitor (Opcional)
+if os.environ.get('RPA_MONITOR_ENABLED', 'false').lower() == 'true':
+    init_rpa_monitor()
+else:
+    logging.info("RPA Monitor desativado via configuração.")
 
 # Import routes after app initialization
 import routes

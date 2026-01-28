@@ -70,7 +70,10 @@ class ProjectForm(FlaskForm):
         ('concluido', 'Concluído')
     ], default='em_andamento', validators=[DataRequired()])
     progress_percent = IntegerField('Progresso (%)', validators=[Optional(), NumberRange(min=0, max=100)], default=0)
+    progress_percent = IntegerField('Progresso (%)', validators=[Optional(), NumberRange(min=0, max=100)], default=0)
     prazo = DateField('Prazo', validators=[Optional()])
+    data_inicio = DateField('Data de Início', validators=[Optional()])
+    data_fim = DateField('Data de Entrega', validators=[Optional()])
     transcricao = TextAreaField('Transcrição', widget=TextArea(), render_kw={"rows": 10})
     
     descricao_resumida = TextAreaField('Descrição Resumida', render_kw={"rows": 2})
@@ -122,7 +125,10 @@ class ManualProjectForm(FlaskForm):
         ('concluido', 'Concluído')
     ], default='em_andamento', validators=[DataRequired()])
     progress_percent = IntegerField('Progresso (%)', validators=[Optional(), NumberRange(min=0, max=100)], default=0)
+    progress_percent = IntegerField('Progresso (%)', validators=[Optional(), NumberRange(min=0, max=100)], default=0)
     prazo = DateField('Prazo', validators=[Optional()])
+    data_inicio = DateField('Data de Início', validators=[Optional()])
+    data_fim = DateField('Data de Entrega', validators=[Optional()])
     
     # Campos detalhados do projeto
     descricao_resumida = TextAreaField('Descrição Resumida', render_kw={"rows": 3})

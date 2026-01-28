@@ -1,0 +1,13 @@
+[Unit]
+Description=Gunicorn instance to serve gestao_app
+After=network.target
+
+[Service]
+User=root
+Group=www-data
+WorkingDirectory=/var/www/gestao_app
+Environment="PATH=/var/www/gestao_app/venv/bin"
+ExecStart=/var/www/gestao_app/venv/bin/gunicorn --workers 3 --bind unix:gestao_app.sock -m 007 app:app
+
+[Install]
+WantedBy=multi-user.target

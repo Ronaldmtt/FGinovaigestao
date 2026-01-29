@@ -163,8 +163,48 @@ def log_request_info():
         user_id = f"{current_user.email} [{current_user.id}]"
     
     # Log navigation/access
-    # We log as INFO so it appears in the monitor's main stream
-    rpa_log.info(f"Acesso: {request.method} {request.path} - Usuário: {user_id}", regiao="navegacao")
+    # Map paths to human readable names
+    path_map = {
+        '/dashboard': 'o Dashboard',
+        '/projects': 'a Lista de Projetos',
+        '/tasks': 'a Lista de Tarefas',
+        '/clients': 'a Lista de Clientes',
+        '/kanban': 'o Quadro Kanban',
+        '/admin/users': 'o Gerenciamento de Usuários',
+        '/login': 'a Tela de Login',
+        '/logout': 'o Logout'
+    }
+    
+    action = f"acessou {request.path}"
+    
+    # Direct match
+    if request.path in path_map:
+        action = f"acessou {path_map[request.path]}"
+    # Partial matches for details
+    elif request.path.startswith('/projects/'):
+        if '/edit' in request.path:
+            action = "está editando um Projeto"
+        elif '/data' in request.path:
+            return # Skip internal API calls
+        elif request.path.endswith('/process-ai'):
+             action = "solicitou Processamento de IA"
+        else:
+            action = "acessou os Detalhes de um Projeto"
+    elif request.path.startswith('/tasks/'):
+         if 'kanban' in request.path:
+             action = "acessou o Kanban" # fallback
+         else:
+             action = "acessou uma Tarefa"
+    elif request.path.startswith('/clients/'):
+        action = "acessou a ficha de um Cliente"
+    elif request.path.startswith('/api/'):
+        return # Skip all API logs from navigation stream (handled by specific action logs)
+
+    user_name = "Visitante"
+    if current_user.is_authenticated:
+        user_name = current_user.nome if hasattr(current_user, 'nome') else current_user.email
+
+    rpa_log.info(f"{user_name} {action}", regiao="navegacao")
 
 @app.errorhandler(Exception)
 def handle_global_exception(e):

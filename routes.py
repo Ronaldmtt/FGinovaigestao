@@ -57,7 +57,7 @@ def login():
         user = User.query.filter_by(email=form.email.data).first()
         if user and user.password_hash and form.password.data and check_password_hash(user.password_hash, form.password.data):
             login_user(user)
-            rpa_log.info(f"Login realizado: {user.email}", regiao="autenticacao")
+            rpa_log.info(f"{user.nome} entrou no sistema", regiao="autenticacao")
             return redirect(url_for('dashboard'))
         rpa_log.warn(f"Tentativa de login falhou: {form.email.data}", regiao="autenticacao")
         flash('Email ou senha inválidos.', 'danger')
@@ -69,7 +69,7 @@ def login():
 def logout():
     user_email = current_user.email
     logout_user()
-    rpa_log.info(f"Logout realizado: {user_email}", regiao="autenticacao")
+    rpa_log.info(f"{current_user.nome} saiu do sistema", regiao="autenticacao")
     return redirect(url_for('login'))
 
 @app.route('/dashboard')
@@ -237,7 +237,7 @@ def admin_new_user():
         # Debug: Confirmar o que foi salvo
         app.logger.debug(f"Usuário salvo - is_admin: {user.is_admin}, acesso_tarefas: {user.acesso_tarefas}, acesso_kanban: {user.acesso_kanban}")
         
-        rpa_log.info(f"Usuário criado: {user.email} (ID: {user.id}) por {current_user.email}", regiao="usuarios")
+        rpa_log.info(f"{current_user.nome} criou um novo usuário: {user.nome} {user.sobrenome}", regiao="usuarios")
         flash('Usuário criado com sucesso!', 'success')
         return redirect(url_for('admin_users'))
     
@@ -270,7 +270,7 @@ def admin_edit_user(user_id):
             user.password_hash = generate_password_hash(form.password.data)
         
         db.session.commit()
-        rpa_log.info(f"Usuário atualizado: {user.email} (ID: {user.id}) por {current_user.email}", regiao="usuarios")
+        rpa_log.info(f"{current_user.nome} atualizou os dados do usuário {user.nome} {user.sobrenome}", regiao="usuarios")
         flash('Usuário atualizado com sucesso!', 'success')
         return redirect(url_for('admin_users'))
     
@@ -299,7 +299,7 @@ def admin_delete_user(user_id):
     user_id_log = user.id
     db.session.delete(user)
     db.session.commit()
-    rpa_log.info(f"Usuário deletado: {user_email} (ID: {user_id_log}) por {current_user.email}", regiao="usuarios")
+    rpa_log.info(f"{current_user.nome} excluiu o usuário {user_email}", regiao="usuarios")
     flash('Usuário removido com sucesso!', 'success')
     return redirect(url_for('admin_users'))
 
@@ -353,7 +353,7 @@ def new_client():
         )
         db.session.add(client)
         db.session.commit()
-        rpa_log.info(f"Cliente criado: {client.nome} (ID: {client.id}) por {current_user.email}", regiao="clientes")
+        rpa_log.info(f"{current_user.nome} cadastrou um novo cliente: {client.nome}", regiao="clientes")
         flash('Cliente cadastrado com sucesso!', 'success')
         return redirect(url_for('clients'))
     
@@ -403,7 +403,7 @@ def edit_client(client_id):
             client.observacoes = form.observacoes.data
             
             db.session.commit()
-            rpa_log.info(f"Cliente atualizado: {client.nome} (ID: {client.id}) por {current_user.email}", regiao="clientes")
+            rpa_log.info(f"{current_user.nome} atualizou os dados do cliente {client.nome}", regiao="clientes")
             flash('Cliente atualizado com sucesso!', 'success')
             return redirect('/clients')
         except Exception as e:
@@ -448,7 +448,7 @@ def delete_client(client_id):
     client_id_log = client.id
     db.session.delete(client)
     db.session.commit()
-    rpa_log.info(f"Cliente deletado: {client_nome} (ID: {client_id_log}) por {current_user.email}", regiao="clientes")
+    rpa_log.info(f"{current_user.nome} excluiu o cliente {client_nome}", regiao="clientes")
     flash('Cliente removido com sucesso!', 'success')
     return redirect(url_for('clients'))
 
@@ -634,7 +634,7 @@ def new_project():
         # Commit inicial para salvar o projeto
         db.session.commit()
         
-        rpa_log.info(f"Projeto criado: {project.nome} (ID: {project.id}) por {current_user.email}", regiao="projetos")
+        rpa_log.info(f"{current_user.nome} criou o projeto '{project.nome}' vinculado ao cliente {project.client.nome if project.client else 'Sem cliente'}", regiao="projetos")
         flash('Projeto criado com sucesso! Use o botão "Processar com IA" para analisar a transcrição.', 'success')
         return redirect(url_for('projects'))
     
@@ -694,7 +694,7 @@ def new_manual_project():
                 project.team_members.append(user)
     
     db.session.commit()
-    rpa_log.info(f"Projeto criado manualmente: {project.nome} (ID: {project.id}) por {current_user.email}", regiao="projetos")
+    rpa_log.info(f"{current_user.nome} criou manualmente o projeto '{project.nome}'", regiao="projetos")
     flash('Projeto criado manualmente com sucesso!', 'success')
     return redirect(url_for('projects'))
 
@@ -778,7 +778,7 @@ def edit_project(id):
     
     try:
         db.session.commit()
-        rpa_log.info(f"Projeto atualizado: {project.nome} (ID: {project.id}) por {current_user.email}", regiao="projetos")
+        rpa_log.info(f"{current_user.nome} atualizou o projeto '{project.nome}'", regiao="projetos")
         flash('Projeto atualizado com sucesso!', 'success')
     except Exception as e:
         db.session.rollback()
@@ -803,7 +803,7 @@ def process_project_ai(id):
         return redirect(url_for('project_detail', id=id))
     
     try:
-        rpa_log.info(f"Iniciando processamento IA do projeto: {project.nome} (ID: {project.id}) por {current_user.email}", regiao="ia")
+        rpa_log.info(f"{current_user.nome} solicitou processamento de IA para o projeto '{project.nome}'", regiao="ia")
         
         # Processar transcrição com IA
         ai_result = process_project_transcription(project.transcricao)
@@ -831,7 +831,7 @@ def process_project_ai(id):
                     db.session.add(task)
             
             db.session.commit()
-            rpa_log.info(f"Processamento IA concluído com sucesso: {project.nome} (ID: {project.id})", regiao="ia")
+            rpa_log.info(f"IA concluiu a análise do projeto '{project.nome}'", regiao="ia")
             flash('Projeto processado com IA com sucesso!', 'success')
         else:
             rpa_log.warn(f"Processamento IA sem resultado: {project.nome} (ID: {project.id})", regiao="ia")
@@ -864,7 +864,7 @@ def delete_project(id):
         db.session.delete(project)
         db.session.commit()
         
-        rpa_log.info(f"Projeto deletado: {project_name} (ID: {project_id_log}) por {current_user.email}", regiao="projetos")
+        rpa_log.info(f"{current_user.nome} excluiu o projeto '{project_name}'", regiao="projetos")
         flash(f'Projeto "{project_name}" foi deletado com sucesso!', 'success')
         
     except Exception as e:
@@ -956,7 +956,7 @@ def new_task():
         )
         db.session.add(task)
         db.session.commit()
-        rpa_log.info(f"Tarefa criada: {task.titulo} (ID: {task.id}) por {current_user.email}", regiao="tarefas")
+        rpa_log.info(f"{current_user.nome} criou a tarefa '{task.titulo}'", regiao="tarefas")
         flash('Tarefa criada com sucesso!', 'success')
         return redirect(url_for('tasks'))
     
@@ -1097,7 +1097,7 @@ def new_manual_task():
     db.session.add(task)
     db.session.commit()
     
-    rpa_log.info(f"Tarefa criada manualmente: {titulo} (ID: {task.id}) por {current_user.email}", regiao="tarefas")
+    rpa_log.info(f"{current_user.nome} criou manualmente a tarefa '{task.titulo}'", regiao="tarefas")
     
     # Enviar notificação por email se houver usuário atribuído
     if task.assigned_user_id:
@@ -1587,7 +1587,7 @@ def new_task_kanban():
     db.session.add(task)
     db.session.commit()
     
-    rpa_log.info(f"Tarefa criada via Kanban: {titulo} (ID: {task.id}) por {current_user.email}", regiao="tarefas")
+    rpa_log.info(f"{current_user.nome} criou a tarefa '{task.titulo}' diretamente no Kanban", regiao="tarefas")
     flash('Tarefa criada com sucesso!', 'success')
     return redirect(url_for('kanban'))
 
@@ -1614,7 +1614,7 @@ def transcription_task():
                     tasks_created += 1
                 
                 db.session.commit()
-                rpa_log.info(f"Tarefas geradas por IA (transcrição): {tasks_created} tarefas no projeto {project.nome} por {current_user.email}", regiao="ia")
+                rpa_log.info(f"IA gerou {tasks_created} tarefas automaticamente para o projeto '{project.nome}'", regiao="ia")
                 flash(f'{tasks_created} tarefas foram geradas automaticamente!', 'success')
                 
             except Exception as e:
@@ -1816,7 +1816,7 @@ def api_update_task(task_id):
         
         db.session.commit()
         
-        rpa_log.info(f"Tarefa atualizada via drawer: {task.titulo} (ID: {task.id}) por {current_user.email}", regiao="tarefas")
+        rpa_log.info(f"{current_user.nome} atualizou a tarefa '{task.titulo}'", regiao="tarefas")
         
         # Enviar notificações por email conforme apropriado
         if task.assigned_user_id:
@@ -1882,7 +1882,7 @@ def api_delete_task(task_id):
         db.session.delete(task)
         db.session.commit()
         
-        rpa_log.info(f"Tarefa deletada: {task_titulo} (ID: {task_id_log}) por {current_user.email}", regiao="tarefas")
+        rpa_log.info(f"{current_user.nome} excluiu a tarefa '{task_titulo}'", regiao="tarefas")
         return jsonify({'success': True, 'message': 'Tarefa deletada com sucesso!'})
         
     except Exception as e:
@@ -1914,7 +1914,7 @@ def update_task_status(task_id):
             
         db.session.commit()
         
-        rpa_log.info(f"Status da tarefa alterado: {task.titulo} (ID: {task.id}) de {status_antigo} para {new_status} por {current_user.email}", regiao="tarefas")
+        rpa_log.info(f"{current_user.nome} moveu a tarefa '{task.titulo}' de {status_antigo} para {new_status}", regiao="tarefas")
         
         # Enviar notificação de mudança de status
         if task.assigned_user_id and status_antigo != new_status:
@@ -1969,7 +1969,7 @@ def api_update_todo(todo_id):
             todo.comentario = comentario.strip() if comentario else None
         
         db.session.commit()
-        rpa_log.info(f"To-do atualizado: {todo.texto} (ID: {todo.id}) por {current_user.email}", regiao="tarefas")
+        rpa_log.info(f"{current_user.nome} atualizou o to-do '{todo.texto}' da tarefa '{todo.task.titulo}'", regiao="tarefas")
         return jsonify({
             'success': True, 
             'message': 'To-do atualizado com sucesso!',
@@ -2004,7 +2004,8 @@ def dispatch_task(task_id):
     
     db.session.commit()
     
-    rpa_log.info(f"Tarefa disparada: {task.titulo} (ID: {task.id}) - Estado: {task.disparada} por {current_user.email}", regiao="tarefas")
+    action_msg = "disparou" if task.disparada else "cancelou o disparo de"
+    rpa_log.info(f"{current_user.nome} {action_msg} a tarefa '{task.titulo}'", regiao="tarefas")
     
     return jsonify({
         'success': True,
@@ -2123,7 +2124,7 @@ def kanban_transcription():
         
         db.session.commit()
         
-        rpa_log.info(f"Tarefas geradas por IA via Kanban: {tasks_created} tarefas no projeto {project.nome} por {current_user.email}", regiao="ia")
+        rpa_log.info(f"IA gerou {tasks_created} tarefas automaticamente para o projeto '{project.nome}' via Kanban", regiao="ia")
         
         return jsonify({
             'success': True, 

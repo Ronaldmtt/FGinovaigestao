@@ -328,13 +328,12 @@
                 // Se nenhum usuário selecionado, mostrar todos os clientes
                 document.querySelectorAll('#clientOptionsContainer .filter-option-item').forEach(item => {
                     item.style.display = '';
-
                 });
             }
         }
 
         // Aplicar dependências iniciais
-        applyDependencies();
+        setTimeout(applyDependencies, 100);
     });
 
     // Função de busca dentro do dropdown
@@ -343,14 +342,22 @@
         const items = input.nextElementSibling.querySelectorAll('.filter-option-item');
 
         items.forEach(item => {
-            // Só filtra se não estiver escondido pela lógica de dependência
-            if (item.style.display !== 'none') {
-                const text = item.textContent.toLowerCase();
-                if (text.includes(filter)) {
-                    item.classList.remove('d-none');
-                } else {
-                    item.classList.add('d-none');
-                }
+            // Se o item foi escondido peça lógica de dependência (style.display = 'none'), ignoramos
+            if (item.style.display === 'none') {
+                return;
+            }
+
+            const text = item.textContent.toLowerCase();
+            // Usamos style.display aqui também para não conflitar com a visibilidade base
+            // Mas espera: se usarmos style.display, podemos sobrescrever a lógica de dependência se o usuário limpar a busca?
+            // A lógica de dependência setou style.display.
+            // Se eu 'esconder' por busca, devo usar outro mecanismo para não perder o estado "visivel por dependencia".
+            // Vamos usar uma classe 'search-hidden' para a busca.
+
+            if (text.includes(filter)) {
+                item.classList.remove('d-none');
+            } else {
+                item.classList.add('d-none');
             }
         });
     }

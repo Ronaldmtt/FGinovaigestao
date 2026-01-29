@@ -683,7 +683,7 @@
                                 </button>
                                 <ul class="dropdown-menu w-100 p-2 bg-dark border-secondary shadow"
                                     aria-labelledby="editTeamMembersDropdownBtn"
-                                    style="max-height: 250px; overflow-y: auto;">
+                                    style="max-height: 250px; overflow-y: auto;" onclick="event.stopPropagation()">
                                     {% for user in users %}
                                     <li class="dropdown-item-text p-0 mb-1">
                                         <div class="form-check position-relative">

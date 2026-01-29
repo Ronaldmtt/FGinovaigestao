@@ -1653,9 +1653,14 @@ def transcription_task():
 @requires_permission('acesso_kanban')
 def kanban():
     # Filtros
-    project_filter = request.args.get('project_id', type=int)
-    client_filter = request.args.get('client_id', type=int)
-    user_filter = request.args.get('user_id', type=int)
+    project_filter = request.args.getlist('project_id')
+    client_filter = request.args.getlist('client_id')
+    user_filter = request.args.getlist('user_id')
+    
+    # Converter para inteiros
+    project_filter = [int(x) for x in project_filter if x.isdigit()]
+    client_filter = [int(x) for x in client_filter if x.isdigit()]
+    user_filter = [int(x) for x in user_filter if x.isdigit()]
     
     query = Task.query
     
@@ -1678,13 +1683,13 @@ def kanban():
             query = query.filter(Task.assigned_user_id == current_user.id)
     
     if project_filter:
-        query = query.filter_by(project_id=project_filter)
+        query = query.filter(Task.project_id.in_(project_filter))
     
     if client_filter:
-        query = query.join(Project).filter(Project.client_id == client_filter)
+        query = query.join(Project).filter(Project.client_id.in_(client_filter))
     
     if user_filter:
-        query = query.filter(Task.assigned_user_id == user_filter)
+        query = query.filter(Task.assigned_user_id.in_(user_filter))
     
     tasks = query.order_by(Task.ordem).all()
     

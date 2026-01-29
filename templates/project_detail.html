@@ -11,34 +11,36 @@
                 <li class="breadcrumb-item active">{{ project.nome }}</li>
             </ol>
         </nav>
-        
+
         <div class="d-flex justify-content-between align-items-start">
             <div>
                 <h2><i class="fas fa-project-diagram me-2"></i>{{ project.nome }}</h2>
                 <p class="text-muted">
-                    Cliente: <strong>{{ project.client.nome }}</strong> | 
+                    Cliente: <strong>{{ project.client.nome }}</strong> |
                     Responsável: <strong>{{ project.responsible.full_name }}</strong> |
-                    Status: 
+                    Status:
                     {% if project.status == 'em_andamento' %}
-                        <span class="badge bg-primary">Em Andamento</span>
+                    <span class="badge bg-primary">Em Andamento</span>
                     {% elif project.status == 'pausado' %}
-                        <span class="badge bg-warning">Pausado</span>
+                    <span class="badge bg-warning">Pausado</span>
                     {% elif project.status == 'cancelado' %}
-                        <span class="badge bg-danger">Cancelado</span>
+                    <span class="badge bg-danger">Cancelado</span>
                     {% elif project.status == 'concluido' %}
-                        <span class="badge bg-success">Concluído</span>
+                    <span class="badge bg-success">Concluído</span>
                     {% else %}
-                        <span class="badge bg-secondary">{{ project.status }}</span>
+                    <span class="badge bg-secondary">{{ project.status }}</span>
                     {% endif %} |
                     Criado em: <strong>{{ project.created_at.strftime('%d/%m/%Y') }}</strong>
                 </p>
             </div>
             {% if current_user.is_admin or current_user.id == project.responsible_id %}
             <div>
-                <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#editProjectModal">
+                <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal"
+                    data-bs-target="#editProjectModal">
                     <i class="fas fa-edit me-1"></i>Editar Projeto
                 </button>
-                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteProjectModal">
+                <button type="button" class="btn btn-danger" data-bs-toggle="modal"
+                    data-bs-target="#deleteProjectModal">
                     <i class="fas fa-trash me-1"></i>Deletar Projeto
                 </button>
             </div>
@@ -50,12 +52,14 @@
 <!-- Sistema de Abas -->
 <ul class="nav nav-tabs mt-4" id="projectTabs" role="tablist">
     <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="detalhes-tab" data-bs-toggle="tab" data-bs-target="#detalhes" type="button" role="tab">
+        <button class="nav-link active" id="detalhes-tab" data-bs-toggle="tab" data-bs-target="#detalhes" type="button"
+            role="tab">
             <i class="fas fa-info-circle me-1"></i>Detalhes
         </button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="arquivos-tab" data-bs-toggle="tab" data-bs-target="#arquivos" type="button" role="tab">
+        <button class="nav-link" id="arquivos-tab" data-bs-toggle="tab" data-bs-target="#arquivos" type="button"
+            role="tab">
             <i class="fas fa-folder-open me-1"></i>Arquivos
             <span class="badge bg-secondary ms-1" id="filesCount">0</span>
         </button>
@@ -73,7 +77,8 @@
     <div class="tab-pane fade show active" id="detalhes" role="tabpanel">
         <div class="row">
             <div class="col-md-8">
-                {% if project.descricao_resumida or project.problema_oportunidade or project.objetivos or project.alinhamento_estrategico %}
+                {% if project.descricao_resumida or project.problema_oportunidade or project.objetivos or
+                project.alinhamento_estrategico %}
                 <div class="card mb-3">
                     <div class="card-header">
                         <h5><i class="fas fa-lightbulb me-2"></i>Contexto e Justificativa</h5>
@@ -81,13 +86,13 @@
                     <div class="card-body">
                         <p><strong>Descrição Resumida:</strong></p>
                         <p>{{ project.descricao_resumida or 'Não informado' }}</p>
-                        
+
                         <p><strong>Problema/Oportunidade:</strong></p>
                         <p>{{ project.problema_oportunidade or 'Não informado' }}</p>
-                        
+
                         <p><strong>Objetivos:</strong></p>
                         <p>{{ project.objetivos or 'Não informado' }}</p>
-                        
+
                         <p><strong>Alinhamento Estratégico:</strong></p>
                         <p>{{ project.alinhamento_estrategico or 'Não informado' }}</p>
                     </div>
@@ -102,13 +107,13 @@
                     <div class="card-body">
                         <p><strong>Escopo do Projeto:</strong></p>
                         <p>{{ project.escopo_projeto or 'Não informado' }}</p>
-                        
+
                         <p><strong>Fora do Escopo:</strong></p>
                         <p>{{ project.fora_escopo or 'Não informado' }}</p>
-                        
+
                         <p><strong>Premissas:</strong></p>
                         <p>{{ project.premissas or 'Não informado' }}</p>
-                        
+
                         <p><strong>Restrições:</strong></p>
                         <p>{{ project.restricoes or 'Não informado' }}</p>
                     </div>
@@ -122,11 +127,13 @@
                     </div>
                     <div class="card-body">
                         <p>{{ project.transcricao }}</p>
-                        
+
                         {% if not project.contexto_justificativa %}
                         <div class="mt-3">
-                            <form method="POST" action="{{ url_for('process_project_ai', id=project.id) }}" style="display: inline;">
-                                <button type="submit" class="btn btn-success" onclick="this.disabled=true; this.innerHTML='<i class=\'fas fa-spinner fa-spin me-1\'></i>Processando...'; this.form.submit();">
+                            <form method="POST" action="{{ url_for('process_project_ai', id=project.id) }}"
+                                style="display: inline;">
+                                <button type="submit" class="btn btn-success"
+                                    onclick="this.disabled=true; this.innerHTML='<i class=\'fas fa-spinner fa-spin me-1\'></i>Processando...'; this.form.submit();">
                                     <i class="fas fa-robot me-1"></i>Processar com IA
                                 </button>
                             </form>
@@ -139,7 +146,7 @@
                 </div>
                 {% endif %}
             </div>
-            
+
             <div class="col-md-4">
                 <div class="card mb-3">
                     <div class="card-header">
@@ -148,7 +155,7 @@
                     <div class="card-body">
                         <p><strong>Responsável:</strong></p>
                         <p>{{ project.responsible.full_name }}</p>
-                        
+
                         {% if project.team_members %}
                         <p><strong>Membros da Equipe:</strong></p>
                         <ul class="list-unstyled">
@@ -191,7 +198,8 @@
                         </div>
                         {% endif %}
                         <div class="mt-3">
-                            <a href="{{ url_for('kanban', project_id=project.id) }}" class="btn btn-sm btn-outline-primary">
+                            <a href="{{ url_for('kanban', project_id=project.id) }}"
+                                class="btn btn-sm btn-outline-primary">
                                 <i class="fas fa-columns me-1"></i>Ver no Kanban
                             </a>
                         </div>
@@ -203,7 +211,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Aba Arquivos -->
     <div class="tab-pane fade" id="arquivos" role="tabpanel">
         <div class="row">
@@ -214,19 +222,23 @@
                         <h5 class="mb-0"><i class="fas fa-cloud-upload-alt me-2"></i>Upload de Arquivos</h5>
                     </div>
                     <div class="card-body">
-                        <div id="dropZone" class="border border-dashed rounded p-4 text-center" style="border-style: dashed !important; border-width: 2px !important; cursor: pointer; transition: all 0.3s ease;">
+                        <div id="dropZone" class="border border-dashed rounded p-4 text-center"
+                            style="border-style: dashed !important; border-width: 2px !important; cursor: pointer; transition: all 0.3s ease;">
                             <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
                             <p class="mb-2">Arraste e solte arquivos aqui ou clique para selecionar</p>
-                            <p class="text-muted small mb-0">Formatos aceitos: PDF, Imagens, Vídeos, Documentos, Figma, Sketch, PSD, AI</p>
-                            <input type="file" id="fileInput" multiple style="display: none;" accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.svg,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt,.csv,.mp4,.mov,.avi,.mp3,.wav,.fig,.sketch,.psd,.ai">
+                            <p class="text-muted small mb-0">Formatos aceitos: PDF, Imagens, Vídeos, Documentos, Figma,
+                                Sketch, PSD, AI</p>
+                            <input type="file" id="fileInput" multiple style="display: none;"
+                                accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.svg,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt,.csv,.mp4,.mov,.avi,.mp3,.wav,.fig,.sketch,.psd,.ai">
                         </div>
-                        
+
                         <!-- Arquivos selecionados -->
                         <div id="selectedFilesPreview" class="mt-3" style="display: none;">
-                            <label class="form-label fw-bold"><i class="fas fa-file-alt me-1"></i>Arquivos selecionados:</label>
+                            <label class="form-label fw-bold"><i class="fas fa-file-alt me-1"></i>Arquivos
+                                selecionados:</label>
                             <div id="selectedFilesList" class="border rounded p-2 bg-light"></div>
                         </div>
-                        
+
                         <div class="row mt-3">
                             <div class="col-md-5">
                                 <label class="form-label">Categoria <span class="text-danger">*</span></label>
@@ -237,18 +249,21 @@
                             </div>
                             <div class="col-md-5">
                                 <label class="form-label">Descrição (opcional)</label>
-                                <input type="text" class="form-control" id="uploadDescription" placeholder="Descrição do arquivo">
+                                <input type="text" class="form-control" id="uploadDescription"
+                                    placeholder="Descrição do arquivo">
                             </div>
                             <div class="col-md-2 d-flex align-items-end">
-                                <button type="button" id="uploadBtn" class="btn btn-primary w-100" onclick="confirmUpload()" disabled>
+                                <button type="button" id="uploadBtn" class="btn btn-primary w-100"
+                                    onclick="confirmUpload()" disabled>
                                     <i class="fas fa-upload me-1"></i>Enviar
                                 </button>
                             </div>
                         </div>
-                        
+
                         <div id="uploadProgress" class="mt-3" style="display: none;">
                             <div class="progress">
-                                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"
+                                    style="width: 0%"></div>
                             </div>
                             <p class="text-center mt-2 mb-0" id="uploadStatus">Enviando...</p>
                         </div>
@@ -274,21 +289,22 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Aba API -->
     <div class="tab-pane fade" id="api" role="tabpanel">
         <!-- Chaves de Acesso API v1 -->
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="fas fa-shield-alt me-2"></i>Chaves de Acesso - API v1</h5>
-                <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#generateApiKeyModal">
+                <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal"
+                    data-bs-target="#generateApiKeyModal">
                     <i class="fas fa-plus-circle me-1"></i>Gerar Nova Chave
                 </button>
             </div>
             <div class="card-body">
                 <p class="text-muted small mb-3">
                     <i class="fas fa-info-circle me-1"></i>
-                    Use estas chaves para acessar a API REST v1 do sistema. Endpoints disponíveis: 
+                    Use estas chaves para acessar a API REST v1 do sistema. Endpoints disponíveis:
                     <code>/api/v1/project</code>, <code>/api/v1/tasks</code>, <code>/api/v1/todos</code>
                 </p>
                 <div id="apiKeysList">
@@ -306,7 +322,8 @@
                 <div class="card mb-4">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="mb-0"><i class="fas fa-key me-2"></i>Credenciais de API</h5>
-                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addCredentialModal">
+                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                            data-bs-target="#addCredentialModal">
                             <i class="fas fa-plus me-1"></i>Adicionar
                         </button>
                     </div>
@@ -320,13 +337,14 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Endpoints de API -->
             <div class="col-md-6">
                 <div class="card mb-4">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="mb-0"><i class="fas fa-link me-2"></i>Endpoints de API</h5>
-                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addEndpointModal">
+                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                            data-bs-target="#addEndpointModal">
                             <i class="fas fa-plus me-1"></i>Adicionar
                         </button>
                     </div>
@@ -387,7 +405,8 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Descrição</label>
-                    <textarea class="form-control" id="credentialDescricao" rows="2" placeholder="Descrição ou observações"></textarea>
+                    <textarea class="form-control" id="credentialDescricao" rows="2"
+                        placeholder="Descrição ou observações"></textarea>
                 </div>
             </div>
             <div class="modal-footer">
@@ -427,7 +446,8 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label">URL *</label>
-                    <input type="url" class="form-control" id="endpointUrl" placeholder="https://api.exemplo.com/v1/users">
+                    <input type="url" class="form-control" id="endpointUrl"
+                        placeholder="https://api.exemplo.com/v1/users">
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Credencial Associada</label>
@@ -437,19 +457,23 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Descrição</label>
-                    <textarea class="form-control" id="endpointDescricao" rows="2" placeholder="Descrição do endpoint"></textarea>
+                    <textarea class="form-control" id="endpointDescricao" rows="2"
+                        placeholder="Descrição do endpoint"></textarea>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Headers (JSON)</label>
-                    <textarea class="form-control" id="endpointHeaders" rows="3" placeholder='{"Content-Type": "application/json"}'></textarea>
+                    <textarea class="form-control" id="endpointHeaders" rows="3"
+                        placeholder='{"Content-Type": "application/json"}'></textarea>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Body Exemplo (JSON)</label>
-                    <textarea class="form-control" id="endpointBody" rows="3" placeholder='{"name": "Exemplo"}'></textarea>
+                    <textarea class="form-control" id="endpointBody" rows="3"
+                        placeholder='{"name": "Exemplo"}'></textarea>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Link da Documentação</label>
-                    <input type="url" class="form-control" id="endpointDocLink" placeholder="https://docs.api.com/endpoint">
+                    <input type="url" class="form-control" id="endpointDocLink"
+                        placeholder="https://docs.api.com/endpoint">
                 </div>
             </div>
             <div class="modal-footer">
@@ -551,7 +575,8 @@
                     </div>
                 </div>
                 <p class="small text-muted">
-                    <strong>Como usar:</strong> Envie o token no header <code>Authorization: Bearer SEU_TOKEN</code> ou <code>X-API-Key: SEU_TOKEN</code>
+                    <strong>Como usar:</strong> Envie o token no header <code>Authorization: Bearer SEU_TOKEN</code> ou
+                    <code>X-API-Key: SEU_TOKEN</code>
                 </p>
             </div>
             <div class="modal-footer">
@@ -604,20 +629,22 @@
                             <label class="form-label">Cliente</label>
                             <select class="form-select" name="client_id" required>
                                 {% for client in clients %}
-                                <option value="{{ client.id }}" {% if client.id == project.client_id %}selected{% endif %}>
+                                <option value="{{ client.id }}" {% if client.id==project.client_id %}selected{% endif
+                                    %}>
                                     {{ client.nome }}
                                 </option>
                                 {% endfor %}
                             </select>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Usuário Responsável</label>
                             <select class="form-select" name="responsible_id" required>
                                 {% for user in users %}
-                                <option value="{{ user.id }}" {% if user.id == project.responsible_id %}selected{% endif %}>
+                                <option value="{{ user.id }}" {% if user.id==project.responsible_id %}selected{% endif
+                                    %}>
                                     {{ user.full_name }}
                                 </option>
                                 {% endfor %}
@@ -626,10 +653,14 @@
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Status</label>
                             <select class="form-select" name="status" required>
-                                <option value="em_andamento" {% if project.status == 'em_andamento' %}selected{% endif %}>Em Andamento</option>
-                                <option value="pausado" {% if project.status == 'pausado' %}selected{% endif %}>Pausado</option>
-                                <option value="cancelado" {% if project.status == 'cancelado' %}selected{% endif %}>Cancelado</option>
-                                <option value="concluido" {% if project.status == 'concluido' %}selected{% endif %}>Concluído</option>
+                                <option value="em_andamento" {% if project.status=='em_andamento' %}selected{% endif %}>
+                                    Em Andamento</option>
+                                <option value="pausado" {% if project.status=='pausado' %}selected{% endif %}>Pausado
+                                </option>
+                                <option value="cancelado" {% if project.status=='cancelado' %}selected{% endif %}>
+                                    Cancelado</option>
+                                <option value="concluido" {% if project.status=='concluido' %}selected{% endif %}>
+                                    Concluído</option>
                             </select>
                         </div>
                         <div class="col-md-4 mb-3">
@@ -641,54 +672,76 @@
                                 </option>
                                 {% endfor %}
                             </select>
-                            <small class="form-text text-muted">Segure Ctrl/Cmd para selecionar múltiplos usuários</small>
+                            <small class="form-text text-muted">Segure Ctrl/Cmd para selecionar múltiplos
+                                usuários</small>
                         </div>
                     </div>
-                    
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Data de Início</label>
+                            <input type="date" class="form-control" name="data_inicio"
+                                value="{{ project.data_inicio or '' }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Data de Término</label>
+                            <input type="date" class="form-control" name="data_fim"
+                                value="{{ project.data_fim or '' }}">
+                        </div>
+                    </div>
+
                     <hr class="my-4">
                     <h6 class="mb-3"><i class="fas fa-lightbulb me-2"></i>Contexto e Justificativa</h6>
-                    
+
                     <div class="mb-3">
                         <label class="form-label">Descrição Resumida</label>
-                        <textarea class="form-control" name="descricao_resumida" rows="2">{{ project.descricao_resumida or '' }}</textarea>
+                        <textarea class="form-control" name="descricao_resumida"
+                            rows="2">{{ project.descricao_resumida or '' }}</textarea>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label">Problema/Oportunidade</label>
-                        <textarea class="form-control" name="problema_oportunidade" rows="2">{{ project.problema_oportunidade or '' }}</textarea>
+                        <textarea class="form-control" name="problema_oportunidade"
+                            rows="2">{{ project.problema_oportunidade or '' }}</textarea>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label">Objetivos</label>
-                        <textarea class="form-control" name="objetivos" rows="2">{{ project.objetivos or '' }}</textarea>
+                        <textarea class="form-control" name="objetivos"
+                            rows="2">{{ project.objetivos or '' }}</textarea>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label">Alinhamento Estratégico</label>
-                        <textarea class="form-control" name="alinhamento_estrategico" rows="2">{{ project.alinhamento_estrategico or '' }}</textarea>
+                        <textarea class="form-control" name="alinhamento_estrategico"
+                            rows="2">{{ project.alinhamento_estrategico or '' }}</textarea>
                     </div>
-                    
+
                     <hr class="my-4">
                     <h6 class="mb-3"><i class="fas fa-bullseye me-2"></i>Escopo</h6>
-                    
+
                     <div class="mb-3">
                         <label class="form-label">Escopo do Projeto</label>
-                        <textarea class="form-control" name="escopo_projeto" rows="3">{{ project.escopo_projeto or '' }}</textarea>
+                        <textarea class="form-control" name="escopo_projeto"
+                            rows="3">{{ project.escopo_projeto or '' }}</textarea>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label">Fora do Escopo</label>
-                        <textarea class="form-control" name="fora_escopo" rows="2">{{ project.fora_escopo or '' }}</textarea>
+                        <textarea class="form-control" name="fora_escopo"
+                            rows="2">{{ project.fora_escopo or '' }}</textarea>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label">Premissas</label>
-                        <textarea class="form-control" name="premissas" rows="2">{{ project.premissas or '' }}</textarea>
+                        <textarea class="form-control" name="premissas"
+                            rows="2">{{ project.premissas or '' }}</textarea>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label">Restrições</label>
-                        <textarea class="form-control" name="restricoes" rows="2">{{ project.restricoes or '' }}</textarea>
+                        <textarea class="form-control" name="restricoes"
+                            rows="2">{{ project.restricoes or '' }}</textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -722,7 +775,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <form method="POST" action="{{ url_for('delete_project', id=project.id) }}" style="display: inline;">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}"/>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}" />
                     <button type="submit" class="btn btn-danger">
                         <i class="fas fa-trash me-1"></i>Sim, Deletar Projeto
                     </button>
@@ -734,130 +787,146 @@
 {% endif %}
 
 <style>
-#dropZone.drag-over {
-    background-color: rgba(59, 130, 246, 0.1);
-    border-color: #3b82f6 !important;
-}
+    #dropZone.drag-over {
+        background-color: rgba(59, 130, 246, 0.1);
+        border-color: #3b82f6 !important;
+    }
 
-.file-card {
-    transition: all 0.2s ease;
-    cursor: pointer;
-}
+    .file-card {
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
 
-.file-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
+    .file-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
 
-.file-icon {
-    font-size: 2.5rem;
-}
+    .file-icon {
+        font-size: 2.5rem;
+    }
 
-.file-thumbnail {
-    width: 100%;
-    height: 120px;
-    object-fit: cover;
-    border-radius: 4px;
-}
+    .file-thumbnail {
+        width: 100%;
+        height: 120px;
+        object-fit: cover;
+        border-radius: 4px;
+    }
 
-.method-badge {
-    font-family: monospace;
-    font-weight: bold;
-}
+    .method-badge {
+        font-family: monospace;
+        font-weight: bold;
+    }
 
-.method-GET { background-color: #10b981; }
-.method-POST { background-color: #3b82f6; }
-.method-PUT { background-color: #f59e0b; }
-.method-PATCH { background-color: #8b5cf6; }
-.method-DELETE { background-color: #ef4444; }
+    .method-GET {
+        background-color: #10b981;
+    }
 
-.credential-card, .endpoint-card {
-    border-left: 3px solid #6b7280;
-    margin-bottom: 12px;
-    padding: 12px;
-    background: var(--bs-body-bg);
-    border-radius: 0 4px 4px 0;
-}
+    .method-POST {
+        background-color: #3b82f6;
+    }
 
-.credential-card:hover, .endpoint-card:hover {
-    background: var(--bs-tertiary-bg);
-}
+    .method-PUT {
+        background-color: #f59e0b;
+    }
 
-.nav-tabs .nav-link {
-    color: var(--bs-body-color);
-}
+    .method-PATCH {
+        background-color: #8b5cf6;
+    }
 
-.nav-tabs .nav-link.active {
-    font-weight: 600;
-}
+    .method-DELETE {
+        background-color: #ef4444;
+    }
+
+    .credential-card,
+    .endpoint-card {
+        border-left: 3px solid #6b7280;
+        margin-bottom: 12px;
+        padding: 12px;
+        background: var(--bs-body-bg);
+        border-radius: 0 4px 4px 0;
+    }
+
+    .credential-card:hover,
+    .endpoint-card:hover {
+        background: var(--bs-tertiary-bg);
+    }
+
+    .nav-tabs .nav-link {
+        color: var(--bs-body-color);
+    }
+
+    .nav-tabs .nav-link.active {
+        font-weight: 600;
+    }
 </style>
 
 <script>
-const projectId = {{ project.id }};
-let filesData = [];
-let categoriesData = [];
-let credentialsData = [];
-let endpointsData = [];
-let pendingFiles = []; // Arquivos aguardando upload
+    const projectId = {{ project.id }};
+    let filesData = [];
+    let categoriesData = [];
+    let credentialsData = [];
+    let endpointsData = [];
+    let pendingFiles = []; // Arquivos aguardando upload
 
-document.addEventListener('DOMContentLoaded', function() {
-    loadFiles();
-    loadCredentials();
-    loadEndpoints();
-    setupDropZone();
-    setupCategoryFilter();
-    
-    // Carregar dados quando a aba for selecionada
-    document.getElementById('arquivos-tab').addEventListener('shown.bs.tab', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         loadFiles();
-    });
-    
-    document.getElementById('api-tab').addEventListener('shown.bs.tab', function() {
         loadCredentials();
         loadEndpoints();
-    });
-});
+        setupDropZone();
+        setupCategoryFilter();
 
-// ========== ARQUIVOS ==========
+        // Carregar dados quando a aba for selecionada
+        document.getElementById('arquivos-tab').addEventListener('shown.bs.tab', function () {
+            loadFiles();
+        });
 
-function setupDropZone() {
-    const dropZone = document.getElementById('dropZone');
-    const fileInput = document.getElementById('fileInput');
-    const categorySelect = document.getElementById('uploadCategory');
-    
-    dropZone.addEventListener('click', () => fileInput.click());
-    
-    dropZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        dropZone.classList.add('drag-over');
+        document.getElementById('api-tab').addEventListener('shown.bs.tab', function () {
+            loadCredentials();
+            loadEndpoints();
+        });
     });
-    
-    dropZone.addEventListener('dragleave', () => {
-        dropZone.classList.remove('drag-over');
-    });
-    
-    dropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dropZone.classList.remove('drag-over');
-        selectFiles(e.dataTransfer.files);
-    });
-    
-    fileInput.addEventListener('change', (e) => {
-        selectFiles(e.target.files);
-    });
-    
-    // Habilitar botão quando categoria for selecionada
-    categorySelect.addEventListener('change', updateUploadButton);
-}
 
-function selectFiles(files) {
-    pendingFiles = Array.from(files);
-    const previewDiv = document.getElementById('selectedFilesPreview');
-    const listDiv = document.getElementById('selectedFilesList');
-    
-    if (pendingFiles.length > 0) {
-        previewDiv.style.display = 'block';
-        listDiv.innerHTML = pendingFiles.map((file, index) => `
+    // ========== ARQUIVOS ==========
+
+    function setupDropZone() {
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const categorySelect = document.getElementById('uploadCategory');
+
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            selectFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            selectFiles(e.target.files);
+        });
+
+        // Habilitar botão quando categoria for selecionada
+        categorySelect.addEventListener('change', updateUploadButton);
+    }
+
+    function selectFiles(files) {
+        pendingFiles = Array.from(files);
+        const previewDiv = document.getElementById('selectedFilesPreview');
+        const listDiv = document.getElementById('selectedFilesList');
+
+        if (pendingFiles.length > 0) {
+            previewDiv.style.display = 'block';
+            listDiv.innerHTML = pendingFiles.map((file, index) => `
             <div class="d-flex justify-content-between align-items-center py-1 ${index > 0 ? 'border-top' : ''}">
                 <span>
                     <i class="fas fa-file me-2 text-primary"></i>
@@ -869,195 +938,195 @@ function selectFiles(files) {
                 </button>
             </div>
         `).join('');
-    } else {
-        previewDiv.style.display = 'none';
+        } else {
+            previewDiv.style.display = 'none';
+        }
+
+        updateUploadButton();
     }
-    
-    updateUploadButton();
-}
 
-function removeFile(index) {
-    pendingFiles.splice(index, 1);
-    selectFiles(pendingFiles);
-}
-
-function formatFileSize(bytes) {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-}
-
-function updateUploadButton() {
-    const categorySelect = document.getElementById('uploadCategory');
-    const uploadBtn = document.getElementById('uploadBtn');
-    const hasCategory = categorySelect.value !== '';
-    const hasFiles = pendingFiles.length > 0;
-    
-    uploadBtn.disabled = !(hasCategory && hasFiles);
-    
-    if (hasCategory) {
-        categorySelect.classList.remove('is-invalid');
+    function removeFile(index) {
+        pendingFiles.splice(index, 1);
+        selectFiles(pendingFiles);
     }
-}
 
-function confirmUpload() {
-    const categorySelect = document.getElementById('uploadCategory');
-    
-    if (!categorySelect.value) {
-        categorySelect.classList.add('is-invalid');
-        categorySelect.focus();
-        return;
+    function formatFileSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
     }
-    
-    if (pendingFiles.length === 0) {
-        alert('Por favor, selecione pelo menos um arquivo.');
-        return;
-    }
-    
-    uploadFiles(pendingFiles);
-}
 
-function uploadFiles(files) {
-    const categorySelect = document.getElementById('uploadCategory');
-    const categoryId = categorySelect.value;
-    const description = document.getElementById('uploadDescription').value;
-    const progressDiv = document.getElementById('uploadProgress');
-    const progressBar = progressDiv.querySelector('.progress-bar');
-    const statusText = document.getElementById('uploadStatus');
-    const uploadBtn = document.getElementById('uploadBtn');
-    
-    // Desabilitar botão durante upload
-    uploadBtn.disabled = true;
-    uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Enviando...';
-    
-    progressDiv.style.display = 'block';
-    
-    let uploaded = 0;
-    const total = files.length;
-    
-    Array.from(files).forEach(file => {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('category_id', categoryId);
-        if (description) formData.append('descricao', description);
-        
-        fetch(`/api/project/${projectId}/files`, {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            uploaded++;
-            const percent = (uploaded / total) * 100;
-            progressBar.style.width = percent + '%';
-            statusText.textContent = `Enviado ${uploaded} de ${total} arquivos`;
-            
-            if (uploaded === total) {
-                setTimeout(() => {
-                    progressDiv.style.display = 'none';
-                    progressBar.style.width = '0%';
-                    document.getElementById('uploadDescription').value = '';
-                    document.getElementById('selectedFilesPreview').style.display = 'none';
-                    document.getElementById('fileInput').value = '';
-                    pendingFiles = [];
+    function updateUploadButton() {
+        const categorySelect = document.getElementById('uploadCategory');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const hasCategory = categorySelect.value !== '';
+        const hasFiles = pendingFiles.length > 0;
+
+        uploadBtn.disabled = !(hasCategory && hasFiles);
+
+        if (hasCategory) {
+            categorySelect.classList.remove('is-invalid');
+        }
+    }
+
+    function confirmUpload() {
+        const categorySelect = document.getElementById('uploadCategory');
+
+        if (!categorySelect.value) {
+            categorySelect.classList.add('is-invalid');
+            categorySelect.focus();
+            return;
+        }
+
+        if (pendingFiles.length === 0) {
+            alert('Por favor, selecione pelo menos um arquivo.');
+            return;
+        }
+
+        uploadFiles(pendingFiles);
+    }
+
+    function uploadFiles(files) {
+        const categorySelect = document.getElementById('uploadCategory');
+        const categoryId = categorySelect.value;
+        const description = document.getElementById('uploadDescription').value;
+        const progressDiv = document.getElementById('uploadProgress');
+        const progressBar = progressDiv.querySelector('.progress-bar');
+        const statusText = document.getElementById('uploadStatus');
+        const uploadBtn = document.getElementById('uploadBtn');
+
+        // Desabilitar botão durante upload
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Enviando...';
+
+        progressDiv.style.display = 'block';
+
+        let uploaded = 0;
+        const total = files.length;
+
+        Array.from(files).forEach(file => {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('category_id', categoryId);
+            if (description) formData.append('descricao', description);
+
+            fetch(`/api/project/${projectId}/files`, {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    uploaded++;
+                    const percent = (uploaded / total) * 100;
+                    progressBar.style.width = percent + '%';
+                    statusText.textContent = `Enviado ${uploaded} de ${total} arquivos`;
+
+                    if (uploaded === total) {
+                        setTimeout(() => {
+                            progressDiv.style.display = 'none';
+                            progressBar.style.width = '0%';
+                            document.getElementById('uploadDescription').value = '';
+                            document.getElementById('selectedFilesPreview').style.display = 'none';
+                            document.getElementById('fileInput').value = '';
+                            pendingFiles = [];
+                            uploadBtn.innerHTML = '<i class="fas fa-upload me-1"></i>Enviar';
+                            uploadBtn.disabled = true;
+                            loadFiles();
+                        }, 1000);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro no upload:', error);
+                    statusText.textContent = 'Erro no upload!';
                     uploadBtn.innerHTML = '<i class="fas fa-upload me-1"></i>Enviar';
-                    uploadBtn.disabled = true;
-                    loadFiles();
-                }, 1000);
-            }
-        })
-        .catch(error => {
-            console.error('Erro no upload:', error);
-            statusText.textContent = 'Erro no upload!';
-            uploadBtn.innerHTML = '<i class="fas fa-upload me-1"></i>Enviar';
-            updateUploadButton();
+                    updateUploadButton();
+                });
         });
-    });
-}
+    }
 
-function loadFiles() {
-    fetch(`/api/project/${projectId}/files`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                filesData = data.files;
-                categoriesData = data.categories;
-                renderCategories();
-                renderFiles();
-                document.getElementById('filesCount').textContent = filesData.length;
-            }
+    function loadFiles() {
+        fetch(`/api/project/${projectId}/files`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    filesData = data.files;
+                    categoriesData = data.categories;
+                    renderCategories();
+                    renderFiles();
+                    document.getElementById('filesCount').textContent = filesData.length;
+                }
+            });
+    }
+
+    function renderCategories() {
+        const select = document.getElementById('uploadCategory');
+        const filterGroup = document.getElementById('categoryFilter');
+
+        console.log('Renderizando categorias:', categoriesData);
+
+        // Atualizar select de upload
+        select.innerHTML = '<option value="">Selecione uma categoria...</option>';
+        categoriesData.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat.id;
+            option.textContent = cat.nome;
+            select.appendChild(option);
         });
-}
 
-function renderCategories() {
-    const select = document.getElementById('uploadCategory');
-    const filterGroup = document.getElementById('categoryFilter');
-    
-    console.log('Renderizando categorias:', categoriesData);
-    
-    // Atualizar select de upload
-    select.innerHTML = '<option value="">Selecione uma categoria...</option>';
-    categoriesData.forEach(cat => {
-        const option = document.createElement('option');
-        option.value = cat.id;
-        option.textContent = cat.nome;
-        select.appendChild(option);
-    });
-    
-    // Atualizar filtros
-    filterGroup.innerHTML = `
+        // Atualizar filtros
+        filterGroup.innerHTML = `
         <button type="button" class="btn btn-outline-secondary active" data-category="all">
             <i class="fas fa-th me-1"></i>Todos
         </button>
     `;
-    categoriesData.forEach(cat => {
-        filterGroup.innerHTML += `
+        categoriesData.forEach(cat => {
+            filterGroup.innerHTML += `
             <button type="button" class="btn btn-outline-secondary" data-category="${cat.id}" style="border-left-color: ${cat.cor}; border-left-width: 3px;">
                 <i class="fas ${cat.icone} me-1"></i>${cat.nome}
             </button>
         `;
-    });
-    
-    setupCategoryFilter();
-}
-
-function setupCategoryFilter() {
-    document.querySelectorAll('#categoryFilter button').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('#categoryFilter button').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            renderFiles(this.dataset.category);
         });
-    });
-}
 
-function renderFiles(filterCategory = 'all') {
-    const container = document.getElementById('filesList');
-    if (!container) return;
-    
-    let filteredFiles = filesData;
-    if (filterCategory !== 'all') {
-        const categoryIdNum = parseInt(filterCategory);
-        filteredFiles = filesData.filter(f => f.category_id === categoryIdNum);
+        setupCategoryFilter();
     }
-    
-    if (filteredFiles.length === 0) {
-        container.innerHTML = `
+
+    function setupCategoryFilter() {
+        document.querySelectorAll('#categoryFilter button').forEach(btn => {
+            btn.addEventListener('click', function () {
+                document.querySelectorAll('#categoryFilter button').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                renderFiles(this.dataset.category);
+            });
+        });
+    }
+
+    function renderFiles(filterCategory = 'all') {
+        const container = document.getElementById('filesList');
+        if (!container) return;
+
+        let filteredFiles = filesData;
+        if (filterCategory !== 'all') {
+            const categoryIdNum = parseInt(filterCategory);
+            filteredFiles = filesData.filter(f => f.category_id === categoryIdNum);
+        }
+
+        if (filteredFiles.length === 0) {
+            container.innerHTML = `
             <div class="col-12 text-center text-muted py-4">
                 <i class="fas fa-folder-open fa-3x mb-3"></i>
                 <p>Nenhum arquivo ${filterCategory !== 'all' ? 'nesta categoria' : 'enviado ainda'}.</p>
             </div>
         `;
-        return;
-    }
-    container.innerHTML = filteredFiles.map(file => `
+            return;
+        }
+        container.innerHTML = filteredFiles.map(file => `
         <div class="col-md-3 col-sm-6 mb-3">
             <div class="card file-card h-100" onclick="previewFile(${file.id})">
                 <div class="card-body text-center">
-                    ${file.is_image ? 
-                        `<img src="/project/${projectId}/files/${file.id}/preview" class="file-thumbnail mb-2" alt="${file.original_name}">` :
-                        `<i class="fas ${getFileIcon(file.mime_type)} file-icon mb-2" style="color: ${file.category_cor}"></i>`
-                    }
+                    ${file.is_image ?
+                `<img src="/project/${projectId}/files/${file.id}/preview" class="file-thumbnail mb-2" alt="${file.original_name}">` :
+                `<i class="fas ${getFileIcon(file.mime_type)} file-icon mb-2" style="color: ${file.category_cor}"></i>`
+            }
                     <h6 class="card-title text-truncate" title="${file.original_name}">${file.original_name}</h6>
                     <p class="card-text small text-muted mb-1">
                         <span class="badge" style="background-color: ${file.category_cor}">${file.category_name}</span>
@@ -1077,92 +1146,92 @@ function renderFiles(filterCategory = 'all') {
             </div>
         </div>
     `).join('');
-}
+    }
 
-function getFileIcon(mimeType) {
-    if (!mimeType) return 'fa-file';
-    if (mimeType.startsWith('image/')) return 'fa-image';
-    if (mimeType.startsWith('video/')) return 'fa-video';
-    if (mimeType.startsWith('audio/')) return 'fa-music';
-    if (mimeType === 'application/pdf') return 'fa-file-pdf';
-    if (mimeType.includes('word')) return 'fa-file-word';
-    if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return 'fa-file-excel';
-    if (mimeType.includes('powerpoint') || mimeType.includes('presentation')) return 'fa-file-powerpoint';
-    if (mimeType.includes('zip') || mimeType.includes('rar')) return 'fa-file-archive';
-    return 'fa-file';
-}
+    function getFileIcon(mimeType) {
+        if (!mimeType) return 'fa-file';
+        if (mimeType.startsWith('image/')) return 'fa-image';
+        if (mimeType.startsWith('video/')) return 'fa-video';
+        if (mimeType.startsWith('audio/')) return 'fa-music';
+        if (mimeType === 'application/pdf') return 'fa-file-pdf';
+        if (mimeType.includes('word')) return 'fa-file-word';
+        if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return 'fa-file-excel';
+        if (mimeType.includes('powerpoint') || mimeType.includes('presentation')) return 'fa-file-powerpoint';
+        if (mimeType.includes('zip') || mimeType.includes('rar')) return 'fa-file-archive';
+        return 'fa-file';
+    }
 
-function previewFile(fileId) {
-    const file = filesData.find(f => f.id === fileId);
-    if (!file) return;
-    
-    const modal = new bootstrap.Modal(document.getElementById('filePreviewModal'));
-    document.getElementById('filePreviewTitle').textContent = file.original_name;
-    document.getElementById('fileDownloadBtn').href = `/project/${projectId}/files/${fileId}/download`;
-    
-    const content = document.getElementById('filePreviewContent');
-    
-    if (file.is_image) {
-        content.innerHTML = `<img src="/project/${projectId}/files/${fileId}/preview" class="img-fluid" style="max-height: 70vh;">`;
-    } else if (file.is_pdf) {
-        content.innerHTML = `<iframe src="/project/${projectId}/files/${fileId}/preview" style="width: 100%; height: 70vh; border: none;"></iframe>`;
-    } else if (file.is_video) {
-        content.innerHTML = `<video controls style="max-width: 100%; max-height: 70vh;"><source src="/project/${projectId}/files/${fileId}/preview" type="${file.mime_type}"></video>`;
-    } else {
-        content.innerHTML = `
+    function previewFile(fileId) {
+        const file = filesData.find(f => f.id === fileId);
+        if (!file) return;
+
+        const modal = new bootstrap.Modal(document.getElementById('filePreviewModal'));
+        document.getElementById('filePreviewTitle').textContent = file.original_name;
+        document.getElementById('fileDownloadBtn').href = `/project/${projectId}/files/${fileId}/download`;
+
+        const content = document.getElementById('filePreviewContent');
+
+        if (file.is_image) {
+            content.innerHTML = `<img src="/project/${projectId}/files/${fileId}/preview" class="img-fluid" style="max-height: 70vh;">`;
+        } else if (file.is_pdf) {
+            content.innerHTML = `<iframe src="/project/${projectId}/files/${fileId}/preview" style="width: 100%; height: 70vh; border: none;"></iframe>`;
+        } else if (file.is_video) {
+            content.innerHTML = `<video controls style="max-width: 100%; max-height: 70vh;"><source src="/project/${projectId}/files/${fileId}/preview" type="${file.mime_type}"></video>`;
+        } else {
+            content.innerHTML = `
             <i class="fas ${getFileIcon(file.mime_type)} fa-5x text-muted mb-3"></i>
             <p>Preview não disponível para este tipo de arquivo.</p>
             <p class="text-muted">Clique em Download para baixar o arquivo.</p>
         `;
-    }
-    
-    modal.show();
-}
-
-function deleteFile(fileId) {
-    if (!confirm('Tem certeza que deseja excluir este arquivo?')) return;
-    
-    fetch(`/api/project/${projectId}/files/${fileId}`, {
-        method: 'DELETE'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            loadFiles();
-        } else {
-            alert(data.message || 'Erro ao excluir arquivo');
         }
-    });
-}
 
-// ========== CREDENCIAIS ==========
-
-function loadCredentials() {
-    fetch(`/api/project/${projectId}/credentials`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                credentialsData = data.credentials;
-                renderCredentials();
-                updateApiCount();
-                updateCredentialSelect();
-            }
-        });
-}
-
-function renderCredentials() {
-    const container = document.getElementById('credentialsList');
-    const noMsg = document.getElementById('noCredentialsMessage');
-    
-    if (credentialsData.length === 0) {
-        container.innerHTML = '';
-        noMsg.style.display = 'block';
-        container.appendChild(noMsg);
-        return;
+        modal.show();
     }
-    
-    noMsg.style.display = 'none';
-    container.innerHTML = credentialsData.map(cred => `
+
+    function deleteFile(fileId) {
+        if (!confirm('Tem certeza que deseja excluir este arquivo?')) return;
+
+        fetch(`/api/project/${projectId}/files/${fileId}`, {
+            method: 'DELETE'
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadFiles();
+                } else {
+                    alert(data.message || 'Erro ao excluir arquivo');
+                }
+            });
+    }
+
+    // ========== CREDENCIAIS ==========
+
+    function loadCredentials() {
+        fetch(`/api/project/${projectId}/credentials`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    credentialsData = data.credentials;
+                    renderCredentials();
+                    updateApiCount();
+                    updateCredentialSelect();
+                }
+            });
+    }
+
+    function renderCredentials() {
+        const container = document.getElementById('credentialsList');
+        const noMsg = document.getElementById('noCredentialsMessage');
+
+        if (credentialsData.length === 0) {
+            container.innerHTML = '';
+            noMsg.style.display = 'block';
+            container.appendChild(noMsg);
+            return;
+        }
+
+        noMsg.style.display = 'none';
+        container.innerHTML = credentialsData.map(cred => `
         <div class="credential-card">
             <div class="d-flex justify-content-between align-items-start">
                 <div>
@@ -1180,93 +1249,93 @@ function renderCredentials() {
             ${cred.descricao ? `<p class="small text-muted mt-2 mb-0">${cred.descricao}</p>` : ''}
         </div>
     `).join('');
-}
-
-function saveCredential() {
-    const data = {
-        nome: document.getElementById('credentialNome').value,
-        provedor: document.getElementById('credentialProvedor').value,
-        api_key: document.getElementById('credentialApiKey').value,
-        ambiente: document.getElementById('credentialAmbiente').value,
-        descricao: document.getElementById('credentialDescricao').value
-    };
-    
-    if (!data.nome || !data.provedor) {
-        alert('Nome e Provedor são obrigatórios');
-        return;
     }
-    
-    fetch(`/api/project/${projectId}/credentials`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            bootstrap.Modal.getInstance(document.getElementById('addCredentialModal')).hide();
-            document.getElementById('credentialNome').value = '';
-            document.getElementById('credentialProvedor').value = '';
-            document.getElementById('credentialApiKey').value = '';
-            document.getElementById('credentialDescricao').value = '';
-            loadCredentials();
-        } else {
-            alert(data.message || 'Erro ao salvar credencial');
+
+    function saveCredential() {
+        const data = {
+            nome: document.getElementById('credentialNome').value,
+            provedor: document.getElementById('credentialProvedor').value,
+            api_key: document.getElementById('credentialApiKey').value,
+            ambiente: document.getElementById('credentialAmbiente').value,
+            descricao: document.getElementById('credentialDescricao').value
+        };
+
+        if (!data.nome || !data.provedor) {
+            alert('Nome e Provedor são obrigatórios');
+            return;
         }
-    });
-}
 
-function deleteCredential(credentialId) {
-    if (!confirm('Tem certeza que deseja excluir esta credencial?')) return;
-    
-    fetch(`/api/project/${projectId}/credentials/${credentialId}`, {
-        method: 'DELETE'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            loadCredentials();
-        } else {
-            alert(data.message || 'Erro ao excluir credencial');
-        }
-    });
-}
+        fetch(`/api/project/${projectId}/credentials`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('addCredentialModal')).hide();
+                    document.getElementById('credentialNome').value = '';
+                    document.getElementById('credentialProvedor').value = '';
+                    document.getElementById('credentialApiKey').value = '';
+                    document.getElementById('credentialDescricao').value = '';
+                    loadCredentials();
+                } else {
+                    alert(data.message || 'Erro ao salvar credencial');
+                }
+            });
+    }
 
-// ========== ENDPOINTS ==========
+    function deleteCredential(credentialId) {
+        if (!confirm('Tem certeza que deseja excluir esta credencial?')) return;
 
-function loadEndpoints() {
-    fetch(`/api/project/${projectId}/endpoints`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                endpointsData = data.endpoints;
-                renderEndpoints();
-                updateApiCount();
-            }
+        fetch(`/api/project/${projectId}/credentials/${credentialId}`, {
+            method: 'DELETE'
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadCredentials();
+                } else {
+                    alert(data.message || 'Erro ao excluir credencial');
+                }
+            });
+    }
+
+    // ========== ENDPOINTS ==========
+
+    function loadEndpoints() {
+        fetch(`/api/project/${projectId}/endpoints`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    endpointsData = data.endpoints;
+                    renderEndpoints();
+                    updateApiCount();
+                }
+            });
+    }
+
+    function updateCredentialSelect() {
+        const select = document.getElementById('endpointCredential');
+        select.innerHTML = '<option value="">Nenhuma</option>';
+        credentialsData.forEach(cred => {
+            select.innerHTML += `<option value="${cred.id}">${cred.nome} (${cred.provedor})</option>`;
         });
-}
-
-function updateCredentialSelect() {
-    const select = document.getElementById('endpointCredential');
-    select.innerHTML = '<option value="">Nenhuma</option>';
-    credentialsData.forEach(cred => {
-        select.innerHTML += `<option value="${cred.id}">${cred.nome} (${cred.provedor})</option>`;
-    });
-}
-
-function renderEndpoints() {
-    const container = document.getElementById('endpointsList');
-    const noMsg = document.getElementById('noEndpointsMessage');
-    
-    if (endpointsData.length === 0) {
-        container.innerHTML = '';
-        noMsg.style.display = 'block';
-        container.appendChild(noMsg);
-        return;
     }
-    
-    noMsg.style.display = 'none';
-    container.innerHTML = endpointsData.map(ep => `
+
+    function renderEndpoints() {
+        const container = document.getElementById('endpointsList');
+        const noMsg = document.getElementById('noEndpointsMessage');
+
+        if (endpointsData.length === 0) {
+            container.innerHTML = '';
+            noMsg.style.display = 'block';
+            container.appendChild(noMsg);
+            return;
+        }
+
+        noMsg.style.display = 'none';
+        container.innerHTML = endpointsData.map(ep => `
         <div class="endpoint-card">
             <div class="d-flex justify-content-between align-items-start">
                 <div style="flex: 1; min-width: 0;">
@@ -1287,96 +1356,96 @@ function renderEndpoints() {
             ${ep.descricao ? `<p class="small text-muted mt-2 mb-0">${ep.descricao}</p>` : ''}
         </div>
     `).join('');
-}
-
-function saveEndpoint() {
-    const data = {
-        nome: document.getElementById('endpointNome').value,
-        url: document.getElementById('endpointUrl').value,
-        metodo: document.getElementById('endpointMetodo').value,
-        descricao: document.getElementById('endpointDescricao').value,
-        headers: document.getElementById('endpointHeaders').value,
-        body_exemplo: document.getElementById('endpointBody').value,
-        documentacao_link: document.getElementById('endpointDocLink').value,
-        credential_id: document.getElementById('endpointCredential').value || null
-    };
-    
-    if (!data.nome || !data.url) {
-        alert('Nome e URL são obrigatórios');
-        return;
     }
-    
-    fetch(`/api/project/${projectId}/endpoints`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            bootstrap.Modal.getInstance(document.getElementById('addEndpointModal')).hide();
-            document.getElementById('endpointNome').value = '';
-            document.getElementById('endpointUrl').value = '';
-            document.getElementById('endpointDescricao').value = '';
-            document.getElementById('endpointHeaders').value = '';
-            document.getElementById('endpointBody').value = '';
-            document.getElementById('endpointDocLink').value = '';
-            loadEndpoints();
-        } else {
-            alert(data.message || 'Erro ao salvar endpoint');
+
+    function saveEndpoint() {
+        const data = {
+            nome: document.getElementById('endpointNome').value,
+            url: document.getElementById('endpointUrl').value,
+            metodo: document.getElementById('endpointMetodo').value,
+            descricao: document.getElementById('endpointDescricao').value,
+            headers: document.getElementById('endpointHeaders').value,
+            body_exemplo: document.getElementById('endpointBody').value,
+            documentacao_link: document.getElementById('endpointDocLink').value,
+            credential_id: document.getElementById('endpointCredential').value || null
+        };
+
+        if (!data.nome || !data.url) {
+            alert('Nome e URL são obrigatórios');
+            return;
         }
-    });
-}
 
-function deleteEndpoint(endpointId) {
-    if (!confirm('Tem certeza que deseja excluir este endpoint?')) return;
-    
-    fetch(`/api/project/${projectId}/endpoints/${endpointId}`, {
-        method: 'DELETE'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            loadEndpoints();
-        } else {
-            alert(data.message || 'Erro ao excluir endpoint');
-        }
-    });
-}
-
-function updateApiCount() {
-    const total = credentialsData.length + endpointsData.length + apiKeysData.length;
-    document.getElementById('apiCount').textContent = total;
-}
-
-// ========== API KEYS v1 ==========
-let apiKeysData = [];
-
-function loadApiKeys() {
-    fetch(`/api/project/${projectId}/api-keys`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                apiKeysData = data.api_keys;
-                renderApiKeys();
-                updateApiCount();
-            }
-        });
-}
-
-function renderApiKeys() {
-    const container = document.getElementById('apiKeysList');
-    const noMsg = document.getElementById('noApiKeysMessage');
-    
-    if (apiKeysData.length === 0) {
-        container.innerHTML = '';
-        noMsg.style.display = 'block';
-        container.appendChild(noMsg);
-        return;
+        fetch(`/api/project/${projectId}/endpoints`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('addEndpointModal')).hide();
+                    document.getElementById('endpointNome').value = '';
+                    document.getElementById('endpointUrl').value = '';
+                    document.getElementById('endpointDescricao').value = '';
+                    document.getElementById('endpointHeaders').value = '';
+                    document.getElementById('endpointBody').value = '';
+                    document.getElementById('endpointDocLink').value = '';
+                    loadEndpoints();
+                } else {
+                    alert(data.message || 'Erro ao salvar endpoint');
+                }
+            });
     }
-    
-    noMsg.style.display = 'none';
-    container.innerHTML = `
+
+    function deleteEndpoint(endpointId) {
+        if (!confirm('Tem certeza que deseja excluir este endpoint?')) return;
+
+        fetch(`/api/project/${projectId}/endpoints/${endpointId}`, {
+            method: 'DELETE'
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadEndpoints();
+                } else {
+                    alert(data.message || 'Erro ao excluir endpoint');
+                }
+            });
+    }
+
+    function updateApiCount() {
+        const total = credentialsData.length + endpointsData.length + apiKeysData.length;
+        document.getElementById('apiCount').textContent = total;
+    }
+
+    // ========== API KEYS v1 ==========
+    let apiKeysData = [];
+
+    function loadApiKeys() {
+        fetch(`/api/project/${projectId}/api-keys`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    apiKeysData = data.api_keys;
+                    renderApiKeys();
+                    updateApiCount();
+                }
+            });
+    }
+
+    function renderApiKeys() {
+        const container = document.getElementById('apiKeysList');
+        const noMsg = document.getElementById('noApiKeysMessage');
+
+        if (apiKeysData.length === 0) {
+            container.innerHTML = '';
+            noMsg.style.display = 'block';
+            container.appendChild(noMsg);
+            return;
+        }
+
+        noMsg.style.display = 'none';
+        container.innerHTML = `
         <div class="table-responsive">
             <table class="table table-sm table-hover mb-0">
                 <thead>
@@ -1399,9 +1468,9 @@ function renderApiKeys() {
                             <td class="small">${formatDate(key.created_at)}</td>
                             <td class="small">${key.expires_at ? formatDate(key.expires_at) : '<span class="text-success">Nunca</span>'}</td>
                             <td>
-                                ${key.is_revoked ? '<span class="badge bg-danger">Revogada</span>' : 
-                                  key.is_expired ? '<span class="badge bg-warning">Expirada</span>' : 
-                                  '<span class="badge bg-success">Ativa</span>'}
+                                ${key.is_revoked ? '<span class="badge bg-danger">Revogada</span>' :
+                key.is_expired ? '<span class="badge bg-warning">Expirada</span>' :
+                    '<span class="badge bg-success">Ativa</span>'}
                             </td>
                             <td class="text-end">
                                 ${!key.is_revoked && !key.is_expired ? `
@@ -1419,113 +1488,113 @@ function renderApiKeys() {
             </table>
         </div>
     `;
-}
-
-function formatDate(dateStr) {
-    if (!dateStr) return '-';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('pt-BR') + ' ' + date.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
-}
-
-function generateApiKey() {
-    const name = document.getElementById('apiKeyName').value.trim();
-    if (!name) {
-        alert('Nome da chave é obrigatório');
-        return;
     }
-    
-    const scopes = [];
-    if (document.getElementById('scopeProjectsRead').checked) scopes.push('projects:read');
-    if (document.getElementById('scopeTasksRead').checked) scopes.push('tasks:read');
-    if (document.getElementById('scopeTasksWrite').checked) scopes.push('tasks:write');
-    if (document.getElementById('scopeLeadsRead').checked) scopes.push('leads:read');
-    if (document.getElementById('scopeLeadsWrite').checked) scopes.push('leads:write');
-    
-    if (scopes.length === 0) {
-        alert('Selecione pelo menos uma permissão');
-        return;
+
+    function formatDate(dateStr) {
+        if (!dateStr) return '-';
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('pt-BR') + ' ' + date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     }
-    
-    const expiresDays = parseInt(document.getElementById('apiKeyExpiresDays').value);
-    
-    fetch(`/api/project/${projectId}/api-keys`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            name: name,
-            scopes: scopes,
-            expires_days: expiresDays
+
+    function generateApiKey() {
+        const name = document.getElementById('apiKeyName').value.trim();
+        if (!name) {
+            alert('Nome da chave é obrigatório');
+            return;
+        }
+
+        const scopes = [];
+        if (document.getElementById('scopeProjectsRead').checked) scopes.push('projects:read');
+        if (document.getElementById('scopeTasksRead').checked) scopes.push('tasks:read');
+        if (document.getElementById('scopeTasksWrite').checked) scopes.push('tasks:write');
+        if (document.getElementById('scopeLeadsRead').checked) scopes.push('leads:read');
+        if (document.getElementById('scopeLeadsWrite').checked) scopes.push('leads:write');
+
+        if (scopes.length === 0) {
+            alert('Selecione pelo menos uma permissão');
+            return;
+        }
+
+        const expiresDays = parseInt(document.getElementById('apiKeyExpiresDays').value);
+
+        fetch(`/api/project/${projectId}/api-keys`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: name,
+                scopes: scopes,
+                expires_days: expiresDays
+            })
         })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            bootstrap.Modal.getInstance(document.getElementById('generateApiKeyModal')).hide();
-            document.getElementById('apiKeyName').value = '';
-            document.getElementById('scopeProjectsRead').checked = true;
-            document.getElementById('scopeTasksRead').checked = true;
-            document.getElementById('scopeTasksWrite').checked = true;
-            document.getElementById('scopeLeadsRead').checked = true;
-            document.getElementById('scopeLeadsWrite').checked = false;
-            document.getElementById('apiKeyExpiresDays').value = '30';
-            
-            document.getElementById('generatedToken').value = data.token;
-            new bootstrap.Modal(document.getElementById('showTokenModal')).show();
-        } else {
-            alert(data.message || 'Erro ao gerar chave');
-        }
-    })
-    .catch(err => {
-        alert('Erro ao gerar chave: ' + err.message);
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('generateApiKeyModal')).hide();
+                    document.getElementById('apiKeyName').value = '';
+                    document.getElementById('scopeProjectsRead').checked = true;
+                    document.getElementById('scopeTasksRead').checked = true;
+                    document.getElementById('scopeTasksWrite').checked = true;
+                    document.getElementById('scopeLeadsRead').checked = true;
+                    document.getElementById('scopeLeadsWrite').checked = false;
+                    document.getElementById('apiKeyExpiresDays').value = '30';
+
+                    document.getElementById('generatedToken').value = data.token;
+                    new bootstrap.Modal(document.getElementById('showTokenModal')).show();
+                } else {
+                    alert(data.message || 'Erro ao gerar chave');
+                }
+            })
+            .catch(err => {
+                alert('Erro ao gerar chave: ' + err.message);
+            });
+    }
+
+    function copyToken() {
+        const tokenInput = document.getElementById('generatedToken');
+        tokenInput.select();
+        document.execCommand('copy');
+
+        const btn = event.target.closest('button');
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check text-success"></i>';
+        setTimeout(() => { btn.innerHTML = originalHtml; }, 2000);
+    }
+
+    function revokeApiKey(keyId) {
+        if (!confirm('Tem certeza que deseja revogar esta chave? Esta ação não pode ser desfeita.')) return;
+
+        fetch(`/api/project/${projectId}/api-keys/${keyId}/revoke`, {
+            method: 'POST'
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadApiKeys();
+                } else {
+                    alert(data.message || 'Erro ao revogar chave');
+                }
+            });
+    }
+
+    function deleteApiKey(keyId) {
+        if (!confirm('Tem certeza que deseja excluir esta chave permanentemente?')) return;
+
+        fetch(`/api/project/${projectId}/api-keys/${keyId}`, {
+            method: 'DELETE'
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadApiKeys();
+                } else {
+                    alert(data.message || 'Erro ao excluir chave');
+                }
+            });
+    }
+
+    // Load API keys on page load
+    document.addEventListener('DOMContentLoaded', function () {
+        loadApiKeys();
     });
-}
-
-function copyToken() {
-    const tokenInput = document.getElementById('generatedToken');
-    tokenInput.select();
-    document.execCommand('copy');
-    
-    const btn = event.target.closest('button');
-    const originalHtml = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-check text-success"></i>';
-    setTimeout(() => { btn.innerHTML = originalHtml; }, 2000);
-}
-
-function revokeApiKey(keyId) {
-    if (!confirm('Tem certeza que deseja revogar esta chave? Esta ação não pode ser desfeita.')) return;
-    
-    fetch(`/api/project/${projectId}/api-keys/${keyId}/revoke`, {
-        method: 'POST'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            loadApiKeys();
-        } else {
-            alert(data.message || 'Erro ao revogar chave');
-        }
-    });
-}
-
-function deleteApiKey(keyId) {
-    if (!confirm('Tem certeza que deseja excluir esta chave permanentemente?')) return;
-    
-    fetch(`/api/project/${projectId}/api-keys/${keyId}`, {
-        method: 'DELETE'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            loadApiKeys();
-        } else {
-            alert(data.message || 'Erro ao excluir chave');
-        }
-    });
-}
-
-// Load API keys on page load
-document.addEventListener('DOMContentLoaded', function() {
-    loadApiKeys();
-});
 </script>
 {% endblock %}

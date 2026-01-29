@@ -665,15 +665,42 @@
                         </div>
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Membros da Equipe</label>
-                            <select class="form-select" name="team_member_ids" multiple size="5" style="height: auto;">
-                                {% for user in users %}
-                                <option value="{{ user.id }}" {% if user in project.team_members %}selected{% endif %}>
-                                    {{ user.full_name }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                            <small class="form-text text-muted">Segure Ctrl/Cmd para selecionar múltiplos
-                                usuários</small>
+                            <div class="dropdown" data-bs-auto-close="outside">
+                                <button
+                                    class="form-select text-start d-flex justify-content-between align-items-center bg-dark text-light border-secondary"
+                                    type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                                    id="editTeamMembersDropdownBtn">
+                                    <span id="editTeamMembersLabel">
+                                        {% set selected_count = project.team_members|length %}
+                                        {% if selected_count == 0 %}
+                                        Selecione a equipe...
+                                        {% elif selected_count == 1 %}
+                                        1 membro selecionado
+                                        {% else %}
+                                        {{ selected_count }} membros selecionados
+                                        {% endif %}
+                                    </span>
+                                </button>
+                                <ul class="dropdown-menu w-100 p-2 bg-dark border-secondary shadow"
+                                    aria-labelledby="editTeamMembersDropdownBtn"
+                                    style="max-height: 250px; overflow-y: auto;">
+                                    {% for user in users %}
+                                    <li class="dropdown-item-text p-0 mb-1">
+                                        <div class="form-check">
+                                            <input class="form-check-input team-member-checkbox-edit" type="checkbox"
+                                                name="team_member_ids" value="{{ user.id }}"
+                                                id="user_edit_{{ user.id }}" {% if user in project.team_members
+                                                %}checked{% endif %}
+                                                onchange="updateTeamMembersLabel('editTeamMembersLabel', 'team-member-checkbox-edit')">
+                                            <label class="form-check-label w-100 stretched-link"
+                                                for="user_edit_{{ user.id }}">
+                                                {{ user.full_name }}
+                                            </label>
+                                        </div>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
                         </div>
                     </div>
 
@@ -1596,5 +1623,17 @@
     document.addEventListener('DOMContentLoaded', function () {
         loadApiKeys();
     });
+
+    function updateTeamMembersLabel(labelId, checkboxClass) {
+        const checkboxes = document.querySelectorAll(`.${checkboxClass}:checked`);
+        const label = document.getElementById(labelId);
+        if (checkboxes.length === 0) {
+            label.textContent = 'Selecione a equipe...';
+        } else if (checkboxes.length === 1) {
+            label.textContent = '1 membro selecionado';
+        } else {
+            label.textContent = `${checkboxes.length} membros selecionados`;
+        }
+    }
 </script>
 {% endblock %}

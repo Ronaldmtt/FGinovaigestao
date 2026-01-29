@@ -34,8 +34,11 @@
                         {% for p in projects %}
                 {
                     id: { { p.id } },
-                    clientId: { { p.client_id } },
-                    userIds: [{{ p.responsible_id }} {% for m in p.team_members %}, { { m.id } } {% endfor %}]
+                    clientId: { { p.client_id or 'null' } },
+                    userIds: [
+                        {{ p.responsible_id or 'null' }}
+                {% for m in p.team_members %}, { { m.id } } {% endfor %}
+                            ].filter(id => id !== null)
                         },
                 {% endfor %}
                     ]
@@ -137,7 +140,7 @@
                         onkeyup="filterDropdownOptions(this)">
                     <div id="projectOptionsContainer">
                         {% for project in projects %}
-                        <div class="form-check filter-option-item" data-id="{{ project.id }}">
+                        <div class="filter-option-item" data-id="{{ project.id }}">
                             <input class="form-check-input project-checkbox" type="checkbox" name="project_id"
                                 value="{{ project.id }}" id="proj_{{ project.id }}" {% if project.id in
                                 current_filters.project_id %}checked{% endif %}>
@@ -167,7 +170,7 @@
                         onkeyup="filterDropdownOptions(this)">
                     <div id="clientOptionsContainer">
                         {% for client in clients %}
-                        <div class="form-check filter-option-item" data-id="{{ client.id }}">
+                        <div class="filter-option-item" data-id="{{ client.id }}">
                             <input class="form-check-input client-checkbox" type="checkbox" name="client_id"
                                 value="{{ client.id }}" id="client_{{ client.id }}" {% if client.id in
                                 current_filters.client_id %}checked{% endif %}>
@@ -195,7 +198,7 @@
                         onkeyup="filterDropdownOptions(this)">
                     <div id="userOptionsContainer">
                         {% for user in all_users %}
-                        <div class="form-check filter-option-item" data-id="{{ user.id }}">
+                        <div class="filter-option-item" data-id="{{ user.id }}">
                             <input class="form-check-input user-checkbox" type="checkbox" name="user_id"
                                 value="{{ user.id }}" id="user_{{ user.id }}" {% if user.id in current_filters.user_id
                                 %}checked{% endif %}>

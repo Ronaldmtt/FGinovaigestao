@@ -686,7 +686,7 @@
                                     style="max-height: 250px; overflow-y: auto;">
                                     {% for user in users %}
                                     <li class="dropdown-item-text p-0 mb-1">
-                                        <div class="form-check">
+                                        <div class="form-check position-relative">
                                             <input class="form-check-input team-member-checkbox-edit" type="checkbox"
                                                 name="team_member_ids" value="{{ user.id }}"
                                                 id="user_edit_{{ user.id }}" {% if user in project.team_members

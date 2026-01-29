@@ -246,7 +246,7 @@
                                     style="max-height: 250px; overflow-y: auto;">
                                     {% for user in users %}
                                     <li class="dropdown-item-text p-0 mb-1">
-                                        <div class="form-check">
+                                        <div class="form-check position-relative">
                                             <input class="form-check-input team-member-checkbox" type="checkbox"
                                                 name="team_members" value="{{ user.id }}" id="user_create_{{ user.id }}"
                                                 onchange="updateTeamMembersLabel('teamMembersLabel', 'team-member-checkbox')">
@@ -841,7 +841,7 @@
                     <ul class="dropdown-menu w-100 p-2 bg-dark border-secondary shadow" aria-labelledby="editTeamMembersDropdownBtn" style="max-height: 250px; overflow-y: auto;">
                         ${users.map(user =>
             `<li class="dropdown-item-text p-0 mb-1">
-                                <div class="form-check">
+                                <div class="form-check position-relative">
                                     <input class="form-check-input team-member-checkbox-edit" type="checkbox" name="team_member_ids" value="${user.id}" id="user_edit_${user.id}" 
                                         ${teamMemberIds.includes(user.id) ? 'checked' : ''} 
                                         onchange="updateTeamMembersLabel('editTeamMembersLabel', 'team-member-checkbox-edit')">

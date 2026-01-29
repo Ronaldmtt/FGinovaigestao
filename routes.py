@@ -21,15 +21,7 @@ from openai_service import process_project_transcription, generate_tasks_from_tr
 from email_service import enviar_email_nova_tarefa, enviar_email_mudanca_status, enviar_email_alteracao_data, enviar_email_tarefa_editada, enviar_email_resumo_tarefas
 
 # RPA Monitor - Logging
-try:
-    from rpa_monitor_client import rpa_log
-except ImportError:
-    class DummyRpaLog:
-        def info(self, *args, **kwargs): pass
-        def warn(self, *args, **kwargs): pass
-        def error(self, *args, **kwargs): pass
-        def screenshot(self, *args, **kwargs): pass
-    rpa_log = DummyRpaLog()
+from rpa_monitor_client import rpa_log
 
 def requires_permission(permission_field):
     def decorator(f):

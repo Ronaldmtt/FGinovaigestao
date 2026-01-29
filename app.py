@@ -143,3 +143,48 @@ import routes
 # Register API v1 Blueprint
 from api_v1 import api_v1
 app.register_blueprint(api_v1)
+
+# --- SYSTEM-WIDE AUDIT LOGGING ---
+from flask import request
+from flask_login import current_user
+from werkzeug.exceptions import HTTPException
+import traceback
+import time
+
+@app.before_request
+def log_request_info():
+    """Logs every page access and action for audit trail."""
+    # Skip static files and health checks to avoid noise
+    if request.path.startswith('/static') or request.path == '/health':
+        return
+    
+    user_id = "Anonymous"
+    if current_user.is_authenticated:
+        user_id = f"{current_user.email} [{current_user.id}]"
+    
+    # Log navigation/access
+    # We log as INFO so it appears in the monitor's main stream
+    rpa_log.info(f"Acesso: {request.method} {request.path} - Usuário: {user_id}", regiao="navegacao")
+
+@app.errorhandler(Exception)
+def handle_global_exception(e):
+    """Captures any unhandled system error and sends to RPA Monitor."""
+    # Pass through standard HTTP errors (404, 403, etc.)
+    if isinstance(e, HTTPException):
+        return e
+
+    # Log critical 500 errors
+    tb = traceback.format_exc()
+    error_msg = f"Erro Crítico no Sistema: {str(e)}"
+    
+    # 1. Send Error Log
+    rpa_log.error(error_msg, exc=tb, regiao="erro_sistema")
+    
+    # 2. Attempt 'Screenshot' (As requested in guide, though server-side)
+    try:
+        rpa_log.screenshot(filename=f"error_500_{int(time.time())}.png", regiao="erro_sistema")
+    except:
+        pass # Ignore screenshot failures on backend
+        
+    # Re-raise to let Flask handle the 500 response
+    return "Erro interno do servidor. O administrador foi notificado.", 500

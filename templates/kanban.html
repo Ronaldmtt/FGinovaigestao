@@ -29,20 +29,7 @@
         <form method="GET" id="kanbanFilterForm" class="d-flex align-items-center gap-3 flex-wrap">
             <!-- Data para JS -->
             <script>
-                const relationsData = {
-                    projects: [
-                        {% for p in projects %}
-                {
-                    id: { { p.id } },
-                    clientId: { { p.client_id or 'null' } },
-                    userIds: [
-                        {{ p.responsible_id or 'null' }}
-                {% for m in p.team_members %}, { { m.id } } {% endfor %}
-                            ].filter(id => id !== null)
-                        },
-                {% endfor %}
-                    ]
-                };
+                const relationsData = {{ relations_data | tojson }};
             </script>
 
             <style>

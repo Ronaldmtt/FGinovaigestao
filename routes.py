@@ -1720,11 +1720,32 @@ def kanban():
     # Todos os usuários para o modal de edição e filtros
     all_users = User.query.filter_by(is_admin=False).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
     
+    # Preparar dados de relacionamento para o front-end (filtros dependentes)
+    relations_data = {
+        'projects': []
+    }
+    for p in projects:
+        # Coletar IDs de usuários vinculados (Responsável + Equipe)
+        p_user_ids = []
+        if p.responsible_id:
+            p_user_ids.append(p.responsible_id)
+        
+        # Team members (M:N)
+        for member in p.team_members:
+            p_user_ids.append(member.id)
+            
+        relations_data['projects'].append({
+            'id': p.id,
+            'clientId': p.client_id,
+            'userIds': list(set(p_user_ids)) # Unique IDs
+        })
+    
     return render_template('kanban.html', 
                          task_columns=task_columns, 
                          projects=projects, 
                          clients=clients,
                          all_users=all_users,
+                         relations_data=relations_data,
                          current_filters={
                              'project_id': project_filter,
                              'client_id': client_filter,

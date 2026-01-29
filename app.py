@@ -155,8 +155,12 @@ import time
 def log_request_info():
     """Logs every page access and action for audit trail."""
     # Skip static files and health checks to avoid noise
-    if request.path.startswith('/static') or request.path == '/health':
+    if request.path.startswith('/static') or request.path == '/health' or request.path == '/favicon.ico':
         return
+
+@app.route('/favicon.ico')
+def favicon():
+    return '', 204
     
     user_id = "Anonymous"
     if current_user.is_authenticated:

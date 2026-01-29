@@ -732,7 +732,11 @@
         // Reset modal content
         content.innerHTML = '';
 
-        form.action = `/projects/${projectId}/edit`;
+        // Obter status atual da URL ou filtro
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentStatus = urlParams.get('status') || '';
+
+        form.action = `/projects/${projectId}/edit?return_status=${currentStatus}`;
 
         content.innerHTML = `
         <div class="text-center py-4">

@@ -786,6 +786,9 @@ def edit_project(id):
         flash('Erro ao atualizar o projeto. Tente novamente.', 'danger')
         print(f"Erro ao editar projeto: {e}")
     
+    return_status = request.args.get('return_status')
+    if return_status:
+        return redirect(url_for('projects', status=return_status))
     return redirect(url_for('projects'))
 
 @app.route('/projects/<int:id>/process-ai', methods=['POST'])

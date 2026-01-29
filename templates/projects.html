@@ -732,11 +732,13 @@
         // Reset modal content
         content.innerHTML = '';
 
-        // Obter status atual da URL ou filtro
+        // Obter parametros da URL ou filtro
         const urlParams = new URLSearchParams(window.location.search);
         const currentStatus = urlParams.get('status') || '';
+        const currentClient = urlParams.get('client_id') || '';
+        const currentResponsible = urlParams.get('responsible_id') || '';
 
-        form.action = `/projects/${projectId}/edit?return_status=${currentStatus}`;
+        form.action = `/projects/${projectId}/edit?return_status=${currentStatus}&return_client=${currentClient}&return_responsible=${currentResponsible}`;
 
         content.innerHTML = `
         <div class="text-center py-4">

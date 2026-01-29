@@ -787,8 +787,20 @@ def edit_project(id):
         print(f"Erro ao editar projeto: {e}")
     
     return_status = request.args.get('return_status')
+    return_client = request.args.get('return_client')
+    return_responsible = request.args.get('return_responsible')
+    
+    redirect_kwargs = {}
     if return_status:
-        return redirect(url_for('projects', status=return_status))
+        redirect_kwargs['status'] = return_status
+    if return_client:
+        redirect_kwargs['client_id'] = return_client
+    if return_responsible:
+        redirect_kwargs['responsible_id'] = return_responsible
+        
+    if redirect_kwargs:
+        return redirect(url_for('projects', **redirect_kwargs))
+        
     return redirect(url_for('projects'))
 
 @app.route('/projects/<int:id>/process-ai', methods=['POST'])

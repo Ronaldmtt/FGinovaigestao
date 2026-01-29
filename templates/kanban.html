@@ -23,6 +23,7 @@
 
 <!-- Filtros -->
 <!-- Filtros -->
+<!-- Filtros -->
 <div class="row mb-3">
     <div class="col-12">
         <form method="GET" id="kanbanFilterForm" class="d-flex align-items-center gap-3 flex-wrap">
@@ -41,15 +42,79 @@
                 };
             </script>
 
+            <style>
+                .filter-dropdown-btn {
+                    background-color: #2b3544 !important;
+                    color: #e2e8f0 !important;
+                    border: 1px solid #3d3d3d !important;
+                }
+
+                .filter-dropdown-btn:hover {
+                    background-color: #374151 !important;
+                    border-color: #4b5563 !important;
+                }
+
+                .dropdown-menu.dark-dropdown {
+                    background-color: #1f2937;
+                    border: 1px solid #374151;
+                    color: #e2e8f0;
+                }
+
+                .dropdown-menu.dark-dropdown .form-control {
+                    background-color: #111827;
+                    border: 1px solid #374151;
+                    color: #e2e8f0;
+                }
+
+                .dropdown-menu.dark-dropdown .form-check-input {
+                    background-color: #374151;
+                    border-color: #4b5563;
+                }
+
+                .dropdown-menu.dark-dropdown .form-check-input:checked {
+                    background-color: #3b82f6;
+                    border-color: #3b82f6;
+                }
+
+                .dropdown-menu.dark-dropdown .dropdown-item:hover,
+                .dropdown-menu.dark-dropdown .filter-option-item:hover {
+                    background-color: #374151;
+                }
+
+                .filter-option-item {
+                    padding: 4px 8px;
+                    border-radius: 4px;
+                    margin-bottom: 2px;
+                }
+
+                /* Scrollbar styled for dark theme */
+                .dropdown-menu.dark-dropdown::-webkit-scrollbar {
+                    width: 8px;
+                }
+
+                .dropdown-menu.dark-dropdown::-webkit-scrollbar-track {
+                    background: #1f2937;
+                }
+
+                .dropdown-menu.dark-dropdown::-webkit-scrollbar-thumb {
+                    background: #4b5563;
+                    border-radius: 4px;
+                }
+
+                .dropdown-menu.dark-dropdown::-webkit-scrollbar-thumb:hover {
+                    background: #6b7280;
+                }
+            </style>
+
             <!-- Filtro de Projetos -->
             <div class="dropdown" style="min-width: 250px;">
                 <button
-                    class="btn btn-outline-secondary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center bg-white"
+                    class="btn dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center filter-dropdown-btn"
                     type="button" id="projectFilterDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside"
                     aria-expanded="false">
                     <span id="projectFilterLabel">Projetos (Todos)</span>
                 </button>
-                <div class="dropdown-menu p-2 w-100" style="max-height: 400px; overflow-y: auto;"
+                <div class="dropdown-menu p-2 w-100 dark-dropdown" style="max-height: 400px; overflow-y: auto;"
                     aria-labelledby="projectFilterDropdown">
                     <input type="text" class="form-control form-control-sm mb-2" placeholder="Buscar..."
                         onkeyup="filterDropdownOptions(this)">
@@ -74,12 +139,12 @@
             <!-- Filtro de Clientes -->
             <div class="dropdown" style="min-width: 200px;">
                 <button
-                    class="btn btn-outline-secondary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center bg-white"
+                    class="btn dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center filter-dropdown-btn"
                     type="button" id="clientFilterDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside"
                     aria-expanded="false">
                     <span id="clientFilterLabel">Clientes (Todos)</span>
                 </button>
-                <div class="dropdown-menu p-2 w-100" style="max-height: 400px; overflow-y: auto;"
+                <div class="dropdown-menu p-2 w-100 dark-dropdown" style="max-height: 400px; overflow-y: auto;"
                     aria-labelledby="clientFilterDropdown">
                     <input type="text" class="form-control form-control-sm mb-2" placeholder="Buscar..."
                         onkeyup="filterDropdownOptions(this)">
@@ -102,12 +167,12 @@
             <!-- Filtro de Usuários -->
             <div class="dropdown" style="min-width: 200px;">
                 <button
-                    class="btn btn-outline-secondary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center bg-white"
+                    class="btn dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center filter-dropdown-btn"
                     type="button" id="userFilterDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside"
                     aria-expanded="false">
                     <span id="userFilterLabel">Usuários (Todos)</span>
                 </button>
-                <div class="dropdown-menu p-2 w-100" style="max-height: 400px; overflow-y: auto;"
+                <div class="dropdown-menu p-2 w-100 dark-dropdown" style="max-height: 400px; overflow-y: auto;"
                     aria-labelledby="userFilterDropdown">
                     <input type="text" class="form-control form-control-sm mb-2" placeholder="Buscar..."
                         onkeyup="filterDropdownOptions(this)">
@@ -127,9 +192,7 @@
                 </div>
             </div>
 
-            <button type="submit" class="btn btn-primary">
-                <i class="fas fa-filter me-1"></i>Filtrar
-            </button>
+            <!-- Auto-filter on close -->
 
             <button type="button" class="btn btn-success" onclick="dispatchFilteredTasks()">
                 <i class="fas fa-envelope me-1"></i>Disparar Tarefas
@@ -145,6 +208,13 @@
 <script>
     // Lógica de Filtros Dependentes e UI
     document.addEventListener('DOMContentLoaded', function () {
+        // Auto-submit ao fechar dropdowns
+        const dropdowns = document.querySelectorAll('.dropdown');
+        dropdowns.forEach(dropdown => {
+            dropdown.addEventListener('hidden.bs.dropdown', function () {
+                document.getElementById('kanbanFilterForm').submit();
+            });
+        });
         const projectChecks = document.querySelectorAll('.project-checkbox');
         const clientChecks = document.querySelectorAll('.client-checkbox');
         const userChecks = document.querySelectorAll('.user-checkbox');

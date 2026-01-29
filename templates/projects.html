@@ -234,8 +234,31 @@
                         </div>
                         <div class="col-md-4">
                             {{ form.team_members.label(class="form-label") }}
-                            {{ form.team_members(class="form-select bg-dark text-light border-secondary", multiple=True,
-                            size=3) }}
+                            <div class="dropdown" data-bs-auto-close="outside">
+                                <button
+                                    class="form-select text-start d-flex justify-content-between align-items-center bg-dark text-light border-secondary"
+                                    type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                                    id="teamMembersDropdownBtn">
+                                    <span id="teamMembersLabel">Selecione a equipe...</span>
+                                </button>
+                                <ul class="dropdown-menu w-100 p-2 bg-dark border-secondary shadow"
+                                    aria-labelledby="teamMembersDropdownBtn"
+                                    style="max-height: 250px; overflow-y: auto;">
+                                    {% for user in users %}
+                                    <li class="dropdown-item-text p-0 mb-1">
+                                        <div class="form-check">
+                                            <input class="form-check-input team-member-checkbox" type="checkbox"
+                                                name="team_members" value="{{ user.id }}" id="user_create_{{ user.id }}"
+                                                onchange="updateTeamMembersLabel('teamMembersLabel', 'team-member-checkbox')">
+                                            <label class="form-check-label w-100 stretched-link"
+                                                for="user_create_{{ user.id }}">
+                                                {{ user.full_name }}
+                                            </label>
+                                        </div>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
                         </div>
                     </div>
 
@@ -706,6 +729,9 @@
         const content = document.getElementById('editProjectContent');
         const form = document.getElementById('editProjectForm');
 
+        // Reset modal content
+        content.innerHTML = '';
+
         form.action = `/projects/${projectId}/edit`;
 
         content.innerHTML = `
@@ -764,7 +790,8 @@
     }
 
     function buildEditProjectHTML(project, clients, users) {
-        const teamMemberIds = project.team_members ? project.team_members.map(m => m.id) : [];
+        // Fix for undefined map issue: backend likely returns list of IDs directly
+        const teamMemberIds = project.team_members || [];
         const prazoFormatted = project.prazo ? project.prazo : '';
 
         return `
@@ -803,11 +830,25 @@
             </div>
             <div class="col-md-4">
                 <label class="form-label">Equipe</label>
-                <select class="form-select bg-dark text-light border-secondary" name="team_member_ids" multiple size="3">
-                    ${users.map(user =>
-            `<option value="${user.id}" ${teamMemberIds.includes(user.id) ? 'selected' : ''}>${escapeHtml(user.full_name)}</option>`
+                <div class="dropdown" data-bs-auto-close="outside">
+                    <button class="form-select text-start d-flex justify-content-between align-items-center bg-dark text-light border-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="editTeamMembersDropdownBtn">
+                        <span id="editTeamMembersLabel">${updateLabelText(teamMemberIds, users)}</span>
+                    </button>
+                    <ul class="dropdown-menu w-100 p-2 bg-dark border-secondary shadow" aria-labelledby="editTeamMembersDropdownBtn" style="max-height: 250px; overflow-y: auto;">
+                        ${users.map(user =>
+            `<li class="dropdown-item-text p-0 mb-1">
+                                <div class="form-check">
+                                    <input class="form-check-input team-member-checkbox-edit" type="checkbox" name="team_member_ids" value="${user.id}" id="user_edit_${user.id}" 
+                                        ${teamMemberIds.includes(user.id) ? 'checked' : ''} 
+                                        onchange="updateTeamMembersLabel('editTeamMembersLabel', 'team-member-checkbox-edit')">
+                                    <label class="form-check-label w-100 stretched-link" for="user_edit_${user.id}">
+                                        ${escapeHtml(user.full_name)}
+                                    </label>
+                                </div>
+                            </li>`
         ).join('')}
-                </select>
+                    </ul>
+                </div>
             </div>
         </div>
         
@@ -839,6 +880,24 @@
             </div>
         </div>
     `;
+    }
+
+    function updateTeamMembersLabel(labelId, checkboxClass) {
+        const checkboxes = document.querySelectorAll(`.${checkboxClass}:checked`);
+        const label = document.getElementById(labelId);
+        if (checkboxes.length === 0) {
+            label.textContent = 'Selecione a equipe...';
+        } else if (checkboxes.length === 1) {
+            label.textContent = '1 membro selecionado';
+        } else {
+            label.textContent = `${checkboxes.length} membros selecionados`;
+        }
+    }
+
+    function updateLabelText(selectedIds, allUsers) {
+        if (!selectedIds || selectedIds.length === 0) return 'Selecione a equipe...';
+        if (selectedIds.length === 1) return '1 membro selecionado';
+        return `${selectedIds.length} membros selecionados`;
     }
 
     function escapeHtml(text) {

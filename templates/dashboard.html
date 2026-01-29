@@ -13,15 +13,31 @@
             </div>
             <div class="d-flex flex-wrap gap-2">
                 {% if current_user.is_admin %}
-                <span class="badge rounded-pill bg-secondary bg-opacity-10 text-dark px-3 py-2">{{ stats.total_projects }} Projetos</span>
-                <span class="badge rounded-pill bg-secondary bg-opacity-10 text-dark px-3 py-2">{{ stats.total_tasks }} Tarefas</span>
-                <span class="badge rounded-pill bg-secondary bg-opacity-10 text-dark px-3 py-2">{{ stats.total_clients }} Clientes</span>
-                <span class="badge rounded-pill bg-secondary bg-opacity-10 text-dark px-3 py-2">{{ stats.total_tasks }} Pendentes</span>
+                <span
+                    class="badge rounded-pill bg-white bg-opacity-10 text-white border border-light border-opacity-10 px-3 py-2">{{
+                    stats.total_projects }} Projetos</span>
+                <span
+                    class="badge rounded-pill bg-white bg-opacity-10 text-white border border-light border-opacity-10 px-3 py-2">{{
+                    stats.total_tasks }} Tarefas</span>
+                <span
+                    class="badge rounded-pill bg-white bg-opacity-10 text-white border border-light border-opacity-10 px-3 py-2">{{
+                    stats.total_clients }} Clientes</span>
+                <span
+                    class="badge rounded-pill bg-white bg-opacity-10 text-white border border-light border-opacity-10 px-3 py-2">{{
+                    stats.pending_tasks }} Pendentes</span>
                 {% else %}
-                <span class="badge rounded-pill bg-secondary bg-opacity-10 text-dark px-3 py-2">{{ stats.my_projects }} Projeto{{ 's' if stats.my_projects != 1 else '' }}</span>
-                <span class="badge rounded-pill bg-secondary bg-opacity-10 text-dark px-3 py-2">{{ stats.my_tasks }} Tarefa{{ 's' if stats.my_tasks != 1 else '' }}</span>
-                <span class="badge rounded-pill bg-secondary bg-opacity-10 text-dark px-3 py-2">{{ stats.clients_created }} Cliente{{ 's' if stats.clients_created != 1 else '' }}</span>
-                <span class="badge rounded-pill bg-secondary bg-opacity-10 text-dark px-3 py-2">{{ stats.pending_tasks }} Pendente{{ 's' if stats.pending_tasks != 1 else '' }}</span>
+                <span
+                    class="badge rounded-pill bg-white bg-opacity-10 text-white border border-light border-opacity-10 px-3 py-2">{{
+                    stats.my_projects }} Projeto{{ 's' if stats.my_projects != 1 else '' }}</span>
+                <span
+                    class="badge rounded-pill bg-white bg-opacity-10 text-white border border-light border-opacity-10 px-3 py-2">{{
+                    stats.my_tasks }} Tarefa{{ 's' if stats.my_tasks != 1 else '' }}</span>
+                <span
+                    class="badge rounded-pill bg-white bg-opacity-10 text-white border border-light border-opacity-10 px-3 py-2">{{
+                    stats.clients_created }} Cliente{{ 's' if stats.clients_created != 1 else '' }}</span>
+                <span
+                    class="badge rounded-pill bg-white bg-opacity-10 text-white border border-light border-opacity-10 px-3 py-2">{{
+                    stats.pending_tasks }} Pendente{{ 's' if stats.pending_tasks != 1 else '' }}</span>
                 {% endif %}
             </div>
         </div>
@@ -240,44 +256,50 @@
 {% endif %}
 
 <style>
-.metric-card {
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-.metric-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-.quick-access-card {
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    transition: all 0.3s ease;
-    cursor: pointer;
-}
-.quick-access-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-    border-color: #22c55e;
-}
-.activity-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1rem;
-    flex-shrink: 0;
-}
-.activity-item:last-child {
-    margin-bottom: 0 !important;
-    padding-bottom: 0 !important;
-    border-bottom: none !important;
-}
-.badge.rounded-pill {
-    font-weight: 500;
-    font-size: 0.85rem;
-}
+    .metric-card {
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .quick-access-card {
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+    .quick-access-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+        border-color: #22c55e;
+    }
+
+    .activity-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+
+    .activity-item:last-child {
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
+        border-bottom: none !important;
+    }
+
+    .badge.rounded-pill {
+        font-weight: 500;
+        font-size: 0.85rem;
+    }
 </style>
 {% endblock %}

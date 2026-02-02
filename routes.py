@@ -1627,6 +1627,45 @@ def update_project(id):
     flash('Projeto atualizado com sucesso!', 'success')
     return redirect(url_for('projects'))
 
+@app.route('/projects/<int:id>/update-field', methods=['POST'])
+@login_required
+def update_project_field(id):
+    project = Project.query.get_or_404(id)
+    
+    # Permission check
+    if not current_user.is_admin and current_user.id != project.responsible_id:
+        return jsonify({'success': False, 'message': 'Permission denied'}), 403
+
+    data = request.get_json()
+    field = data.get('field')
+    value = data.get('value')
+    
+    print(f"DEBUG ATOMIC UPDATE: Project {id}, Field {field}, Value {value} ({type(value)})")
+
+    allowed_bool_fields = ['has_github', 'has_drive', 'has_env', 'has_backup_db', 'show_in_kanban']
+    allowed_text_fields = ['rpa_identifier']
+
+    try:
+        if field in allowed_bool_fields:
+            # Ensure boolean
+            bool_value = bool(value)
+            setattr(project, field, bool_value)
+            db.session.commit()
+            return jsonify({'success': True, 'new_value': bool_value})
+            
+        elif field in allowed_text_fields:
+            setattr(project, field, str(value).strip() if value else None)
+            db.session.commit()
+            return jsonify({'success': True, 'new_value': getattr(project, field)})
+            
+        else:
+            return jsonify({'success': False, 'message': 'Invalid field'}), 400
+            
+    except Exception as e:
+        db.session.rollback()
+        print(f"ERROR ATOMIC UPDATE: {str(e)}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 @app.route('/tasks/new-kanban', methods=['POST'])
 @login_required
 def new_task_kanban():

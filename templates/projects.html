@@ -96,8 +96,7 @@
                                 <!-- GitHub -->
                                 <div class="d-flex align-items-center bg-dark rounded px-1" style="height: 20px;"
                                     title="GitHub: {{ 'Ativo' if p.project.has_github else 'Inativo' }}">
-                                    <i class="fab fa-github {{ 'text-light' if p.project.has_github else 'text-secondary' }}"
-                                        style="font-size: 0.8rem;"></i>
+                                    <i class="fab fa-github text-light" style="font-size: 0.8rem;"></i>
                                     {% if p.project.has_github %}
                                     <i class="fas fa-check-circle text-success ms-1" style="font-size: 0.6rem;"></i>
                                     {% else %}
@@ -107,8 +106,7 @@
                                 <!-- ENV -->
                                 <div class="d-flex align-items-center bg-dark rounded px-1" style="height: 20px;"
                                     title="ENV: {{ 'Ativo' if p.project.has_env else 'Inativo' }}">
-                                    <i class="fas fa-file-code {{ 'text-warning' if p.project.has_env else 'text-secondary' }}"
-                                        style="font-size: 0.8rem;"></i>
+                                    <i class="fas fa-file-code text-light" style="font-size: 0.8rem;"></i>
                                     {% if p.project.has_env %}
                                     <i class="fas fa-check-circle text-success ms-1" style="font-size: 0.6rem;"></i>
                                     {% else %}
@@ -122,33 +120,28 @@
                                 <!-- Backup DB -->
                                 <div class="d-flex align-items-center bg-dark rounded px-1" style="height: 20px;"
                                     title="Backup DB: {{ 'Ativo' if p.project.has_backup_db else 'Inativo' }}">
-                                    <i class="fas fa-database {{ 'text-danger' if p.project.has_backup_db else 'text-secondary' }}"
-                                        style="font-size: 0.8rem;"></i>
+                                    <i class="fas fa-database text-light" style="font-size: 0.8rem;"></i>
                                     {% if p.project.has_backup_db %}
                                     <i class="fas fa-check-circle text-success ms-1" style="font-size: 0.6rem;"></i>
                                     {% else %}
                                     <i class="fas fa-times-circle text-danger ms-1" style="font-size: 0.6rem;"></i>
                                     {% endif %}
                                 </div>
-                                <!-- RPA Status (Sempre visível) -->
+                                <!-- RPA Status -->
                                 <div class="d-flex align-items-center bg-dark rounded px-1" style="height: 20px;"
                                     title="RPA: {{ p.rpa_status if p.rpa_identifier else 'Não Configurado' }}">
-                                    <i class="fas fa-robot {{ 'text-info' if p.rpa_identifier else 'text-secondary' }}"
-                                        style="font-size: 0.8rem;"></i>
+                                    <i class="fas fa-robot text-light" style="font-size: 0.8rem;"></i>
                                     {% if p.rpa_identifier %}
                                     {% if p.rpa_status == 'online' %}
                                     <i class="fas fa-check-circle text-success ms-1" style="font-size: 0.6rem;"></i>
                                     {% elif p.rpa_status == 'warning_7d' %}
                                     <i class="fas fa-exclamation-triangle text-warning ms-1"
                                         style="font-size: 0.6rem;"></i>
-                                    {% elif p.rpa_status == 'offline' %}
-                                    <i class="fas fa-times-circle text-danger ms-1" style="font-size: 0.6rem;"></i>
                                     {% else %}
-                                    <i class="fas fa-question-circle text-secondary ms-1"
-                                        style="font-size: 0.6rem;"></i>
+                                    <i class="fas fa-times-circle text-danger ms-1" style="font-size: 0.6rem;"></i>
                                     {% endif %}
                                     {% else %}
-                                    <i class="fas fa-times-circle text-danger ms-1" style="font-size: 0.6rem;"
+                                    <i class="fas fa-question-circle text-secondary ms-1" style="font-size: 0.6rem;"
                                         title="Sem ID configurado"></i>
                                     {% endif %}
                                 </div>

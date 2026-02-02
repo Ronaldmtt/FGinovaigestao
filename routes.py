@@ -596,9 +596,12 @@ def projects():
                     timeout=1
                 )
                 if resp.status_code == 200:
-                    projects_data[-1]['rpa_status'] = resp.json().get('display_status')
+                    projects_data[-1]['rpa_status'] = resp.json().get('display_status', 'offline')
+                else:
+                    projects_data[-1]['rpa_status'] = 'offline'
             except Exception:
-                pass # Silenciar erros para não quebrar a página
+                # Se falhar a conexão, assume offline (vermelho)
+                projects_data[-1]['rpa_status'] = 'offline'
     
     form = ProjectForm()
     clients = Client.query.order_by(Client.nome).all()

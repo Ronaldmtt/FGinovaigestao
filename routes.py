@@ -14,7 +14,7 @@ import os
 import uuid
 import mimetypes
 from app import app, ALLOWED_EXTENSIONS
-from extensions import db, mail, csrf
+from extensions import db, mail
 from models import User, Client, Project, Task, TodoItem, Contato, Comentario, FileCategory, ProjectFile, ProjectApiCredential, ProjectApiEndpoint, ProjectApiKey, SystemApiKey
 from forms import LoginForm, UserForm, EditUserForm, ClientForm, ProjectForm, TaskForm, TranscriptionTaskForm, ManualProjectForm, ManualTaskForm, ForgotPasswordForm, ResetPasswordForm, ChangePasswordForm, ImportDataForm
 from openai_service import process_project_transcription, generate_tasks_from_transcription
@@ -1557,7 +1557,6 @@ def get_project_data(id):
 
 @app.route('/projects/<int:id>/edit', methods=['POST'])
 @login_required
-@csrf.exempt
 def update_project(id):
     project = Project.query.get_or_404(id)
     

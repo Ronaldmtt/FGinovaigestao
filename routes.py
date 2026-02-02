@@ -1577,12 +1577,15 @@ def update_project(id):
     print(f"DEBUG update_project: has_backup_db in form? {'has_backup_db' in request.form}")
 
     # Novos campos de atributos
-    # Checkbox se marcado envia o nome do campo, se não, não envia nada.
-    # Verificamos apenas se a chave existe no request.form
-    project.has_github = 'has_github' in request.form
-    project.has_drive = 'has_drive' in request.form
-    project.has_env = 'has_env' in request.form
-    project.has_backup_db = 'has_backup_db' in request.form
+    # Validar checkboxes explicitamente
+    project.has_github = request.form.get('has_github') == 'on'
+    project.has_drive = request.form.get('has_drive') == 'on'
+    project.has_env = request.form.get('has_env') == 'on'
+    project.has_backup_db = request.form.get('has_backup_db') == 'on'
+    
+    # Log para depuração
+    print(f"DEBUG update_project {id}: ENV={project.has_env}, DB={project.has_backup_db}")
+
     project.rpa_identifier = request.form.get('rpa_identifier')
     project.problema_oportunidade = request.form.get('problema_oportunidade')
     project.objetivos = request.form.get('objetivos')

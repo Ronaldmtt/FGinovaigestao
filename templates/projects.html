@@ -91,7 +91,7 @@
                     <div class="d-flex align-items-center flex-grow-1" style="min-width: 0;">
                         <h5 class="project-card-title mb-0 text-truncate" title="{{ p.nome }}">{{ p.nome }}</h5>
                         <div class="d-flex flex-column align-items-end ms-2 gap-1">
-                            <!-- Linha 1: GitHub / Drive -->
+                            <!-- Linha 1: GitHub -->
                             <div class="d-flex gap-1">
                                 <!-- GitHub -->
                                 <div class="d-flex align-items-center bg-dark rounded px-1" style="height: 20px;"
@@ -99,17 +99,6 @@
                                     <i class="fab fa-github {{ 'text-light' if p.project.has_github else 'text-secondary' }}"
                                         style="font-size: 0.8rem;"></i>
                                     {% if p.project.has_github %}
-                                    <i class="fas fa-check-circle text-success ms-1" style="font-size: 0.6rem;"></i>
-                                    {% else %}
-                                    <i class="fas fa-times-circle text-danger ms-1" style="font-size: 0.6rem;"></i>
-                                    {% endif %}
-                                </div>
-                                <!-- Drive -->
-                                <div class="d-flex align-items-center bg-dark rounded px-1" style="height: 20px;"
-                                    title="Drive: {{ 'Ativo' if p.project.has_drive else 'Inativo' }}">
-                                    <i class="fab fa-google-drive {{ 'text-primary' if p.project.has_drive else 'text-secondary' }}"
-                                        style="font-size: 0.8rem;"></i>
-                                    {% if p.project.has_drive %}
                                     <i class="fas fa-check-circle text-success ms-1" style="font-size: 0.6rem;"></i>
                                     {% else %}
                                     <i class="fas fa-times-circle text-danger ms-1" style="font-size: 0.6rem;"></i>

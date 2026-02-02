@@ -589,17 +589,22 @@ def projects():
             try:
                 # Header obrigatório
                 headers = {'X-API-Key': 'bizart-integration-secret-key-2025'}
+                # URL dinâmica via .env (Default: localhost para dev)
+                base_url = os.environ.get('RPA_MONITOR_URL', 'http://localhost:2000').rstrip('/')
+                
                 # Timeout curto para não travar
                 resp = requests.get(
-                    f'http://localhost:2000/integration/status/{project.rpa_identifier}',
+                    f'{base_url}/integration/status/{project.rpa_identifier}',
                     headers=headers,
-                    timeout=1
+                    timeout=2
                 )
                 if resp.status_code == 200:
                     projects_data[-1]['rpa_status'] = resp.json().get('display_status', 'offline')
                 else:
                     projects_data[-1]['rpa_status'] = 'offline'
-            except Exception:
+            except Exception as e:
+                # Log de erro silencioso para debug se necessário
+                # print(f"DEBUG RPA ERROR: {e}")
                 # Se falhar a conexão, assume offline (vermelho)
                 projects_data[-1]['rpa_status'] = 'offline'
     

@@ -14,3 +14,4 @@ httpx>=0.28.1
 websockets>=15.0.1
 rpa-monitor-client>=0.1.1
 python-dotenv>=1.0.0
+requests>=2.31.0

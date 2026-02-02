@@ -103,12 +103,24 @@
                             {% endif %}
                         </div>
 
-                        <!-- Drive Status -->
+                        <!-- .ENV Status -->
                         <div class="d-flex align-items-center flex-shrink-0"
-                            title="Drive: {{ 'Ativo' if p.project.has_drive else 'Inativo' }}">
+                            title=".ENV: {{ 'Ativo' if p.project.has_env else 'Inativo' }}">
                             <i
-                                class="fab fa-google-drive me-1 {{ 'text-light' if p.project.has_drive else 'text-secondary' }}"></i>
-                            {% if p.project.has_drive %}
+                                class="fas fa-file-code me-1 {{ 'text-warning' if p.project.has_env else 'text-secondary' }}"></i>
+                            {% if p.project.has_env %}
+                            <i class="fas fa-check-circle text-success" style="font-size: 0.75rem;"></i>
+                            {% else %}
+                            <i class="fas fa-times-circle text-danger" style="font-size: 0.75rem;"></i>
+                            {% endif %}
+                        </div>
+
+                        <!-- Backup DB Status -->
+                        <div class="d-flex align-items-center flex-shrink-0"
+                            title="Backup DB: {{ 'Ativo' if p.project.has_backup_db else 'Inativo' }}">
+                            <i
+                                class="fas fa-database me-1 {{ 'text-danger' if p.project.has_backup_db else 'text-secondary' }}"></i>
+                            {% if p.project.has_backup_db %}
                             <i class="fas fa-check-circle text-success" style="font-size: 0.75rem;"></i>
                             {% else %}
                             <i class="fas fa-times-circle text-danger" style="font-size: 0.75rem;"></i>
@@ -942,14 +954,24 @@
                 <div class="form-text text-white-50">Projetos concluídos são ocultados automaticamente, mas você pode reativá-los aqui.</div>
             </div>
             
-             <div class="col-12 mt-3">
+            </div>
+            
+            <div class="col-12 mt-3">
                  <div class="form-check form-switch mb-2">
                     <input class="form-check-input" type="checkbox" id="editHasGithub" name="has_github" ${project.has_github ? 'checked' : ''}>
                     <label class="form-check-label" for="editHasGithub">Projeto no GitHub?</label>
                 </div>
-                 <div class="form-check form-switch">
+                 <div class="form-check form-switch mb-2">
                     <input class="form-check-input" type="checkbox" id="editHasDrive" name="has_drive" ${project.has_drive ? 'checked' : ''}>
                     <label class="form-check-label" for="editHasDrive">Projeto no Google Drive?</label>
+                </div>
+                 <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" id="editHasEnv" name="has_env" ${project.has_env ? 'checked' : ''}>
+                    <label class="form-check-label" for="editHasEnv">Projeto possui .ENV?</label>
+                </div>
+                 <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="editHasBackup" name="has_backup_db" ${project.has_backup_db ? 'checked' : ''}>
+                    <label class="form-check-label" for="editHasBackup">Projeto possui Backup Banco?</label>
                 </div>
             </div>
         </div>

@@ -1516,6 +1516,8 @@ def get_project_data(id):
         'show_in_kanban': project.show_in_kanban,
         'has_github': project.has_github,
         'has_drive': project.has_drive,
+        'has_env': project.has_env,
+        'has_backup_db': project.has_backup_db,
         'data_inicio': project.data_inicio.isoformat() if project.data_inicio else None,
         'data_fim': project.data_fim.isoformat() if project.data_fim else None
     }
@@ -1535,7 +1537,7 @@ def get_project_data(id):
 def update_project(id):
     project = Project.query.get_or_404(id)
     
-    # Verificar se o usuário tem acesso ao projeto
+    # Verificar se o usuário tem permissão para editar
     if not current_user.is_admin and current_user.id != project.responsible_id:
         flash('Você não tem permissão para editar este projeto.', 'danger')
         return redirect(url_for('projects'))
@@ -1545,7 +1547,12 @@ def update_project(id):
     project.client_id = request.form.get('client_id')
     project.responsible_id = request.form.get('responsible_id')
     project.status = request.form.get('status')
-    project.descricao_resumida = request.form.get('descricao_resumida')
+    
+    # Novos campos de atributos
+    project.has_github = True if request.form.get('has_github') == 'on' else False
+    project.has_drive = True if request.form.get('has_drive') == 'on' else False
+    project.has_env = True if request.form.get('has_env') == 'on' else False
+    project.has_backup_db = True if request.form.get('has_backup_db') == 'on' else False
     project.problema_oportunidade = request.form.get('problema_oportunidade')
     project.objetivos = request.form.get('objetivos')
     project.alinhamento_estrategico = request.form.get('alinhamento_estrategico')
@@ -3283,8 +3290,9 @@ def upload_project_file(project_id):
     if file.filename == '':
         return jsonify({'success': False, 'message': 'Nenhum arquivo selecionado'}), 400
     
-    if not allowed_file(file.filename):
-        return jsonify({'success': False, 'message': 'Tipo de arquivo não permitido'}), 400
+    # REMOVIDO: allow_file check para permitir todos os tipos
+    # if not allowed_file(file.filename):
+    #     return jsonify({'success': False, 'message': 'Tipo de arquivo não permitido'}), 400
     
     try:
         # Gerar nome único para o arquivo

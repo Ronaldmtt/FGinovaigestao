@@ -94,6 +94,8 @@ class Project(db.Model):
     # Indicadores de Conteúdo
     has_github = db.Column(db.Boolean, default=False, nullable=False)
     has_drive = db.Column(db.Boolean, default=False, nullable=False)
+    has_env = db.Column(db.Boolean, default=False, nullable=False)
+    has_backup_db = db.Column(db.Boolean, default=False, nullable=False)
     
     # Relacionamentos many-to-many com usuários (equipe)
     team_members = db.relationship('User', secondary=project_users, backref=db.backref('team_projects', lazy='dynamic'))

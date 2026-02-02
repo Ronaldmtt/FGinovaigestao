@@ -958,19 +958,15 @@
             
             <div class="col-12 mt-3">
                  <div class="form-check form-switch mb-2">
-                    <input class="form-check-input" type="checkbox" id="editHasGithub" name="has_github" ${project.has_github ? 'checked' : ''}>
+                    <input class="form-check-input" type="checkbox" id="editHasGithub" name="has_github" value="on" ${project.has_github ? 'checked' : ''}>
                     <label class="form-check-label" for="editHasGithub">Projeto no GitHub?</label>
                 </div>
                  <div class="form-check form-switch mb-2">
-                    <input class="form-check-input" type="checkbox" id="editHasDrive" name="has_drive" ${project.has_drive ? 'checked' : ''}>
-                    <label class="form-check-label" for="editHasDrive">Projeto no Google Drive?</label>
-                </div>
-                 <div class="form-check form-switch mb-2">
-                    <input class="form-check-input" type="checkbox" id="editHasEnv" name="has_env" ${project.has_env ? 'checked' : ''}>
+                    <input class="form-check-input" type="checkbox" id="editHasEnv" name="has_env" value="on" ${project.has_env ? 'checked' : ''}>
                     <label class="form-check-label" for="editHasEnv">Projeto possui .ENV?</label>
                 </div>
                  <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" id="editHasBackup" name="has_backup_db" ${project.has_backup_db ? 'checked' : ''}>
+                    <input class="form-check-input" type="checkbox" id="editHasBackup" name="has_backup_db" value="on" ${project.has_backup_db ? 'checked' : ''}>
                     <label class="form-check-label" for="editHasBackup">Projeto possui Backup Banco?</label>
                 </div>
             </div>

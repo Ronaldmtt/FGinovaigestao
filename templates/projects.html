@@ -81,113 +81,109 @@
     </div>
 
     <!-- Grid de Cards de Projetos -->
-    <div class="projects-grid">
+    <div class="row g-4">
         {% if projects_data %}
         {% for p in projects_data %}
-        <div class="project-card {{ p.glow_class }}"
-            onclick="window.location.href='{{ url_for('project_detail', id=p.id) }}'">
-            <div class="project-card-header">
-                <div class="d-flex align-items-center gap-2 flex-grow-1">
-                    <h5 class="project-card-title mb-0">{{ p.nome }}</h5>
-                    {% if p.project.has_github %}
-                    <i class="fab fa-github text-white-50" title="No GitHub"></i>
-                    {% endif %}
-                    {% if p.project.has_drive %}
-                    <i class="fab fa-google-drive text-white-50" title="No Drive"></i>
-                    {% endif %}
-                </div>
-                <div class="dropdown" onclick="event.stopPropagation()">
-                    <button class="project-card-actions" type="button" data-bs-toggle="dropdown"
-                        data-bs-auto-close="true">
-                        <i class="fas fa-ellipsis-v"></i>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end bg-dark border-secondary">
-                        <li>
-                            <a class="dropdown-item text-light" href="{{ url_for('project_detail', id=p.id) }}">
-                                <i class="fas fa-eye me-2"></i>Ver detalhes
-                            </a>
-                        </li>
-                        {% if p.can_edit %}
-                        <li>
-                            <button class="dropdown-item text-light" onclick="editProject({{ p.id }})">
-                                <i class="fas fa-edit me-2"></i>Editar
-                            </button>
-                        </li>
-                        <li>
-                            <hr class="dropdown-divider border-secondary">
-                        </li>
-                        <li>
-                            <button class="dropdown-item text-danger" data-bs-toggle="modal"
-                                data-bs-target="#deleteModal{{ p.id }}">
-                                <i class="fas fa-trash me-2"></i>Deletar
-                            </button>
-                        </li>
+        <div class="col-md-6 col-lg-4 col-xl-3">
+            <div class="project-card {{ p.glow_class }}"
+                onclick="window.location.href='{{ url_for('project_detail', id=p.id) }}'">
+                <div class="project-card-header">
+                    <div class="d-flex align-items-center gap-2 flex-grow-1">
+                        <h5 class="project-card-title mb-0 text-truncate" title="{{ p.nome }}">{{ p.nome }}</h5>
+                        {% if p.project.has_github %}
+                        <i class="fab fa-github text-white-50" title="No GitHub"></i>
                         {% endif %}
-                    </ul>
+                        {% if p.project.has_drive %}
+                        <i class="fab fa-google-drive text-white-50" title="No Drive"></i>
+                        {% endif %}
+                    </div>
+                    <div class="dropdown" onclick="event.stopPropagation()">
+                        <button class="project-card-actions" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item" href="javascript:void(0)" onclick="editProject({{ p.id }})">
+                                    <i class="fas fa-edit me-2"></i>Editar
+                                </a>
+                            </li>
+                            {% if current_user.is_admin or current_user.id == p.responsible_id %}
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li>
+                                <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal"
+                                    data-bs-target="#deleteModal{{ p.id }}">
+                                    <i class="fas fa-trash-alt me-2"></i>Excluir
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </div>
                 </div>
-            </div>
-            <div class="d-flex gap-2">
-                {% if p.project.has_github %}
-                <i class="fab fa-github text-success" title="GitHub Vinculado"></i>
-                {% endif %}
-                {% if p.project.has_drive %}
-                <i class="fab fa-google-drive text-success" title="Drive Vinculado"></i>
-                {% endif %}
+                <div class="project-card-body">
+                    <div class="project-card-info">
+                        <i class="fas fa-user-circle text-primary"></i>
+                        <span class="text-truncate">{{ p.responsible_name }}</span>
+                    </div>
+                    <div class="project-card-info">
+                        <i class="fas fa-building text-secondary"></i>
+                        <span class="text-truncate">{{ p.client_name }}</span>
+                    </div>
+
+                    <div class="d-flex align-items-center mt-2">
+                        <span class="status-badge {{ p.status_class }}">{{ p.status_display }}</span>
+                    </div>
+
+                    <div class="project-card-info mt-2">
+                        <div class="d-flex flex-column small w-100">
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <span class="text-secondary">
+                                    <i class="fas fa-play text-muted me-2" style="font-size: 0.8em;"></i>
+                                    {% if p.project.data_inicio %}
+                                    {{ p.project.data_inicio.strftime('%d/%m/%Y') }}
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between">
+                                <span class="text-secondary">
+                                    <i class="fas fa-flag-checkered text-muted me-2" style="font-size: 0.8em;"></i>
+                                    {% if p.project.status == 'pausado' %}
+                                    <span class="text-muted">-</span>
+                                    {% elif p.project.data_fim %}
+                                    {{ p.project.data_fim.strftime('%d/%m/%Y') }}
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="project-card-footer">
+                    <div class="progress-container-card">
+                        <div class="progress-bar-custom">
+                            <div class="progress-fill {{ p.progress_color }}" style="width: {{ p.progress }}%;"></div>
+                        </div>
+                        <span class="progress-text">{{ p.progress }}%</span>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="project-card-body">
-            <div class="project-card-info">
-                <i class="fas fa-user-tie text-muted me-2"></i>
-                <span class="text-secondary">{{ p.leader }}</span>
-            </div>
-            <div class="project-card-info">
-                <i class="fas fa-building text-muted me-2"></i>
-                <span class="text-secondary">{{ p.client }}</span>
-            </div>
-            <div class="project-card-info">
-                <span class="status-badge {{ p.status_class }}">{{ p.status_label }}</span>
-            </div>
-            <div class="project-card-info">
-                <div class="d-flex flex-column small">
-                    <span class="text-secondary mb-1">
-                        <i class="fas fa-play text-muted me-2" style="font-size: 0.8em;"></i>
-                        {% if p.project.data_inicio %}
-                        {{ p.project.data_inicio.strftime('%d/%m/%Y') }}
-                        {% else %}
-                        -
-                        {% endif %}
-                    </span>
-                    <span class="text-secondary">
-                        <i class="fas fa-flag-checkered text-muted me-2" style="font-size: 0.8em;"></i>
-                        {% if p.project.status == 'pausado' %}
-                        <span class="text-muted">-</span>
-                        {% elif p.project.data_fim %}
-                        {{ p.project.data_fim.strftime('%d/%m/%Y') }}
-                        {% else %}
-                        -
-                        {% endif %}
-                    </span>
-                </div>
+        {% endfor %}
+        {% else %}
+        <div class="col-12">
+            <div class="empty-state">
+                <i class="fas fa-folder-open fa-4x text-muted mb-3"></i>
+                <p class="text-muted fs-5">Nenhum projeto encontrado</p>
+                <p class="text-secondary small">Clique em "Criar Novo Projeto" para começar</p>
             </div>
         </div>
-        <div class="project-card-footer">
-            <div class="progress-container-card">
-                <div class="progress-bar-custom">
-                    <div class="progress-fill {{ p.progress_color }}" style="width: {{ p.progress }}%;"></div>
-                </div>
-                <span class="progress-text">{{ p.progress }}%</span>
-            </div>
-        </div>
+        {% endif %}
     </div>
-    {% endfor %}
-    {% else %}
-    <div class="empty-state">
-        <i class="fas fa-folder-open fa-4x text-muted mb-3"></i>
-        <p class="text-muted fs-5">Nenhum projeto encontrado</p>
-        <p class="text-secondary small">Clique em "Criar Novo Projeto" para começar</p>
-    </div>
-    {% endif %}
-</div>
 </div>
 
 <!-- Modais de exclusão -->
@@ -451,14 +447,6 @@
         color: #fff;
     }
 
-    /* Grid de Cards de Projetos */
-    .projects-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-        gap: 20px;
-        padding: 10px 0;
-    }
-
     /* Card de Projeto */
     .project-card {
         background: #1e2228;
@@ -470,6 +458,8 @@
         display: flex;
         flex-direction: column;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        height: 100%;
+        /* Garante altura igual no grid bootstrap */
     }
 
     .project-card:hover {
@@ -479,21 +469,18 @@
         background: #242933;
     }
 
-    /* Glow Effects */
-    /* Glow Effects - Intense Blinking */
+    /* Glow Effects - Toned Down */
     @keyframes blink-green {
 
         0%,
         100% {
-            box-shadow: 0 0 5px rgba(78, 201, 145, 0.2);
-            border-color: rgba(78, 201, 145, 0.5);
-            background-color: rgba(78, 201, 145, 0.05);
+            box-shadow: 0 0 5px rgba(78, 201, 145, 0.1);
+            border-color: rgba(78, 201, 145, 0.3);
         }
 
         50% {
-            box-shadow: 0 0 20px rgba(78, 201, 145, 0.8), 0 0 40px rgba(78, 201, 145, 0.4);
+            box-shadow: 0 0 15px rgba(78, 201, 145, 0.4);
             border-color: #4ec991;
-            background-color: rgba(78, 201, 145, 0.15);
         }
     }
 
@@ -501,15 +488,13 @@
 
         0%,
         100% {
-            box-shadow: 0 0 5px rgba(255, 193, 7, 0.2);
-            border-color: rgba(255, 193, 7, 0.5);
-            background-color: rgba(255, 193, 7, 0.05);
+            box-shadow: 0 0 5px rgba(255, 193, 7, 0.1);
+            border-color: rgba(255, 193, 7, 0.3);
         }
 
         50% {
-            box-shadow: 0 0 20px rgba(255, 193, 7, 0.8), 0 0 40px rgba(255, 193, 7, 0.4);
+            box-shadow: 0 0 15px rgba(255, 193, 7, 0.4);
             border-color: #ffc107;
-            background-color: rgba(255, 193, 7, 0.15);
         }
     }
 
@@ -517,15 +502,13 @@
 
         0%,
         100% {
-            box-shadow: 0 0 5px rgba(220, 53, 69, 0.2);
-            border-color: rgba(220, 53, 69, 0.5);
-            background-color: rgba(220, 53, 69, 0.05);
+            box-shadow: 0 0 5px rgba(220, 53, 69, 0.1);
+            border-color: rgba(220, 53, 69, 0.3);
         }
 
         50% {
-            box-shadow: 0 0 30px rgba(220, 53, 69, 0.9), 0 0 50px rgba(220, 53, 69, 0.5);
+            box-shadow: 0 0 15px rgba(220, 53, 69, 0.4);
             border-color: #dc3545;
-            background-color: rgba(220, 53, 69, 0.15);
         }
     }
 
@@ -533,15 +516,13 @@
 
         0%,
         100% {
-            box-shadow: 0 0 5px rgba(111, 66, 193, 0.2);
-            border-color: rgba(111, 66, 193, 0.5);
-            background-color: rgba(111, 66, 193, 0.05);
+            box-shadow: 0 0 5px rgba(111, 66, 193, 0.1);
+            border-color: rgba(111, 66, 193, 0.3);
         }
 
         50% {
-            box-shadow: 0 0 20px rgba(111, 66, 193, 0.8), 0 0 40px rgba(111, 66, 193, 0.4);
+            box-shadow: 0 0 15px rgba(111, 66, 193, 0.4);
             border-color: #6f42c1;
-            background-color: rgba(111, 66, 193, 0.15);
         }
     }
 
@@ -549,42 +530,40 @@
 
         0%,
         100% {
-            box-shadow: 0 0 5px rgba(13, 202, 240, 0.2);
-            border-color: rgba(13, 202, 240, 0.5);
-            background-color: rgba(13, 202, 240, 0.05);
+            box-shadow: 0 0 5px rgba(13, 202, 240, 0.1);
+            border-color: rgba(13, 202, 240, 0.3);
         }
 
         50% {
-            box-shadow: 0 0 25px rgba(13, 202, 240, 0.9), 0 0 45px rgba(13, 202, 240, 0.5);
+            box-shadow: 0 0 15px rgba(13, 202, 240, 0.4);
             border-color: #0dcaf0;
-            background-color: rgba(13, 202, 240, 0.15);
         }
     }
 
     .glow-green {
-        animation: blink-green 1.5s infinite ease-in-out !important;
+        animation: blink-green 3s infinite ease-in-out !important;
     }
 
     .glow-orange {
-        animation: blink-orange 1.5s infinite ease-in-out !important;
+        animation: blink-orange 3s infinite ease-in-out !important;
     }
 
     .glow-red {
-        animation: blink-red 1s infinite ease-in-out !important;
+        animation: blink-red 2s infinite ease-in-out !important;
     }
 
     .glow-purple {
-        animation: blink-purple 1s infinite ease-in-out !important;
+        animation: blink-purple 2s infinite ease-in-out !important;
     }
 
     .glow-complete {
-        animation: blink-complete 2.5s infinite ease-in-out !important;
+        animation: blink-complete 4s infinite ease-in-out !important;
     }
 
     /* Header do Card */
     .project-card-header {
-        padding: 20px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 15px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         display: flex;
         justify-content: space-between;
         align-items: flex-start;

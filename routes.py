@@ -1548,6 +1548,11 @@ def update_project(id):
     project.responsible_id = request.form.get('responsible_id')
     project.status = request.form.get('status')
     
+    # DEBUG: Log form data
+    print(f"DEBUG update_project: form keys = {list(request.form.keys())}")
+    print(f"DEBUG update_project: has_env in form? {'has_env' in request.form}")
+    print(f"DEBUG update_project: has_backup_db in form? {'has_backup_db' in request.form}")
+
     # Novos campos de atributos
     # Checkbox se marcado envia o nome do campo, se não, não envia nada.
     # Verificamos apenas se a chave existe no request.form

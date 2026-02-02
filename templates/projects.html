@@ -108,7 +108,7 @@
                                     <i class="fas fa-edit me-2"></i>Editar
                                 </a>
                             </li>
-                            {% if current_user.is_admin or current_user.id == p.responsible_id %}
+                            {% if p.can_edit %}
                             <li>
                                 <hr class="dropdown-divider">
                             </li>
@@ -125,15 +125,15 @@
                 <div class="project-card-body">
                     <div class="project-card-info">
                         <i class="fas fa-user-circle text-primary"></i>
-                        <span class="text-truncate">{{ p.responsible_name }}</span>
+                        <span class="text-truncate" title="{{ p.leader }}">{{ p.leader }}</span>
                     </div>
                     <div class="project-card-info">
                         <i class="fas fa-building text-secondary"></i>
-                        <span class="text-truncate">{{ p.client_name }}</span>
+                        <span class="text-truncate" title="{{ p.client }}">{{ p.client }}</span>
                     </div>
 
                     <div class="d-flex align-items-center mt-2">
-                        <span class="status-badge {{ p.status_class }}">{{ p.status_display }}</span>
+                        <span class="status-badge {{ p.status_class }}">{{ p.status_label }}</span>
                     </div>
 
                     <div class="project-card-info mt-2">

@@ -619,7 +619,9 @@ def new_project():
             escopo_projeto=form.escopo_projeto.data,
             fora_escopo=form.fora_escopo.data,
             premissas=form.premissas.data,
-            restricoes=form.restricoes.data
+            restricoes=form.restricoes.data,
+            has_github=form.has_github.data,
+            has_drive=form.has_drive.data
         )
         
         db.session.add(project)
@@ -681,7 +683,10 @@ def new_manual_project():
         escopo_projeto=request.form.get('escopo_projeto'),
         fora_escopo=request.form.get('fora_escopo'),
         premissas=request.form.get('premissas'),
-        restricoes=request.form.get('restricoes')
+        premissas=request.form.get('premissas'),
+        restricoes=request.form.get('restricoes'),
+        has_github=True if request.form.get('has_github') == 'y' else False,
+        has_drive=True if request.form.get('has_drive') == 'y' else False
     )
     
     db.session.add(project)
@@ -728,6 +733,10 @@ def edit_project(id):
     project.client_id = request.form.get('client_id')
     project.responsible_id = request.form.get('responsible_id')
     project.status = request.form.get('status')
+    
+    # Novos campos de GitHub e Drive
+    project.has_github = True if request.form.get('has_github') == 'on' else False
+    project.has_drive = True if request.form.get('has_drive') == 'on' else False
     
     # Atualizar progresso e prazo
     progress_percent = request.form.get('progress_percent', 0)
@@ -1503,11 +1512,10 @@ def get_project_data(id):
         'escopo_projeto': project.escopo_projeto,
         'fora_escopo': project.fora_escopo,
         'premissas': project.premissas,
-        'premissas': project.premissas,
-        'restricoes': project.restricoes,
-        'premissas': project.premissas,
         'restricoes': project.restricoes,
         'show_in_kanban': project.show_in_kanban,
+        'has_github': project.has_github,
+        'has_drive': project.has_drive,
         'data_inicio': project.data_inicio.isoformat() if project.data_inicio else None,
         'data_fim': project.data_fim.isoformat() if project.data_fim else None
     }

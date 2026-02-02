@@ -85,6 +85,9 @@ class ProjectForm(FlaskForm):
     premissas = TextAreaField('Premissas', render_kw={"rows": 2})
     restricoes = TextAreaField('Restrições', render_kw={"rows": 2})
     
+    has_github = BooleanField('Projeto no GitHub?', default=False)
+    has_drive = BooleanField('Projeto no Google Drive?', default=False)
+    
     def __init__(self, *args, **kwargs):
         super(ProjectForm, self).__init__(*args, **kwargs)
         self.client_id.choices = [(c.id, c.nome) for c in Client.query.order_by(Client.nome).all()]
@@ -139,6 +142,9 @@ class ManualProjectForm(FlaskForm):
     fora_escopo = TextAreaField('Fora do Escopo', render_kw={"rows": 3})
     premissas = TextAreaField('Premissas', render_kw={"rows": 3})
     restricoes = TextAreaField('Restrições', render_kw={"rows": 3})
+    
+    has_github = BooleanField('Projeto no GitHub?', default=False)
+    has_drive = BooleanField('Projeto no Google Drive?', default=False)
     
     def __init__(self, *args, **kwargs):
         super(ManualProjectForm, self).__init__(*args, **kwargs)

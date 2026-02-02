@@ -91,6 +91,10 @@ class Project(db.Model):
     # Controle de visibilidade no Kanban
     show_in_kanban = db.Column(db.Boolean, default=True, nullable=False)
     
+    # Indicadores de Conteúdo
+    has_github = db.Column(db.Boolean, default=False, nullable=False)
+    has_drive = db.Column(db.Boolean, default=False, nullable=False)
+    
     # Relacionamentos many-to-many com usuários (equipe)
     team_members = db.relationship('User', secondary=project_users, backref=db.backref('team_projects', lazy='dynamic'))
     tasks = db.relationship('Task', backref='project', lazy=True)

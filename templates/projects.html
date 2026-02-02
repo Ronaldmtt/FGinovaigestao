@@ -469,18 +469,20 @@
         background: #242933;
     }
 
-    /* Glow Effects - Toned Down */
+    /* Glow Effects - Intense Blinking (Restored) */
     @keyframes blink-green {
 
         0%,
         100% {
-            box-shadow: 0 0 5px rgba(78, 201, 145, 0.1);
-            border-color: rgba(78, 201, 145, 0.3);
+            box-shadow: 0 0 5px rgba(78, 201, 145, 0.2);
+            border-color: rgba(78, 201, 145, 0.5);
+            background-color: rgba(78, 201, 145, 0.05);
         }
 
         50% {
-            box-shadow: 0 0 15px rgba(78, 201, 145, 0.4);
+            box-shadow: 0 0 20px rgba(78, 201, 145, 0.8), 0 0 40px rgba(78, 201, 145, 0.4);
             border-color: #4ec991;
+            background-color: rgba(78, 201, 145, 0.15);
         }
     }
 
@@ -488,13 +490,15 @@
 
         0%,
         100% {
-            box-shadow: 0 0 5px rgba(255, 193, 7, 0.1);
-            border-color: rgba(255, 193, 7, 0.3);
+            box-shadow: 0 0 5px rgba(255, 193, 7, 0.2);
+            border-color: rgba(255, 193, 7, 0.5);
+            background-color: rgba(255, 193, 7, 0.05);
         }
 
         50% {
-            box-shadow: 0 0 15px rgba(255, 193, 7, 0.4);
+            box-shadow: 0 0 20px rgba(255, 193, 7, 0.8), 0 0 40px rgba(255, 193, 7, 0.4);
             border-color: #ffc107;
+            background-color: rgba(255, 193, 7, 0.15);
         }
     }
 
@@ -502,13 +506,15 @@
 
         0%,
         100% {
-            box-shadow: 0 0 5px rgba(220, 53, 69, 0.1);
-            border-color: rgba(220, 53, 69, 0.3);
+            box-shadow: 0 0 5px rgba(220, 53, 69, 0.2);
+            border-color: rgba(220, 53, 69, 0.5);
+            background-color: rgba(220, 53, 69, 0.05);
         }
 
         50% {
-            box-shadow: 0 0 15px rgba(220, 53, 69, 0.4);
+            box-shadow: 0 0 30px rgba(220, 53, 69, 0.9), 0 0 50px rgba(220, 53, 69, 0.5);
             border-color: #dc3545;
+            background-color: rgba(220, 53, 69, 0.15);
         }
     }
 
@@ -516,13 +522,15 @@
 
         0%,
         100% {
-            box-shadow: 0 0 5px rgba(111, 66, 193, 0.1);
-            border-color: rgba(111, 66, 193, 0.3);
+            box-shadow: 0 0 5px rgba(111, 66, 193, 0.2);
+            border-color: rgba(111, 66, 193, 0.5);
+            background-color: rgba(111, 66, 193, 0.05);
         }
 
         50% {
-            box-shadow: 0 0 15px rgba(111, 66, 193, 0.4);
+            box-shadow: 0 0 20px rgba(111, 66, 193, 0.8), 0 0 40px rgba(111, 66, 193, 0.4);
             border-color: #6f42c1;
+            background-color: rgba(111, 66, 193, 0.15);
         }
     }
 
@@ -530,34 +538,36 @@
 
         0%,
         100% {
-            box-shadow: 0 0 5px rgba(13, 202, 240, 0.1);
-            border-color: rgba(13, 202, 240, 0.3);
+            box-shadow: 0 0 5px rgba(13, 202, 240, 0.2);
+            border-color: rgba(13, 202, 240, 0.5);
+            background-color: rgba(13, 202, 240, 0.05);
         }
 
         50% {
-            box-shadow: 0 0 15px rgba(13, 202, 240, 0.4);
+            box-shadow: 0 0 25px rgba(13, 202, 240, 0.9), 0 0 45px rgba(13, 202, 240, 0.5);
             border-color: #0dcaf0;
+            background-color: rgba(13, 202, 240, 0.15);
         }
     }
 
     .glow-green {
-        animation: blink-green 3s infinite ease-in-out !important;
+        animation: blink-green 1.5s infinite ease-in-out !important;
     }
 
     .glow-orange {
-        animation: blink-orange 3s infinite ease-in-out !important;
+        animation: blink-orange 1.5s infinite ease-in-out !important;
     }
 
     .glow-red {
-        animation: blink-red 2s infinite ease-in-out !important;
+        animation: blink-red 1s infinite ease-in-out !important;
     }
 
     .glow-purple {
-        animation: blink-purple 2s infinite ease-in-out !important;
+        animation: blink-purple 1s infinite ease-in-out !important;
     }
 
     .glow-complete {
-        animation: blink-complete 4s infinite ease-in-out !important;
+        animation: blink-complete 2.5s infinite ease-in-out !important;
     }
 
     /* Header do Card */

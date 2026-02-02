@@ -1549,10 +1549,12 @@ def update_project(id):
     project.status = request.form.get('status')
     
     # Novos campos de atributos
-    project.has_github = True if request.form.get('has_github') == 'on' else False
-    project.has_drive = True if request.form.get('has_drive') == 'on' else False
-    project.has_env = True if request.form.get('has_env') == 'on' else False
-    project.has_backup_db = True if request.form.get('has_backup_db') == 'on' else False
+    # Checkbox se marcado envia o nome do campo, se não, não envia nada.
+    # Verificamos apenas se a chave existe no request.form
+    project.has_github = 'has_github' in request.form
+    project.has_drive = 'has_drive' in request.form
+    project.has_env = 'has_env' in request.form
+    project.has_backup_db = 'has_backup_db' in request.form
     project.problema_oportunidade = request.form.get('problema_oportunidade')
     project.objetivos = request.form.get('objetivos')
     project.alinhamento_estrategico = request.form.get('alinhamento_estrategico')

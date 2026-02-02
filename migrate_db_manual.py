@@ -1,14 +1,36 @@
 import sqlite3
 import os
 
-DB_PATH = 'instance/database.db'
+DB_PATHS = ['instance/database.db', 'database.db', 'gestao_app.db']
+
+def get_db_path():
+    # Try from env var first
+    try:
+        from dotenv import load_dotenv
+        load_dotenv()
+        db_url = os.environ.get("DATABASE_URL")
+        if db_url and db_url.startswith("sqlite:///"):
+            path = db_url.replace("sqlite:///", "")
+            if os.path.exists(path):
+                return path
+    except ImportError:
+        pass
+    
+    # Try common paths
+    for path in DB_PATHS:
+        if os.path.exists(path):
+            return path
+    return None
 
 def migrate():
-    if not os.path.exists(DB_PATH):
-        print(f"Database not found at {DB_PATH}")
+    db_path = get_db_path()
+    if not db_path:
+        print("Database not found in common locations.")
+        print(f"Searched: {DB_PATHS} and DATABASE_URL env var")
         return
 
-    conn = sqlite3.connect(DB_PATH)
+    print(f"Migrating database at: {db_path}")
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
     # Check table name

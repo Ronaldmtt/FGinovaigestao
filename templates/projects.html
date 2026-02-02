@@ -126,6 +126,33 @@
                             <i class="fas fa-times-circle text-danger" style="font-size: 0.75rem;"></i>
                             {% endif %}
                         </div>
+
+                        <!-- RPA Status -->
+                        {% if p.rpa_identifier %}
+                        <div class="d-flex align-items-center flex-shrink-0 ms-1">
+                            {% if p.rpa_status == 'online' %}
+                            <div title="RPA Online">
+                                <i class="fas fa-desktop text-success"></i>
+                                <i class="fas fa-check-circle text-success ms-1" style="font-size: 0.75rem;"></i>
+                            </div>
+                            {% elif p.rpa_status == 'warning_7d' %}
+                            <div title="Sem logs há 7+ dias">
+                                <i class="fas fa-desktop text-warning"></i>
+                                <i class="fas fa-exclamation-triangle text-warning ms-1"
+                                    style="font-size: 0.75rem;"></i>
+                            </div>
+                            {% elif p.rpa_status == 'offline' %}
+                            <div title="RPA Offline">
+                                <i class="fas fa-desktop text-danger"></i>
+                                <i class="fas fa-times-circle text-danger ms-1" style="font-size: 0.75rem;"></i>
+                            </div>
+                            {% else %}
+                            <div title="RPA: {{ p.rpa_status }}">
+                                <i class="fas fa-desktop text-secondary"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
                     </div>
                     <div class="dropdown" onclick="event.stopPropagation()">
                         <button class="project-card-actions" type="button" data-bs-toggle="dropdown"

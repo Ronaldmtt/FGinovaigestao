@@ -3,7 +3,16 @@ import os
 
 DB_PATHS = ['instance/database.db', 'database.db', 'gestao_app.db']
 
+import sys
+
 def get_db_path():
+    # If path provided via argument
+    if len(sys.argv) > 1:
+        arg_path = sys.argv[1]
+        if os.path.exists(arg_path):
+            return arg_path
+        print(f"Provided argument '{arg_path}' not found.")
+
     # Try from env var first
     try:
         from dotenv import load_dotenv

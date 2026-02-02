@@ -97,6 +97,9 @@ class Project(db.Model):
     has_env = db.Column(db.Boolean, default=False, nullable=False)
     has_backup_db = db.Column(db.Boolean, default=False, nullable=False)
     
+    # Integração RPA
+    rpa_identifier = db.Column(db.String(100), nullable=True)
+
     # Relacionamentos many-to-many com usuários (equipe)
     team_members = db.relationship('User', secondary=project_users, backref=db.backref('team_projects', lazy='dynamic'))
     tasks = db.relationship('Task', backref='project', lazy=True)

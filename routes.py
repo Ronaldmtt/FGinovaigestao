@@ -22,6 +22,8 @@ from email_service import enviar_email_nova_tarefa, enviar_email_mudanca_status,
 
 # RPA Monitor - Logging
 from rpa_monitor_client import rpa_log
+import requests
+from requests.exceptions import RequestException
 
 def requires_permission(permission_field):
     def decorator(f):
@@ -575,8 +577,28 @@ def projects():
             'data_fim': project.data_fim.strftime('%Y-%m-%d') if project.data_fim else '',
             'created_at': project.created_at,
             'can_edit': current_user.is_admin or current_user.id == project.responsible_id,
-            'project': project
+            'created_at': project.created_at,
+            'can_edit': current_user.is_admin or current_user.id == project.responsible_id,
+            'project': project,
+            'rpa_identifier': project.rpa_identifier,
+            'rpa_status': None
         })
+        
+        # Buscar status RPA se existir identificador
+        if project.rpa_identifier:
+            try:
+                # Header obrigatório
+                headers = {'X-API-Key': 'bizart-integration-secret-key-2025'}
+                # Timeout curto para não travar
+                resp = requests.get(
+                    f'http://localhost:2000/integration/status/{project.rpa_identifier}',
+                    headers=headers,
+                    timeout=1
+                )
+                if resp.status_code == 200:
+                    projects_data[-1]['rpa_status'] = resp.json().get('display_status')
+            except Exception:
+                pass # Silenciar erros para não quebrar a página
     
     form = ProjectForm()
     clients = Client.query.order_by(Client.nome).all()
@@ -1518,6 +1540,7 @@ def get_project_data(id):
         'has_drive': project.has_drive,
         'has_env': project.has_env,
         'has_backup_db': project.has_backup_db,
+        'rpa_identifier': project.rpa_identifier,
         'data_inicio': project.data_inicio.isoformat() if project.data_inicio else None,
         'data_fim': project.data_fim.isoformat() if project.data_fim else None
     }
@@ -1560,6 +1583,7 @@ def update_project(id):
     project.has_drive = 'has_drive' in request.form
     project.has_env = 'has_env' in request.form
     project.has_backup_db = 'has_backup_db' in request.form
+    project.rpa_identifier = request.form.get('rpa_identifier')
     project.problema_oportunidade = request.form.get('problema_oportunidade')
     project.objetivos = request.form.get('objetivos')
     project.alinhamento_estrategico = request.form.get('alinhamento_estrategico')

@@ -969,13 +969,19 @@
                     <input class="form-check-input" type="checkbox" id="editHasBackup" name="has_backup_db" value="on" ${project.has_backup_db ? 'checked' : ''}>
                     <label class="form-check-label" for="editHasBackup">Projeto possui Backup Banco?</label>
                 </div>
+
+                <div class="mt-3">
+                    <label class="form-label" for="editRpaIdentifier">ID do RPA / Nome do Robô</label>
+                    <input class="form-control bg-dark text-light border-secondary" type="text" id="editRpaIdentifier" name="rpa_identifier" value="${project.rpa_identifier || ''}" placeholder="Ex: Robot_01">
+                </div>
+            </div>
             </div>
         </div>
     `;
     }
 
     function updateTeamMembersLabel(labelId, checkboxClass) {
-        const checkboxes = document.querySelectorAll(`.${checkboxClass}:checked`);
+        const checkboxes = document.querySelectorAll(`.${checkboxClass}: checked`);
         const label = document.getElementById(labelId);
         if (checkboxes.length === 0) {
             label.textContent = 'Selecione a equipe...';

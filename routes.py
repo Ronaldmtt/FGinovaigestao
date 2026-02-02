@@ -683,7 +683,7 @@ def new_manual_project():
         escopo_projeto=request.form.get('escopo_projeto'),
         fora_escopo=request.form.get('fora_escopo'),
         premissas=request.form.get('premissas'),
-        premissas=request.form.get('premissas'),
+
         restricoes=request.form.get('restricoes'),
         has_github=True if request.form.get('has_github') == 'y' else False,
         has_drive=True if request.form.get('has_drive') == 'y' else False

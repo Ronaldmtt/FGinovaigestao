@@ -1557,6 +1557,7 @@ def get_project_data(id):
 
 @app.route('/projects/<int:id>/edit', methods=['POST'])
 @login_required
+@csrf.exempt
 def update_project(id):
     project = Project.query.get_or_404(id)
     
@@ -1577,6 +1578,10 @@ def update_project(id):
     print(f"DEBUG update_project: has_backup_db in form? {'has_backup_db' in request.form}")
 
     # Novos campos de atributos
+    # Log para depuração EXTREMA - mostrar tudo que vem do formulário
+    print(f"DEBUG FORM KEYS: {list(request.form.keys())}")
+    print(f"DEBUG FORM HAS_ENV: {request.form.get('has_env')}")
+
     # Validar checkboxes explicitamente
     project.has_github = request.form.get('has_github') == 'on'
     project.has_drive = request.form.get('has_drive') == 'on'

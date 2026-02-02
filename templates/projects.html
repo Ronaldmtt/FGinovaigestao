@@ -84,7 +84,7 @@
     <div class="row g-4">
         {% if projects_data %}
         {% for p in projects_data %}
-        <div class="col-md-6 col-lg-4 col-xl-3">
+        <div class="col-12 col-md-6">
             <div class="project-card {{ p.glow_class }}"
                 onclick="window.location.href='{{ url_for('project_detail', id=p.id) }}'">
                 <div class="project-card-header">

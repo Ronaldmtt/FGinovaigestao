@@ -515,12 +515,11 @@ def projects():
         status_map = {
             'em_andamento': {'label': 'Em Andamento', 'class': 'status-active'},
             'concluido': {'label': 'Concluído', 'class': 'status-completed'},
-            'pausado': {'label': 'Em Espera', 'class': 'status-pending'},
+            'pausado': {'label': 'Em Espera', 'class': 'status-paused'},
             'cancelado': {'label': 'Cancelado', 'class': 'status-delayed'}
         }
-        status_info = status_map.get(project.status, {'label': project.status, 'class': 'status-pending'})
+        status_info = status_map.get(project.status, {'label': project.status, 'class': 'status-paused'})
         
-        # Cor da barra de progresso
         # Cor da barra de progresso
         if computed_progress <= 25:
             progress_color = 'progress-danger'
@@ -533,6 +532,8 @@ def projects():
         glow_class = ''
         if project.status == 'concluido':
             glow_class = 'glow-complete'
+        elif project.status == 'pausado':
+             glow_class = '' # Sem brilho se estiver pausado
         elif project.data_inicio and project.data_fim:
             from datetime import date
             today = date.today()

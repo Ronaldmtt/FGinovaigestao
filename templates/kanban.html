@@ -111,6 +111,31 @@
                 .dropdown-menu.dark-dropdown::-webkit-scrollbar-thumb:hover {
                     background: #6b7280;
                 }
+
+                .dropdown-menu.dark-dropdown::-webkit-scrollbar-thumb:hover {
+                    background: #6b7280;
+                }
+
+                /* Glow Classes for Kanban Cards */
+                .glow-purple {
+                    box-shadow: 0 0 15px rgba(111, 66, 193, 0.5) !important;
+                    border-color: #6f42c1 !important;
+                }
+
+                .glow-red {
+                    box-shadow: 0 0 15px rgba(220, 53, 69, 0.5) !important;
+                    border-color: #dc3545 !important;
+                }
+
+                .glow-orange {
+                    box-shadow: 0 0 15px rgba(255, 193, 7, 0.5) !important;
+                    border-color: #ffc107 !important;
+                }
+
+                .glow-green {
+                    box-shadow: 0 0 15px rgba(25, 135, 84, 0.5) !important;
+                    border-color: #198754 !important;
+                }
             </style>
 
             <!-- Filtro de Projetos -->
@@ -458,7 +483,15 @@
             <div class="kanban-column" data-status="em_andamento" style="min-height: 400px;">
                 {% for task in task_columns.em_andamento %}
                 {% set pending_todos_count = task.todos|selectattr('completed', 'false')|list|length %}
-                <div class="task-card-modern card mb-3" data-task-id="{{ task.id }}" draggable="true"
+
+                {# Lógica de Brilho (Glow) baseada no prazo #}
+                {% set glow_class = '' %}
+                {% if task.data_conclusao %}
+                {% set days_remaining = (task.data_conclusao - today).days %}
+                {% if days_remaining <= 0 %} {% set glow_class='glow-purple' %} {% elif days_remaining==1 %} {% set
+                    glow_class='glow-red' %} {% elif days_remaining==2 %} {% set glow_class='glow-orange' %} {% else %}
+                    {% set glow_class='glow-green' %} {% endif %} {% endif %} <div
+                    class="task-card-modern card mb-3 {{ glow_class }}" data-task-id="{{ task.id }}" draggable="true"
                     onclick="editTask({{ task.id }})"
                     style="cursor: pointer; border-left: 4px solid #6554c0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                     {% if pending_todos_count > 0 %}
@@ -507,80 +540,79 @@
                             {% endif %}
                         </div>
                     </div>
-                </div>
-                {% endfor %}
             </div>
+            {% endfor %}
         </div>
     </div>
+</div>
 
-    <div class="col-md-4">
-        <div class="kanban-column-container">
-            <div class="kanban-column-header kanban-header-concluida">
-                <div class="d-flex align-items-center">
-                    <div class="kanban-icon-circle"
-                        style="background-color: #00a86b; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px;">
-                        <i class="fas fa-check" style="color: white; font-size: 14px;"></i>
-                    </div>
-                    <h6 class="mb-0 me-2" style="font-weight: 600;">Concluída</h6>
-                    <span class="badge rounded-pill kanban-badge-concluida">{{ task_columns.concluida|length }}</span>
+<div class="col-md-4">
+    <div class="kanban-column-container">
+        <div class="kanban-column-header kanban-header-concluida">
+            <div class="d-flex align-items-center">
+                <div class="kanban-icon-circle"
+                    style="background-color: #00a86b; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px;">
+                    <i class="fas fa-check" style="color: white; font-size: 14px;"></i>
                 </div>
+                <h6 class="mb-0 me-2" style="font-weight: 600;">Concluída</h6>
+                <span class="badge rounded-pill kanban-badge-concluida">{{ task_columns.concluida|length }}</span>
             </div>
-            <div class="kanban-column" data-status="concluida" style="min-height: 400px;">
-                {% for task in task_columns.concluida %}
-                {% set pending_todos_count = task.todos|selectattr('completed', 'false')|list|length %}
-                <div class="task-card-modern card mb-3" data-task-id="{{ task.id }}" draggable="true"
-                    onclick="editTask({{ task.id }})"
-                    style="cursor: pointer; border-left: 4px solid #00a86b; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                    {% if pending_todos_count > 0 %}
-                    <span class="todo-notification-badge">{{ pending_todos_count }}</span>
-                    {% endif %}
-                    <div class="card-body p-3">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <h6 class="card-title mb-0" style="font-weight: 600; font-size: 14px; flex: 1;">
-                                {% if task.disparada %}<i class="fas fa-paper-plane text-danger me-1"
-                                    title="Tarefa disparada"></i>{% endif %}
-                                {{ task.titulo }}
-                            </h6>
-                            <span class="badge bg-success"
-                                style="font-size: 10px; white-space: nowrap;">CONCLUÍDA</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-end">
-                            <div class="flex-grow-1">
-                                <small class="d-block mb-1" style="color: #6c757d; font-size: 12px;">{{
-                                    task.project.client.nome }} - {{ task.project.nome }}</small>
-                                {% if task.assigned_user %}
-                                <small class="d-block mb-1" style="color: #0d6efd; font-size: 12px;">
-                                    <i class="fas fa-user me-1"></i>{{ task.assigned_user.full_name }}
-                                </small>
-                                {% endif %}
-                                {% if task.completed_at %}
-                                <small class="d-block" style="color: #00a86b; font-size: 12px;">
-                                    <i class="fas fa-check me-1"></i>{{ task.completed_at.strftime('%d/%m/%Y') }}
-                                </small>
-                                {% endif %}
-                                {% if task.disparada and task.disparada_at %}
-                                <small class="d-block text-danger" style="font-size: 12px;">
-                                    <i class="fas fa-paper-plane me-1"></i>Disparada em {{
-                                    task.disparada_at.strftime('%d/%m/%Y %H:%M') }}
-                                </small>
-                                {% endif %}
-                            </div>
-                            {% if pending_todos_count > 0 %}
-                            <div class="todo-count-right" style="text-align: right; min-width: 90px;">
-                                <span class="d-flex align-items-center justify-content-end"
-                                    style="color: #25D366; font-size: 14px; font-weight: 600;">
-                                    <i class="fas fa-list-check me-2" style="font-size: 15px;"></i>{{
-                                    pending_todos_count }} to-do{{ 's' if pending_todos_count > 1 else '' }}
-                                </span>
-                            </div>
+        </div>
+        <div class="kanban-column" data-status="concluida" style="min-height: 400px;">
+            {% for task in task_columns.concluida %}
+            {% set pending_todos_count = task.todos|selectattr('completed', 'false')|list|length %}
+            <div class="task-card-modern card mb-3" data-task-id="{{ task.id }}" draggable="true"
+                onclick="editTask({{ task.id }})"
+                style="cursor: pointer; border-left: 4px solid #00a86b; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                {% if pending_todos_count > 0 %}
+                <span class="todo-notification-badge">{{ pending_todos_count }}</span>
+                {% endif %}
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="card-title mb-0" style="font-weight: 600; font-size: 14px; flex: 1;">
+                            {% if task.disparada %}<i class="fas fa-paper-plane text-danger me-1"
+                                title="Tarefa disparada"></i>{% endif %}
+                            {{ task.titulo }}
+                        </h6>
+                        <span class="badge bg-success" style="font-size: 10px; white-space: nowrap;">CONCLUÍDA</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-end">
+                        <div class="flex-grow-1">
+                            <small class="d-block mb-1" style="color: #6c757d; font-size: 12px;">{{
+                                task.project.client.nome }} - {{ task.project.nome }}</small>
+                            {% if task.assigned_user %}
+                            <small class="d-block mb-1" style="color: #0d6efd; font-size: 12px;">
+                                <i class="fas fa-user me-1"></i>{{ task.assigned_user.full_name }}
+                            </small>
+                            {% endif %}
+                            {% if task.completed_at %}
+                            <small class="d-block" style="color: #00a86b; font-size: 12px;">
+                                <i class="fas fa-check me-1"></i>{{ task.completed_at.strftime('%d/%m/%Y') }}
+                            </small>
+                            {% endif %}
+                            {% if task.disparada and task.disparada_at %}
+                            <small class="d-block text-danger" style="font-size: 12px;">
+                                <i class="fas fa-paper-plane me-1"></i>Disparada em {{
+                                task.disparada_at.strftime('%d/%m/%Y %H:%M') }}
+                            </small>
                             {% endif %}
                         </div>
+                        {% if pending_todos_count > 0 %}
+                        <div class="todo-count-right" style="text-align: right; min-width: 90px;">
+                            <span class="d-flex align-items-center justify-content-end"
+                                style="color: #25D366; font-size: 14px; font-weight: 600;">
+                                <i class="fas fa-list-check me-2" style="font-size: 15px;"></i>{{
+                                pending_todos_count }} to-do{{ 's' if pending_todos_count > 1 else '' }}
+                            </span>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
-                {% endfor %}
             </div>
+            {% endfor %}
         </div>
     </div>
+</div>
 </div>
 
 <!-- Backdrop do Drawer -->

@@ -508,7 +508,10 @@ def projects():
         query = query.filter_by(responsible_id=responsible_filter)
     
     if status_filter:
-        query = query.filter_by(status=status_filter)
+        if status_filter == 'atrasados':
+            query = query.filter(Project.status != 'concluido', Project.data_fim < datetime.utcnow().date())
+        else:
+            query = query.filter_by(status=status_filter)
     
     # Ordenar por data de entrega (mais próximo primeiro) e depois por nome
     # Usar eager loading para evitar N+1 queries
@@ -1883,7 +1886,8 @@ def kanban():
                              'project_id': project_filter,
                              'client_id': client_filter,
                              'user_id': user_filter
-                         })
+                         },
+                         today=datetime.utcnow().date())
 
 # API Routes para tarefas
 @app.route('/api/tasks/<int:task_id>')

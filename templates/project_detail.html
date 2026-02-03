@@ -1681,6 +1681,11 @@
     }
 
     function parseAndFillProjectFields(text) {
+        // Normalizar quebras de linha para evitar problemas com Windows/Mac/Linux
+        text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+        console.log("Texto importado (primeiros 100 chars):", text.substring(0, 100));
+
         const mappings = {
             'Descrição Resumida': 'descricao_resumida',
             'Problema/Oportunidade': 'problema_oportunidade',
@@ -1695,9 +1700,19 @@
         let filledCount = 0;
 
         for (const [header, fieldName] of Object.entries(mappings)) {
-            // Regex to match "### Header..." until the next "###", "##", "---" or end of file
-            // We use .*? after header to allow subtitles like "Escopo do Projeto (O que será feito)"
-            const regex = new RegExp(`###\\s*${header.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}.*?\\n([\\s\\S]*?)(?=\\n###|\\n---|\\n##|$)`, 'i');
+            // Escape special chars for regex
+            const escapedHeader = header.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+            // Regex melhorada:
+            // 1. (?:^|\n): Começo da string ou nova linha
+            // 2. ###\s*: Marcador de título nível 3
+            // 3. escapedHeader: O nome do título
+            // 4. .*: Qualquer coisa no resto da linha (ex: "(O que será feito)")
+            // 5. \n: Quebra de linha obrigatória após o título
+            // 6. ([\s\S]*?): Captura o conteúdo (não ganancioso)
+            // 7. (?=\n###|\n---|$) Lookahead para o próximo título, separador ou fim do arquivo
+            const regex = new RegExp(`(?:^|\\n)###\\s*${escapedHeader}.*\\n([\\s\\S]*?)(?=\\n###|\\n---|\\n##|$)`, 'i');
+
             const match = text.match(regex);
 
             if (match && match[1]) {
@@ -1706,20 +1721,24 @@
                 if (field) {
                     field.value = content;
                     filledCount++;
-                    // Flash effect to show update
+                    // Flash effect
                     field.style.transition = 'background-color 0.5s';
                     field.style.backgroundColor = '#d1e7dd';
                     setTimeout(() => {
                         field.style.backgroundColor = '';
                     }, 1000);
+                } else {
+                    console.warn(`Campo não encontrado no formulário: ${fieldName}`);
                 }
+            } else {
+                console.log(`Não encontrou header: ${header}`);
             }
         }
 
         if (filledCount > 0) {
-            alert(`${filledCount} campos preenchidos com sucesso a partir do arquivo!`);
+            alert(`${filledCount} campos preenchidos com sucesso!`);
         } else {
-            alert('Nenhum campo compatível encontrado no arquivo. Verifique se os títulos (###) correspondem ao padrão.');
+            alert('Não foi possível identificar os campos no arquivo. Verifique se o arquivo segue o modelo:\n\n### Título do Campo\nConteúdo...');
         }
     }
 

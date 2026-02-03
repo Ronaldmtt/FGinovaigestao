@@ -175,7 +175,7 @@
                         {% if project.tasks %}
                         <div class="task-list-container space-y-3">
                             {% for task in project.tasks if task.status in ['pendente', 'em_andamento'] %}
-                            {% set pending_todos_count = task.todos|selectattr('completed', false)|list|length %}
+                            {% set pending_todos_count = task.todos|rejectattr('completed')|list|length %}
                             <div class="task-card-modern card mb-3"
                                 style="cursor: default; border-left: 4px solid {% if task.status == 'em_andamento' %}#6554c0{% else %}#6c757d{% endif %}; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                                 {% if pending_todos_count > 0 %}

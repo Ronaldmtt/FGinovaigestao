@@ -751,7 +751,17 @@
                     </div>
 
                     <hr class="my-4">
-                    <h6 class="mb-3"><i class="fas fa-lightbulb me-2"></i>Contexto e Justificativa</h6>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Contexto e Justificativa</h6>
+                        <div>
+                            <button type="button" class="btn btn-sm btn-outline-info"
+                                onclick="document.getElementById('importMdFile').click()">
+                                <i class="fas fa-file-import me-1"></i>Importar .MD
+                            </button>
+                            <input type="file" id="importMdFile" accept=".md" style="display: none;"
+                                onchange="handleMdImport(this)">
+                        </div>
+                    </div>
 
                     <div class="mb-3">
                         <label class="form-label">Descrição Resumida</label>
@@ -1656,6 +1666,62 @@
     document.addEventListener('DOMContentLoaded', function () {
         loadApiKeys();
     });
+
+    function handleMdImport(input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            const text = e.target.result;
+            parseAndFillProjectFields(text);
+            input.value = ''; // Reset check
+        };
+        reader.readAsText(file);
+    }
+
+    function parseAndFillProjectFields(text) {
+        const mappings = {
+            'Descrição Resumida': 'descricao_resumida',
+            'Problema/Oportunidade': 'problema_oportunidade',
+            'Objetivos': 'objetivos',
+            'Alinhamento Estratégico': 'alinhamento_estrategico',
+            'Escopo do Projeto': 'escopo_projeto',
+            'Fora do Escopo': 'fora_escopo',
+            'Premissas': 'premissas',
+            'Restrições': 'restricoes'
+        };
+
+        let filledCount = 0;
+
+        for (const [header, fieldName] of Object.entries(mappings)) {
+            // Regex to match "### Header..." until the next "###", "##", "---" or end of file
+            // We use .*? after header to allow subtitles like "Escopo do Projeto (O que será feito)"
+            const regex = new RegExp(`###\\s*${header.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}.*?\\n([\\s\\S]*?)(?=\\n###|\\n---|\\n##|$)`, 'i');
+            const match = text.match(regex);
+
+            if (match && match[1]) {
+                const content = match[1].trim();
+                const field = document.querySelector(`[name="${fieldName}"]`);
+                if (field) {
+                    field.value = content;
+                    filledCount++;
+                    // Flash effect to show update
+                    field.style.transition = 'background-color 0.5s';
+                    field.style.backgroundColor = '#d1e7dd';
+                    setTimeout(() => {
+                        field.style.backgroundColor = '';
+                    }, 1000);
+                }
+            }
+        }
+
+        if (filledCount > 0) {
+            alert(`${filledCount} campos preenchidos com sucesso a partir do arquivo!`);
+        } else {
+            alert('Nenhum campo compatível encontrado no arquivo. Verifique se os títulos (###) correspondem ao padrão.');
+        }
+    }
 
     function updateTeamMembersLabel(labelId, checkboxClass) {
         const checkboxes = document.querySelectorAll(`.${checkboxClass}:checked`);

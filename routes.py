@@ -867,7 +867,7 @@ def edit_project(id):
     if redirect_kwargs:
         return redirect(url_for('projects', **redirect_kwargs))
         
-    return redirect(url_for('projects'))
+    return redirect(url_for('project_detail', id=project.id))
 
 @app.route('/projects/<int:id>/process-ai', methods=['POST'])
 @login_required

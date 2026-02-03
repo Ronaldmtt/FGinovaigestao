@@ -874,37 +874,42 @@
                     para gerar a documentação no formato correto.</p>
                 <div class="position-relative">
                     <textarea id="aiPromptText"
-                        class="form-control bg-black text-info font-monospace border-secondary p-3" rows="15" readonly>Atue como um Gerente de Projetos Especialista. Eu vou te fornecer o contexto de um projeto e você deve gerar um documento Markdown (.md) estruturado EXATAMENTE com os tópicos abaixo. O objetivo é importar esse arquivo em um sistema de gestão, então não altere os títulos dos tópicos (começados com ###).
+                        class="form-control bg-black text-info font-monospace border-secondary p-3" rows="15" readonly>Atue como um Arquiteto de Software e Gerente de Projetos Especialista com acesso total ao código fonte deste projeto.
+
+Sua tarefa é analisar profundamente a estrutura de arquivos, o código backend (Python/Flask), o frontend (HTML/JS/Templates) e o banco de dados.
+Entenda a funcionalidade do sistema atual, os fluxos de usuário e as regras de negócio implementadas.
+
+Com base NESSA análise automática que você fará agora, gere um documento de documentação técnica em Markdown seguindo EXATAMENTE o modelo abaixo.
+Você não precisa inventar dados, use os dados reais extraídos do código e da estrutura do projeto.
 
 Os tópicos obrigatórios são:
 
 ### Descrição Resumida
-(Um resumo conciso do projeto)
+(Um resumo conciso do projeto baseado no que o código faz)
 
 ### Problema/Oportunidade
-(O problema que estamos resolvendo ou a oportunidade de negócio)
+(O problema que estamos resolvendo ou a oportunidade de negócio que o software ataca)
 
 ### Objetivos
-(Objetivos claros e mensuráveis)
+(Objetivos técnicos e funcionais do sistema)
 
 ### Alinhamento Estratégico
-(Como isso se conecta com a estratégia da empresa)
+(Como a arquitetura e tecnologias escolhidas suportam o crescimento do projeto)
 
 ### Escopo do Projeto
-(O que será feito/entregue)
+(O que está implementado atualmente no código: Módulos, Funcionalidades, Integrações)
 
 ### Fora do Escopo
-(O que explicitamente NÃO será feito)
+(O que claramente não está implementado no código atual)
 
 ### Premissas
-(Fatores considerados verdadeiros para o planejamento)
+(Premissas técnicas adotadas: Stack, Bibliotecas, Padrões)
 
 ### Restrições
-(Limitações de orçamento, tempo, tecnologia, etc.)
+(Limitações técnicas ou de arquitetura encontradas na análise)
 
 ---
-CONTEXTO DO PROJETO:
-[INSIRA AQUI O CONTEXTO DO SEU PROJETO]</textarea>
+Gere o conteúdo em Português do Brasil com base na sua análise do código.</textarea>
                 </div>
             </div>
             <div class="modal-footer border-secondary">

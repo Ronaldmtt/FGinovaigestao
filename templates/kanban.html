@@ -196,22 +196,22 @@
                 }
 
                 .glow-orange {
-                    box-shadow: 0 0 10px rgba(255, 193, 7, 0.6);
-                    border-color: #ffc107;
+                    box-shadow: none !important;
+                    border-color: transparent !important;
                     background-color: rgba(255, 193, 7, 0.1) !important;
                     animation: none !important;
                 }
 
                 .glow-green {
-                    box-shadow: 0 0 10px rgba(78, 201, 145, 0.6);
-                    border-color: #4ec991;
+                    box-shadow: none !important;
+                    border-color: transparent !important;
                     background-color: rgba(78, 201, 145, 0.1) !important;
                     animation: none !important;
                 }
 
                 .glow-complete {
-                    box-shadow: 0 0 10px rgba(13, 202, 240, 0.6);
-                    border-color: #0dcaf0;
+                    box-shadow: none !important;
+                    border-color: transparent !important;
                     background-color: rgba(13, 202, 240, 0.1) !important;
                     animation: none !important;
                 }
@@ -2282,8 +2282,8 @@
                             <select class="form-select modern-input" name="project_id" required>
                                 <option value="">Selecione um projeto</option>
                                 {% for project in projects %}
-                                <option value="{{ project.id }}" {% if current_filters.project_id==project.id
-                                    %}selected{% endif %}>
+                                <option value="{{ project.id }}" data-responsible-id="{{ project.responsible_id }}" {%
+                                    if current_filters.project_id==project.id %}selected{% endif %}>
                                     {{ project.client.nome }} - {{ project.nome }}
                                 </option>
                                 {% endfor %}

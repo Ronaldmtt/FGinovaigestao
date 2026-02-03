@@ -283,9 +283,10 @@
 
                 // Restrição de Usuário
                 if (show && selectedUserIds.length > 0) {
-                    // Mostrar se o projeto tem QUALQUER um dos usuários selecionados (Interseção)
-                    const hasUser = selectedUserIds.some(uid => projectRelation.userIds.includes(uid));
-                    if (!hasUser) {
+                    // Mostrar se o projeto é de RESPONSABILIDADE de qualquer um dos usuários selecionados
+                    // NÃO basta ser membro da equipe, tem que ser o responsável (p.responsibleId)
+                    const isResponsible = selectedUserIds.includes(projectRelation.responsibleId);
+                    if (!isResponsible) {
                         show = false;
                     }
                 }
@@ -293,12 +294,12 @@
                 item.style.display = show ? '' : 'none';
             });
 
-            // Filtrar Clientes baseados em Usuários
+            // Filtrar Clientes baseados em Usuários (Responsáveis)
             if (selectedUserIds.length > 0) {
-                // Quais clientes tem projetos associados a esses usuários?
+                // Quais clientes tem projetos onde esses usuários são RESPONSÁVEIS?
                 const validClientIds = new Set();
                 relationsData.projects.forEach(p => {
-                    if (selectedUserIds.some(uid => p.userIds.includes(uid))) {
+                    if (selectedUserIds.includes(p.responsibleId)) {
                         validClientIds.add(p.clientId);
                     }
                 });

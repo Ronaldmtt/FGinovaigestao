@@ -1853,7 +1853,8 @@ def kanban():
         relations_data['projects'].append({
             'id': p.id,
             'clientId': p.client_id,
-            'userIds': list(set(p_user_ids)) # Unique IDs
+            'userIds': list(set(p_user_ids)), # Unique IDs
+            'responsibleId': p.responsible_id  # ID do responsável para filtro estrito
         })
     
     return render_template('kanban.html', 

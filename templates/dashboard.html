@@ -139,6 +139,66 @@
     {% endif %}
 </div>
 
+<!-- Cards de Status de Projetos -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-3 col-md-6 col-sm-6">
+        <a href="{{ url_for('projects', status='em_andamento') }}" class="text-decoration-none">
+            <div class="card metric-card h-100 border-primary border-opacity-25"
+                style="border-left: 4px solid #0d6efd !important;">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="fas fa-spinner text-primary me-2" style="font-size: 1.5rem;"></i>
+                        <h6 class="text-muted mb-0 small">Em Andamento</h6>
+                    </div>
+                    <h2 class="mb-0 fw-bold text-light">{{ stats.projects_in_progress }}</h2>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-lg-3 col-md-6 col-sm-6">
+        <a href="{{ url_for('projects', status='concluido') }}" class="text-decoration-none">
+            <div class="card metric-card h-100 border-success border-opacity-25"
+                style="border-left: 4px solid #198754 !important;">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="fas fa-check-circle text-success me-2" style="font-size: 1.5rem;"></i>
+                        <h6 class="text-muted mb-0 small">Concluídos</h6>
+                    </div>
+                    <h2 class="mb-0 fw-bold text-light">{{ stats.projects_completed }}</h2>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-lg-3 col-md-6 col-sm-6">
+        <a href="{{ url_for('projects', status='pausado') }}" class="text-decoration-none">
+            <div class="card metric-card h-100 border-secondary border-opacity-25"
+                style="border-left: 4px solid #6c757d !important;">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="fas fa-pause-circle text-secondary me-2" style="font-size: 1.5rem;"></i>
+                        <h6 class="text-muted mb-0 small">Em Espera</h6>
+                    </div>
+                    <h2 class="mb-0 fw-bold text-light">{{ stats.projects_on_hold }}</h2>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-lg-3 col-md-6 col-sm-6">
+        <a href="{{ url_for('projects', status='atrasados') }}" class="text-decoration-none">
+            <div class="card metric-card h-100 border-danger border-opacity-25"
+                style="border-left: 4px solid #dc3545 !important;">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="fas fa-exclamation-circle text-danger me-2" style="font-size: 1.5rem;"></i>
+                        <h6 class="text-muted mb-0 small">Atrasados</h6>
+                    </div>
+                    <h2 class="mb-0 fw-bold text-light">{{ stats.projects_delayed }}</h2>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
 <!-- Acesso Rápido - 3 cards em linha -->
 <div class="mb-4">
     <h4 class="mb-3 fw-bold">Acesso Rápido</h4>

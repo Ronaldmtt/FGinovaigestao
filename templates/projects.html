@@ -77,6 +77,10 @@
                 class="status-pill {% if current_filters.status == 'pausado' %}active{% endif %}">
                 Em Espera
             </a>
+            <a href="{{ url_for('projects', status='atrasados', client_id=current_filters.client_id, responsible_id=current_filters.responsible_id) }}"
+                class="status-pill {% if current_filters.status == 'atrasados' %}active{% endif %}">
+                Atrasados
+            </a>
         </div>
     </div>
 

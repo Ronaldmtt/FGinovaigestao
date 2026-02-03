@@ -84,7 +84,13 @@ def dashboard():
             'total_users': User.query.count(),
             'total_clients': Client.query.count(),
             'total_projects': Project.query.count(),
-            'total_tasks': Task.query.count()
+            'total_tasks': Task.query.count(),
+            
+            # Status Counts for Dashboard Cards (Global)
+            'projects_in_progress': Project.query.filter_by(status='em_andamento').count(),
+            'projects_completed': Project.query.filter_by(status='concluido').count(),
+            'projects_on_hold': Project.query.filter_by(status='pausado').count(),
+            'projects_delayed': Project.query.filter(Project.status != 'concluido', Project.data_fim < datetime.utcnow().date()).count()
         }
         # Atividades recentes (últimas 10)
         recent_activities = []
@@ -116,16 +122,26 @@ def dashboard():
                 })
     else:
         # Usuário vê suas próprias estatísticas
-        my_projects = Project.query.filter(
+        # Query base para projetos do usuário
+        my_projects_query = Project.query.filter(
             (Project.responsible_id == current_user.id) |
             (Project.team_members.contains(current_user))
-        ).distinct().count()
+        )
+        
+        my_projects = my_projects_query.distinct().count()
+        today = datetime.utcnow().date()
         
         stats = {
             'my_projects': my_projects,
             'my_tasks': Task.query.filter_by(assigned_user_id=current_user.id).count(),
             'clients_created': Client.query.filter_by(creator_id=current_user.id).count(),
-            'pending_tasks': Task.query.filter_by(assigned_user_id=current_user.id, status='pendente').count()
+            'pending_tasks': Task.query.filter_by(assigned_user_id=current_user.id, status='pendente').count(),
+            
+            # Status Counts for Dashboard Cards (User Specific)
+            'projects_in_progress': my_projects_query.filter(Project.status == 'em_andamento').distinct().count(),
+            'projects_completed': my_projects_query.filter(Project.status == 'concluido').distinct().count(),
+            'projects_on_hold': my_projects_query.filter(Project.status == 'pausado').distinct().count(),
+            'projects_delayed': my_projects_query.filter(Project.status != 'concluido', Project.data_fim < today).distinct().count()
         }
         
         # Atividades recentes do usuário

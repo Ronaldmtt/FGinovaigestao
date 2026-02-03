@@ -114,7 +114,7 @@
             </style>
 
             <!-- Filtro de Projetos -->
-            <div class="dropdown" style="min-width: 250px;">
+            <div class="dropdown" style="min-width: 350px;">
                 <button
                     class="btn dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center filter-dropdown-btn"
                     type="button" id="projectFilterDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside"
@@ -237,11 +237,31 @@
         }
 
         function updateLabel(elementId, checks, singularName) {
-            const count = Array.from(checks).filter(c => c.checked).length;
+            const checked = Array.from(checks).filter(c => c.checked);
+            const count = checked.length;
             const label = document.getElementById(elementId);
-            if (count === 0) label.textContent = `${singularName}s (Todos)`;
-            else if (count === 1) label.textContent = `1 ${singularName}`;
-            else label.textContent = `${count} ${singularName}s`;
+
+            if (count === 0) {
+                label.textContent = `${singularName}s (Todos)`;
+            } else if (count === 1) {
+                // Encontrar o texto do label associado ao checkbox selecionado
+                // A estrutura é: .filter-option-item > input + label
+                const selectedCheckbox = checked[0];
+                const labelElement = selectedCheckbox.nextElementSibling;
+                // Usar o texto principal do label, removendo o <small> se existir (para projetos)
+                let text = labelElement.textContent.trim();
+
+                // Limpeza específica para o label de projetos que tem <small> com nome do cliente
+                // Clone o elemento para não modificar o DOM original ao extrair texto
+                const clone = labelElement.cloneNode(true);
+                const small = clone.querySelector('small');
+                if (small) small.remove();
+                text = clone.textContent.trim();
+
+                label.textContent = text;
+            } else {
+                label.textContent = `${count} ${singularName}s`;
+            }
         }
 
         // Inicializar Labels e Dependências

@@ -1723,7 +1723,12 @@ def new_task_kanban():
     db.session.commit()
     
     rpa_log.info(f"{current_user.nome} criou a tarefa '{task.titulo}' diretamente no Kanban", regiao="tarefas")
+    rpa_log.info(f"{current_user.nome} criou a tarefa '{task.titulo}' diretamente no Kanban", regiao="tarefas")
     flash('Tarefa criada com sucesso!', 'success')
+    
+    # Redirecionar mantendo o filtro do projeto se houver
+    if project_id:
+        return redirect(url_for('kanban', project_id=project_id))
     return redirect(url_for('kanban'))
 
 @app.route('/tasks/transcription', methods=['GET', 'POST'])
@@ -1797,6 +1802,21 @@ def kanban():
     client_filter = [int(x) for x in client_filter if x.isdigit()]
     user_filter = [int(x) for x in user_filter if x.isdigit()]
     
+    selected_project_name = None
+    
+    # Se houver apenas um projeto selecionado, buscar detalhes para autofill e header
+    if len(project_filter) == 1:
+        project_id = project_filter[0]
+        project = Project.query.get(project_id)
+        if project:
+            selected_project_name = project.nome
+            # Se não houver filtro de cliente, adicionar o do projeto
+            if not client_filter and project.client_id:
+                client_filter = [project.client_id]
+            # Se não houver filtro de usuário, adicionar o responsável
+            if not user_filter and project.responsible_id:
+                user_filter = [project.responsible_id]
+    
     query = Task.query
     
     if not current_user.is_admin:
@@ -1840,14 +1860,14 @@ def kanban():
     
     # Para os filtros - mostrar apenas projetos que o usuário participa (exceto admin)
     if current_user.is_admin:
-        projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
+        projects = Project.query.join(Client).filter(Project.show_in_kanban == True).order_by(Client.nome, Project.nome).all()
         clients = Client.query.order_by(Client.nome).all()
     else:
         # Filtrar projetos onde o usuário é responsável ou membro da equipe
         projects = Project.query.join(Client).filter(
             (Project.responsible_id == current_user.id) |
             (Project.team_members.contains(current_user))
-        ).order_by(Client.nome, Project.nome).all()
+        ).filter(Project.show_in_kanban == True).order_by(Client.nome, Project.nome).all()
         # Filtrar apenas clientes dos projetos do usuário
         client_ids = list(set([p.client_id for p in projects]))
         clients = Client.query.filter(Client.id.in_(client_ids)).order_by(Client.nome).all() if client_ids else []
@@ -1887,6 +1907,7 @@ def kanban():
                              'client_id': client_filter,
                              'user_id': user_filter
                          },
+                         selected_project_name=selected_project_name,
                          today=datetime.utcnow().date())
 
 # API Routes para tarefas

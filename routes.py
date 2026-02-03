@@ -1840,14 +1840,14 @@ def kanban():
     
     # Para os filtros - mostrar apenas projetos que o usuário participa (exceto admin)
     if current_user.is_admin:
-        projects = Project.query.join(Client).filter(Project.show_in_kanban == True).order_by(Client.nome, Project.nome).all()
+        projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
         clients = Client.query.order_by(Client.nome).all()
     else:
         # Filtrar projetos onde o usuário é responsável ou membro da equipe
         projects = Project.query.join(Client).filter(
             (Project.responsible_id == current_user.id) |
             (Project.team_members.contains(current_user))
-        ).filter(Project.show_in_kanban == True).order_by(Client.nome, Project.nome).all()
+        ).order_by(Client.nome, Project.nome).all()
         # Filtrar apenas clientes dos projetos do usuário
         client_ids = list(set([p.client_id for p in projects]))
         clients = Client.query.filter(Client.id.in_(client_ids)).order_by(Client.nome).all() if client_ids else []

@@ -4100,7 +4100,11 @@ def internal_error(error):
 
 @app.errorhandler(404)
 def not_found_error(error):
-    rpa_log.warn(f"Erro 404: {request.url}", regiao="erro_sistema")
+    ignored_extensions = ('.php', '.asp', '.aspx', '.jsp', '.env', '.git', '.txt', '.yml', '.yaml')
+    ignored_prefixes = ('/admin', '/wp-', '/api/', '/SDK/', '/bitrix/', '/aws/')
+    
+    if not request.path.endswith(ignored_extensions) and not any(request.path.startswith(p) for p in ignored_prefixes):
+        rpa_log.warn(f"Erro 404: {request.url}", regiao="erro_sistema")
     return render_template('error.html', error_code=404, error_message="Página não encontrada"), 404
 
 @app.errorhandler(403)

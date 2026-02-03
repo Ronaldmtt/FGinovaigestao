@@ -772,6 +772,9 @@ def project_detail(id):
 def edit_project(id):
     project = Project.query.get_or_404(id)
     
+    # Capturar status anterior
+    old_status = project.status
+    
     # Verificar se o usuário tem permissão para editar
     if not current_user.is_admin and current_user.id != project.responsible_id:
         flash('Você não tem permissão para editar este projeto.', 'danger')
@@ -825,6 +828,10 @@ def edit_project(id):
     
     # Atualizar visibilidade no Kanban
     project.show_in_kanban = True if request.form.get('show_in_kanban') else False
+    
+    # Lógica de auto-reativação no Kanban
+    if old_status == 'concluido' and project.status != 'concluido':
+        project.show_in_kanban = True
     
     # Atualizar membros da equipe (limpar e adicionar novos)
     team_member_ids = request.form.getlist('team_member_ids')  # Múltiplos membros

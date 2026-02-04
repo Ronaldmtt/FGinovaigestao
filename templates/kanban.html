@@ -769,7 +769,19 @@
 
             <!-- Subtarefas / To-Do's - Com borda -->
             <div class="task-section">
-                <label class="task-section-label">Subtarefas</label>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <label class="task-section-label mb-0">Subtarefas</label>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-info" onclick="openTodoPromptModal()"
+                            title="Gerar com IA">
+                            <i class="fas fa-magic"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="openTodoImportModal()"
+                            title="Importar">
+                            <i class="fas fa-file-import"></i>
+                        </button>
+                    </div>
+                </div>
                 <div id="todosList" class="task-todos-list">
                     <!-- To-do's serão carregados aqui -->
                 </div>
@@ -1698,9 +1710,9 @@
         wrapper.remove();
     }
 
-    function addTodo() {
+    function addTodo(textVal = null) {
         const newTodoText = document.getElementById('newTodoText');
-        const text = newTodoText.value.trim();
+        const text = textVal || newTodoText.value.trim();
 
         if (text) {
             const todosList = document.getElementById('todosList');
@@ -3085,4 +3097,130 @@
         background-color: rgba(113, 128, 150, 0.1);
     }
 </style>
+<!-- Modal Prompt IA para To-Dos -->
+<div class="modal fade" id="importTodoAiPromptModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title"><i class="fas fa-magic me-2"></i>Prompt para IA (To-Dos)</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3">Copie este prompt e envie para sua IA (ChatGPT, Claude, Gemini). Ela vai
+                    gerar um checklist.</p>
+                <textarea id="todoAiPromptText"
+                    class="form-control bg-black text-info font-monospace border-secondary p-3" rows="10"
+                    readonly></textarea>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-primary" onclick="copyTodoPrompt()">
+                    <i class="fas fa-copy me-1"></i>Copiar Prompt
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Importar To-Dos -->
+<div class="modal fade" id="importTodoJsonModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title"><i class="fas fa-file-import me-2"></i>Importar To-Dos</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3">Cole aqui a resposta da IA (lista Markdown ou JSON).</p>
+                <textarea id="todoImportText" class="form-control bg-black text-light border-secondary p-3" rows="10"
+                    placeholder="- [ ] Tarefa 1&#10;- [ ] Tarefa 2..."></textarea>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="processTodoImport()">
+                    <i class="fas fa-check me-1"></i>Importar ITENS
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openTodoPromptModal() {
+        const title = document.getElementById('editTaskTitulo').value;
+        const desc = document.getElementById('editTaskDescricao').value;
+
+        const prompt = `Atue como um Especialista em Gerenciamento de Projetos.
+Analise a seguinte tarefa:
+   - Título: ${title}
+   - Descrição: ${desc}
+
+Crie um checklist detalhado (To-Do List) passo-a-passo para completar esta tarefa com excelência.
+O formato de saída deve ser EXATAMENTE uma lista Markdown simples, sem numeração, sem negrito nos itens, apenas o texto:
+- [ ] Passo 1
+- [ ] Passo 2
+...
+Não inclua introdução ou conclusão. Apenas a lista.`;
+
+        document.getElementById('todoAiPromptText').value = prompt;
+        new bootstrap.Modal(document.getElementById('importTodoAiPromptModal')).show();
+    }
+
+    function copyTodoPrompt() {
+        const copyText = document.getElementById("todoAiPromptText");
+        copyText.select();
+        copyText.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(copyText.value).then(() => {
+            const btn = document.querySelector('#importTodoAiPromptModal .btn-primary');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check me-1"></i>Copiado!';
+            btn.classList.replace('btn-primary', 'btn-success');
+            setTimeout(() => {
+                btn.innerHTML = originalHTML;
+                btn.classList.replace('btn-success', 'btn-primary');
+            }, 2000);
+        });
+    }
+
+    function openTodoImportModal() {
+        document.getElementById('todoImportText').value = '';
+        new bootstrap.Modal(document.getElementById('importTodoJsonModal')).show();
+    }
+
+    function processTodoImport() {
+        const text = document.getElementById('todoImportText').value;
+        if (!text) return;
+
+        // Normalizar quebras de linha
+        const lines = text.split(/\r?\n/);
+        let count = 0;
+
+        lines.forEach(line => {
+            line = line.trim();
+            // Detectar formatos: "- [ ] Texto", "- [x] Texto", "- Texto", "* Texto"
+            // Regex para capturar o texto após o marcador
+            const match = line.match(/^[-*]\s*(?:\[[ xX]?\]\s*)?(.*)/);
+
+            if (match && match[1]) {
+                const cleanText = match[1].trim();
+                if (cleanText) {
+                    addTodo(cleanText);
+                    count++;
+                }
+            }
+        });
+
+        if (count > 0) {
+            // Fechar modal
+            const modalEl = document.getElementById('importTodoJsonModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            modal.hide();
+
+            // Feedback
+            // alert(`${count} to-dos importados com sucesso!`);
+        } else {
+            alert('Nenhum to-do encontrado no texto. Use o formato de lista (- Item).');
+        }
+    }
+</script>
 {% endblock %}

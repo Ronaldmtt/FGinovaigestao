@@ -975,6 +975,7 @@
                 <label class="form-label">Status</label>
                 <select class="form-select bg-dark text-light border-secondary" name="status" required>
                     <option value="em_andamento" ${project.status === 'em_andamento' ? 'selected' : ''}>Em Andamento</option>
+                    <option value="em_teste" ${project.status === 'em_teste' ? 'selected' : ''}>Em Teste</option>
                     <option value="pausado" ${project.status === 'pausado' ? 'selected' : ''}>Pausado</option>
                     <option value="cancelado" ${project.status === 'cancelado' ? 'selected' : ''}>Cancelado</option>
                     <option value="concluido" ${project.status === 'concluido' ? 'selected' : ''}>Concluído</option>

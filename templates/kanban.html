@@ -3108,8 +3108,21 @@
             <div class="modal-body">
                 <p class="text-muted mb-3">Copie este prompt e envie para sua IA (ChatGPT, Claude, Gemini). Ela vai
                     gerar um checklist.</p>
+
+                <div class="mb-3">
+                    <label class="form-label text-muted small">Período de Análise (Contexto)</label>
+                    <select id="todoPromptPeriod" class="form-select bg-dark text-light border-secondary"
+                        onchange="updateTodoPromptText()">
+                        <option value="">Todo o Histórico</option>
+                        <option value="hoje">Hoje</option>
+                        <option value="ontem">Ontem</option>
+                        <option value="7dias">Últimos 7 dias</option>
+                        <option value="15dias">Últimos 15 dias</option>
+                    </select>
+                </div>
+
                 <textarea id="todoAiPromptText"
-                    class="form-control bg-black text-info font-monospace border-secondary p-3" rows="10"
+                    class="form-control bg-black text-info font-monospace border-secondary p-3" rows="12"
                     readonly></textarea>
             </div>
             <div class="modal-footer border-secondary">
@@ -3175,18 +3188,21 @@
         reader.readAsText(file);
     }
 
-    function openTodoPromptModal() {
-        const taskId = document.getElementById('editTaskId').value;
-        const title = document.getElementById('editTaskTitulo').value;
-        const desc = document.getElementById('editTaskDescricao').value;
+    function updateTodoPromptText() {
+        const period = document.getElementById('todoPromptPeriod').value;
+        let periodText = "";
+
+        if (period === 'hoje') periodText = "Considerar apenas alterações realizadas HOJE.";
+        else if (period === 'ontem') periodText = "Considerar alterações realizadas desde ONTEM.";
+        else if (period === '7dias') periodText = "Considerar histórico dos ÚLTIMOS 7 DIAS.";
+        else if (period === '15dias') periodText = "Considerar histórico dos ÚLTIMOS 15 DIAS.";
 
         const prompt = `Atue como um Arquiteto de Software Sênior & Tech Lead.
-Contexto: Tarefa ID #${taskId} - ${title}
-Descrição: ${desc}
 
 **OBJETIVO CRÍTICO:**
 Analisar o estado ATUAL do projeto, verificar tarefas já concluídas (via commits/arquivos) e criar um Plano de Implementação Atômico para esta tarefa.
 
+${periodText ? `**PERÍODO DE ANÁLISE:**\n${periodText}\n` : ''}
 **Regras de Execução:**
 1. **ANÁLISE DE CONTEXTO (MANDATÓRIO):** Antes de planejar, analise a estrutura de arquivos e o histórico recente para entender o que JÁ FOI FEITO. Não proponha criar o que já existe.
 2. **Formato de Checklist Markdown (- [ ]):** Gere uma lista de verificação técnica para ser importada no Kanban.
@@ -3200,6 +3216,12 @@ Analisar o estado ATUAL do projeto, verificar tarefas já concluídas (via commi
 6. **Criação de Documentação:** Se a tarefa for sobre documentação, crie o arquivo .md correspondente com base no contexto do projeto.`;
 
         document.getElementById('todoAiPromptText').value = prompt;
+    }
+
+    function openTodoPromptModal() {
+        // Reset period selection
+        document.getElementById('todoPromptPeriod').value = "";
+        updateTodoPromptText();
         new bootstrap.Modal(document.getElementById('importTodoAiPromptModal')).show();
     }
 

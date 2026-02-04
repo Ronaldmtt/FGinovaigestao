@@ -493,6 +493,7 @@ def projects():
     status_counts = {
         'todos': base_query.count(),
         'em_andamento': base_query.filter_by(status='em_andamento').count(),
+        'em_teste': base_query.filter_by(status='em_teste').count(),
         'concluido': base_query.filter_by(status='concluido').count(),
         'pausado': base_query.filter_by(status='pausado').count(),
     }
@@ -535,6 +536,7 @@ def projects():
         # Status para label e classe CSS
         status_map = {
             'em_andamento': {'label': 'Em Andamento', 'class': 'status-active'},
+            'em_teste': {'label': 'Em Teste', 'class': 'status-testing'},
             'concluido': {'label': 'Concluído', 'class': 'status-completed'},
             'pausado': {'label': 'Em Espera', 'class': 'status-paused'},
             'cancelado': {'label': 'Cancelado', 'class': 'status-delayed'}
@@ -553,6 +555,8 @@ def projects():
         glow_class = ''
         if project.status == 'concluido':
             glow_class = 'glow-complete'
+        elif project.status == 'em_teste':
+            glow_class = 'glow-pink-test'
         elif project.status == 'pausado':
              glow_class = '' # Sem brilho se estiver pausado
         elif project.data_inicio and project.data_fim:

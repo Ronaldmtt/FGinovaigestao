@@ -21,6 +21,8 @@
                     Status:
                     {% if project.status == 'em_andamento' %}
                     <span class="badge bg-primary">Em Andamento</span>
+                    {% elif project.status == 'em_teste' %}
+                    <span class="badge" style="background-color: #d63384; box-shadow: 0 0 5px #d63384;">Em Teste</span>
                     {% elif project.status == 'pausado' %}
                     <span class="badge bg-warning">Pausado</span>
                     {% elif project.status == 'cancelado' %}
@@ -688,6 +690,8 @@
                             <select class="form-select" name="status" required>
                                 <option value="em_andamento" {% if project.status=='em_andamento' %}selected{% endif %}>
                                     Em Andamento</option>
+                                <option value="em_teste" {% if project.status=='em_teste' %}selected{% endif %}>
+                                    Em Teste</option>
                                 <option value="pausado" {% if project.status=='pausado' %}selected{% endif %}>Pausado
                                 </option>
                                 <option value="cancelado" {% if project.status=='cancelado' %}selected{% endif %}>

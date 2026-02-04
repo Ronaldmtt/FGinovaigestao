@@ -69,6 +69,10 @@
                 class="status-pill {% if current_filters.status == 'em_andamento' %}active{% endif %}">
                 Em Andamento
             </a>
+            <a href="{{ url_for('projects', status='em_teste', client_id=current_filters.client_id, responsible_id=current_filters.responsible_id) }}"
+                class="status-pill {% if current_filters.status == 'em_teste' %}active{% endif %}">
+                Em Teste
+            </a>
             <a href="{{ url_for('projects', status='concluido', client_id=current_filters.client_id, responsible_id=current_filters.responsible_id) }}"
                 class="status-pill {% if current_filters.status == 'concluido' %}active{% endif %}">
                 Concluídos
@@ -300,7 +304,13 @@
                         </div>
                         <div class="col-md-4">
                             {{ form.status.label(class="form-label") }}
-                            {{ form.status(class="form-select bg-dark text-light border-secondary") }}
+                            <select class="form-select bg-dark text-light border-secondary" id="status" name="status"
+                                required>
+                                <option value="em_andamento">Em Andamento</option>
+                                <option value="em_teste">Em Teste</option>
+                                <option value="pausado">Em Espera</option>
+                                <option value="concluido">Concluído</option>
+                            </select>
                         </div>
                         <div class="col-md-4">
                             {{ form.team_members.label(class="form-label") }}
@@ -589,6 +599,22 @@
         }
     }
 
+    @keyframes blink-pink {
+
+        0%,
+        100% {
+            box-shadow: 0 0 5px rgba(214, 51, 132, 0.2);
+            border-color: rgba(214, 51, 132, 0.5);
+            background-color: rgba(214, 51, 132, 0.05);
+        }
+
+        50% {
+            box-shadow: 0 0 20px rgba(214, 51, 132, 0.8), 0 0 40px rgba(214, 51, 132, 0.4);
+            border-color: #d63384;
+            background-color: rgba(214, 51, 132, 0.15);
+        }
+    }
+
     @keyframes blink-complete {
 
         0%,
@@ -635,6 +661,13 @@
         border-color: #0dcaf0;
         background-color: rgba(13, 202, 240, 0.1) !important;
         animation: none !important;
+    }
+
+    .glow-pink-test {
+        /* Blinking Pink for Testing */
+        animation: blink-pink 1.5s infinite ease-in-out !important;
+        border-color: #d63384 !important;
+        background-color: rgba(214, 51, 132, 0.15) !important;
     }
 
     /* Header do Card */
@@ -780,6 +813,13 @@
         background: rgba(108, 117, 125, 0.2);
         color: #adb5bd;
         border: 1px solid rgba(108, 117, 125, 0.3);
+    }
+
+    .status-testing {
+        background: rgba(214, 51, 132, 0.2);
+        color: #d63384;
+        border: 1px solid rgba(214, 51, 132, 0.3);
+        box-shadow: 0 0 5px rgba(214, 51, 132, 0.4);
     }
 
     /* Empty State */

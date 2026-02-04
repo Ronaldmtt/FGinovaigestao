@@ -1710,7 +1710,7 @@
         wrapper.remove();
     }
 
-    function addTodo(textVal = null) {
+    function addTodo(textVal = null, isCompleted = false) {
         const newTodoText = document.getElementById('newTodoText');
         const text = textVal || newTodoText.value.trim();
 
@@ -1722,8 +1722,8 @@
             todoDiv.className = 'todo-item-wrapper mb-3';
             todoDiv.innerHTML = `
             <div class="d-flex align-items-center">
-                <input type="checkbox" class="form-check-input me-2" onchange="toggleTodo(this)">
-                <span class="todo-text" style="flex-grow: 1; cursor: pointer;" data-todo-id="${tempId}" onclick="enableTodoEdit(this)">${text}</span>
+                <input type="checkbox" class="form-check-input me-2" onchange="toggleTodo(this)" ${isCompleted ? 'checked' : ''}>
+                <span class="todo-text ${isCompleted ? 'text-decoration-line-through text-muted' : ''}" style="flex-grow: 1; cursor: pointer;" data-todo-id="${tempId}" onclick="enableTodoEdit(this)">${text}</span>
                 <div class="todo-date-picker position-relative" data-todo-id="${tempId}">
                     <span class="todo-date-display text-muted" 
                           onclick="toggleTodoDatePicker(this, '${tempId}')"
@@ -3268,7 +3268,8 @@ ${periodText ? `**PERÍODO DE ANÁLISE:**\n${periodText}\n` : ''}
                 cleanText = cleanText.replace(/^\*\s*/, ''); // Remove * no início se sobrar
 
                 if (cleanText) {
-                    addTodo(cleanText);
+                    const isCompleted = match[1].toLowerCase() === 'x';
+                    addTodo(cleanText, isCompleted);
                     count++;
                 }
             }

@@ -3256,12 +3256,17 @@ ${periodText ? `**PERÍODO DE ANÁLISE:**\n${periodText}\n` : ''}
 
         lines.forEach(line => {
             line = line.trim();
-            // Detectar formatos: "- [ ] Texto", "- [x] Texto", "- Texto", "* Texto"
-            // Regex para capturar o texto após o marcador
-            const match = line.match(/^[-*]\s*(?:\[[ xX]?\]\s*)?(.*)/);
+            // Detectar formatos ESTRITOS: "- [ ] Texto", "- [x] Texto", "* [ ] Texto"
+            // O regex agora exige a presença de [ ] ou [x]
+            const match = line.match(/^[-*]\s*\[([ xX]?)\]\s*(.*)/);
 
-            if (match && match[1]) {
-                const cleanText = match[1].trim();
+            if (match && match[2]) {
+                let cleanText = match[2].trim();
+
+                // Limpar "fru fru" (Markdown bold/italic excessivo)
+                cleanText = cleanText.replace(/\*\*/g, ''); // Remove negrito (**Texto**)
+                cleanText = cleanText.replace(/^\*\s*/, ''); // Remove * no início se sobrar
+
                 if (cleanText) {
                     addTodo(cleanText);
                     count++;

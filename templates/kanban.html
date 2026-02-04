@@ -1757,7 +1757,7 @@
         `;
             todoDiv.dataset.todoId = tempId;
             todoDiv.dataset.todoText = text;
-            todoDiv.dataset.todoCompleted = 'false';
+            todoDiv.dataset.todoCompleted = isCompleted;
             todoDiv.dataset.todoDueDate = '';
             todoDiv.dataset.todoComentario = '';
 
@@ -3283,6 +3283,9 @@ ${periodText ? `**PERÍODO DE ANÁLISE:**\n${periodText}\n` : ''}
 
             // Feedback
             // alert(`${count} to-dos importados com sucesso!`);
+
+            // Salvar automaticamente após importar
+            saveTaskFromDrawer();
         } else {
             alert('Nenhum to-do encontrado no texto. Use o formato de lista (- Item).');
         }

@@ -3131,7 +3131,16 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <p class="text-muted mb-3">Cole aqui a resposta da IA (lista Markdown ou JSON).</p>
+                <p class="text-muted mb-3">Cole aqui a resposta da IA (lista Markdown ou JSON) ou importe um arquivo
+                    .md.</p>
+                <div class="mb-3">
+                    <input type="file" id="todoMdFileInput" accept=".md,.txt" class="d-none"
+                        onchange="handleTodoMdFile(this)">
+                    <button type="button" class="btn btn-outline-info btn-sm"
+                        onclick="document.getElementById('todoMdFileInput').click()">
+                        <i class="fas fa-file-upload me-1"></i>Carregar Arquivo .md
+                    </button>
+                </div>
                 <textarea id="todoImportText" class="form-control bg-black text-light border-secondary p-3" rows="10"
                     placeholder="- [ ] Tarefa 1&#10;- [ ] Tarefa 2..."></textarea>
             </div>
@@ -3146,21 +3155,49 @@
 </div>
 
 <script>
+    function handleTodoMdFile(input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            const text = e.target.result;
+            const textarea = document.getElementById('todoImportText');
+            textarea.value = text;
+            input.value = ''; // Reset
+
+            // Visual feedback
+            textarea.style.borderColor = '#28a745'; // Green border
+            setTimeout(() => {
+                textarea.style.borderColor = ''; // Reset border
+            }, 1000);
+        };
+        reader.readAsText(file);
+    }
+
     function openTodoPromptModal() {
+        const taskId = document.getElementById('editTaskId').value;
         const title = document.getElementById('editTaskTitulo').value;
         const desc = document.getElementById('editTaskDescricao').value;
 
-        const prompt = `Atue como um Especialista em Gerenciamento de Projetos.
-Analise a seguinte tarefa:
-   - Título: ${title}
-   - Descrição: ${desc}
+        const prompt = `Atue como um Arquiteto de Software Sênior & Tech Lead.
+Contexto: Tarefa ID #${taskId} - ${title}
+Descrição: ${desc}
 
-Crie um checklist detalhado (To-Do List) passo-a-passo para completar esta tarefa com excelência.
-O formato de saída deve ser EXATAMENTE uma lista Markdown simples, sem numeração, sem negrito nos itens, apenas o texto:
-- [ ] Passo 1
-- [ ] Passo 2
-...
-Não inclua introdução ou conclusão. Apenas a lista.`;
+**OBJETIVO CRÍTICO:**
+Analisar o estado ATUAL do projeto, verificar tarefas já concluídas (via commits/arquivos) e criar um Plano de Implementação Atômico para esta tarefa.
+
+**Regras de Execução:**
+1. **ANÁLISE DE CONTEXTO (MANDATÓRIO):** Antes de planejar, analise a estrutura de arquivos e o histórico recente para entender o que JÁ FOI FEITO. Não proponha criar o que já existe.
+2. **Formato de Checklist Markdown (- [ ]):** Gere uma lista de verificação técnica para ser importada no Kanban.
+3. **Estrutura sugerida:**
+   - [ ] **Análise**: Verificar arquivos X, Y e Z para garantir integridade.
+   - [ ] **Backend**: Criar/Modificar rotas e models necessários.
+   - [ ] **Frontend**: Atualizar views e JS.
+   - [ ] **Verificação**: Testes manuais/automatizados.
+4. **TRADUÇÃO OBRIGATÓRIA:** Traduza SEMPRE todo o conteúdo, especialmente mensagens de commit em inglês, para Português. Mantenha apenas termos técnicos (Fix, Refactor, Feature) no original.
+5. **ARQUIVOS:** Ao sugerir criação de arquivos, considere sempre a RAIZ do projeto.
+6. **Criação de Documentação:** Se a tarefa for sobre documentação, crie o arquivo .md correspondente com base no contexto do projeto.`;
 
         document.getElementById('todoAiPromptText').value = prompt;
         new bootstrap.Modal(document.getElementById('importTodoAiPromptModal')).show();

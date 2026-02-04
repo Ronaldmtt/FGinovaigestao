@@ -90,6 +90,7 @@ def dashboard():
             'projects_in_progress': Project.query.filter_by(status='em_andamento').count(),
             'projects_completed': Project.query.filter_by(status='concluido').count(),
             'projects_on_hold': Project.query.filter_by(status='pausado').count(),
+            'projects_in_testing': Project.query.filter_by(status='em_teste').count(),
             'projects_delayed': Project.query.filter(Project.status != 'concluido', Project.data_fim < datetime.utcnow().date()).count()
         }
         # Atividades recentes (últimas 10)
@@ -141,6 +142,7 @@ def dashboard():
             'projects_in_progress': my_projects_query.filter(Project.status == 'em_andamento').distinct().count(),
             'projects_completed': my_projects_query.filter(Project.status == 'concluido').distinct().count(),
             'projects_on_hold': my_projects_query.filter(Project.status == 'pausado').distinct().count(),
+            'projects_in_testing': my_projects_query.filter(Project.status == 'em_teste').distinct().count(),
             'projects_delayed': my_projects_query.filter(Project.status != 'concluido', Project.data_fim < today).distinct().count()
         }
         

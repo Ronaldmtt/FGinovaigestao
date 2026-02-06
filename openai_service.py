@@ -166,3 +166,43 @@ def generate_tasks_from_transcription(transcription, project_name):
     except Exception as e:
         print(f"Erro ao gerar tarefas da transcrição: {e}")
         return []
+
+def generate_project_report_summary(project_name, description, problem, objectives):
+    """
+    Gera um parágrafo de síntese profissional para relatório com base nos campos do projeto.
+    """
+    try:
+        prompt = f"""
+        Você é um consultor sênior de negócios e tecnologia elaborando um relatório executivo.
+        
+        Sua tarefa é criar UM ÚNICO parágrafo coeso, profissional e bem escrito que sintetize as informações deste projeto.
+        Não use tópicos. Não use markdown com negrito desnecessário. O texto deve ser fluido, como uma introdução executiva.
+        
+        Projeto: {project_name}
+        
+        Informações Base:
+        1. Descrição: {description}
+        2. Problema/Oportunidade: {problem}
+        3. Objetivos: {objectives}
+        
+        O parágrafo deve:
+        - Apresentar o projeto e seu propósito.
+        - Explicar brevemente o problema que resolve ou a oportunidade que ataca.
+        - Destacar os principais objetivos estratégicos.
+        - Ter tom formal, mas claro e direto.
+        - Ter entre 80 e 150 palavras.
+        """
+        
+        response = openai.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7
+        )
+        
+        content = response.choices[0].message.content
+        return content.strip()
+        
+    except Exception as e:
+        print(f"Erro ao gerar resumo do projeto para relatório: {e}")
+        # Fallback se a IA falhar: concatenação simples
+        return f"{description}. O projeto visa resolver: {problem}. Principais objetivos: {objectives}."

@@ -17,7 +17,7 @@ from app import app, ALLOWED_EXTENSIONS
 from extensions import db, mail
 from models import User, Client, Project, Task, TodoItem, Contato, Comentario, FileCategory, ProjectFile, ProjectApiCredential, ProjectApiEndpoint, ProjectApiKey, SystemApiKey
 from forms import LoginForm, UserForm, EditUserForm, ClientForm, ProjectForm, TaskForm, TranscriptionTaskForm, ManualProjectForm, ManualTaskForm, ForgotPasswordForm, ResetPasswordForm, ChangePasswordForm, ImportDataForm
-from openai_service import process_project_transcription, generate_tasks_from_transcription
+from openai_service import process_project_transcription, generate_tasks_from_transcription, generate_project_report_summary
 from email_service import enviar_email_nova_tarefa, enviar_email_mudanca_status, enviar_email_alteracao_data, enviar_email_tarefa_editada, enviar_email_resumo_tarefas
 
 # RPA Monitor - Logging

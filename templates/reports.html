@@ -6,11 +6,18 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h2 class="mb-1"><i class="fas fa-file-pdf me-2"></i>Relatórios de Projetos</h2>
-        <p class="text-muted mb-0">Gere relatórios sintéticos dos seus projetos em PDF.</p>
+        <p class="text-muted mb-0">Selecione os projetos e gere relatórios executivos com síntese via IA.</p>
     </div>
-    <div>
-        <button onclick="generateReport()" class="btn btn-primary" id="btnGenerate">
-            <i class="fas fa-file-download me-2"></i>Gerar Relatório PDF
+    <div class="d-flex gap-2">
+        <div class="form-check d-flex align-items-center me-3">
+            <input class="form-check-input me-2" type="checkbox" id="selectAll" onclick="toggleSelectAll()">
+            <label class="form-check-label user-select-none" for="selectAll" style="cursor: pointer;">
+                Selecionar Todos
+            </label>
+        </div>
+        <button onclick="generateReport()" class="btn btn-primary" id="btnGenerate" disabled>
+            <i class="fas fa-magic me-2"></i>Gerar Relatório PDF
+            <span class="badge bg-white text-primary ms-1" id="selectedCount">0</span>
         </button>
     </div>
 </div>
@@ -52,14 +59,21 @@
 <div id="projectsContainer" class="row g-3">
     {% for project in projects %}
     {% set has_data = project.descricao_resumida and project.problema_oportunidade and project.objetivos %}
-    <div class="col-md-3 project-card" data-client-id="{{ project.client_id }}"
+    <div class="col-md-3 project-card-wrapper" data-client-id="{{ project.client_id }}"
         data-responsible-id="{{ project.responsible_id }}" data-project-id="{{ project.id }}"
         data-has-data="{{ 'true' if has_data else 'false' }}">
 
-        <div class="card h-100 border-0 shadow-sm {{ 'border-start border-success border-4' if has_data else 'border-start border-warning border-4' }}"
-            style="background-color: var(--bs-card-bg);">
+        <div class="card h-100 border-0 shadow-sm position-relative {{ 'border-start border-success border-4' if has_data else 'border-start border-warning border-4' }}"
+            style="background-color: var(--bs-card-bg); cursor: pointer;" onclick="toggleCardSelection(this, event)">
+
+            <!-- Checkbox overlay -->
+            <div class="position-absolute top-0 end-0 p-2">
+                <input class="form-check-input project-checkbox" type="checkbox" value="{{ project.id }}" {{ 'disabled'
+                    if not has_data else '' }} idx="{{ project.id }}" onclick="event.stopPropagation(); updateCount();">
+            </div>
+
             <div class="card-body p-3">
-                <div class="d-flex justify-content-between align-items-start mb-2">
+                <div class="d-flex justify-content-between align-items-start mb-2 pe-4">
                     <h6 class="card-title mb-0 text-truncate" title="{{ project.nome }}">{{ project.nome }}</h6>
                     {% if has_data %}
                     <i class="fas fa-check-circle text-success" title="Pronto para relatório"></i>
@@ -80,16 +94,14 @@
                 </div>
 
                 {% if not has_data %}
-                <div class="mt-2">
-                    <small class="text-danger" style="font-size: 0.75rem;">
-                        Pendentes:
-                        {{ 'Descrição' if not project.descricao_resumida }}
-                        {{ ',' if not project.descricao_resumida and (not project.problema_oportunidade or not
-                        project.objetivos) }}
-                        {{ 'Problema' if not project.problema_oportunidade }}
-                        {{ ',' if not project.problema_oportunidade and not project.objetivos }}
-                        {{ 'Objetivos' if not project.objetivos }}
-                    </small>
+                <div class="mt-2 text-danger" style="font-size: 0.75rem;">
+                    Pendentes:
+                    {{ 'Descrição' if not project.descricao_resumida }}
+                    {{ ',' if not project.descricao_resumida and (not project.problema_oportunidade or not
+                    project.objetivos) }}
+                    {{ 'Problema' if not project.problema_oportunidade }}
+                    {{ ',' if not project.problema_oportunidade and not project.objetivos }}
+                    {{ 'Objetivos' if not project.objetivos }}
                 </div>
                 {% endif %}
             </div>
@@ -103,19 +115,31 @@
     <h5 class="text-muted">Nenhum projeto encontrado</h5>
 </div>
 
+<!-- Loading Overlay -->
+<div id="loadingOverlay"
+    class="position-fixed top-0 start-0 w-100 h-100 d-none justify-content-center align-items-center"
+    style="background: rgba(0,0,0,0.8); z-index: 9999; backdrop-filter: blur(5px);">
+    <div class="text-center text-white">
+        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
+        <h4>Gerando Relatório com IA</h4>
+        <p class="text-white-50">Sintetizando informações dos projetos selecionados...<br>Isso pode levar alguns
+            segundos.</p>
+    </div>
+</div>
+
 <script>
     function filterProjects() {
         const clientId = document.getElementById('clientFilter').value;
         const userId = document.getElementById('userFilter').value;
         const projectId = document.getElementById('projectFilter').value;
 
-        const cards = document.querySelectorAll('.project-card');
+        const wrappers = document.querySelectorAll('.project-card-wrapper');
         let visibleCount = 0;
 
-        cards.forEach(card => {
-            const cardClientId = card.dataset.clientId;
-            const cardUserId = card.dataset.responsibleId;
-            const cardProjectId = card.dataset.projectId;
+        wrappers.forEach(wrapper => {
+            const cardClientId = wrapper.dataset.clientId;
+            const cardUserId = wrapper.dataset.responsibleId;
+            const cardProjectId = wrapper.dataset.projectId;
 
             let show = true;
 
@@ -124,10 +148,10 @@
             if (projectId && cardProjectId !== projectId) show = false;
 
             if (show) {
-                card.classList.remove('d-none');
+                wrapper.classList.remove('d-none');
                 visibleCount++;
             } else {
-                card.classList.add('d-none');
+                wrapper.classList.add('d-none');
             }
         });
 
@@ -138,24 +162,80 @@
             noResults.classList.add('d-none');
         }
 
-        // Atualizar link de geração (opcional, se quisermos passar filtros via GET)
+        // Reset select all when filtering
+        document.getElementById('selectAll').checked = false;
+        // Keep selections? Maybe clear to avoid confusion. Let's keep them but uncheck visual "select all"
     }
 
-    function generateReport() {
-        // Coletar filtros atuais
-        const clientId = document.getElementById('clientFilter').value;
-        const userId = document.getElementById('userFilter').value;
-        const projectId = document.getElementById('projectFilter').value;
+    function toggleCardSelection(cardElement, event) {
+        // Find checkbox inside the card
+        const checkbox = cardElement.querySelector('.project-checkbox');
+        if (checkbox && !checkbox.disabled) {
+            checkbox.checked = !checkbox.checked;
+            updateCount();
+        }
+    }
 
-        // Montar URL com parâmetros
-        const params = new URLSearchParams();
-        if (clientId) params.append('client_id', clientId);
-        if (userId) params.append('user_id', userId);
-        if (projectId) params.append('project_id', projectId);
+    function toggleSelectAll() {
+        const selectAll = document.getElementById('selectAll');
+        const checkboxes = document.querySelectorAll('.project-card-wrapper:not(.d-none) .project-checkbox:not(:disabled)');
 
-        // Redirecionar para rota de geração (que baixará o PDF)
-        // Abrir em nova aba para não travar a UI
-        window.open(`/reports/generate_pdf?${params.toString()}`, '_blank');
+        checkboxes.forEach(cb => {
+            cb.checked = selectAll.checked;
+        });
+        updateCount();
+    }
+
+    function updateCount() {
+        const checkboxes = document.querySelectorAll('.project-checkbox:checked');
+        const count = checkboxes.length;
+        document.getElementById('selectedCount').textContent = count;
+        document.getElementById('btnGenerate').disabled = count === 0;
+    }
+
+    async function generateReport() {
+        const checkboxes = document.querySelectorAll('.project-checkbox:checked');
+        const projectIds = Array.from(checkboxes).map(cb => cb.value);
+
+        if (projectIds.length === 0) return;
+
+        const overlay = document.getElementById('loadingOverlay');
+        const btn = document.getElementById('btnGenerate');
+
+        try {
+            overlay.classList.remove('d-none');
+            overlay.classList.add('d-flex');
+            btn.disabled = true;
+
+            const response = await fetch('/reports/generate_pdf', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ project_ids: projectIds })
+            });
+
+            if (!response.ok) throw new Error('Erro ao gerar relatório');
+
+            // Download blob
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `relatorio_executivo_${new Date().toISOString().slice(0, 10)}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+
+        } catch (error) {
+            console.error(error);
+            alert('Erro ao gerar relatório. Tente novamente.');
+        } finally {
+            overlay.classList.add('d-none');
+            overlay.classList.remove('d-flex');
+            btn.disabled = false;
+        }
     }
 </script>
 {% endblock %}

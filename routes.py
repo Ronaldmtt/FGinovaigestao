@@ -4256,43 +4256,57 @@ def generate_pdf():
         for project in projects:
             print(f"DEBUG: Processando projeto {project.id} ({project.nome})", flush=True)
             
-            # Tentar processar IA se não tiver resumo
+            # 1. Garantir que temos os dados base
             contexto = project.descricao_resumida
             problema = project.problema_oportunidade
             objetivos = project.objetivos
             
-            # Se faltar dados, tenta usar IA se tiver transcrição
+            # Se faltar dados, tenta extrair da transcrição (se houver)
             if not (contexto and problema and objetivos):
                 if project.transcricao:
                     try:
-                        print(f"DEBUG: Tentando síntese IA para projeto {project.id}", flush=True)
+                        print(f"DEBUG: Dados incompletos. Tentando extração via IA da transcrição...", flush=True)
                         ai_result = process_project_transcription(project.transcricao)
                         if ai_result:
                             contexto = ai_result.get('descricao_resumida', '')
                             problema = ai_result.get('problema_oportunidade', '')
                             objetivos = ai_result.get('objetivos', '')
-                            print("DEBUG: Síntese IA bem sucedida", flush=True)
+                            print("DEBUG: Extração bem sucedida.", flush=True)
                     except Exception as e:
-                        print(f"DEBUG: Erro IA: {e}", flush=True)
-                        rpa_log.error(f"Erro ao gerar síntese IA: {e}", regiao="relatorios")
-            
-            # Se ainda assim não tiver nada, usar texto padrão ou pular?
-            # Vamos exibir o que tem.
+                        print(f"DEBUG: Falha na extração de dados: {e}", flush=True)
             
             client_name = project.client.nome if project.client else "Cliente não identificado"
             
             elements.append(Paragraph(f"{client_name}", subtitle_style))
             elements.append(Paragraph(f"{project.nome}", title_style))
             
-            def safe_text(text):
-                if not text: return "<i>(Informação não disponível)</i>"
-                return str(text).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('\n', '<br/>')
+            # 2. Gerar a Síntese (Report Summary) via IA
+            summary_text = ""
+            try:
+                print(f"DEBUG: Gerando síntese narrativa para o relatório...", flush=True)
+                summary_text = generate_project_report_summary(
+                    project.nome,
+                    contexto or "Não informado",
+                    problema or "Não informado",
+                    objetivos or "Não informado"
+                )
+                print("DEBUG: Síntese gerada com sucesso.", flush=True)
+                
+                # Sanitizar levemente o retorno da IA se necessário (geralmente Paragraph lida bem, mas quebras de linha podem ser úteis)
+                summary_text = summary_text.replace('\n', '<br/>')
+                
+            except Exception as e:
+                print(f"DEBUG: Erro na síntese do relatório: {e}", flush=True)
+                # Fallback: Formato antigo se a IA falhar
+                def safe_text(text):
+                    if not text: return "<i>(Informação não disponível)</i>"
+                    return str(text).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('\n', '<br/>')
+                
+                summary_text = f"<b>Descrição Resumida:</b><br/>{safe_text(contexto)}<br/><br/>" \
+                               f"<b>Problema/Oportunidade:</b><br/>{safe_text(problema)}<br/><br/>" \
+                               f"<b>Objetivos:</b><br/>{safe_text(objetivos)}"
 
-            sintese_text = f"<b>Descrição Resumida:</b><br/>{safe_text(contexto)}<br/><br/>" \
-                           f"<b>Problema/Oportunidade:</b><br/>{safe_text(problema)}<br/><br/>" \
-                           f"<b>Objetivos:</b><br/>{safe_text(objetivos)}"
-            
-            elements.append(Paragraph(sintese_text, body_style))
+            elements.append(Paragraph(summary_text, body_style))
             
             if project.responsible:
                 elements.append(Paragraph(f"<b>Responsável:</b> {project.responsible.full_name}", body_style))
@@ -4302,7 +4316,7 @@ def generate_pdf():
         
         if projects_processed == 0:
             print("DEBUG: Nenhum projeto processado com sucesso", flush=True)
-            flash('Nenhum projeto pôde ser incluído no relatório (falta de dados).', 'warning')
+            flash('Nenhum projeto pôde ser incluído no relatório.', 'warning')
             return redirect(url_for('reports'))
 
         doc.build(elements)

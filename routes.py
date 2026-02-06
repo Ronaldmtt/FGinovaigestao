@@ -1,4 +1,4 @@
-from flask import render_template, request, redirect, url_for, flash, jsonify, send_from_directory
+from flask import render_template, request, redirect, url_for, flash, jsonify, send_from_directory, send_file
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
@@ -24,6 +24,15 @@ from email_service import enviar_email_nova_tarefa, enviar_email_mudanca_status,
 from rpa_monitor_client import rpa_log
 import requests
 from requests.exceptions import RequestException
+
+# PDF Generation
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+from reportlab.lib.units import mm
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from io import BytesIO
 
 def requires_permission(permission_field):
     def decorator(f):
@@ -1826,9 +1835,9 @@ def kanban():
             # Se não houver filtro de cliente, adicionar o do projeto
             if not client_filter and project.client_id:
                 client_filter = [project.client_id]
-            # Se não houver filtro de usuário, adicionar o responsável
-            if not user_filter and project.responsible_id:
-                user_filter = [project.responsible_id]
+            # REMOVIDO: Se não houver filtro de usuário, adicionar o responsável
+            # if not user_filter and project.responsible_id:
+            #     user_filter = [project.responsible_id]
     
     query = Task.query
     
@@ -4117,3 +4126,153 @@ def not_found_error(error):
 def forbidden_error(error):
     rpa_log.warn(f"Erro 403 - Acesso negado: {request.url} por {current_user.email if current_user.is_authenticated else 'anônimo'}", regiao="erro_sistema")
     return render_template('error.html', error_code=403, error_message="Acesso negado"), 403
+
+# Relatórios
+@app.route('/reports')
+@login_required
+def reports():
+    # Carregar dados para filtros e listagem inicial
+    if current_user.is_admin:
+        projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
+        clients = Client.query.order_by(Client.nome).all()
+        users = User.query.filter_by(is_admin=False).order_by(User.nome).all()
+    else:
+        # Filtrar projetos onde o usuário é responsável ou membro
+        projects = Project.query.join(Client).filter(
+            (Project.responsible_id == current_user.id) |
+            (Project.team_members.contains(current_user))
+        ).order_by(Client.nome, Project.nome).all()
+        
+        # Filtrar clientes e usuários relacionados
+        client_ids = list(set([p.client_id for p in projects]))
+        clients = Client.query.filter(Client.id.in_(client_ids)).order_by(Client.nome).all() if client_ids else []
+        users = [current_user] # Simplificação: ver apenas a si mesmo ou expandir se for gerente
+        
+    return render_template('reports.html', projects=projects, clients=clients, users=users)
+
+@app.route('/reports/generate_pdf')
+@login_required
+def generate_pdf():
+    # Filtros
+    project_id = request.args.get('project_id')
+    client_id = request.args.get('client_id')
+    user_id = request.args.get('user_id')
+    
+    query = Project.query.join(Client)
+    
+    # Aplicar filtros
+    if project_id:
+        query = query.filter(Project.id == project_id)
+    if client_id:
+        query = query.filter(Project.client_id == client_id)
+    if user_id:
+        query = query.filter(Project.responsible_id == user_id)
+        
+    # Permissões (se não for admin)
+    if not current_user.is_admin:
+         query = query.filter(
+            (Project.responsible_id == current_user.id) |
+            (Project.team_members.contains(current_user))
+        )
+         
+    projects = query.order_by(Client.nome, Project.nome).all()
+    
+    if not projects:
+        flash('Nenhum projeto encontrado para gerar relatório.', 'warning')
+        return redirect(url_for('reports'))
+
+    # Configuração do PDF
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4,
+                            rightMargin=20*mm, leftMargin=20*mm,
+                            topMargin=20*mm, bottomMargin=20*mm)
+    
+    elements = []
+    styles = getSampleStyleSheet()
+    
+    # Estilos Personalizados
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=16,
+        spaceAfter=10,
+        textColor=colors.HexColor('#2c3e50')
+    )
+    
+    subtitle_style = ParagraphStyle(
+        'CustomSubtitle',
+        parent=styles['Heading2'],
+        fontSize=12,
+        spaceAfter=20,
+        textColor=colors.HexColor('#7f8c8d')
+    )
+    
+    body_style = ParagraphStyle(
+        'CustomBody',
+        parent=styles['Normal'],
+        fontSize=11,
+        leading=16,
+        spaceAfter=10,
+        alignment=4 # Justified
+    )
+
+    projects_with_data = 0
+    
+    for project in projects:
+        # Verificar se tem os dados mínimos (verde vs amarelo)
+        has_data = project.descricao_resumida and project.problema_oportunidade and project.objetivos
+        if not has_data:
+            continue
+            
+        projects_with_data += 1
+            
+        # Conteúdo do Relatório
+        # Header: Cliente | Projeto
+        client_name = project.client.nome if project.client else "Cliente Desconhecido"
+        project_name = project.nome
+        
+        elements.append(Paragraph(f"{client_name}", subtitle_style))
+        elements.append(Paragraph(f"{project_name}", title_style))
+        
+        # Síntese (Parágrafo combinado)
+        # Sanitizar inputs para evitar erros no platypus (ex: tags HTML não fechadas) se necessário.
+        # Por segurança, usar html.escape se o conteúdo for raw text, mas Paragraph aceita subset de XML.
+        # Assumindo que o conteúdo do banco é texto plano ou markdown. Paragraph espera XML-like.
+        # Vou fazer um escape simples dos caracteres <, >, & se não for usar tags intencionais.
+        # Mas o usuário pode ter usado markdown. 
+        # Python 's html.escape could be useful, but Paragraph handles some tags.
+        # Let's hope the content handles basic text.
+        
+        def safe_text(text):
+            return str(text).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('\n', '<br/>')
+            
+        desc = safe_text(project.descricao_resumida)
+        prob = safe_text(project.problema_oportunidade)
+        obj = safe_text(project.objetivos)
+        
+        sintese_text = f"<b>Descrição Resumida:</b><br/>{desc}<br/><br/>" \
+                       f"<b>Problema/Oportunidade:</b><br/>{prob}<br/><br/>" \
+                       f"<b>Objetivos:</b><br/>{obj}"
+        
+        elements.append(Paragraph(sintese_text, body_style))
+        
+        # Responsável
+        if project.responsible:
+            elements.append(Paragraph(f"<b>Responsável:</b> {project.responsible.full_name}", body_style))
+            
+        elements.append(PageBreak())
+    
+    if projects_with_data == 0:
+        # Se nenhum projeto tinha dados completos
+        flash('Nenhum dos projetos filtrados possui dados completos (Descrição, Problema, Objetivos) para gerar o relatório.', 'warning')
+        return redirect(url_for('reports'))
+
+    try:
+        doc.build(elements)
+        buffer.seek(0)
+        filename = f"relatorio_projetos_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
+        return send_file(buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
+    except Exception as e:
+        rpa_log.error(f"Erro ao gerar PDF: {str(e)}", regiao="relatorios")
+        flash('Erro ao gerar arquivo PDF. Verifique os logs.', 'error')
+        return redirect(url_for('reports'))

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR" data-bs-theme="dark">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,16 +13,16 @@
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         }
-        
+
         .app-container {
             display: flex;
             min-height: 100vh;
         }
-        
+
         /* Sidebar */
         .sidebar {
             width: 240px;
@@ -33,12 +34,12 @@
             z-index: 1000;
             transition: transform 0.3s ease;
         }
-        
+
         .sidebar-header {
             padding: 1.5rem 1rem;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
-        
+
         .sidebar-brand {
             font-size: 1rem;
             font-weight: 600;
@@ -47,41 +48,41 @@
             display: flex;
             align-items: center;
         }
-        
+
         .sidebar-brand i {
             font-size: 1.25rem;
             margin-right: 0.5rem;
         }
-        
+
         .sidebar-brand-text {
             display: flex;
             flex-direction: column;
             line-height: 1.2;
         }
-        
+
         .sidebar-brand-title {
             font-size: 0.9rem;
             font-weight: 700;
         }
-        
+
         .sidebar-brand-subtitle {
             font-size: 0.7rem;
             color: var(--bs-secondary);
             font-weight: 400;
         }
-        
+
         .sidebar-nav {
             padding: 1rem 0;
         }
-        
+
         .nav-section {
             margin-bottom: 1.5rem;
         }
-        
+
         .nav-item {
             margin: 0.25rem 0.75rem;
         }
-        
+
         .nav-link {
             display: flex;
             align-items: center;
@@ -92,30 +93,30 @@
             transition: all 0.2s ease;
             font-size: 0.9rem;
         }
-        
+
         .nav-link:hover {
             background-color: rgba(255, 255, 255, 0.05);
             color: var(--bs-body-color);
         }
-        
+
         .nav-link.active {
             background-color: rgba(34, 197, 94, 0.15);
             color: #22c55e;
             font-weight: 500;
         }
-        
+
         .nav-link i {
             width: 20px;
             margin-right: 0.75rem;
             font-size: 1rem;
         }
-        
+
         .nav-divider {
             height: 1px;
             background-color: rgba(255, 255, 255, 0.1);
             margin: 1rem 0.75rem;
         }
-        
+
         /* Main Content */
         .main-content {
             flex: 1;
@@ -123,7 +124,7 @@
             min-height: 100vh;
             background-color: var(--bs-body-bg);
         }
-        
+
         .top-bar {
             background-color: var(--bs-body-bg);
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -132,13 +133,13 @@
             justify-content: space-between;
             align-items: center;
         }
-        
+
         .user-menu {
             display: flex;
             align-items: center;
             gap: 1rem;
         }
-        
+
         .theme-toggle-btn {
             background: none;
             border: none;
@@ -149,12 +150,12 @@
             transition: all 0.2s ease;
             font-size: 1.1rem;
         }
-        
+
         .theme-toggle-btn:hover {
             background-color: rgba(255, 255, 255, 0.05);
             transform: scale(1.1);
         }
-        
+
         .user-menu .dropdown-toggle {
             background: none;
             border: none;
@@ -164,112 +165,115 @@
             cursor: pointer;
             transition: background-color 0.2s ease;
         }
-        
+
         .user-menu .dropdown-toggle:hover {
             background-color: rgba(255, 255, 255, 0.05);
         }
-        
+
         /* Light theme overrides */
         [data-bs-theme="light"] {
             --bs-body-bg: #f8f9fa;
             --bs-body-color: #212529;
         }
-        
+
         [data-bs-theme="light"] .sidebar {
             background-color: #ffffff;
             border-right: 1px solid #dee2e6;
         }
-        
+
         [data-bs-theme="light"] .sidebar-header,
         [data-bs-theme="light"] .nav-divider {
             border-color: #dee2e6;
         }
-        
+
         [data-bs-theme="light"] .nav-link {
             color: #6c757d;
         }
-        
+
         [data-bs-theme="light"] .nav-link:hover {
             background-color: rgba(0, 0, 0, 0.05);
             color: #212529;
         }
-        
+
         [data-bs-theme="light"] .nav-link.active {
             background-color: rgba(34, 197, 94, 0.1);
             color: #198754;
         }
-        
+
         [data-bs-theme="light"] .top-bar {
             background-color: #ffffff;
             border-bottom: 1px solid #dee2e6;
         }
-        
+
         .content-wrapper {
             padding: 2rem;
             max-width: 1400px;
             margin: 0 auto;
             animation: fadeIn 0.3s ease-in-out;
         }
-        
+
         /* Animações de transição entre páginas */
         @keyframes fadeIn {
             from {
                 opacity: 0;
                 transform: translateY(10px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
             }
         }
-        
+
         @keyframes fadeOut {
             from {
                 opacity: 1;
                 transform: translateY(0);
             }
+
             to {
                 opacity: 0;
                 transform: translateY(-10px);
             }
         }
-        
+
         .page-transition-leave {
             animation: fadeOut 0.2s ease-in-out forwards;
         }
-        
+
         .page-transition-enter {
             animation: fadeIn 0.3s ease-in-out;
         }
-        
+
         /* Respeitar preferências de movimento reduzido */
         @media (prefers-reduced-motion: reduce) {
+
             .content-wrapper,
             .page-transition-leave,
             .page-transition-enter {
                 animation: none !important;
             }
         }
-        
+
         /* Mobile Responsive */
         @media (max-width: 768px) {
             .sidebar {
                 transform: translateX(-100%);
             }
-            
+
             .sidebar.show {
                 transform: translateX(0);
             }
-            
+
             .main-content {
                 margin-left: 0;
             }
-            
+
             .mobile-menu-toggle {
                 display: block !important;
             }
         }
-        
+
         .mobile-menu-toggle {
             display: none;
             background: none;
@@ -279,7 +283,7 @@
             cursor: pointer;
             padding: 0.5rem;
         }
-        
+
         .overlay {
             display: none;
             position: fixed;
@@ -290,12 +294,13 @@
             background-color: rgba(0, 0, 0, 0.5);
             z-index: 999;
         }
-        
+
         .overlay.show {
             display: block;
         }
     </style>
 </head>
+
 <body>
     {% if current_user.is_authenticated %}
     <div class="app-container">
@@ -310,87 +315,104 @@
                     </div>
                 </a>
             </div>
-            
+
             <nav class="sidebar-nav">
                 <div class="nav-section">
                     <div class="nav-item">
-                        <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+                        <a href="{{ url_for('dashboard') }}"
+                            class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
                             <i class="fas fa-th-large"></i>
                             <span>Dashboard</span>
                         </a>
                     </div>
-                    
+
                     {% if current_user.is_admin or current_user.acesso_projetos %}
                     <div class="nav-item">
-                        <a href="{{ url_for('projects') }}" class="nav-link {% if request.endpoint in ['projects', 'project_details', 'edit_project'] %}active{% endif %}">
+                        <a href="{{ url_for('projects') }}"
+                            class="nav-link {% if request.endpoint in ['projects', 'project_details', 'edit_project'] %}active{% endif %}">
                             <i class="fas fa-project-diagram"></i>
                             <span>Projetos</span>
                         </a>
                     </div>
                     {% endif %}
-                    
+
                     {% if current_user.is_admin or current_user.acesso_tarefas %}
                     <div class="nav-item">
-                        <a href="{{ url_for('tasks') }}" class="nav-link {% if request.endpoint == 'tasks' %}active{% endif %}">
+                        <a href="{{ url_for('tasks') }}"
+                            class="nav-link {% if request.endpoint == 'tasks' %}active{% endif %}">
                             <i class="fas fa-check-circle"></i>
                             <span>Tarefas</span>
                         </a>
                     </div>
                     {% endif %}
-                    
+
                     {% if current_user.is_admin or current_user.acesso_clientes %}
                     <div class="nav-item">
-                        <a href="{{ url_for('clients') }}" class="nav-link {% if request.endpoint == 'clients' %}active{% endif %}">
+                        <a href="{{ url_for('clients') }}"
+                            class="nav-link {% if request.endpoint == 'clients' %}active{% endif %}">
                             <i class="fas fa-users"></i>
                             <span>Clientes</span>
                         </a>
                     </div>
                     {% endif %}
-                    
+
                     {% if current_user.is_admin %}
                     <div class="nav-item">
-                        <a href="{{ url_for('admin_users') }}" class="nav-link {% if request.endpoint in ['admin_users', 'admin_new_user', 'admin_edit_user'] %}active{% endif %}">
+                        <a href="{{ url_for('admin_users') }}"
+                            class="nav-link {% if request.endpoint in ['admin_users', 'admin_new_user', 'admin_edit_user'] %}active{% endif %}">
                             <i class="fas fa-user-cog"></i>
                             <span>Usuários</span>
                         </a>
                     </div>
                     <div class="nav-item">
-                        <a href="{{ url_for('system_api_keys_page') }}" class="nav-link {% if request.endpoint == 'system_api_keys_page' %}active{% endif %}">
+                        <a href="{{ url_for('system_api_keys_page') }}"
+                            class="nav-link {% if request.endpoint == 'system_api_keys_page' %}active{% endif %}">
                             <i class="fas fa-key"></i>
                             <span>API do Sistema</span>
                         </a>
                     </div>
                     {% endif %}
-                    
+
                     {% if current_user.is_admin or current_user.acesso_kanban %}
                     <div class="nav-item">
-                        <a href="{{ url_for('kanban') }}" class="nav-link {% if request.endpoint == 'kanban' %}active{% endif %}">
+                        <a href="{{ url_for('kanban') }}"
+                            class="nav-link {% if request.endpoint == 'kanban' %}active{% endif %}">
                             <i class="fas fa-columns"></i>
                             <span>Kanban</span>
                         </a>
                     </div>
                     {% endif %}
-                    
+
                     {% if current_user.is_admin or current_user.acesso_crm %}
                     <div class="nav-item">
-                        <a href="{{ url_for('crm') }}" class="nav-link {% if request.endpoint == 'crm' %}active{% endif %}">
+                        <a href="{{ url_for('crm') }}"
+                            class="nav-link {% if request.endpoint == 'crm' %}active{% endif %}">
                             <i class="fas fa-diamond"></i>
                             <span>CRM</span>
                         </a>
                     </div>
                     {% endif %}
+
+                    <div class="nav-item">
+                        <a href="{{ url_for('reports') }}"
+                            class="nav-link {% if request.endpoint == 'reports' %}active{% endif %}">
+                            <i class="fas fa-file-pdf"></i>
+                            <span>Relatórios</span>
+                        </a>
+                    </div>
                 </div>
-                
+
                 <div class="nav-divider"></div>
-                
+
                 <div class="nav-section">
                     <div class="nav-item">
-                        <a href="{{ url_for('change_password') }}" class="nav-link {% if request.endpoint == 'change_password' %}active{% endif %}">
+                        <a href="{{ url_for('change_password') }}"
+                            class="nav-link {% if request.endpoint == 'change_password' %}active{% endif %}">
                             <i class="fas fa-user"></i>
                             <span>Perfil</span>
                         </a>
                     </div>
-                    
+
                     <div class="nav-item">
                         <a href="{{ url_for('logout') }}" class="nav-link">
                             <i class="fas fa-sign-out-alt"></i>
@@ -400,17 +422,17 @@
                 </div>
             </nav>
         </aside>
-        
+
         <!-- Overlay for mobile -->
         <div class="overlay" id="overlay"></div>
-        
+
         <!-- Main Content -->
         <div class="main-content">
             <div class="top-bar">
                 <button class="mobile-menu-toggle" id="menuToggle">
                     <i class="fas fa-bars"></i>
                 </button>
-                
+
                 <div class="user-menu">
                     <button class="theme-toggle-btn" id="themeToggle" title="Alternar tema">
                         <i class="fas fa-moon"></i>
@@ -420,19 +442,20 @@
                     </span>
                 </div>
             </div>
-            
+
             <div class="content-wrapper">
                 {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                 {% for category, message in messages %}
-                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show"
+                    role="alert">
                     {{ message }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
                 {% endfor %}
                 {% endif %}
                 {% endwith %}
-                
+
                 {% block content %}{% endblock %}
             </div>
         </div>
@@ -443,58 +466,59 @@
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
         {% for category, message in messages %}
-        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show"
+            role="alert">
             {{ message }}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
         {% endfor %}
         {% endif %}
         {% endwith %}
-        
+
         {# Content block is defined above for authenticated users #}
         {{ self.content() }}
     </main>
     {% endif %}
-    
+
     <script>
         // Mobile menu toggle
         const menuToggle = document.getElementById('menuToggle');
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('overlay');
-        
+
         if (menuToggle && sidebar && overlay) {
-            menuToggle.addEventListener('click', function() {
+            menuToggle.addEventListener('click', function () {
                 sidebar.classList.toggle('show');
                 overlay.classList.toggle('show');
             });
-            
-            overlay.addEventListener('click', function() {
+
+            overlay.addEventListener('click', function () {
                 sidebar.classList.remove('show');
                 overlay.classList.remove('show');
             });
         }
-        
+
         // Theme toggle functionality
         const themeToggle = document.getElementById('themeToggle');
         const htmlElement = document.documentElement;
-        
+
         // Load saved theme or default to dark
         const savedTheme = localStorage.getItem('theme') || 'dark';
         htmlElement.setAttribute('data-bs-theme', savedTheme);
-        
+
         if (themeToggle) {
             updateThemeIcon(savedTheme);
-            
-            themeToggle.addEventListener('click', function() {
+
+            themeToggle.addEventListener('click', function () {
                 const currentTheme = htmlElement.getAttribute('data-bs-theme');
                 const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-                
+
                 htmlElement.setAttribute('data-bs-theme', newTheme);
                 localStorage.setItem('theme', newTheme);
                 updateThemeIcon(newTheme);
             });
         }
-        
+
         function updateThemeIcon(theme) {
             if (!themeToggle) return;
             const icon = themeToggle.querySelector('i');
@@ -507,39 +531,39 @@
                 themeToggle.title = 'Mudar para tema escuro';
             }
         }
-        
+
         // Smooth page transitions
         let isTransitioning = false;
-        
+
         function initPageTransitions() {
             // Interceptar cliques nos links de navegação da sidebar
             const navLinks = document.querySelectorAll('.sidebar .nav-link:not([href^="javascript:"]):not([onclick])');
-            
+
             navLinks.forEach(link => {
-                link.addEventListener('click', function(e) {
+                link.addEventListener('click', function (e) {
                     // Não interceptar se já está em transição ou é o logout
                     if (isTransitioning || this.href.includes('/logout')) {
                         return;
                     }
-                    
+
                     // Não interceptar se é a página atual
                     if (this.classList.contains('active')) {
                         e.preventDefault();
                         return;
                     }
-                    
+
                     // Prevenir navegação padrão
                     e.preventDefault();
                     const targetUrl = this.href;
-                    
+
                     // Marcar que está em transição
                     isTransitioning = true;
-                    
+
                     // Aplicar animação de saída
                     const contentWrapper = document.querySelector('.content-wrapper');
                     if (contentWrapper) {
                         contentWrapper.classList.add('page-transition-leave');
-                        
+
                         // Aguardar animação e navegar
                         setTimeout(() => {
                             window.location.href = targetUrl;
@@ -551,20 +575,20 @@
                 });
             });
         }
-        
+
         // Inicializar transições quando a página carregar
         if (document.querySelector('.sidebar')) {
             initPageTransitions();
         }
-        
+
         // Adicionar animação de entrada quando voltar usando botão "voltar" do navegador
-        window.addEventListener('pageshow', function(event) {
+        window.addEventListener('pageshow', function (event) {
             isTransitioning = false;
             const contentWrapper = document.querySelector('.content-wrapper');
             if (contentWrapper) {
                 contentWrapper.classList.remove('page-transition-leave');
                 contentWrapper.classList.add('page-transition-enter');
-                
+
                 // Remover classe após animação
                 setTimeout(() => {
                     contentWrapper.classList.remove('page-transition-enter');
@@ -577,4 +601,5 @@
     <script src="{{ url_for('static', filename='js/kanban.js') }}"></script>
     {% block scripts %}{% endblock %}
 </body>
+
 </html>

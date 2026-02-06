@@ -4150,129 +4150,171 @@ def reports():
         
     return render_template('reports.html', projects=projects, clients=clients, users=users)
 
-@app.route('/reports/generate_pdf')
+@app.route('/reports/generate_pdf', methods=['GET', 'POST'])
 @login_required
 def generate_pdf():
-    # Filtros
-    project_id = request.args.get('project_id')
-    client_id = request.args.get('client_id')
-    user_id = request.args.get('user_id')
+    print("DEBUG: generate_pdf requested", flush=True)
     
-    query = Project.query.join(Client)
+    # Inicializa variáveis
+    projects = []
     
-    # Aplicar filtros
-    if project_id:
-        query = query.filter(Project.id == project_id)
-    if client_id:
-        query = query.filter(Project.client_id == client_id)
-    if user_id:
-        query = query.filter(Project.responsible_id == user_id)
-        
-    # Permissões (se não for admin)
-    if not current_user.is_admin:
-         query = query.filter(
-            (Project.responsible_id == current_user.id) |
-            (Project.team_members.contains(current_user))
-        )
-         
-    projects = query.order_by(Client.nome, Project.nome).all()
-    
-    if not projects:
-        flash('Nenhum projeto encontrado para gerar relatório.', 'warning')
-        return redirect(url_for('reports'))
-
-    # Configuração do PDF
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4,
-                            rightMargin=20*mm, leftMargin=20*mm,
-                            topMargin=20*mm, bottomMargin=20*mm)
-    
-    elements = []
-    styles = getSampleStyleSheet()
-    
-    # Estilos Personalizados
-    title_style = ParagraphStyle(
-        'CustomTitle',
-        parent=styles['Heading1'],
-        fontSize=16,
-        spaceAfter=10,
-        textColor=colors.HexColor('#2c3e50')
-    )
-    
-    subtitle_style = ParagraphStyle(
-        'CustomSubtitle',
-        parent=styles['Heading2'],
-        fontSize=12,
-        spaceAfter=20,
-        textColor=colors.HexColor('#7f8c8d')
-    )
-    
-    body_style = ParagraphStyle(
-        'CustomBody',
-        parent=styles['Normal'],
-        fontSize=11,
-        leading=16,
-        spaceAfter=10,
-        alignment=4 # Justified
-    )
-
-    projects_with_data = 0
-    
-    for project in projects:
-        # Verificar se tem os dados mínimos (verde vs amarelo)
-        has_data = project.descricao_resumida and project.problema_oportunidade and project.objetivos
-        if not has_data:
-            continue
-            
-        projects_with_data += 1
-            
-        # Conteúdo do Relatório
-        # Header: Cliente | Projeto
-        client_name = project.client.nome if project.client else "Cliente Desconhecido"
-        project_name = project.nome
-        
-        elements.append(Paragraph(f"{client_name}", subtitle_style))
-        elements.append(Paragraph(f"{project_name}", title_style))
-        
-        # Síntese (Parágrafo combinado)
-        # Sanitizar inputs para evitar erros no platypus (ex: tags HTML não fechadas) se necessário.
-        # Por segurança, usar html.escape se o conteúdo for raw text, mas Paragraph aceita subset de XML.
-        # Assumindo que o conteúdo do banco é texto plano ou markdown. Paragraph espera XML-like.
-        # Vou fazer um escape simples dos caracteres <, >, & se não for usar tags intencionais.
-        # Mas o usuário pode ter usado markdown. 
-        # Python 's html.escape could be useful, but Paragraph handles some tags.
-        # Let's hope the content handles basic text.
-        
-        def safe_text(text):
-            return str(text).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('\n', '<br/>')
-            
-        desc = safe_text(project.descricao_resumida)
-        prob = safe_text(project.problema_oportunidade)
-        obj = safe_text(project.objetivos)
-        
-        sintese_text = f"<b>Descrição Resumida:</b><br/>{desc}<br/><br/>" \
-                       f"<b>Problema/Oportunidade:</b><br/>{prob}<br/><br/>" \
-                       f"<b>Objetivos:</b><br/>{obj}"
-        
-        elements.append(Paragraph(sintese_text, body_style))
-        
-        # Responsável
-        if project.responsible:
-            elements.append(Paragraph(f"<b>Responsável:</b> {project.responsible.full_name}", body_style))
-            
-        elements.append(PageBreak())
-    
-    if projects_with_data == 0:
-        # Se nenhum projeto tinha dados completos
-        flash('Nenhum dos projetos filtrados possui dados completos (Descrição, Problema, Objetivos) para gerar o relatório.', 'warning')
-        return redirect(url_for('reports'))
-
     try:
+        if request.method == 'POST':
+            print(f"DEBUG: Processing POST request. Content-Type: {request.content_type}", flush=True)
+            
+            data = request.get_json()
+            if not data:
+                print("DEBUG: Sem dados JSON", flush=True)
+                flash('Nenhum dado recebido.', 'warning')
+                return redirect(url_for('reports'))
+                
+            project_ids = data.get('project_ids', [])
+            print(f"DEBUG: project_ids recebidos: {project_ids}", flush=True)
+            
+            if not project_ids:
+                print("DEBUG: Lista de projetos vazia", flush=True)
+                flash('Nenhum projeto selecionado.', 'warning')
+                return redirect(url_for('reports'))
+            
+            # Filtro de segurança
+            query = Project.query.filter(Project.id.in_(project_ids))
+            if not current_user.is_admin:
+                 query = query.filter(
+                    (Project.responsible_id == current_user.id) |
+                    (Project.team_members.contains(current_user))
+                )
+            
+            projects = query.join(Client).order_by(Client.nome, Project.nome).all()
+            print(f"DEBUG: Projetos encontrados para PDF: {len(projects)}", flush=True)
+
+        else:
+            print("DEBUG: Processing GET request", flush=True)
+            # Fallback para GET
+            project_id = request.args.get('project_id')
+            client_id = request.args.get('client_id')
+            user_id = request.args.get('user_id')
+            
+            query = Project.query.join(Client)
+            
+            if project_id:
+                query = query.filter(Project.id == project_id)
+            if client_id:
+                query = query.filter(Project.client_id == client_id)
+            if user_id:
+                query = query.filter(Project.responsible_id == user_id)
+                
+            if not current_user.is_admin:
+                 query = query.filter(
+                    (Project.responsible_id == current_user.id) |
+                    (Project.team_members.contains(current_user))
+                )
+                 
+            projects = query.order_by(Client.nome, Project.nome).all()
+            print(f"DEBUG: Projetos (GET) encontrados: {len(projects)}", flush=True)
+        
+        if not projects:
+            flash('Nenhum projeto encontrado para gerar relatório.', 'warning')
+            return redirect(url_for('reports'))
+
+        # Configuração do PDF
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4,
+                                rightMargin=20*mm, leftMargin=20*mm,
+                                topMargin=20*mm, bottomMargin=20*mm)
+        
+        elements = []
+        styles = getSampleStyleSheet()
+        
+        # Estilos
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=16,
+            spaceAfter=10,
+            textColor=colors.HexColor('#2c3e50')
+        )
+        
+        subtitle_style = ParagraphStyle(
+            'CustomSubtitle',
+            parent=styles['Heading2'],
+            fontSize=12,
+            spaceAfter=20,
+            textColor=colors.HexColor('#7f8c8d')
+        )
+        
+        body_style = ParagraphStyle(
+            'CustomBody',
+            parent=styles['Normal'],
+            fontSize=11,
+            leading=16,
+            spaceAfter=10,
+            alignment=4 # Justified
+        )
+
+        projects_processed = 0
+        
+        for project in projects:
+            print(f"DEBUG: Processando projeto {project.id} ({project.nome})", flush=True)
+            
+            # Tentar processar IA se não tiver resumo
+            contexto = project.descricao_resumida
+            problema = project.problema_oportunidade
+            objetivos = project.objetivos
+            
+            # Se faltar dados, tenta usar IA se tiver transcrição
+            if not (contexto and problema and objetivos):
+                if project.transcricao:
+                    try:
+                        print(f"DEBUG: Tentando síntese IA para projeto {project.id}", flush=True)
+                        ai_result = process_project_transcription(project.transcricao)
+                        if ai_result:
+                            contexto = ai_result.get('descricao_resumida', '')
+                            problema = ai_result.get('problema_oportunidade', '')
+                            objetivos = ai_result.get('objetivos', '')
+                            print("DEBUG: Síntese IA bem sucedida", flush=True)
+                    except Exception as e:
+                        print(f"DEBUG: Erro IA: {e}", flush=True)
+                        rpa_log.error(f"Erro ao gerar síntese IA: {e}", regiao="relatorios")
+            
+            # Se ainda assim não tiver nada, usar texto padrão ou pular?
+            # Vamos exibir o que tem.
+            
+            client_name = project.client.nome if project.client else "Cliente não identificado"
+            
+            elements.append(Paragraph(f"{client_name}", subtitle_style))
+            elements.append(Paragraph(f"{project.nome}", title_style))
+            
+            def safe_text(text):
+                if not text: return "<i>(Informação não disponível)</i>"
+                return str(text).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('\n', '<br/>')
+
+            sintese_text = f"<b>Descrição Resumida:</b><br/>{safe_text(contexto)}<br/><br/>" \
+                           f"<b>Problema/Oportunidade:</b><br/>{safe_text(problema)}<br/><br/>" \
+                           f"<b>Objetivos:</b><br/>{safe_text(objetivos)}"
+            
+            elements.append(Paragraph(sintese_text, body_style))
+            
+            if project.responsible:
+                elements.append(Paragraph(f"<b>Responsável:</b> {project.responsible.full_name}", body_style))
+                
+            elements.append(PageBreak())
+            projects_processed += 1
+        
+        if projects_processed == 0:
+            print("DEBUG: Nenhum projeto processado com sucesso", flush=True)
+            flash('Nenhum projeto pôde ser incluído no relatório (falta de dados).', 'warning')
+            return redirect(url_for('reports'))
+
         doc.build(elements)
         buffer.seek(0)
         filename = f"relatorio_projetos_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
+        print("DEBUG: PDF gerado, enviando arquivo...", flush=True)
         return send_file(buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
+
     except Exception as e:
+        print(f"DEBUG: Erro fatal em generate_pdf: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
         rpa_log.error(f"Erro ao gerar PDF: {str(e)}", regiao="relatorios")
-        flash('Erro ao gerar arquivo PDF. Verifique os logs.', 'error')
+        flash('Erro interno ao gerar relatório.', 'danger')
         return redirect(url_for('reports'))

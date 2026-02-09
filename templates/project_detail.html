@@ -770,17 +770,36 @@
                                     <label class="form-check-label" for="edit_has_drive"><i
                                             class="fab fa-google-drive me-1"></i>Drive</label>
                                 </div>
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="edit_has_env" name="has_env" {%
-                                        if project.has_env %}checked{% endif %}>
-                                    <label class="form-check-label" for="edit_has_env"><i
-                                            class="fas fa-file-code me-1"></i>.env</label>
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="form-check form-switch me-3">
+                                        <input class="form-check-input" type="checkbox" id="edit_has_env" name="has_env"
+                                            {% if project.has_env is not none %}checked{% endif %}
+                                            onchange="toggleNoneCheckbox(this, 'has_env')">
+                                        <label class="form-check-label" for="edit_has_env"><i
+                                                class="fas fa-file-code me-1"></i>.env</label>
+                                    </div>
+                                    <div class="form-check" id="div_has_env_none"
+                                        style="display: {% if project.has_env is not none %}block{% else %}none{% endif %};">
+                                        <input class="form-check-input" type="checkbox" id="edit_has_env_none"
+                                            name="has_env_none" {% if project.has_env is false %}checked{% endif %}>
+                                        <label class="form-check-label" for="edit_has_env_none">Não possui</label>
+                                    </div>
                                 </div>
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="edit_has_backup_db"
-                                        name="has_backup_db" {% if project.has_backup_db %}checked{% endif %}>
-                                    <label class="form-check-label" for="edit_has_backup_db"><i
-                                            class="fas fa-database me-1"></i>Backup DB</label>
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="form-check form-switch me-3">
+                                        <input class="form-check-input" type="checkbox" id="edit_has_backup_db"
+                                            name="has_backup_db" {% if project.has_backup_db is not none %}checked{%
+                                            endif %} onchange="toggleNoneCheckbox(this, 'has_backup_db')">
+                                        <label class="form-check-label" for="edit_has_backup_db"><i
+                                                class="fas fa-database me-1"></i>Backup DB</label>
+                                    </div>
+                                    <div class="form-check" id="div_has_backup_db_none"
+                                        style="display: {% if project.has_backup_db is not none %}block{% else %}none{% endif %};">
+                                        <input class="form-check-input" type="checkbox" id="edit_has_backup_db_none"
+                                            name="has_backup_db_none" {% if project.has_backup_db is false %}checked{%
+                                            endif %}>
+                                        <label class="form-check-label" for="edit_has_backup_db_none">Não possui</label>
+                                    </div>
                                 </div>
                                 <div class="form-check form-switch ms-3 border-start ps-3">
                                     <input class="form-check-input" type="checkbox" id="edit_show_in_kanban"
@@ -1877,6 +1896,16 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
             label.textContent = '1 membro selecionado';
         } else {
             label.textContent = `${checkboxes.length} membros selecionados`;
+        }
+    }
+    function toggleNoneCheckbox(toggle, targetId) {
+        const targetDiv = document.getElementById('div_' + targetId + '_none');
+        const targetCheckbox = document.getElementById('edit_' + targetId + '_none');
+        if (toggle.checked) {
+            targetDiv.style.display = 'block';
+        } else {
+            targetDiv.style.display = 'none';
+            targetCheckbox.checked = false;
         }
     }
 </script>

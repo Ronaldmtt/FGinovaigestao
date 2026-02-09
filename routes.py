@@ -805,6 +805,27 @@ def edit_project(id):
     project.has_github = True if request.form.get('has_github') == 'on' else False
     project.has_drive = True if request.form.get('has_drive') == 'on' else False
     
+    # 3-State Logic for .ENV
+    # Toggle OFF -> None (Pending/Red)
+    # Toggle ON + "Não possui" OFF -> True (Green/Check)
+    # Toggle ON + "Não possui" ON -> False (Hidden)
+    if request.form.get('has_env') == 'on':
+        if request.form.get('has_env_none') == 'on':
+            project.has_env = False
+        else:
+            project.has_env = True
+    else:
+        project.has_env = None
+
+    # 3-State Logic for Backup DB
+    if request.form.get('has_backup_db') == 'on':
+        if request.form.get('has_backup_db_none') == 'on':
+            project.has_backup_db = False
+        else:
+            project.has_backup_db = True
+    else:
+        project.has_backup_db = None
+    
     # Atualizar progresso e prazo
     progress_percent = request.form.get('progress_percent', 0)
     project.progress_percent = int(progress_percent) if progress_percent else 0
@@ -820,7 +841,7 @@ def edit_project(id):
     if data_inicio_str:
         project.data_inicio = dt.strptime(data_inicio_str, '%Y-%m-%d').date()
     else:
-         project.data_inicio = None
+        project.data_inicio = None
          
     data_fim_str = request.form.get('data_fim')
     if data_fim_str:
@@ -828,18 +849,26 @@ def edit_project(id):
     else:
         project.data_fim = None
     
-    # Atualizar campos de Contexto e Justificativa
-    project.descricao_resumida = request.form.get('descricao_resumida', '')
-    project.problema_oportunidade = request.form.get('problema_oportunidade', '')
-    project.objetivos = request.form.get('objetivos', '')
-    project.alinhamento_estrategico = request.form.get('alinhamento_estrategico', '')
+    # Atualizar campos de Contexto e Justificativa (Somente se presentes no form para evitar overwrite)
+    if 'descricao_resumida' in request.form:
+        project.descricao_resumida = request.form.get('descricao_resumida', '')
+    if 'problema_oportunidade' in request.form:
+        project.problema_oportunidade = request.form.get('problema_oportunidade', '')
+    if 'objetivos' in request.form:
+        project.objetivos = request.form.get('objetivos', '')
+    if 'alinhamento_estrategico' in request.form:
+        project.alinhamento_estrategico = request.form.get('alinhamento_estrategico', '')
     
     # Atualizar campos de Escopo
-    project.escopo_projeto = request.form.get('escopo_projeto', '')
-    project.fora_escopo = request.form.get('fora_escopo', '')
-    project.premissas = request.form.get('premissas', '')
+    if 'escopo_projeto' in request.form:
+        project.escopo_projeto = request.form.get('escopo_projeto', '')
+    if 'fora_escopo' in request.form:
+        project.fora_escopo = request.form.get('fora_escopo', '')
+    if 'premissas' in request.form:
+        project.premissas = request.form.get('premissas', '')
 
-    project.restricoes = request.form.get('restricoes', '')
+    if 'restricoes' in request.form:
+        project.restricoes = request.form.get('restricoes', '')
     
     # Atualizar visibilidade no Kanban
     project.show_in_kanban = True if request.form.get('show_in_kanban') else False
@@ -1604,77 +1633,7 @@ def get_project_data(id):
         'users': users_data
     })
 
-@app.route('/projects/<int:id>/edit', methods=['POST'])
-@login_required
-def update_project(id):
-    project = Project.query.get_or_404(id)
-    
-    # Verificar se o usuário tem permissão para editar
-    if not current_user.is_admin and current_user.id != project.responsible_id:
-        flash('Você não tem permissão para editar este projeto.', 'danger')
-        return redirect(url_for('projects'))
-    
-    # Atualizar dados do projeto
-    project.nome = request.form.get('nome')
-    project.client_id = request.form.get('client_id')
-    project.responsible_id = request.form.get('responsible_id')
-    project.status = request.form.get('status')
-    
-    # DEBUG: Log form data
-    print(f"DEBUG update_project: form keys = {list(request.form.keys())}")
-    print(f"DEBUG update_project: has_env in form? {'has_env' in request.form}")
-    print(f"DEBUG update_project: has_backup_db in form? {'has_backup_db' in request.form}")
 
-    # Novos campos de atributos
-    # Log para depuração EXTREMA - mostrar tudo que vem do formulário
-    print(f"DEBUG FORM KEYS: {list(request.form.keys())}")
-    print(f"DEBUG FORM HAS_ENV: {request.form.get('has_env')}")
-
-    # Validar checkboxes explicitamente
-    project.has_github = request.form.get('has_github') == 'on'
-    project.has_drive = request.form.get('has_drive') == 'on'
-    project.has_env = request.form.get('has_env') == 'on'
-    project.has_backup_db = request.form.get('has_backup_db') == 'on'
-    
-    # Log para depuração
-    print(f"DEBUG update_project {id}: ENV={project.has_env}, DB={project.has_backup_db}")
-
-    project.rpa_identifier = request.form.get('rpa_identifier')
-    project.problema_oportunidade = request.form.get('problema_oportunidade')
-    project.objetivos = request.form.get('objetivos')
-    project.alinhamento_estrategico = request.form.get('alinhamento_estrategico')
-    project.escopo_projeto = request.form.get('escopo_projeto')
-    project.fora_escopo = request.form.get('fora_escopo')
-    project.premissas = request.form.get('premissas')
-    project.premissas = request.form.get('premissas')
-    project.restricoes = request.form.get('restricoes')
-
-    # Dates
-    data_inicio_str = request.form.get('data_inicio')
-    if data_inicio_str:
-        from datetime import datetime as dt
-        project.data_inicio = dt.strptime(data_inicio_str, '%Y-%m-%d').date()
-    else:
-        project.data_inicio = None
-
-    data_fim_str = request.form.get('data_fim')
-    if data_fim_str:
-        from datetime import datetime as dt
-        project.data_fim = dt.strptime(data_fim_str, '%Y-%m-%d').date()
-    else:
-        project.data_fim = None
-    
-    # Limpar membros atuais da equipe e adicionar novo se selecionado
-    project.team_members.clear()
-    team_member_id = request.form.get('team_member_id')
-    if team_member_id:
-        user = User.query.get(team_member_id)
-        if user:
-            project.team_members.append(user)
-    
-    db.session.commit()
-    flash('Projeto atualizado com sucesso!', 'success')
-    return redirect(url_for('projects'))
 
 @app.route('/projects/<int:id>/update-field', methods=['POST'])
 @login_required

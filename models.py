@@ -94,8 +94,8 @@ class Project(db.Model):
     # Indicadores de Conteúdo
     has_github = db.Column(db.Boolean, default=False, nullable=False)
     has_drive = db.Column(db.Boolean, default=False, nullable=False)
-    has_env = db.Column(db.Boolean, default=False, nullable=False)
-    has_backup_db = db.Column(db.Boolean, default=False, nullable=False)
+    has_env = db.Column(db.Boolean, default=None, nullable=True)
+    has_backup_db = db.Column(db.Boolean, default=None, nullable=True)
     
     # Integração RPA
     rpa_identifier = db.Column(db.String(100), nullable=True)

@@ -206,3 +206,60 @@ def generate_project_report_summary(project_name, description, problem, objectiv
         print(f"Erro ao gerar resumo do projeto para relatório: {e}")
         # Fallback se a IA falhar: concatenação simples
         return f"{description}. O projeto visa resolver: {problem}. Principais objetivos: {objectives}."
+
+def generate_client_report_from_tasks(project_name, tasks):
+    """
+    Gera um relatório executivo para clientes com base nas tarefas técnicas.
+    Traduz 'tech-speak' para 'business-value'.
+    
+    tasks: lista de dicts {'titulo': str, 'descricao': str, 'status': str}
+    """
+    try:
+        # Preparar lista de tarefas para o prompt
+        tasks_text = ""
+        for t in tasks:
+            status_symbol = "✓" if t.get('status') == 'concluida' else "○"
+            tasks_text += f"{status_symbol} [Status: {t.get('status')}] {t.get('titulo')}: {t.get('descricao')}\n"
+            
+        prompt = f"""
+        Você é um Gerente de Contas Sênior reportando o progresso do projeto "{project_name}" para um cliente NÃO-TÉCNICO (CEO/Diretor de empresa).
+        
+        Sua missão: Traduzir a lista de tarefas técnicas abaixo em um relatório de progresso focado em VALOR DE NEGÓCIO.
+        
+        TAREFAS TÉCNICAS EXECUTADAS/EM ANDAMENTO:
+        {tasks_text}
+        
+        DIRETRIZES:
+        1. Ignore jargões técnicos (ex: "refatorar rota", "ajustar query SQL", "blueprints"). Substitua por termos de negócio (ex: "melhoria na estrutura do sistema", "otimização de banco de dados").
+        2. Agrupe tarefas pequenas e relacionadas em um único ponto de progresso robusto.
+        3. Enfatize o que já foi entregue (✓) e o que está em andamento (○).
+        4. O tom deve ser profissional, confiante e transparente.
+        
+        Retorne APENAS um JSON no seguinte formato:
+        {{
+            "resumo_executivo": "Um parágrafo de 3-4 linhas resumindo o estado geral do projeto e as principais conquistas recentes.",
+            "entregas_recentes": [
+                "Ponto 1 (focado em valor)",
+                "Ponto 2 (focado em valor)"
+            ],
+            "proximos_passos": [
+                "O que será focado a seguir (traduzido para linguagem de negócio)"
+            ]
+        }}
+        """
+        
+        response = openai.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"},
+            temperature=0.7
+        )
+        
+        content = response.choices[0].message.content
+        if content:
+            return json.loads(content)
+        return None
+        
+    except Exception as e:
+        print(f"Erro ao gerar relatório de cliente: {e}")
+        return None

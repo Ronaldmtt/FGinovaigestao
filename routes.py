@@ -1,4 +1,5 @@
-from flask import render_template, request, redirect, url_for, flash, jsonify, send_from_directory, send_file
+
+from flask import render_template, request, redirect, url_for, flash, jsonify, send_from_directory, current_app, send_file
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
@@ -13,11 +14,12 @@ import json
 import os
 import uuid
 import mimetypes
+import io # Added io for BytesIO
 from app import app, ALLOWED_EXTENSIONS
 from extensions import db, mail
 from models import User, Client, Project, Task, TodoItem, Contato, Comentario, FileCategory, ProjectFile, ProjectApiCredential, ProjectApiEndpoint, ProjectApiKey, SystemApiKey
 from forms import LoginForm, UserForm, EditUserForm, ClientForm, ProjectForm, TaskForm, TranscriptionTaskForm, ManualProjectForm, ManualTaskForm, ForgotPasswordForm, ResetPasswordForm, ChangePasswordForm, ImportDataForm
-from openai_service import process_project_transcription, generate_tasks_from_transcription, generate_project_report_summary
+from openai_service import process_project_transcription, generate_tasks_from_transcription, generate_project_report_summary, generate_client_report_from_tasks # Added generate_client_report_from_tasks
 from email_service import enviar_email_nova_tarefa, enviar_email_mudanca_status, enviar_email_alteracao_data, enviar_email_tarefa_editada, enviar_email_resumo_tarefas
 
 # RPA Monitor - Logging
@@ -4267,6 +4269,42 @@ def generate_pdf():
 
             elements.append(Paragraph(summary_text, body_style))
             
+            # --- NOVA SEÇÃO: Relatório de Tarefas Human-Readable ---
+            try:
+                print(f"DEBUG: Gerando relatório de tarefas (Human-Readable) para {project.nome}...", flush=True)
+                # Buscar tarefas do projeto (ordenar por status para agrupar concluídas)
+                tasks = Task.query.filter_by(project_id=project.id).order_by(Task.status.desc()).all()
+                
+                if tasks:
+                    tasks_data = [{'titulo': t.titulo, 'descricao': t.descricao, 'status': t.status} for t in tasks]
+                    client_report = generate_client_report_from_tasks(project.nome, tasks_data)
+                    
+                    if client_report:
+                        elements.append(Spacer(1, 15))
+                        elements.append(Paragraph("Status Executivo & Entregas", subtitle_style))
+                        
+                        # Resumo Executivo das Tarefas
+                        if client_report.get('resumo_executivo'):
+                            elements.append(Paragraph(client_report['resumo_executivo'], body_style))
+                            elements.append(Spacer(1, 8))
+                        
+                        # Entregas Recentes
+                        if client_report.get('entregas_recentes'):
+                            elements.append(Paragraph("<b>Destaques e Valor Entregue:</b>", body_style))
+                            for item in client_report['entregas_recentes']:
+                                elements.append(Paragraph(f"• {item}", body_style))
+                            elements.append(Spacer(1, 8))
+                            
+                        # Próximos Passos
+                        if client_report.get('proximos_passos'):
+                            elements.append(Paragraph("<b>Próximos Passos Estratégicos:</b>", body_style))
+                            for item in client_report['proximos_passos']:
+                                elements.append(Paragraph(f"• {item}", body_style))
+                                
+            except Exception as e:
+                print(f"DEBUG: Erro ao gerar relatório de tarefas: {e}", flush=True)
+                # Continua sem essa seção se der erro
+
             if project.responsible:
                 elements.append(Paragraph(f"<b>Responsável:</b> {project.responsible.full_name}", body_style))
                 

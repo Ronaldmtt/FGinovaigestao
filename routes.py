@@ -15,6 +15,7 @@ import os
 import uuid
 import mimetypes
 import io # Added io for BytesIO
+import concurrent.futures # Added for parallel processing
 from app import app, ALLOWED_EXTENSIONS
 from extensions import db, mail
 from models import User, Client, Project, Task, TodoItem, Contato, Comentario, FileCategory, ProjectFile, ProjectApiCredential, ProjectApiEndpoint, ProjectApiKey, SystemApiKey
@@ -4111,6 +4112,74 @@ def reports():
         
     return render_template('reports.html', projects=projects, clients=clients, users=users)
 
+    return render_template('reports.html', projects=projects, clients=clients, users=users)
+
+def process_single_project_report(project_data):
+    """
+    Helper function to process AI summaries for a single project.
+    Designed for parallel execution.
+    project_data: dict containing project fields and tasks list
+    """
+    project_id = project_data['id']
+    project_name = project_data['nome']
+    contexto = project_data['descricao_resumida']
+    problema = project_data['problema_oportunidade']
+    objetivos = project_data['objetivos']
+    transcricao = project_data.get('transcricao')
+    tasks_data = project_data.get('tasks_data', [])
+    
+    # Imports inside function to ensure availability in thread
+    from openai_service import process_project_transcription, generate_project_report_summary, generate_client_report_from_tasks
+    
+    # 1. Fill missing data from transcription if needed
+    if not (contexto and problema and objetivos):
+        if transcricao:
+            try:
+                # Assuming process_project_transcription is thread-safe (it just calls OpenAI)
+                ai_result = process_project_transcription(transcricao)
+                if ai_result:
+                    contexto = ai_result.get('descricao_resumida', '')
+                    problema = ai_result.get('problema_oportunidade', '')
+                    objetivos = ai_result.get('objetivos', '')
+            except Exception as e:
+                print(f"DEBUG: Falha na extração de dados (Thread {project_id}): {e}", flush=True)
+
+    # 2. Generate Project Summary
+    summary_text = ""
+    try:
+        summary_text = generate_project_report_summary(
+            project_name,
+            contexto or "Não informado",
+            problema or "Não informado",
+            objetivos or "Não informado"
+        )
+        if summary_text:
+            summary_text = summary_text.replace('\n', '<br/>')
+    except Exception as e:
+        print(f"DEBUG: Erro na síntese do relatório (Thread {project_id}): {e}", flush=True)
+        # Fallback
+        def safe_text(text):
+            if not text: return "<i>(Informação não disponível)</i>"
+            return str(text).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('\n', '<br/>')
+        
+        summary_text = f"<b>Descrição Resumida:</b><br/>{safe_text(contexto)}<br/><br/>" \
+                        f"<b>Problema/Oportunidade:</b><br/>{safe_text(problema)}<br/><br/>" \
+                        f"<b>Objetivos:</b><br/>{safe_text(objetivos)}"
+
+    # 3. Generate Client Report (Tasks)
+    client_report = None
+    if tasks_data:
+        try:
+            client_report = generate_client_report_from_tasks(project_name, tasks_data)
+        except Exception as e:
+             print(f"DEBUG: Erro no relatório de tarefas (Thread {project_id}): {e}", flush=True)
+
+    return {
+        'project_id': project_id,
+        'summary_text': summary_text,
+        'client_report': client_report
+    }
+
 @app.route('/reports/generate_pdf', methods=['GET', 'POST'])
 @login_required
 def generate_pdf():
@@ -4148,51 +4217,37 @@ def generate_pdf():
             projects = query.join(Client).order_by(Client.nome, Project.nome).all()
             print(f"DEBUG: Projetos encontrados para PDF: {len(projects)}", flush=True)
 
-        else:
-            print("DEBUG: Processing GET request", flush=True)
-            # Fallback para GET
-            project_id = request.args.get('project_id')
-            client_id = request.args.get('client_id')
-            user_id = request.args.get('user_id')
-            
-            query = Project.query.join(Client)
-            
-            if project_id:
-                query = query.filter(Project.id == project_id)
-            if client_id:
-                query = query.filter(Project.client_id == client_id)
-            if user_id:
-                query = query.filter(Project.responsible_id == user_id)
-                
-            if not current_user.is_admin:
-                 query = query.filter(
-                    (Project.responsible_id == current_user.id) |
-                    (Project.team_members.contains(current_user))
-                )
-                 
-            projects = query.order_by(Client.nome, Project.nome).all()
-            print(f"DEBUG: Projetos (GET) encontrados: {len(projects)}", flush=True)
-        
         if not projects:
-            flash('Nenhum projeto encontrado para gerar relatório.', 'warning')
+            flash('Nenhum projeto encontrado ou selecionado.', 'warning')
             return redirect(url_for('reports'))
 
-        # Configuração do PDF
-        buffer = BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=A4,
-                                rightMargin=20*mm, leftMargin=20*mm,
-                                topMargin=20*mm, bottomMargin=20*mm)
+        # Imports for ReportLab inside function
+        from reportlab.lib import colors
+        from reportlab.lib.pagesizes import A4
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=A4,
+            rightMargin=40,
+            leftMargin=40,
+            topMargin=40,
+            bottomMargin=40
+        )
         
         elements = []
         styles = getSampleStyleSheet()
         
-        # Estilos
+        # Estilos Customizados
         title_style = ParagraphStyle(
             'CustomTitle',
             parent=styles['Heading1'],
             fontSize=16,
-            spaceAfter=10,
-            textColor=colors.HexColor('#2c3e50')
+            spaceAfter=30,
+            textColor=colors.HexColor('#2c3e50'), # Azul escuro
+            alignment=1 # Center
         )
         
         subtitle_style = ParagraphStyle(
@@ -4214,99 +4269,80 @@ def generate_pdf():
 
         projects_processed = 0
         
+        # --- Prepare Data for Parallel Processing ---
+        projects_data_list = []
         for project in projects:
-            print(f"DEBUG: Processando projeto {project.id} ({project.nome})", flush=True)
+            tasks = Task.query.filter_by(project_id=project.id).order_by(Task.status.desc()).all()
+            tasks_data = [{'titulo': t.titulo, 'descricao': t.descricao, 'status': t.status} for t in tasks]
             
-            # 1. Garantir que temos os dados base
-            contexto = project.descricao_resumida
-            problema = project.problema_oportunidade
-            objetivos = project.objetivos
+            projects_data_list.append({
+                'id': project.id,
+                'nome': project.nome,
+                'descricao_resumida': project.descricao_resumida,
+                'problema_oportunidade': project.problema_oportunidade,
+                'objetivos': project.objetivos,
+                'transcricao': project.transcricao,
+                'client': project.client.nome if project.client else "Cliente não identificado",
+                'responsible_name': project.responsible.full_name if project.responsible else None,
+                'tasks_data': tasks_data
+            })
+
+        # --- Execute OpenAI Calls in Parallel ---
+        print(f"DEBUG: Iniciando processamento paralelo para {len(projects_data_list)} projetos...", flush=True)
+        start_time = datetime.now()
+        results_map = {}
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            future_to_project = {executor.submit(process_single_project_report, p_data): p_data['id'] for p_data in projects_data_list}
+            for future in concurrent.futures.as_completed(future_to_project):
+                p_id = future_to_project[future]
+                try:
+                    result = future.result()
+                    results_map[p_id] = result
+                except Exception as e:
+                    print(f"DEBUG: Exception in thread for project {p_id}: {e}", flush=True)
+                    results_map[p_id] = {'summary_text': "Erro ao gerar relatório (Timeout ou Falha na IA).", 'client_report': None}
+        
+        end_time = datetime.now()
+        print(f"DEBUG: Tempo total de processamento paralelo: {(end_time - start_time).total_seconds()}s", flush=True)
+
+        # Build PDF Elements
+        for i, project_data in enumerate(projects_data_list):
+            p_id = project_data['id']
+            result = results_map.get(p_id)
             
-            # Se faltar dados, tenta extrair da transcrição (se houver)
-            if not (contexto and problema and objetivos):
-                if project.transcricao:
-                    try:
-                        print(f"DEBUG: Dados incompletos. Tentando extração via IA da transcrição...", flush=True)
-                        ai_result = process_project_transcription(project.transcricao)
-                        if ai_result:
-                            contexto = ai_result.get('descricao_resumida', '')
-                            problema = ai_result.get('problema_oportunidade', '')
-                            objetivos = ai_result.get('objetivos', '')
-                            print("DEBUG: Extração bem sucedida.", flush=True)
-                    except Exception as e:
-                        print(f"DEBUG: Falha na extração de dados: {e}", flush=True)
-            
-            client_name = project.client.nome if project.client else "Cliente não identificado"
+            if not result: continue # Should not happen
+
+            client_name = project_data['client']
             
             elements.append(Paragraph(f"{client_name}", subtitle_style))
-            elements.append(Paragraph(f"{project.nome}", title_style))
+            elements.append(Paragraph(f"{project_data['nome']}", title_style))
             
-            # 2. Gerar a Síntese (Report Summary) via IA
-            summary_text = ""
-            try:
-                print(f"DEBUG: Gerando síntese narrativa para o relatório...", flush=True)
-                summary_text = generate_project_report_summary(
-                    project.nome,
-                    contexto or "Não informado",
-                    problema or "Não informado",
-                    objetivos or "Não informado"
-                )
-                print("DEBUG: Síntese gerada com sucesso.", flush=True)
-                
-                # Sanitizar levemente o retorno da IA se necessário (geralmente Paragraph lida bem, mas quebras de linha podem ser úteis)
-                summary_text = summary_text.replace('\n', '<br/>')
-                
-            except Exception as e:
-                print(f"DEBUG: Erro na síntese do relatório: {e}", flush=True)
-                # Fallback: Formato antigo se a IA falhar
-                def safe_text(text):
-                    if not text: return "<i>(Informação não disponível)</i>"
-                    return str(text).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('\n', '<br/>')
-                
-                summary_text = f"<b>Descrição Resumida:</b><br/>{safe_text(contexto)}<br/><br/>" \
-                               f"<b>Problema/Oportunidade:</b><br/>{safe_text(problema)}<br/><br/>" \
-                               f"<b>Objetivos:</b><br/>{safe_text(objetivos)}"
-
-            elements.append(Paragraph(summary_text, body_style))
+            elements.append(Paragraph(result['summary_text'], body_style))
             
-            # --- NOVA SEÇÃO: Relatório de Tarefas Human-Readable ---
-            try:
-                print(f"DEBUG: Gerando relatório de tarefas (Human-Readable) para {project.nome}...", flush=True)
-                # Buscar tarefas do projeto (ordenar por status para agrupar concluídas)
-                tasks = Task.query.filter_by(project_id=project.id).order_by(Task.status.desc()).all()
+            # Client Report Section (Tasks)
+            client_report = result.get('client_report')
+            if client_report:
+                elements.append(Spacer(1, 15))
+                elements.append(Paragraph("Status Executivo & Entregas", subtitle_style))
                 
-                if tasks:
-                    tasks_data = [{'titulo': t.titulo, 'descricao': t.descricao, 'status': t.status} for t in tasks]
-                    client_report = generate_client_report_from_tasks(project.nome, tasks_data)
+                if client_report.get('resumo_executivo'):
+                    elements.append(Paragraph(client_report['resumo_executivo'], body_style))
+                    elements.append(Spacer(1, 8))
+                
+                if client_report.get('entregas_recentes'):
+                    elements.append(Paragraph("<b>Destaques e Valor Entregue:</b>", body_style))
+                    for item in client_report['entregas_recentes']:
+                        elements.append(Paragraph(f"• {item}", body_style))
+                    elements.append(Spacer(1, 8))
                     
-                    if client_report:
-                        elements.append(Spacer(1, 15))
-                        elements.append(Paragraph("Status Executivo & Entregas", subtitle_style))
-                        
-                        # Resumo Executivo das Tarefas
-                        if client_report.get('resumo_executivo'):
-                            elements.append(Paragraph(client_report['resumo_executivo'], body_style))
-                            elements.append(Spacer(1, 8))
-                        
-                        # Entregas Recentes
-                        if client_report.get('entregas_recentes'):
-                            elements.append(Paragraph("<b>Destaques e Valor Entregue:</b>", body_style))
-                            for item in client_report['entregas_recentes']:
-                                elements.append(Paragraph(f"• {item}", body_style))
-                            elements.append(Spacer(1, 8))
-                            
-                        # Próximos Passos
-                        if client_report.get('proximos_passos'):
-                            elements.append(Paragraph("<b>Próximos Passos Estratégicos:</b>", body_style))
-                            for item in client_report['proximos_passos']:
-                                elements.append(Paragraph(f"• {item}", body_style))
-                                
-            except Exception as e:
-                print(f"DEBUG: Erro ao gerar relatório de tarefas: {e}", flush=True)
-                # Continua sem essa seção se der erro
+                if client_report.get('proximos_passos'):
+                    elements.append(Paragraph("<b>Próximos Passos Estratégicos:</b>", body_style))
+                    for item in client_report['proximos_passos']:
+                        elements.append(Paragraph(f"• {item}", body_style))
 
-            if project.responsible:
-                elements.append(Paragraph(f"<b>Responsável:</b> {project.responsible.full_name}", body_style))
+            if project_data['responsible_name']:
+                elements.append(Paragraph(f"<b>Responsável:</b> {project_data['responsible_name']}", body_style))
                 
             elements.append(PageBreak())
             projects_processed += 1
@@ -4329,3 +4365,4 @@ def generate_pdf():
         rpa_log.error(f"Erro ao gerar PDF: {str(e)}", regiao="relatorios")
         flash('Erro interno ao gerar relatório.', 'danger')
         return redirect(url_for('reports'))
+

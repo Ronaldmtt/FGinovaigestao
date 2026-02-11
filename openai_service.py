@@ -190,12 +190,13 @@ def generate_project_report_summary(project_name, description, problem, objectiv
         O resultado será salvo em um arquivo .md dentro da pasta raiz do projeto. Siga estritamente o que é pedido neste prompt.
         
         REGRAS OBRIGATÓRIAS DE FORMATAÇÃO (SIGA ESTRITAMENTE):
-        - NÃO crie títulos (# ou ##) nem subtítulos (### ou ####) de forma alguma.
-        - NÃO use headers markdown de nenhum nível.
+        - Você PODE e DEVE usar títulos com ### (três cerquilhas) para identificar as seções, pois o parser do sistema depende deles para encontrar o conteúdo.
+        - NÃO crie subtítulos (####, #####) abaixo dos títulos ###. O conteúdo abaixo de cada ### deve ser apenas texto corrido.
+        - NÃO use headers de nível 1 (#) ou nível 2 (##). Use APENAS ### para títulos de seção.
         - NÃO use tópicos com bullet points.
         - NÃO use markdown com negrito (**) desnecessário.
-        - Retorne APENAS texto corrido, fluido, como uma introdução executiva.
-        - Se você criar títulos ou subtítulos, o sistema não conseguirá processar o conteúdo.
+        - O texto dentro de cada seção deve ser fluido, como uma introdução executiva.
+        - Se você criar subtítulos (#### ou mais), o sistema não conseguirá processar o conteúdo.
         
         Projeto: {project_name}
         

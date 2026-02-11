@@ -69,6 +69,15 @@ def generate_tasks_from_transcription(transcription, project_name):
 
         MISSÃO CRÍTICA: Analise esta transcrição completa como se fosse uma reunião estratégica do SEU projeto mais importante. Extraia cada ação, insight, oportunidade e responsabilidade mencionada ou implícita na discussão, transformando-os em um roadmap executivo detalhado.
 
+        O resultado será salvo em um arquivo .md dentro da pasta raiz do projeto. Siga estritamente o que é pedido neste prompt.
+
+        REGRAS OBRIGATÓRIAS DE FORMATAÇÃO (SIGA ESTRITAMENTE - VIOLAÇÃO DESTAS REGRAS INVALIDA TODO O RESULTADO):
+        - NÃO crie títulos (# ou ##) nem subtítulos (### ou ####) de forma alguma no conteúdo das tarefas.
+        - NÃO use headers markdown de nenhum nível nos campos "titulo" ou "descricao".
+        - Os campos "titulo" e "descricao" devem conter APENAS texto puro, sem formatação markdown.
+        - Se você criar títulos ou subtítulos, o sistema não conseguirá processar o conteúdo e o resultado será descartado.
+        - Siga ESTRITAMENTE a estrutura JSON solicitada abaixo, sem adicionar campos extras ou alterar o formato.
+
         TRANSCRIÇÃO COMPLETA DA REUNIÃO DO PROJETO "{project_name}":
         {transcription}
 
@@ -100,8 +109,8 @@ def generate_tasks_from_transcription(transcription, project_name):
         • RISCOS E OBSTÁCULOS: Obstáculos potenciais específicos identificados na discussão e suas mitigações
 
         CRITÉRIOS RIGOROSOS DE QUALIDADE PARA CADA TAREFA:
-        ✓ Título Executivo: Verbo de ação + objeto específico + contexto detalhado do projeto
-        ✓ Descrição Profissional: Mínimo 6-8 frases cobrindo obrigatoriamente todos os 8 elementos detalhados acima
+        ✓ Título Executivo: Verbo de ação + objeto específico + contexto detalhado do projeto (TEXTO PURO, sem markdown)
+        ✓ Descrição Profissional: Mínimo 6-8 frases cobrindo obrigatoriamente todos os 8 elementos detalhados acima (TEXTO PURO, sem markdown)
         ✓ Completamente Acionável: Qualquer gerente de projetos conseguiria executar imediatamente com essas informações
         ✓ Objetivamente Rastreável: Progresso pode ser medido, acompanhado e reportado com precisão
         ✓ Perfeitamente Contextualizada: Conecta claramente e especificamente com pontos exatos da discussão da reunião
@@ -117,8 +126,8 @@ def generate_tasks_from_transcription(transcription, project_name):
             "tasks": [
                 // Gere obrigatoriamente entre 15-25 tarefas seguindo rigorosamente todos os critérios de qualidade profissional acima
                 {{
-                    "titulo": "Título executivo, específico e completamente acionável",
-                    "descricao": "Descrição executiva e completa seguindo obrigatoriamente os 8 elementos detalhados: contexto completo da discussão + objetivo mensurável específico + metodologia detalhada de execução + stakeholders mapeados e seus papéis + recursos necessários especificados + critérios objetivos de sucesso + dependências mapeadas + riscos e obstáculos identificados. Cada tarefa deve ser completamente auto-suficiente para execução imediata por qualquer gerente de projetos experiente."
+                    "titulo": "Título executivo, específico e completamente acionável (TEXTO PURO sem markdown, sem # ou ##)",
+                    "descricao": "Descrição executiva e completa seguindo obrigatoriamente os 8 elementos detalhados: contexto completo da discussão + objetivo mensurável específico + metodologia detalhada de execução + stakeholders mapeados e seus papéis + recursos necessários especificados + critérios objetivos de sucesso + dependências mapeadas + riscos e obstáculos identificados. TEXTO PURO sem markdown, sem títulos ou subtítulos. Cada tarefa deve ser completamente auto-suficiente para execução imediata por qualquer gerente de projetos experiente."
                 }}
             ]
         }}
@@ -148,6 +157,8 @@ def generate_tasks_from_transcription(transcription, project_name):
         - Monitoramento, acompanhamento ou controle de progresso estabelecidos
         - Comunicação estratégica com equipes, gerência ou partes interessadas
 
+        LEMBRETE FINAL CRÍTICO: NÃO use títulos (#, ##, ###) nem subtítulos em nenhum campo. O resultado será salvo como .md na pasta raiz do projeto e qualquer header markdown quebrará o sistema. Retorne APENAS o JSON puro com texto puro nos campos.
+
         Execute sua análise como a expert sênior em gestão de projetos que você é. Cada tarefa deve refletir perfeitamente sua vasta experiência em transformar discussões estratégicas em execução estruturada e resultados mensuráveis. Extraia o máximo valor absoluto desta transcrição.
         """
         
@@ -176,7 +187,15 @@ def generate_project_report_summary(project_name, description, problem, objectiv
         Você é um consultor sênior de negócios e tecnologia elaborando um relatório executivo.
         
         Sua tarefa é criar UM ÚNICO parágrafo coeso, profissional e bem escrito que sintetize as informações deste projeto.
-        Não use tópicos. Não use markdown com negrito desnecessário. O texto deve ser fluido, como uma introdução executiva.
+        O resultado será salvo em um arquivo .md dentro da pasta raiz do projeto. Siga estritamente o que é pedido neste prompt.
+        
+        REGRAS OBRIGATÓRIAS DE FORMATAÇÃO (SIGA ESTRITAMENTE):
+        - NÃO crie títulos (# ou ##) nem subtítulos (### ou ####) de forma alguma.
+        - NÃO use headers markdown de nenhum nível.
+        - NÃO use tópicos com bullet points.
+        - NÃO use markdown com negrito (**) desnecessário.
+        - Retorne APENAS texto corrido, fluido, como uma introdução executiva.
+        - Se você criar títulos ou subtítulos, o sistema não conseguirá processar o conteúdo.
         
         Projeto: {project_name}
         
@@ -191,6 +210,7 @@ def generate_project_report_summary(project_name, description, problem, objectiv
         - Destacar os principais objetivos estratégicos.
         - Ter tom formal, mas claro e direto.
         - Ter entre 80 e 150 palavras.
+        - Ser APENAS texto corrido, sem nenhum título, subtítulo ou formatação markdown com headers.
         """
         
         response = openai.chat.completions.create(

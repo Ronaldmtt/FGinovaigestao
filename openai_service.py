@@ -184,31 +184,30 @@ def generate_project_report_summary(project_name, description, problem, objectiv
     """
     try:
         prompt = f"""
-        Atue como um Arquiteto de Software e Gerente de Projetos Especialista.
+        Atue como um Arquiteto de Software e Gerente de Projetos Especialista com acesso total ao código fonte deste projeto.
 
-        Sua tarefa é gerar um documento de documentação técnica em Markdown com base nas informações fornecidas sobre o projeto.
+        Sua tarefa é analisar profundamente a estrutura de arquivos, o código backend (Python/Flask), o frontend (HTML/JS/Templates) e o banco de dados.
+        Entenda a funcionalidade do sistema atual, os fluxos de usuário e as regras de negócio implementadas.
+
+        Com base NESSA análise automática que você fará agora, gere um documento de documentação técnica em Markdown seguindo EXATAMENTE o modelo abaixo.
+        Você não precisa inventar dados, use os dados reais extraídos do código e da estrutura do projeto.
         O resultado será salvo em um arquivo .md dentro da pasta raiz do projeto. Siga estritamente o que é pedido neste prompt.
 
         REGRAS OBRIGATÓRIAS DE FORMATAÇÃO (SIGA ESTRITAMENTE):
         - Você PODE e DEVE usar títulos com ### (três cerquilhas) para identificar as seções, pois o parser do sistema depende deles para encontrar o conteúdo.
         - NÃO crie subtítulos (####, #####) abaixo dos títulos ###. O conteúdo abaixo de cada ### deve ser apenas texto corrido.
         - NÃO use headers de nível 1 (#) ou nível 2 (##). Use APENAS ### para títulos de seção.
-        - NÃO use tópicos com bullet points.
-        - NÃO use markdown com negrito (**) desnecessário.
-        - O texto dentro de cada seção deve ser fluido, profissional e direto.
         - Se você criar subtítulos (#### ou mais), o sistema não conseguirá processar o conteúdo.
 
-        Projeto: {project_name}
-
-        Informações Base:
+        Informações Base do Projeto "{project_name}":
         1. Descrição: {description}
         2. Problema/Oportunidade: {problem}
         3. Objetivos: {objectives}
 
-        Gere o documento com EXATAMENTE os seguintes tópicos obrigatórios (use ### para cada um):
+        Os tópicos obrigatórios são:
 
         ### Descrição Resumida
-        (Um resumo conciso do projeto baseado nas informações fornecidas)
+        (Um resumo conciso do projeto baseado no que o código faz)
 
         ### Problema/Oportunidade
         (O problema que estamos resolvendo ou a oportunidade de negócio que o software ataca)
@@ -220,23 +219,19 @@ def generate_project_report_summary(project_name, description, problem, objectiv
         (Como a arquitetura e tecnologias escolhidas suportam o crescimento do projeto)
 
         ### Escopo do Projeto
-        (O que está implementado ou planejado: Módulos, Funcionalidades, Integrações)
+        (O que está implementado atualmente no código: Módulos, Funcionalidades, Integrações)
 
         ### Fora do Escopo
-        (O que claramente não está incluído no projeto atual)
+        (O que claramente não está implementado no código atual)
 
         ### Premissas
-        (Premissas técnicas e de negócio adotadas)
+        (Premissas técnicas adotadas: Stack, Bibliotecas, Padrões)
 
         ### Restrições
-        (Limitações técnicas, de arquitetura ou operacionais identificadas)
+        (Limitações técnicas ou de arquitetura encontradas na análise)
 
-        REGRAS FINAIS:
-        - Gere o conteúdo em Português do Brasil.
-        - Cada seção deve ter entre 2 e 5 frases de texto corrido, sem bullet points.
-        - Use tom formal, claro e direto.
-        - NÃO adicione seções extras além das 8 listadas acima.
-        - NÃO crie subtítulos dentro das seções.
+        ---
+        Gere o conteúdo em Português do Brasil com base na sua análise do código.
         """
         
         response = openai.chat.completions.create(

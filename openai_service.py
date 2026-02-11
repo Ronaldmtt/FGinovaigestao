@@ -184,34 +184,59 @@ def generate_project_report_summary(project_name, description, problem, objectiv
     """
     try:
         prompt = f"""
-        Você é um consultor sênior de negócios e tecnologia elaborando um relatório executivo.
-        
-        Sua tarefa é criar UM ÚNICO parágrafo coeso, profissional e bem escrito que sintetize as informações deste projeto.
+        Atue como um Arquiteto de Software e Gerente de Projetos Especialista.
+
+        Sua tarefa é gerar um documento de documentação técnica em Markdown com base nas informações fornecidas sobre o projeto.
         O resultado será salvo em um arquivo .md dentro da pasta raiz do projeto. Siga estritamente o que é pedido neste prompt.
-        
+
         REGRAS OBRIGATÓRIAS DE FORMATAÇÃO (SIGA ESTRITAMENTE):
         - Você PODE e DEVE usar títulos com ### (três cerquilhas) para identificar as seções, pois o parser do sistema depende deles para encontrar o conteúdo.
         - NÃO crie subtítulos (####, #####) abaixo dos títulos ###. O conteúdo abaixo de cada ### deve ser apenas texto corrido.
         - NÃO use headers de nível 1 (#) ou nível 2 (##). Use APENAS ### para títulos de seção.
         - NÃO use tópicos com bullet points.
         - NÃO use markdown com negrito (**) desnecessário.
-        - O texto dentro de cada seção deve ser fluido, como uma introdução executiva.
+        - O texto dentro de cada seção deve ser fluido, profissional e direto.
         - Se você criar subtítulos (#### ou mais), o sistema não conseguirá processar o conteúdo.
-        
+
         Projeto: {project_name}
-        
+
         Informações Base:
         1. Descrição: {description}
         2. Problema/Oportunidade: {problem}
         3. Objetivos: {objectives}
-        
-        O parágrafo deve:
-        - Apresentar o projeto e seu propósito.
-        - Explicar brevemente o problema que resolve ou a oportunidade que ataca.
-        - Destacar os principais objetivos estratégicos.
-        - Ter tom formal, mas claro e direto.
-        - Ter entre 80 e 150 palavras.
-        - Ser APENAS texto corrido, sem nenhum título, subtítulo ou formatação markdown com headers.
+
+        Gere o documento com EXATAMENTE os seguintes tópicos obrigatórios (use ### para cada um):
+
+        ### Descrição Resumida
+        (Um resumo conciso do projeto baseado nas informações fornecidas)
+
+        ### Problema/Oportunidade
+        (O problema que estamos resolvendo ou a oportunidade de negócio que o software ataca)
+
+        ### Objetivos
+        (Objetivos técnicos e funcionais do sistema)
+
+        ### Alinhamento Estratégico
+        (Como a arquitetura e tecnologias escolhidas suportam o crescimento do projeto)
+
+        ### Escopo do Projeto
+        (O que está implementado ou planejado: Módulos, Funcionalidades, Integrações)
+
+        ### Fora do Escopo
+        (O que claramente não está incluído no projeto atual)
+
+        ### Premissas
+        (Premissas técnicas e de negócio adotadas)
+
+        ### Restrições
+        (Limitações técnicas, de arquitetura ou operacionais identificadas)
+
+        REGRAS FINAIS:
+        - Gere o conteúdo em Português do Brasil.
+        - Cada seção deve ter entre 2 e 5 frases de texto corrido, sem bullet points.
+        - Use tom formal, claro e direto.
+        - NÃO adicione seções extras além das 8 listadas acima.
+        - NÃO crie subtítulos dentro das seções.
         """
         
         response = openai.chat.completions.create(

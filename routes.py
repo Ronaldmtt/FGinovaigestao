@@ -4765,8 +4765,11 @@ def crm2_create_meeting(lead_id):
             # Format date for display
             parts = meeting_date.split('-')
             display_date = f"{parts[2]}/{parts[1]}/{parts[0]}" if len(parts) == 3 else meeting_date
-            email_count = send_meeting_invite(guests, titulo, descricao, display_date, horario_inicio, horario_fim, current_user.full_name)
-            email_status = f'{email_count} email(s) enviado(s)' if email_count > 0 else f'nenhum email enviado (smtp ok, check logs). {smtp_diag}'
+            email_count, smtp_error = send_meeting_invite(guests, titulo, descricao, display_date, horario_inicio, horario_fim, current_user.full_name)
+            if email_count > 0:
+                email_status = f'{email_count} email(s) enviado(s)'
+            else:
+                email_status = f'FALHA SMTP: {smtp_error}' if smtp_error else f'nenhum email enviado (sem erro capturado). {smtp_diag}'
             print(f"[crm2] Email status: {email_status} para {guests}")
     except Exception as e:
         import traceback

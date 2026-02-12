@@ -23,6 +23,9 @@ def is_email_configured():
     """Verifica se as credenciais SMTP estão preenchidas."""
     return bool(MAIL_USERNAME and MAIL_PASSWORD)
 
+# Module-level variable to store the last SMTP error for diagnostics
+_last_smtp_error = None
+
 
 def send_email(to, subject, html_body, text_body=None, attachment_path=None):
     """
@@ -84,7 +87,11 @@ def send_email(to, subject, html_body, text_body=None, attachment_path=None):
         return True
         
     except Exception as e:
+        global _last_smtp_error
+        _last_smtp_error = str(e)
         print(f"[email] Erro ao enviar email para {to}: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 
@@ -143,6 +150,7 @@ def send_meeting_invite(guests, title, description, date, start_time, end_time, 
     html = _base_template(content, f"📅 Convite: {title}")
     success_count = 0
     errors = []
+    last_err = None
     print(f"[email] send_meeting_invite chamado para {len(guests)} guests: {guests}")
     for guest_email in guests:
         if guest_email and '@' in guest_email:
@@ -151,8 +159,9 @@ def send_meeting_invite(guests, title, description, date, start_time, end_time, 
                 success_count += 1
             else:
                 errors.append(guest_email)
-    print(f"[email] Resultado: {success_count} enviados, {len(errors)} falharam: {errors}")
-    return success_count
+                last_err = _last_smtp_error
+    print(f"[email] Resultado: {success_count} enviados, {len(errors)} falharam: {errors}, last_err={last_err}")
+    return success_count, last_err
 
 
 def send_notification_email(to, user_name, notification_title, notification_message, action_url=None):

@@ -15,10 +15,8 @@ MAIL_PASSWORD = os.getenv("MAIL_PASSWORD", "")
 MAIL_DEFAULT_SENDER = os.getenv("MAIL_DEFAULT_SENDER", "")
 
 def _get_sender():
-    """Get the From header. Use MAIL_DEFAULT_SENDER if set, otherwise MAIL_USERNAME."""
-    if MAIL_DEFAULT_SENDER:
-        return MAIL_DEFAULT_SENDER
-    return f"GESTÃO INOVA <{MAIL_USERNAME}>" if MAIL_USERNAME else ""
+    """Always use MAIL_USERNAME as the From to avoid Gmail domain mismatch."""
+    return f"GESTAO INOVA <{MAIL_USERNAME}>" if MAIL_USERNAME else MAIL_DEFAULT_SENDER
 
 
 def is_email_configured():

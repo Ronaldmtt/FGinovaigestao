@@ -286,3 +286,60 @@ function createClient() {
         } else { alert(d.message); btn.disabled = false; btn.innerHTML = '<i class="fas fa-user-plus me-1"></i>Criar'; }
     }).catch(() => { alert('Erro de conexão'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-user-plus me-1"></i>Criar'; });
 }
+
+/* ========== Chamado (Solicitação de Reunião para outro usuário) ========== */
+function openChamadoModal() {
+    new bootstrap.Modal(document.getElementById('chamadoModal')).show();
+}
+
+function sendChamado() {
+    const btn = document.getElementById('btnSendChamado');
+    const destinatarioId = document.getElementById('chamadoDestinatario').value;
+    const titulo = document.getElementById('chamadoTitulo').value;
+    const data = document.getElementById('chamadoData').value;
+    const inicio = document.getElementById('chamadoInicio').value;
+    const fim = document.getElementById('chamadoFim').value;
+    const descricao = document.getElementById('chamadoDescricao').value;
+    const guests = document.getElementById('chamadoGuests').value;
+
+    if (!destinatarioId || !titulo || !data || !inicio || !fim) {
+        alert('Preencha os campos obrigatórios (*)');
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Enviando...';
+
+    fetch(`/api/crm2/lead/${LEAD_ID}/chamado`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            destinatario_id: destinatarioId,
+            titulo: titulo,
+            data: data,
+            horario_inicio: inicio,
+            horario_fim: fim,
+            descricao: descricao,
+            guests: guests
+        })
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Chamado enviado com sucesso!');
+                location.reload();
+            } else {
+                alert('Erro: ' + data.message);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Enviar Chamado';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Erro ao enviar chamado');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Enviar Chamado';
+        });
+}

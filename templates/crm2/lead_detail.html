@@ -833,5 +833,64 @@
     </div>
 </div>
 
+<!-- Modal: Abrir Chamado (Solicitação de Reunião para outro usuário) -->
+<div class="modal fade" id="chamadoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content" style="border-radius:12px">
+            <div class="modal-header" style="border-bottom:1px solid rgba(255,255,255,.1)">
+                <h5 class="modal-title fw-bold"><i class="fas fa-bell me-2" style="color:#6366f1"></i>Abrir Chamado
+                    (Solicitar Reunião)</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Destinatário (Responsável pelo próximo bloco) *</label>
+                    <select class="form-select" id="chamadoDestinatario">
+                        <option value="">Selecione um usuário...</option>
+                        {% for user in users %}
+                        {% if user.id != current_user.id %}
+                        <option value="{{ user.id }}">{{ user.full_name }} ({{ user.email }})</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Título da Reunião *</label>
+                    <input type="text" class="form-control" id="chamadoTitulo" value="Reunião de Alinhamento - Bloco 2">
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Data *</label>
+                        <input type="date" class="form-control" id="chamadoData">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Início *</label>
+                        <input type="time" class="form-control" id="chamadoInicio">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Fim *</label>
+                        <input type="time" class="form-control" id="chamadoFim">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Descrição</label>
+                    <textarea class="form-control" id="chamadoDescricao" rows="2"
+                        placeholder="Descreva o objetivo da reunião..."></textarea>
+                </div>
+                <!-- Hidden fields for compatibility if needed -->
+                <input type="hidden" id="chamadoGuests" value="{{ lead.email }}">
+            </div>
+            <div class="modal-footer" style="border-top:1px solid rgba(255,255,255,.1)">
+                <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn px-4"
+                    style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none"
+                    onclick="sendChamado()" id="btnSendChamado">
+                    <i class="fas fa-paper-plane me-1"></i>Enviar Chamado
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="/static/js/crm2_lead_detail.js"></script>
 {% endblock %}

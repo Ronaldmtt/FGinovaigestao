@@ -4376,41 +4376,43 @@ CRM2_STAGES = ['Captação', 'Bloco 1', 'Bloco 2', 'Proposta', 'Contrato', 'Clie
 @app.route('/crm2/leads', methods=['GET', 'POST'])
 @login_required
 def crm2_leads():
+    from models import Crm2Lead
     if not current_user.is_admin and not current_user.acesso_crm:
         flash('Você não tem permissão para acessar o CRM.', 'danger')
         return redirect(url_for('dashboard'))
     
     if request.method == 'POST':
-        contato = Contato(
+        lead = Crm2Lead(
             nome_empresa=request.form['nome_empresa'],
             nome_contato=request.form['nome_contato'],
             email=request.form.get('email', ''),
             telefone=request.form.get('telefone', ''),
             estagio='Lead'
         )
-        db.session.add(contato)
+        db.session.add(lead)
         db.session.commit()
         flash('Lead cadastrado com sucesso!', 'success')
         return redirect(url_for('crm2_leads'))
     
-    # Buscar todos os leads (estagio='Lead') para a listagem
-    leads = Contato.query.filter_by(estagio='Lead').order_by(Contato.data_criacao.desc()).all()
+    # Buscar todos os leads para a listagem
+    leads = Crm2Lead.query.filter_by(estagio='Lead').order_by(Crm2Lead.data_criacao.desc()).all()
     return render_template('crm2/leads.html', leads=leads)
 
 
 @app.route('/crm2/pipeline')
 @login_required
 def crm2_pipeline():
+    from models import Crm2Lead
     if not current_user.is_admin and not current_user.acesso_crm:
         flash('Você não tem permissão para acessar o CRM.', 'danger')
         return redirect(url_for('dashboard'))
     
     contatos_por_estagio = {}
     for stage in CRM2_STAGES:
-        contatos_por_estagio[stage] = Contato.query.filter_by(estagio=stage).order_by(Contato.data_criacao.desc()).all()
+        contatos_por_estagio[stage] = Crm2Lead.query.filter_by(estagio=stage).order_by(Crm2Lead.data_criacao.desc()).all()
     
     # Leads disponíveis para adicionar ao pipeline (estagio='Lead')
-    leads_disponiveis = Contato.query.filter_by(estagio='Lead').order_by(Contato.nome_empresa).all()
+    leads_disponiveis = Crm2Lead.query.filter_by(estagio='Lead').order_by(Crm2Lead.nome_empresa).all()
     
     return render_template('crm2/pipeline.html',
                          contatos_por_estagio=contatos_por_estagio,
@@ -4421,6 +4423,7 @@ def crm2_pipeline():
 @app.route('/crm2/pipeline/add-lead', methods=['POST'])
 @login_required
 def crm2_add_lead_to_pipeline():
+    from models import Crm2Lead
     if not current_user.is_admin and not current_user.acesso_crm:
         return jsonify({'success': False, 'message': 'Sem permissão'}), 403
     
@@ -4430,23 +4433,23 @@ def crm2_add_lead_to_pipeline():
     if not lead_id:
         return jsonify({'success': False, 'message': 'Lead não informado'})
     
-    contato = Contato.query.get(lead_id)
-    if not contato:
+    lead = Crm2Lead.query.get(lead_id)
+    if not lead:
         return jsonify({'success': False, 'message': 'Lead não encontrado'})
     
-    contato.estagio = 'Captação'
-    contato.data_atualizacao = datetime.utcnow()
+    lead.estagio = 'Captação'
+    lead.data_atualizacao = datetime.utcnow()
     db.session.commit()
     
     return jsonify({
         'success': True, 
-        'message': f'Lead "{contato.nome_empresa}" adicionado à Captação',
+        'message': f'Lead "{lead.nome_empresa}" adicionado à Captação',
         'lead': {
-            'id': contato.id,
-            'nome_empresa': contato.nome_empresa,
-            'nome_contato': contato.nome_contato,
-            'email': contato.email,
-            'telefone': contato.telefone
+            'id': lead.id,
+            'nome_empresa': lead.nome_empresa,
+            'nome_contato': lead.nome_contato,
+            'email': lead.email,
+            'telefone': lead.telefone
         }
     })
 
@@ -4454,6 +4457,7 @@ def crm2_add_lead_to_pipeline():
 @app.route('/api/crm2/move', methods=['PUT'])
 @login_required
 def crm2_move_lead():
+    from models import Crm2Lead
     if not current_user.is_admin and not current_user.acesso_crm:
         return jsonify({'success': False, 'message': 'Sem permissão'}), 403
     
@@ -4467,12 +4471,12 @@ def crm2_move_lead():
     if new_stage not in CRM2_STAGES:
         return jsonify({'success': False, 'message': f'Estágio inválido: {new_stage}'})
     
-    contato = Contato.query.get(lead_id)
-    if not contato:
+    lead = Crm2Lead.query.get(lead_id)
+    if not lead:
         return jsonify({'success': False, 'message': 'Lead não encontrado'})
     
-    contato.estagio = new_stage
-    contato.data_atualizacao = datetime.utcnow()
+    lead.estagio = new_stage
+    lead.data_atualizacao = datetime.utcnow()
     db.session.commit()
     
     return jsonify({'success': True, 'message': f'Lead movido para {new_stage}'})
@@ -4481,14 +4485,15 @@ def crm2_move_lead():
 @app.route('/api/crm2/leads/<int:lead_id>', methods=['DELETE'])
 @login_required
 def crm2_delete_lead(lead_id):
+    from models import Crm2Lead
     if not current_user.is_admin and not current_user.acesso_crm:
         return jsonify({'success': False, 'message': 'Sem permissão'}), 403
     
-    contato = Contato.query.get(lead_id)
-    if not contato:
+    lead = Crm2Lead.query.get(lead_id)
+    if not lead:
         return jsonify({'success': False, 'message': 'Lead não encontrado'})
     
-    db.session.delete(contato)
+    db.session.delete(lead)
     db.session.commit()
     
     return jsonify({'success': True, 'message': 'Lead removido com sucesso'})
@@ -4498,10 +4503,11 @@ def crm2_delete_lead(lead_id):
 @login_required
 def crm2_api_leads():
     """API endpoint to fetch available leads (stage='Lead') as JSON for the pipeline modal."""
+    from models import Crm2Lead
     if not current_user.is_admin and not current_user.acesso_crm:
         return jsonify({'success': False, 'message': 'Sem permissão'}), 403
     
-    leads = Contato.query.filter_by(estagio='Lead').order_by(Contato.nome_empresa).all()
+    leads = Crm2Lead.query.filter_by(estagio='Lead').order_by(Crm2Lead.nome_empresa).all()
     return jsonify({
         'success': True,
         'leads': [{

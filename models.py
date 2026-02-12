@@ -187,6 +187,22 @@ class CrmStage(db.Model):
         return f'<CrmStage {self.nome}>'
 
 
+class Crm2Lead(db.Model):
+    __tablename__ = 'crm2_leads'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    nome_empresa = db.Column(db.String(200), nullable=False)
+    nome_contato = db.Column(db.String(200), nullable=False)
+    email = db.Column(db.String(200), nullable=True)
+    telefone = db.Column(db.String(50), nullable=True)
+    estagio = db.Column(db.String(100), nullable=False, default='Lead')
+    data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
+    data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<Crm2Lead {self.nome_empresa} - {self.nome_contato}>'
+
+
 class FileCategory(db.Model):
     __tablename__ = 'file_categories'
     

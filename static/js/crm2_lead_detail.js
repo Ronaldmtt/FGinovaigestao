@@ -35,7 +35,7 @@ function createMeeting() {
             pauta: document.getElementById('mtgAgenda').value
         })
     }).then(r => r.json()).then(d => {
-        if (d.success) location.reload(); else { alert(d.message); btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Criar'; }
+        if (d.success) { alert(d.message); location.reload(); } else { alert(d.message); btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Criar'; }
     }).catch(() => { alert('Erro de conexão'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Criar'; });
 }
 

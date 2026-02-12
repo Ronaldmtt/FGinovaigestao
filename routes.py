@@ -4508,6 +4508,41 @@ def crm2_archive_lead():
     return jsonify({'success': True, 'message': f'Lead "{lead.nome_empresa}" removido do pipeline'})
 
 
+@app.route('/api/crm2/generate-pauta', methods=['POST'])
+@login_required
+def crm2_generate_pauta():
+    """Use OpenAI to generate a meeting agenda from the description."""
+    if not current_user.is_admin and not current_user.acesso_crm:
+        return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+    
+    data = request.get_json()
+    descricao = data.get('descricao', '').strip()
+    
+    if not descricao:
+        return jsonify({'success': False, 'message': 'Descrição vazia'})
+    
+    try:
+        from openai import OpenAI
+        import os
+        client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
+        
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "Você é um assistente de negócios especializado em elaborar pautas de reunião profissionais e objetivas. Responda apenas com a pauta, sem introdução ou comentários extras."},
+                {"role": "user", "content": f"Com base na seguinte descrição de reunião, gere uma pauta estruturada com tópicos numerados, subtópicos quando necessário, e tempo estimado para cada item:\n\n{descricao}"}
+            ],
+            max_tokens=800,
+            temperature=0.7
+        )
+        
+        pauta = response.choices[0].message.content.strip()
+        return jsonify({'success': True, 'pauta': pauta})
+    except Exception as e:
+        print(f"[crm2] Erro ao gerar pauta IA: {e}")
+        return jsonify({'success': False, 'message': f'Erro ao gerar pauta: {str(e)}'})
+
+
 @app.route('/api/crm2/leads/<int:lead_id>', methods=['DELETE'])
 @login_required
 def crm2_delete_lead(lead_id):

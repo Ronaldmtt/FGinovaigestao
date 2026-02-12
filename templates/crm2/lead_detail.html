@@ -651,8 +651,17 @@
                         id="mtgGuests" placeholder="emails separados por vírgula"></div>
                 <div class="mb-3"><label class="form-label">Descrição</label><textarea class="form-control"
                         id="mtgDescription" rows="2"></textarea></div>
-                <div class="mb-3"><label class="form-label">Pauta</label><textarea class="form-control" id="mtgAgenda"
-                        rows="3"></textarea></div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label class="form-label mb-0">Pauta</label>
+                        <button type="button" class="btn btn-sm px-3" id="btnGenPauta"
+                            style="background: linear-gradient(135deg, #8b5cf6, #6366f1); color: #fff; border: none; font-size: 0.78rem; border-radius: 6px;"
+                            onclick="generatePauta()">
+                            <i class="fas fa-brain me-1"></i>Gerar Pauta
+                        </button>
+                    </div>
+                    <textarea class="form-control" id="mtgAgenda" rows="3"></textarea>
+                </div>
             </div>
             <div class="modal-footer" style="border-top:1px solid rgba(255,255,255,.1)"><button
                     class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button><button class="btn px-4"

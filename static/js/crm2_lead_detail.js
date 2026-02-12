@@ -6,8 +6,8 @@ function saveObservacoes() {
     const obs = document.getElementById('obsText').value;
     fetch(`/api/crm2/lead/${LEAD_ID}/observacoes`, {
         method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({observacoes: obs})
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ observacoes: obs })
     }).then(r => r.json()).then(d => {
         if (d.success) {
             const el = document.getElementById('obsSaved');
@@ -22,9 +22,9 @@ function openMeetingModal() { new bootstrap.Modal(document.getElementById('meeti
 function createMeeting() {
     const btn = document.getElementById('btnCreateMeeting');
     btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Criando...';
-    fetch(`/api/crm2/lead/${LEAD_ID}/meeting`, {
+    fetch(`/api/crm2/lead/${LEAD_ID}/reuniao`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             titulo: document.getElementById('mtgTitle').value,
             data: document.getElementById('mtgDate').value,
@@ -39,6 +39,23 @@ function createMeeting() {
     }).catch(() => { alert('Erro de conexão'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Criar'; });
 }
 
+function generatePauta() {
+    const descricao = document.getElementById('mtgDescription').value;
+    if (!descricao.trim()) { alert('Preencha o campo Descrição antes de gerar a pauta.'); return; }
+    const btn = document.getElementById('btnGenPauta');
+    btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Gerando...';
+    fetch('/api/crm2/generate-pauta', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ descricao: descricao })
+    }).then(r => r.json()).then(d => {
+        btn.disabled = false; btn.innerHTML = '<i class="fas fa-brain me-1"></i>Gerar Pauta';
+        if (d.success) {
+            document.getElementById('mtgAgenda').value = d.pauta;
+        } else alert(d.message || 'Erro ao gerar pauta');
+    }).catch(() => { alert('Erro de conexão'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-brain me-1"></i>Gerar Pauta'; });
+}
+
 /* ========== Chamado ========== */
 function openChamadoModal() { new bootstrap.Modal(document.getElementById('chamadoModal')).show(); }
 
@@ -47,7 +64,7 @@ function createChamado() {
     btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Enviando...';
     fetch(`/api/crm2/lead/${LEAD_ID}/chamado`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             user_id: document.getElementById('chamadoUser').value,
             titulo: document.getElementById('chamadoTitle').value,
@@ -66,22 +83,22 @@ function createChamado() {
 /* ========== Transcrição ========== */
 function refreshTranscript(meetingId, btn) {
     btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Buscando...';
-    fetch(`/api/crm2/meeting/${meetingId}/refresh-transcript`, {method: 'POST'})
-        .then(r => r.json()).then(d => { if (d.success) location.reload(); else { alert(d.message || 'Erro ao buscar'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-sync-alt me-1"></i>Buscar Transcrição'; }})
+    fetch(`/api/crm2/meeting/${meetingId}/refresh-transcript`, { method: 'POST' })
+        .then(r => r.json()).then(d => { if (d.success) location.reload(); else { alert(d.message || 'Erro ao buscar'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-sync-alt me-1"></i>Buscar Transcrição'; } })
         .catch(() => { alert('Erro de conexão'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-sync-alt me-1"></i>Buscar Transcrição'; });
 }
 
 /* ========== Proposta: Advance / Generate / Save ========== */
 function advanceToProposta() {
     if (!confirm('Mover lead para Proposta?')) return;
-    fetch(`/api/crm2/lead/${LEAD_ID}/advance-proposta`, {method: 'POST'})
+    fetch(`/api/crm2/lead/${LEAD_ID}/advance-proposta`, { method: 'POST' })
         .then(r => r.json()).then(d => { if (d.success) location.reload(); else alert(d.message); });
 }
 
 function generateProposalIA() {
     const btn = document.getElementById('btnGenProposta');
     btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Gerando IA...';
-    fetch(`/api/crm2/lead/${LEAD_ID}/generate-proposal`, {method: 'POST'})
+    fetch(`/api/crm2/lead/${LEAD_ID}/generate-proposal`, { method: 'POST' })
         .then(r => r.json()).then(d => {
             btn.disabled = false; btn.innerHTML = '<i class="fas fa-brain me-1"></i>Gerar Proposta IA';
             if (d.success && d.proposal) {
@@ -103,7 +120,7 @@ function saveProposal() {
     btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Salvando...';
     fetch(`/api/crm2/lead/${LEAD_ID}/save-proposal`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             titulo: document.getElementById('propTitulo').value,
             descricao: document.getElementById('propDescricao').value,
@@ -120,19 +137,19 @@ function saveProposal() {
 
 function sendProposalPDF(id) {
     if (!confirm('Enviar proposta por email?')) return;
-    fetch(`/api/crm2/proposal/${id}/send`, {method: 'POST'})
+    fetch(`/api/crm2/proposal/${id}/send`, { method: 'POST' })
         .then(r => r.json()).then(d => alert(d.message)).catch(() => alert('Erro'));
 }
 
 function acceptProposal(id) {
     if (!confirm('Aceitar proposta e avançar para Contrato?')) return;
-    fetch(`/api/crm2/proposal/${id}/accept`, {method: 'POST'})
+    fetch(`/api/crm2/proposal/${id}/accept`, { method: 'POST' })
         .then(r => r.json()).then(d => { if (d.success) location.reload(); else alert(d.message); });
 }
 
 function rejectProposal(id) {
     if (!confirm('Recusar proposta? Ela será removida.')) return;
-    fetch(`/api/crm2/proposal/${id}/reject`, {method: 'POST'})
+    fetch(`/api/crm2/proposal/${id}/reject`, { method: 'POST' })
         .then(r => r.json()).then(d => { if (d.success) location.reload(); else alert(d.message); });
 }
 
@@ -142,7 +159,7 @@ let contractSections = [];
 function generateContractIA() {
     const btn = document.getElementById('btnGenContrato');
     btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Gerando IA...';
-    fetch(`/api/crm2/lead/${LEAD_ID}/generate-contract`, {method: 'POST'})
+    fetch(`/api/crm2/lead/${LEAD_ID}/generate-contract`, { method: 'POST' })
         .then(r => r.json()).then(d => {
             btn.disabled = false; btn.innerHTML = '<i class="fas fa-brain me-1"></i>Gerar Contrato IA';
             if (d.success && d.contract) {
@@ -177,12 +194,12 @@ function openAddSectionModal() {
 }
 
 function addContractSection(type) {
-    contractSections.push({type: type, content: ''});
+    contractSections.push({ type: type, content: '' });
     renderContractSections();
     bootstrap.Modal.getInstance(document.getElementById('addSectionModal'))?.hide();
     // scroll to bottom
     const container = document.getElementById('contractSections');
-    container.lastElementChild?.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+    container.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 function removeContractSection(idx) {
@@ -195,7 +212,7 @@ function collectContractSections() {
     const sections = [];
     items.forEach((item, i) => {
         const el = item.querySelector('input, textarea');
-        sections.push({type: contractSections[i].type, content: el.value});
+        sections.push({ type: contractSections[i].type, content: el.value });
     });
     return sections;
 }
@@ -206,7 +223,7 @@ function saveContract() {
     const sections = collectContractSections();
     fetch(`/api/crm2/lead/${LEAD_ID}/save-contract`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             titulo: document.getElementById('contractTitulo').value,
             sections: sections
@@ -218,19 +235,19 @@ function saveContract() {
 
 function sendContract(id) {
     if (!confirm('Enviar contrato por email?')) return;
-    fetch(`/api/crm2/contract/${id}/send`, {method: 'POST'})
+    fetch(`/api/crm2/contract/${id}/send`, { method: 'POST' })
         .then(r => r.json()).then(d => alert(d.message)).catch(() => alert('Erro'));
 }
 
 function acceptContract(id) {
     if (!confirm('Marcar contrato como ASSINADO e mover para Cliente?')) return;
-    fetch(`/api/crm2/contract/${id}/accept`, {method: 'POST'})
+    fetch(`/api/crm2/contract/${id}/accept`, { method: 'POST' })
         .then(r => r.json()).then(d => { if (d.success) location.reload(); else alert(d.message); });
 }
 
 function rejectContract(id) {
     if (!confirm('Recusar contrato? Ele será removido.')) return;
-    fetch(`/api/crm2/contract/${id}/reject`, {method: 'POST'})
+    fetch(`/api/crm2/contract/${id}/reject`, { method: 'POST' })
         .then(r => r.json()).then(d => { if (d.success) location.reload(); else alert(d.message); });
 }
 
@@ -244,7 +261,7 @@ function createClient() {
     btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Criando...';
     fetch(`/api/crm2/lead/${LEAD_ID}/create-client`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             nome: document.getElementById('clientNome').value,
             email: document.getElementById('clientEmail').value,

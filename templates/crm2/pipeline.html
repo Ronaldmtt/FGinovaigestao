@@ -1,0 +1,480 @@
+{% extends "base.html" %}
+
+{% block title %}CRM 2 - Pipeline{% endblock %}
+
+{% block content %}
+<style>
+    .pipeline-container {
+        display: flex;
+        gap: 12px;
+        overflow-x: auto;
+        padding-bottom: 1rem;
+        min-height: 70vh;
+    }
+
+    .pipeline-column {
+        min-width: 220px;
+        max-width: 220px;
+        flex-shrink: 0;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    [data-bs-theme="light"] .pipeline-column {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+    }
+
+    .pipeline-column-header {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    [data-bs-theme="light"] .pipeline-column-header {
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .pipeline-column-title {
+        font-weight: 700;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .pipeline-column-count {
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    [data-bs-theme="light"] .pipeline-column-count {
+        background: #f1f3f5;
+    }
+
+    .pipeline-column-body {
+        padding: 0.5rem;
+        flex: 1;
+        overflow-y: auto;
+        min-height: 100px;
+    }
+
+    .pipeline-column-body.drag-over {
+        background: rgba(99, 102, 241, 0.08);
+    }
+
+    .pipeline-card {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        cursor: grab;
+        transition: all 0.2s;
+    }
+
+    [data-bs-theme="light"] .pipeline-card {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+    }
+
+    .pipeline-card:hover {
+        border-color: #6366f1;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+    }
+
+    .pipeline-card.dragging {
+        opacity: 0.4;
+        transform: rotate(2deg);
+    }
+
+    .pipeline-card-company {
+        font-weight: 600;
+        font-size: 0.85rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .pipeline-card-contact {
+        font-size: 0.78rem;
+        color: var(--bs-secondary);
+    }
+
+    .pipeline-card-contact i {
+        width: 14px;
+        text-align: center;
+        margin-right: 4px;
+        font-size: 0.7rem;
+    }
+
+    .btn-add-lead-pipeline {
+        background: none;
+        border: 1px dashed rgba(99, 102, 241, 0.4);
+        color: #6366f1;
+        border-radius: 6px;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-add-lead-pipeline:hover {
+        background: rgba(99, 102, 241, 0.1);
+        border-color: #6366f1;
+    }
+
+    /* Stage-specific colors */
+    .stage-captacao .pipeline-column-header {
+        border-top: 3px solid #6366f1;
+    }
+
+    .stage-bloco1 .pipeline-column-header {
+        border-top: 3px solid #f59e0b;
+    }
+
+    .stage-bloco2 .pipeline-column-header {
+        border-top: 3px solid #f97316;
+    }
+
+    .stage-proposta .pipeline-column-header {
+        border-top: 3px solid #8b5cf6;
+    }
+
+    .stage-contrato .pipeline-column-header {
+        border-top: 3px solid #3b82f6;
+    }
+
+    .stage-cliente .pipeline-column-header {
+        border-top: 3px solid #22c55e;
+    }
+
+    /* Modal styles */
+    .lead-search-input {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 8px;
+        padding: 0.6rem 1rem 0.6rem 2.5rem;
+        color: var(--bs-body-color);
+        width: 100%;
+    }
+
+    [data-bs-theme="light"] .lead-search-input {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+    }
+
+    .lead-search-input:focus {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        outline: none;
+    }
+
+    .lead-list-item {
+        padding: 0.75rem 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    [data-bs-theme="light"] .lead-list-item {
+        border: 1px solid #e9ecef;
+    }
+
+    .lead-list-item:hover {
+        background: rgba(99, 102, 241, 0.1);
+        border-color: #6366f1;
+    }
+
+    .lead-list-item.selected {
+        background: rgba(99, 102, 241, 0.15);
+        border-color: #6366f1;
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1"><i class="fas fa-chart-bar me-2" style="color: #6366f1;"></i>Pipeline</h4>
+        <p class="text-muted mb-0" style="font-size: 0.9rem;">Gerencie seus leads ao longo do funil de vendas</p>
+    </div>
+</div>
+
+<div class="pipeline-container">
+    {% set stage_classes = {'Captação': 'stage-captacao', 'Bloco 1': 'stage-bloco1', 'Bloco 2': 'stage-bloco2',
+    'Proposta': 'stage-proposta', 'Contrato': 'stage-contrato', 'Cliente': 'stage-cliente'} %}
+
+    {% for estagio in estagios %}
+    <div class="pipeline-column {{ stage_classes.get(estagio, '') }}" data-stage="{{ estagio }}">
+        <div class="pipeline-column-header">
+            <div class="d-flex align-items-center gap-2">
+                <span class="pipeline-column-title">{{ estagio }}</span>
+                <span class="pipeline-column-count">{{ contatos_por_estagio[estagio]|length }}</span>
+            </div>
+            {% if estagio == 'Captação' %}
+            <button class="btn-add-lead-pipeline" onclick="openAddLeadModal()" title="Adicionar Lead">
+                <i class="fas fa-plus me-1"></i>Lead
+            </button>
+            {% endif %}
+        </div>
+        <div class="pipeline-column-body" data-stage="{{ estagio }}" ondragover="handleDragOver(event)"
+            ondrop="handleDrop(event, '{{ estagio }}')" ondragenter="this.classList.add('drag-over')"
+            ondragleave="handleDragLeave(event)">
+            {% for contato in contatos_por_estagio[estagio] %}
+            <div class="pipeline-card" draggable="true" data-lead-id="{{ contato.id }}"
+                ondragstart="handleDragStart(event, {{ contato.id }})">
+                <div class="pipeline-card-company">{{ contato.nome_empresa }}</div>
+                <div class="pipeline-card-contact">
+                    <div><i class="fas fa-user"></i> {{ contato.nome_contato }}</div>
+                    {% if contato.email %}
+                    <div><i class="fas fa-envelope"></i> {{ contato.email }}</div>
+                    {% endif %}
+                    {% if contato.telefone %}
+                    <div><i class="fas fa-phone"></i> {{ contato.telefone }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Modal: Adicionar Lead ao Pipeline -->
+<div class="modal fade" id="addLeadModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 12px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold"><i class="fas fa-user-plus me-2" style="color: #6366f1;"></i>Adicionar
+                    Lead à Captação</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="position-relative mb-3">
+                    <i class="fas fa-search position-absolute"
+                        style="left: 12px; top: 50%; transform: translateY(-50%); color: var(--bs-secondary); font-size: 0.85rem;"></i>
+                    <input type="text" class="lead-search-input" id="leadSearchInput"
+                        placeholder="Buscar lead por empresa ou contato..." oninput="filterLeads(this.value)">
+                </div>
+                <div id="leadsList" style="max-height: 300px; overflow-y: auto;">
+                    <div class="text-center py-3 text-muted">
+                        <i class="fas fa-spinner fa-spin me-1"></i> Carregando leads...
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn px-4" style="background-color: #6366f1; color: white; border: none;"
+                    onclick="addSelectedLead()" id="btnAddLead" disabled>
+                    <i class="fas fa-plus me-1"></i> Adicionar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let allLeads = [];
+    let selectedLeadId = null;
+
+    // Drag & Drop
+    let draggedLeadId = null;
+
+    function handleDragStart(event, leadId) {
+        draggedLeadId = leadId;
+        event.target.classList.add('dragging');
+        event.dataTransfer.effectAllowed = 'move';
+    }
+
+    function handleDragOver(event) {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+    }
+
+    function handleDragLeave(event) {
+        const rect = event.currentTarget.getBoundingClientRect();
+        if (event.clientX <= rect.left || event.clientX >= rect.right ||
+            event.clientY <= rect.top || event.clientY >= rect.bottom) {
+            event.currentTarget.classList.remove('drag-over');
+        }
+    }
+
+    async function handleDrop(event, newStage) {
+        event.preventDefault();
+        event.currentTarget.classList.remove('drag-over');
+
+        if (!draggedLeadId) return;
+
+        const card = document.querySelector(`.pipeline-card[data-lead-id="${draggedLeadId}"]`);
+        if (card) {
+            card.classList.remove('dragging');
+        }
+
+        try {
+            const response = await fetch('/api/crm2/move', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ lead_id: draggedLeadId, new_stage: newStage })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Mover o card visualmente
+                if (card) {
+                    const targetBody = event.currentTarget;
+                    targetBody.appendChild(card);
+                    updateColumnCounts();
+                }
+            } else {
+                alert('Erro: ' + data.message);
+                location.reload();
+            }
+        } catch (error) {
+            console.error('Erro ao mover lead:', error);
+            alert('Erro ao mover lead. Recarregando...');
+            location.reload();
+        }
+
+        draggedLeadId = null;
+    }
+
+    function updateColumnCounts() {
+        document.querySelectorAll('.pipeline-column').forEach(col => {
+            const count = col.querySelector('.pipeline-column-body').querySelectorAll('.pipeline-card').length;
+            col.querySelector('.pipeline-column-count').textContent = count;
+        });
+    }
+
+    // Modal: Adicionar Lead
+    async function openAddLeadModal() {
+        selectedLeadId = null;
+        document.getElementById('btnAddLead').disabled = true;
+        document.getElementById('leadSearchInput').value = '';
+
+        const modal = new bootstrap.Modal(document.getElementById('addLeadModal'));
+        modal.show();
+
+        // Fetch leads
+        try {
+            const response = await fetch('/api/crm2/leads');
+            const data = await response.json();
+
+            if (data.success) {
+                allLeads = data.leads;
+                renderLeadsList(allLeads);
+            }
+        } catch (error) {
+            console.error('Erro ao buscar leads:', error);
+            document.getElementById('leadsList').innerHTML = '<div class="text-center py-3 text-danger">Erro ao carregar leads.</div>';
+        }
+    }
+
+    function renderLeadsList(leads) {
+        const container = document.getElementById('leadsList');
+
+        if (leads.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-4 text-muted">
+                    <i class="fas fa-inbox fa-2x mb-2" style="opacity: 0.3;"></i>
+                    <p class="mb-0">Nenhum lead disponível.</p>
+                    <p class="small">Crie leads na aba "Leads" primeiro.</p>
+                </div>`;
+            return;
+        }
+
+        container.innerHTML = leads.map(lead => `
+            <div class="lead-list-item ${selectedLeadId === lead.id ? 'selected' : ''}" 
+                 onclick="selectLead(${lead.id})" data-lead-id="${lead.id}">
+                <div class="fw-semibold" style="font-size: 0.9rem;">${lead.nome_empresa}</div>
+                <div class="text-muted" style="font-size: 0.8rem;">
+                    <i class="fas fa-user me-1"></i>${lead.nome_contato}
+                    ${lead.email ? `<span class="ms-2"><i class="fas fa-envelope me-1"></i>${lead.email}</span>` : ''}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function filterLeads(query) {
+        const q = query.toLowerCase();
+        const filtered = allLeads.filter(lead =>
+            lead.nome_empresa.toLowerCase().includes(q) ||
+            lead.nome_contato.toLowerCase().includes(q) ||
+            (lead.email && lead.email.toLowerCase().includes(q))
+        );
+        renderLeadsList(filtered);
+    }
+
+    function selectLead(leadId) {
+        selectedLeadId = leadId;
+        document.getElementById('btnAddLead').disabled = false;
+
+        // Visual feedback
+        document.querySelectorAll('.lead-list-item').forEach(item => {
+            item.classList.remove('selected');
+        });
+        document.querySelector(`.lead-list-item[data-lead-id="${leadId}"]`).classList.add('selected');
+    }
+
+    async function addSelectedLead() {
+        if (!selectedLeadId) return;
+
+        const btn = document.getElementById('btnAddLead');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Adicionando...';
+
+        try {
+            const response = await fetch('/crm2/pipeline/add-lead', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ lead_id: selectedLeadId })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Adicionar card no Captação
+                const captacaoBody = document.querySelector('.pipeline-column[data-stage="Captação"] .pipeline-column-body');
+                const lead = data.lead;
+
+                const cardHtml = `
+                    <div class="pipeline-card" draggable="true" data-lead-id="${lead.id}"
+                         ondragstart="handleDragStart(event, ${lead.id})">
+                        <div class="pipeline-card-company">${lead.nome_empresa}</div>
+                        <div class="pipeline-card-contact">
+                            <div><i class="fas fa-user"></i> ${lead.nome_contato}</div>
+                            ${lead.email ? `<div><i class="fas fa-envelope"></i> ${lead.email}</div>` : ''}
+                            ${lead.telefone ? `<div><i class="fas fa-phone"></i> ${lead.telefone}</div>` : ''}
+                        </div>
+                    </div>`;
+
+                captacaoBody.insertAdjacentHTML('afterbegin', cardHtml);
+                updateColumnCounts();
+
+                // Remover lead da lista do modal
+                allLeads = allLeads.filter(l => l.id !== selectedLeadId);
+                renderLeadsList(allLeads);
+                selectedLeadId = null;
+
+                // Fechar modal
+                bootstrap.Modal.getInstance(document.getElementById('addLeadModal')).hide();
+            } else {
+                alert('Erro: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Erro ao adicionar lead:', error);
+            alert('Erro ao adicionar lead.');
+        }
+
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-plus me-1"></i> Adicionar';
+    }
+</script>
+{% endblock %}

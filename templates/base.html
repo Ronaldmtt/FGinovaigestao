@@ -391,6 +391,34 @@
                             <span>CRM</span>
                         </a>
                     </div>
+                    <div class="nav-item">
+                        <a href="#crm2Submenu"
+                            class="nav-link d-flex justify-content-between align-items-center {% if request.endpoint in ['crm2_leads', 'crm2_pipeline'] %}active{% endif %}"
+                            data-bs-toggle="collapse" role="button"
+                            aria-expanded="{% if request.endpoint in ['crm2_leads', 'crm2_pipeline'] %}true{% else %}false{% endif %}">
+                            <span><i class="fas fa-rocket"></i> CRM 2</span>
+                            <i class="fas fa-chevron-down" style="font-size: 0.7rem;"></i>
+                        </a>
+                        <div class="collapse {% if request.endpoint in ['crm2_leads', 'crm2_pipeline'] %}show{% endif %}"
+                            id="crm2Submenu">
+                            <div class="nav-item ms-3">
+                                <a href="{{ url_for('crm2_leads') }}"
+                                    class="nav-link {% if request.endpoint == 'crm2_leads' %}active{% endif %}"
+                                    style="font-size: 0.85rem; padding: 0.5rem 1rem;">
+                                    <i class="fas fa-user-plus" style="font-size: 0.85rem;"></i>
+                                    <span>Leads</span>
+                                </a>
+                            </div>
+                            <div class="nav-item ms-3">
+                                <a href="{{ url_for('crm2_pipeline') }}"
+                                    class="nav-link {% if request.endpoint == 'crm2_pipeline' %}active{% endif %}"
+                                    style="font-size: 0.85rem; padding: 0.5rem 1rem;">
+                                    <i class="fas fa-chart-bar" style="font-size: 0.85rem;"></i>
+                                    <span>Pipeline</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                     {% endif %}
 
                     <div class="nav-item">

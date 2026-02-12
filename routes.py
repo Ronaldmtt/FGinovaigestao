@@ -4483,6 +4483,31 @@ def crm2_move_lead():
     return jsonify({'success': True, 'message': f'Lead movido para {new_stage}'})
 
 
+@app.route('/api/crm2/archive', methods=['PUT'])
+@login_required
+def crm2_archive_lead():
+    """Archive a lead – removes from pipeline but keeps in database."""
+    from models import Crm2Lead
+    if not current_user.is_admin and not current_user.acesso_crm:
+        return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+    
+    data = request.get_json()
+    lead_id = data.get('lead_id')
+    
+    if not lead_id:
+        return jsonify({'success': False, 'message': 'ID do lead não informado'})
+    
+    lead = Crm2Lead.query.get(lead_id)
+    if not lead:
+        return jsonify({'success': False, 'message': 'Lead não encontrado'})
+    
+    lead.estagio = 'Arquivado'
+    lead.data_atualizacao = datetime.utcnow()
+    db.session.commit()
+    
+    return jsonify({'success': True, 'message': f'Lead "{lead.nome_empresa}" removido do pipeline'})
+
+
 @app.route('/api/crm2/leads/<int:lead_id>', methods=['DELETE'])
 @login_required
 def crm2_delete_lead(lead_id):

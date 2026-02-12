@@ -134,6 +134,28 @@
         color: #4f46e5;
     }
 
+    .btn-archive-lead {
+        display: inline-block;
+        margin-top: 0.4rem;
+        margin-left: 0.3rem;
+        padding: 0.2rem 0.5rem;
+        font-size: 0.72rem;
+        font-weight: 600;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        border-radius: 5px;
+        color: #ef4444;
+        text-decoration: none;
+        transition: all 0.2s;
+        background: none;
+        cursor: pointer;
+    }
+
+    .btn-archive-lead:hover {
+        background: rgba(239, 68, 68, 0.12);
+        border-color: #ef4444;
+        color: #dc2626;
+    }
+
     .btn-add-lead-pipeline {
         background: none;
         border: 1px dashed rgba(99, 102, 241, 0.4);
@@ -260,9 +282,16 @@
                     <div><i class="fas fa-phone"></i> {{ contato.telefone }}</div>
                     {% endif %}
                 </div>
-                <a href="/crm2/lead/{{ contato.id }}" class="btn-detail-lead">
-                    <i class="fas fa-eye me-1"></i>Detalhes
-                </a>
+                <div class="d-flex align-items-center gap-1">
+                    <a href="/crm2/lead/{{ contato.id }}" class="btn-detail-lead">
+                        <i class="fas fa-eye me-1"></i>Detalhes
+                    </a>
+                    <button class="btn-archive-lead"
+                        onclick="event.stopPropagation(); archiveLead({{ contato.id }}, this)"
+                        title="Remover do pipeline">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
             </div>
             {% endfor %}
         </div>
@@ -476,9 +505,14 @@
                             ${lead.email ? `<div><i class="fas fa-envelope"></i> ${lead.email}</div>` : ''}
                             ${lead.telefone ? `<div><i class="fas fa-phone"></i> ${lead.telefone}</div>` : ''}
                         </div>
-                        <a href="/crm2/lead/${lead.id}" class="btn-detail-lead">
-                            <i class="fas fa-eye me-1"></i>Detalhes
-                        </a>
+                        <div class="d-flex align-items-center gap-1">
+                            <a href="/crm2/lead/${lead.id}" class="btn-detail-lead">
+                                <i class="fas fa-eye me-1"></i>Detalhes
+                            </a>
+                            <button class="btn-archive-lead" onclick="event.stopPropagation(); archiveLead(${lead.id}, this)" title="Remover do pipeline">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
                     </div>`;
 
                 captacaoBody.insertAdjacentHTML('afterbegin', cardHtml);
@@ -501,6 +535,38 @@
 
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-plus me-1"></i> Adicionar';
+    }
+
+    async function archiveLead(leadId, btn) {
+        if (!confirm('Remover este lead do pipeline? (O lead não será deletado do sistema)')) return;
+
+        try {
+            const response = await fetch('/api/crm2/archive', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ lead_id: leadId })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                const card = btn.closest('.pipeline-card');
+                if (card) {
+                    card.style.transition = 'all 0.3s';
+                    card.style.opacity = '0';
+                    card.style.transform = 'scale(0.8)';
+                    setTimeout(() => {
+                        card.remove();
+                        updateColumnCounts();
+                    }, 300);
+                }
+            } else {
+                alert('Erro: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Erro ao arquivar lead:', error);
+            alert('Erro ao remover lead do pipeline.');
+        }
     }
 </script>
 {% endblock %}

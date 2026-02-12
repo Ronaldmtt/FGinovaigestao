@@ -393,13 +393,13 @@
                     </div>
                     <div class="nav-item">
                         <a href="#crm2Submenu"
-                            class="nav-link d-flex justify-content-between align-items-center {% if request.endpoint in ['crm2_leads', 'crm2_pipeline', 'crm2_notifications', 'crm2_lead_detail'] %}active{% endif %}"
+                            class="nav-link d-flex justify-content-between align-items-center {% if request.endpoint in ['crm2_leads', 'crm2_pipeline', 'crm2_lead_detail'] %}active{% endif %}"
                             data-bs-toggle="collapse" role="button"
-                            aria-expanded="{% if request.endpoint in ['crm2_leads', 'crm2_pipeline', 'crm2_notifications', 'crm2_lead_detail'] %}true{% else %}false{% endif %}">
+                            aria-expanded="{% if request.endpoint in ['crm2_leads', 'crm2_pipeline', 'crm2_lead_detail'] %}true{% else %}false{% endif %}">
                             <span><i class="fas fa-rocket"></i> CRM 2</span>
                             <i class="fas fa-chevron-down" style="font-size: 0.7rem;"></i>
                         </a>
-                        <div class="collapse {% if request.endpoint in ['crm2_leads', 'crm2_pipeline', 'crm2_notifications', 'crm2_lead_detail'] %}show{% endif %}"
+                        <div class="collapse {% if request.endpoint in ['crm2_leads', 'crm2_pipeline', 'crm2_lead_detail'] %}show{% endif %}"
                             id="crm2Submenu">
                             <div class="nav-item ms-3">
                                 <a href="{{ url_for('crm2_leads') }}"
@@ -417,15 +417,7 @@
                                     <span>Pipeline</span>
                                 </a>
                             </div>
-                            <div class="nav-item ms-3">
-                                <a href="{{ url_for('crm2_notifications') }}"
-                                    class="nav-link d-flex justify-content-between align-items-center {% if request.endpoint == 'crm2_notifications' %}active{% endif %}"
-                                    style="font-size: 0.85rem; padding: 0.5rem 1rem;">
-                                    <span><i class="fas fa-bell" style="font-size: 0.85rem;"></i> Notificações</span>
-                                    <span class="badge rounded-pill bg-warning text-dark" id="crm2NotifBadge"
-                                        style="display: none; font-size: 0.65rem;">0</span>
-                                </a>
-                            </div>
+
                         </div>
                     </div>
                     {% endif %}
@@ -435,6 +427,15 @@
                             class="nav-link {% if request.endpoint == 'reports' %}active{% endif %}">
                             <i class="fas fa-file-pdf"></i>
                             <span>Relatórios</span>
+                        </a>
+                    </div>
+
+                    <div class="nav-item">
+                        <a href="{{ url_for('crm2_notifications') }}"
+                            class="nav-link d-flex justify-content-between align-items-center {% if request.endpoint == 'crm2_notifications' %}active{% endif %}">
+                            <span><i class="fas fa-bell"></i> Notificações</span>
+                            <span class="badge rounded-pill bg-danger" id="notifCountBadge"
+                                style="display: none; font-size: 0.65rem;">0</span>
                         </a>
                     </div>
                 </div>
@@ -645,7 +646,7 @@
                 fetch('/api/crm2/notifications/count')
                     .then(r => r.json())
                     .then(data => {
-                        const badge = document.getElementById('crm2NotifBadge');
+                        const badge = document.getElementById('notifCountBadge');
                         if (badge) {
                             if (data.count > 0) {
                                 badge.textContent = data.count;

@@ -4777,13 +4777,22 @@ def crm2_create_meeting(lead_id):
         email_status = f'erro: {str(e)}'
         print(f"[crm2] Erro ao enviar emails: {e}")
     
+    # 5. Auto-advance lead one stage
+    next_stage = _get_next_stage(lead.estagio)
+    stage_msg = ''
+    if next_stage:
+        lead.estagio = next_stage
+        lead.data_atualizacao = datetime.utcnow()
+        stage_msg = f' Lead movido para {next_stage}.'
+    
     db.session.commit()
     
     return jsonify({
         'success': True,
-        'message': f'Reunião {numero} criada com sucesso! Email: {email_status}',
+        'message': f'Reuniao {numero} criada com sucesso!{stage_msg} Email: {email_status}',
         'meeting_id': meeting.id,
         'numero_reuniao': numero,
+        'new_stage': lead.estagio,
         'join_url': join_url,
         'email_status': email_status
     })

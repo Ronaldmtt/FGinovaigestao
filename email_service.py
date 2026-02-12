@@ -81,7 +81,7 @@ def send_email(to, subject, html_body, text_body=None, attachment_path=None):
             if MAIL_USE_TLS:
                 server.starttls()
             server.login(MAIL_USERNAME, MAIL_PASSWORD)
-            server.sendmail(MAIL_USERNAME, recipients, msg.as_string())
+            server.sendmail(MAIL_USERNAME, recipients, msg.as_bytes())
         
         print(f"[email] Email enviado com sucesso para {to}: {subject}")
         return True
@@ -137,17 +137,17 @@ def _base_template(content, title):
 def send_meeting_invite(guests, title, description, date, start_time, end_time, organizer_name="Sistema"):
     """Envia convite de reunião por email para todos os guests."""
     content = f"""
-    <p>Você foi convidado(a) para uma reunião:</p>
+    <p>Voce foi convidado(a) para uma reuniao:</p>
     <div class="info-box">
-        <p><strong>📋 Título:</strong> {title}</p>
-        <p><strong>📅 Data:</strong> {date}</p>
-        <p><strong>🕐 Horário:</strong> {start_time} - {end_time}</p>
-        <p><strong>👤 Organizador:</strong> {organizer_name}</p>
-        {f'<p><strong>📝 Descrição:</strong> {description}</p>' if description else ''}
+        <p><strong>Titulo:</strong> {title}</p>
+        <p><strong>Data:</strong> {date}</p>
+        <p><strong>Horario:</strong> {start_time} - {end_time}</p>
+        <p><strong>Organizador:</strong> {organizer_name}</p>
+        {f'<p><strong>Descricao:</strong> {description}</p>' if description else ''}
     </div>
     <p>Acesse o sistema para mais detalhes.</p>
     """
-    html = _base_template(content, f"📅 Convite: {title}")
+    html = _base_template(content, f"Convite: {title}")
     success_count = 0
     errors = []
     last_err = None
@@ -180,17 +180,17 @@ def send_notification_email(to, user_name, notification_title, notification_mess
 
 
 def send_chamado_email(to, user_name, remetente_name, meeting_title, meeting_date, meeting_time, action_url):
-    """Envia email de chamado (solicitação de reunião) com link para aceitar/recusar."""
+    """Envia email de chamado (solicitacao de reuniao) com link para aceitar/recusar."""
     content = f"""
-    <p>Olá <strong>{user_name}</strong>,</p>
-    <p><strong>{remetente_name}</strong> solicitou sua participação em uma reunião:</p>
+    <p>Ola <strong>{user_name}</strong>,</p>
+    <p><strong>{remetente_name}</strong> solicitou sua participacao em uma reuniao:</p>
     <div class="info-box">
-        <p><strong>📋 Reunião:</strong> {meeting_title}</p>
-        <p><strong>📅 Data:</strong> {meeting_date}</p>
-        <p><strong>🕐 Horário:</strong> {meeting_time}</p>
+        <p><strong>Reuniao:</strong> {meeting_title}</p>
+        <p><strong>Data:</strong> {meeting_date}</p>
+        <p><strong>Horario:</strong> {meeting_time}</p>
     </div>
     <p>Acesse o sistema para aceitar ou recusar:</p>
-    <a href="{action_url}" class="button">Ver Notificação</a>
+    <a href="{action_url}" class="button">Ver Notificacao</a>
     """
-    html = _base_template(content, "📬 Solicitação de Reunião")
-    return send_email(to, f"Solicitação de Reunião: {meeting_title}", html)
+    html = _base_template(content, "Solicitacao de Reuniao")
+    return send_email(to, f"Solicitacao de Reuniao: {meeting_title}", html)

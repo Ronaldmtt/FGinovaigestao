@@ -212,7 +212,8 @@
                         lead.data_criacao else '-' }}</td>
                     <td>
                         <button class="btn-action-lead btn-edit-lead"
-                            onclick="openEditModal({{ lead.id }}, {{ lead|tojson }})" title="Editar lead">
+                            onclick="openEditModal({{ lead.id }}, {{ {'nome_empresa': lead.nome_empresa, 'nome_contato': lead.nome_contato, 'email': lead.email or '', 'email_cliente': lead.email_cliente or '', 'telefone': lead.telefone or ''}|tojson }})"
+                            title="Editar lead">
                             <i class="fas fa-pen"></i>
                         </button>
                         <button class="btn-action-lead btn-delete-lead" onclick="deleteLead({{ lead.id }})"

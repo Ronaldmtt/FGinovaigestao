@@ -16,12 +16,52 @@ function saveObservacoes() {
     }).catch(() => alert('Erro de conexão'));
 }
 
-/* ========== Reunião ========== */
-function openMeetingModal() { new bootstrap.Modal(document.getElementById('meetingModal')).show(); }
+/* ========== Reunião & Chamado Logic ========== */
+let isChamadoMode = false;
+
+function openMeetingModal() {
+    isChamadoMode = false;
+    document.getElementById('meetingModalTitle').innerHTML = '<i class="fas fa-video me-2" style="color:#6366f1"></i>Nova Reunião';
+    document.getElementById('chamadoUserContainer').classList.add('d-none');
+
+    // Reset basic fields if needed, or keep. For now, we reuse.
+    document.getElementById('btnCreateMeeting').innerHTML = '<i class="fas fa-paper-plane me-1"></i>Criar';
+
+    // Bind click event
+    const btn = document.getElementById('btnCreateMeeting');
+    btn.onclick = handleMeetingSubmit;
+
+    new bootstrap.Modal(document.getElementById('meetingModal')).show();
+}
+
+function openChamadoModal() {
+    isChamadoMode = true;
+    document.getElementById('meetingModalTitle').innerHTML = '<i class="fas fa-bell me-2" style="color:#f59e0b"></i>Abrir Chamado';
+    document.getElementById('chamadoUserContainer').classList.remove('d-none');
+
+    // Default title for Chamado
+    const titleInput = document.getElementById('mtgTitle');
+    if (!titleInput.value) titleInput.value = 'Reunião de Alinhamento - Bloco 2';
+
+    const btn = document.getElementById('btnCreateMeeting');
+    btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Enviar Chamado';
+    btn.onclick = handleMeetingSubmit;
+
+    new bootstrap.Modal(document.getElementById('meetingModal')).show();
+}
+
+function handleMeetingSubmit() {
+    if (isChamadoMode) {
+        sendChamado();
+    } else {
+        createMeeting();
+    }
+}
 
 function createMeeting() {
     const btn = document.getElementById('btnCreateMeeting');
     btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Criando...';
+
     fetch(`/api/crm2/lead/${LEAD_ID}/reuniao`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -35,8 +75,39 @@ function createMeeting() {
             pauta: document.getElementById('mtgAgenda').value
         })
     }).then(r => r.json()).then(d => {
-        if (d.success) { alert(d.message); location.reload(); } else { alert(d.message); btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Criar'; }
+        if (d.success) { alert(d.message); location.reload(); }
+        else { alert(d.message); btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Criar'; }
     }).catch(() => { alert('Erro de conexão'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Criar'; });
+}
+
+function sendChamado() {
+    const btn = document.getElementById('btnCreateMeeting');
+    const destinatarioId = document.getElementById('mtgDestinatario').value;
+
+    if (!destinatarioId) {
+        alert('Selecione um destinatário para o chamado.');
+        return;
+    }
+
+    btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Enviando...';
+
+    fetch(`/api/crm2/lead/${LEAD_ID}/chamado`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            destinatario_id: destinatarioId,
+            titulo: document.getElementById('mtgTitle').value,
+            data: document.getElementById('mtgDate').value,
+            horario_inicio: document.getElementById('mtgStart').value,
+            horario_fim: document.getElementById('mtgEnd').value,
+            guests: document.getElementById('mtgGuests').value,
+            descricao: document.getElementById('mtgDescription').value,
+            pauta: document.getElementById('mtgAgenda').value
+        })
+    }).then(r => r.json()).then(d => {
+        if (d.success) { alert('Chamado enviado com sucesso!'); location.reload(); }
+        else { alert(d.message); btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Enviar Chamado'; }
+    }).catch(() => { alert('Erro de conexão'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Enviar Chamado'; });
 }
 
 function generatePauta() {
@@ -54,30 +125,6 @@ function generatePauta() {
             document.getElementById('mtgAgenda').value = d.pauta;
         } else alert(d.message || 'Erro ao gerar pauta');
     }).catch(() => { alert('Erro de conexão'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-brain me-1"></i>Gerar Pauta'; });
-}
-
-/* ========== Chamado ========== */
-function openChamadoModal() { new bootstrap.Modal(document.getElementById('chamadoModal')).show(); }
-
-function createChamado() {
-    const btn = document.getElementById('btnCreateChamado');
-    btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Enviando...';
-    fetch(`/api/crm2/lead/${LEAD_ID}/chamado`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            user_id: document.getElementById('chamadoUser').value,
-            titulo: document.getElementById('chamadoTitle').value,
-            data: document.getElementById('chamadoDate').value,
-            horario_inicio: document.getElementById('chamadoStart').value,
-            horario_fim: document.getElementById('chamadoEnd').value,
-            guests: document.getElementById('chamadoGuests').value,
-            descricao: document.getElementById('chamadoDesc').value,
-            pauta: document.getElementById('chamadoPauta').value
-        })
-    }).then(r => r.json()).then(d => {
-        if (d.success) location.reload(); else { alert(d.message); btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Enviar'; }
-    }).catch(() => { alert('Erro de conexão'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Enviar'; });
 }
 
 /* ========== Transcrição ========== */
@@ -285,61 +332,4 @@ function createClient() {
             location.reload();
         } else { alert(d.message); btn.disabled = false; btn.innerHTML = '<i class="fas fa-user-plus me-1"></i>Criar'; }
     }).catch(() => { alert('Erro de conexão'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-user-plus me-1"></i>Criar'; });
-}
-
-/* ========== Chamado (Solicitação de Reunião para outro usuário) ========== */
-function openChamadoModal() {
-    new bootstrap.Modal(document.getElementById('chamadoModal')).show();
-}
-
-function sendChamado() {
-    const btn = document.getElementById('btnSendChamado');
-    const destinatarioId = document.getElementById('chamadoDestinatario').value;
-    const titulo = document.getElementById('chamadoTitulo').value;
-    const data = document.getElementById('chamadoData').value;
-    const inicio = document.getElementById('chamadoInicio').value;
-    const fim = document.getElementById('chamadoFim').value;
-    const descricao = document.getElementById('chamadoDescricao').value;
-    const guests = document.getElementById('chamadoGuests').value;
-
-    if (!destinatarioId || !titulo || !data || !inicio || !fim) {
-        alert('Preencha os campos obrigatórios (*)');
-        return;
-    }
-
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Enviando...';
-
-    fetch(`/api/crm2/lead/${LEAD_ID}/chamado`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            destinatario_id: destinatarioId,
-            titulo: titulo,
-            data: data,
-            horario_inicio: inicio,
-            horario_fim: fim,
-            descricao: descricao,
-            guests: guests
-        })
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Chamado enviado com sucesso!');
-                location.reload();
-            } else {
-                alert('Erro: ' + data.message);
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Enviar Chamado';
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Erro ao enviar chamado');
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Enviar Chamado';
-        });
 }

@@ -632,15 +632,35 @@
     </div>
 </div>
 
-<!-- Modal: Criar Reunião -->
+<!-- Modal: Criar Reunião / Abrir Chamado -->
 <div class="modal fade" id="meetingModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content" style="border-radius:12px">
             <div class="modal-header" style="border-bottom:1px solid rgba(255,255,255,.1)">
-                <h5 class="modal-title fw-bold"><i class="fas fa-video me-2" style="color:#6366f1"></i>Criar Reunião
-                </h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <h5 class="modal-title fw-bold" id="meetingModalTitle"><i class="fas fa-video me-2"
+                        style="color:#6366f1"></i>Nova Reunião</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
+                <!-- Chamado Field (Hidden by default) -->
+                <div class="mb-3 d-none" id="chamadoUserContainer">
+                    <label class="form-label" style="color:#f59e0b; font-weight:600;">Destinatário (Responsável)
+                        *</label>
+                    <div class="p-2 mb-2"
+                        style="background: rgba(245, 158, 11, 0.1); border-radius: 6px; font-size: 0.85rem; color: #cbd5e1;">
+                        <i class="fas fa-info-circle me-1"></i> Ao abrir chamado, uma notificação será enviada. A
+                        reunião só será criada quando o usuário aceitar.
+                    </div>
+                    <select class="form-select" id="mtgDestinatario">
+                        <option value="">Selecione um usuário...</option>
+                        {% for user in users %}
+                        {% if user.id != current_user.id %}
+                        <option value="{{ user.id }}">{{ user.full_name }} ({{ user.email }})</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+
                 <div class="mb-3"><label class="form-label">Título *</label><input type="text" class="form-control"
                         id="mtgTitle"></div>
                 <div class="row mb-3">
@@ -669,51 +689,14 @@
                     <textarea class="form-control" id="mtgAgenda" rows="3"></textarea>
                 </div>
             </div>
-            <div class="modal-footer" style="border-top:1px solid rgba(255,255,255,.1)"><button
-                    class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button><button class="btn px-4"
+            <div class="modal-footer" style="border-top:1px solid rgba(255,255,255,.1)">
+                <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn px-4"
                     style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none"
-                    onclick="createMeeting()" id="btnCreateMeeting"><i
-                        class="fas fa-paper-plane me-1"></i>Criar</button></div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal: Chamado -->
-<div class="modal fade" id="chamadoModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content" style="border-radius:12px">
-            <div class="modal-header" style="border-bottom:1px solid rgba(255,255,255,.1)">
-                <h5 class="modal-title fw-bold"><i class="fas fa-bell me-2" style="color:#f59e0b"></i>Abrir Chamado</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    onclick="handleMeetingSubmit()" id="btnCreateMeeting">
+                    <i class="fas fa-paper-plane me-1"></i>Criar
+                </button>
             </div>
-            <div class="modal-body">
-                <div class="mb-3"><label class="form-label">Enviar para *</label><select class="form-select"
-                        id="chamadoUser">
-                        <option value="">Selecione...</option>{% for user in users %}<option value="{{ user.id }}">{{
-                            user.full_name }}</option>{% endfor %}
-                    </select></div>
-                <div class="mb-3"><label class="form-label">Título *</label><input type="text" class="form-control"
-                        id="chamadoTitle"></div>
-                <div class="row mb-3">
-                    <div class="col-md-4"><label class="form-label">Data *</label><input type="date"
-                            class="form-control" id="chamadoDate"></div>
-                    <div class="col-md-4"><label class="form-label">Hora Início</label><input type="time"
-                            class="form-control" id="chamadoStart"></div>
-                    <div class="col-md-4"><label class="form-label">Hora Fim</label><input type="time"
-                            class="form-control" id="chamadoEnd"></div>
-                </div>
-                <div class="mb-3"><label class="form-label">Participantes</label><input type="text" class="form-control"
-                        id="chamadoGuests"></div>
-                <div class="mb-3"><label class="form-label">Descrição</label><textarea class="form-control"
-                        id="chamadoDesc" rows="2"></textarea></div>
-                <div class="mb-3"><label class="form-label">Pauta</label><textarea class="form-control"
-                        id="chamadoPauta" rows="2"></textarea></div>
-            </div>
-            <div class="modal-footer" style="border-top:1px solid rgba(255,255,255,.1)"><button
-                    class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button><button class="btn px-4"
-                    style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none"
-                    onclick="createChamado()" id="btnCreateChamado"><i
-                        class="fas fa-paper-plane me-1"></i>Enviar</button></div>
         </div>
     </div>
 </div>
@@ -833,64 +816,6 @@
     </div>
 </div>
 
-<!-- Modal: Abrir Chamado (Solicitação de Reunião para outro usuário) -->
-<div class="modal fade" id="chamadoModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content" style="border-radius:12px">
-            <div class="modal-header" style="border-bottom:1px solid rgba(255,255,255,.1)">
-                <h5 class="modal-title fw-bold"><i class="fas fa-bell me-2" style="color:#6366f1"></i>Abrir Chamado
-                    (Solicitar Reunião)</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label">Destinatário (Responsável pelo próximo bloco) *</label>
-                    <select class="form-select" id="chamadoDestinatario">
-                        <option value="">Selecione um usuário...</option>
-                        {% for user in users %}
-                        {% if user.id != current_user.id %}
-                        <option value="{{ user.id }}">{{ user.full_name }} ({{ user.email }})</option>
-                        {% endif %}
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Título da Reunião *</label>
-                    <input type="text" class="form-control" id="chamadoTitulo" value="Reunião de Alinhamento - Bloco 2">
-                </div>
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <label class="form-label">Data *</label>
-                        <input type="date" class="form-control" id="chamadoData">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Início *</label>
-                        <input type="time" class="form-control" id="chamadoInicio">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Fim *</label>
-                        <input type="time" class="form-control" id="chamadoFim">
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Descrição</label>
-                    <textarea class="form-control" id="chamadoDescricao" rows="2"
-                        placeholder="Descreva o objetivo da reunião..."></textarea>
-                </div>
-                <!-- Hidden fields for compatibility if needed -->
-                <input type="hidden" id="chamadoGuests" value="{{ lead.email }}">
-            </div>
-            <div class="modal-footer" style="border-top:1px solid rgba(255,255,255,.1)">
-                <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button class="btn px-4"
-                    style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none"
-                    onclick="sendChamado()" id="btnSendChamado">
-                    <i class="fas fa-paper-plane me-1"></i>Enviar Chamado
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 
 <script src="/static/js/crm2_lead_detail.js"></script>
 {% endblock %}

@@ -612,6 +612,10 @@
                                 {% if reuniao.status == 'CREATED' and not reuniao.transcricao %}<button
                                     class="btn-crm btn-transcript" onclick="refreshTranscript({{ reuniao.id }},this)"><i
                                         class="fas fa-sync-alt me-1"></i>Buscar Transcrição</button>{% endif %}
+                                <button class="btn btn-sm btn-outline-danger ms-2"
+                                    style="border-radius:6px;font-size:.78rem"
+                                    onclick="deleteMeeting({{ reuniao.id }}, this)"><i
+                                        class="fas fa-trash me-1"></i>Excluir</button>
                             </div>
                         </div>
                     </div>
@@ -648,7 +652,9 @@
                             class="form-control" id="mtgEnd"></div>
                 </div>
                 <div class="mb-3"><label class="form-label">Participantes</label><input type="text" class="form-control"
-                        id="mtgGuests" placeholder="emails separados por vírgula"></div>
+                        id="mtgGuests" placeholder="emails separados por vírgula"
+                        value="hub@inovailab.com{% if lead.email %}, {{ lead.email }}{% endif %}{% if lead.email_cliente %}, {{ lead.email_cliente }}{% endif %}">
+                </div>
                 <div class="mb-3"><label class="form-label">Descrição</label><textarea class="form-control"
                         id="mtgDescription" rows="2"></textarea></div>
                 <div class="mb-3">

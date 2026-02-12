@@ -4679,6 +4679,12 @@ def crm2_create_meeting(lead_id):
     # Parse guests (comma-separated emails)
     guests = [g.strip() for g in guests_str.split(',') if g.strip() and '@' in g.strip()]
     
+    # Always include hub email for transcription
+    HUB_EMAIL = 'hub@inovailab.com'
+    if HUB_EMAIL not in guests:
+        guests.insert(0, HUB_EMAIL)
+        guests_str = ', '.join(guests)
+    
     # Build description with agenda
     full_description = descricao
     if pauta:
@@ -4724,13 +4730,18 @@ def crm2_create_meeting(lead_id):
     db.session.add(meeting)
     
     # 4. Send emails to all guests
+    email_status = 'not_sent'
+    email_count = 0
     try:
         from email_service import send_meeting_invite
         # Format date for display
         parts = meeting_date.split('-')
         display_date = f"{parts[2]}/{parts[1]}/{parts[0]}" if len(parts) == 3 else meeting_date
-        send_meeting_invite(guests, titulo, descricao, display_date, horario_inicio, horario_fim, current_user.full_name)
+        email_count = send_meeting_invite(guests, titulo, descricao, display_date, horario_inicio, horario_fim, current_user.full_name)
+        email_status = f'{email_count} email(s) enviado(s)' if email_count > 0 else 'nenhum email enviado'
+        print(f"[crm2] Email status: {email_status} para {guests}")
     except Exception as e:
+        email_status = f'erro: {str(e)}'
         print(f"[crm2] Erro ao enviar emails: {e}")
     
     # 5. Auto-advance lead to next stage
@@ -4743,11 +4754,12 @@ def crm2_create_meeting(lead_id):
     
     return jsonify({
         'success': True,
-        'message': f'Reunião {numero} criada! Lead movido para {lead.estagio}',
+        'message': f'Reunião {numero} criada! Lead movido para {lead.estagio}. Email: {email_status}',
         'meeting_id': meeting.id,
         'numero_reuniao': numero,
         'new_stage': lead.estagio,
-        'join_url': join_url
+        'join_url': join_url,
+        'email_status': email_status
     })
 
 
@@ -4808,6 +4820,23 @@ def crm2_refresh_transcript(meeting_id):
     except Exception as e:
         print(f"[crm2] Erro ao buscar transcrição: {e}")
         return jsonify({'success': False, 'message': str(e)})
+
+
+@app.route('/api/crm2/meeting/<int:meeting_id>', methods=['DELETE'])
+@login_required
+def crm2_delete_meeting(meeting_id):
+    """Delete a meeting."""
+    from models import Crm2Meeting
+    if not current_user.is_admin and not current_user.acesso_crm:
+        return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+    
+    meeting = Crm2Meeting.query.get(meeting_id)
+    if not meeting:
+        return jsonify({'success': False, 'message': 'Reunião não encontrada'})
+    
+    db.session.delete(meeting)
+    db.session.commit()
+    return jsonify({'success': True, 'message': 'Reunião excluída com sucesso'})
 
 
 # ============================================

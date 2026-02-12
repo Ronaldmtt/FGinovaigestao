@@ -88,6 +88,15 @@ function refreshTranscript(meetingId, btn) {
         .catch(() => { alert('Erro de conexão'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-sync-alt me-1"></i>Buscar Transcrição'; });
 }
 
+function deleteMeeting(meetingId, btn) {
+    if (!confirm('Tem certeza que deseja excluir esta reunião?')) return;
+    btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Excluindo...';
+    fetch(`/api/crm2/meeting/${meetingId}`, { method: 'DELETE' })
+        .then(r => r.json()).then(d => {
+            if (d.success) location.reload(); else { alert(d.message); btn.disabled = false; btn.innerHTML = '<i class="fas fa-trash me-1"></i>Excluir'; }
+        }).catch(() => { alert('Erro de conexão'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-trash me-1"></i>Excluir'; });
+}
+
 /* ========== Proposta: Advance / Generate / Save ========== */
 function advanceToProposta() {
     if (!confirm('Mover lead para Proposta?')) return;

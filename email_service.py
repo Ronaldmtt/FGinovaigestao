@@ -134,8 +134,9 @@ def _base_template(content, title):
 </html>"""
 
 
-def send_meeting_invite(guests, title, description, date, start_time, end_time, organizer_name="Sistema"):
-    """Envia convite de reunião por email para todos os guests."""
+def send_meeting_invite(guests, title, description, date, start_time, end_time, organizer_name="Sistema", join_url=None):
+    """Envia convite de reuniao por email para todos os guests."""
+    join_button = f'<p style="margin-top:20px"><a href="{join_url}" class="button">Entrar na Reuniao</a></p>' if join_url else ''
     content = f"""
     <p>Voce foi convidado(a) para uma reuniao:</p>
     <div class="info-box">
@@ -145,16 +146,17 @@ def send_meeting_invite(guests, title, description, date, start_time, end_time, 
         <p><strong>Organizador:</strong> {organizer_name}</p>
         {f'<p><strong>Descricao:</strong> {description}</p>' if description else ''}
     </div>
+    {join_button}
     <p>Acesse o sistema para mais detalhes.</p>
     """
     html = _base_template(content, f"Convite: {title}")
     success_count = 0
     errors = []
     last_err = None
-    print(f"[email] send_meeting_invite chamado para {len(guests)} guests: {guests}")
+    print(f"[email] send_meeting_invite chamado para {len(guests)} guests: {guests}, join_url={join_url}")
     for guest_email in guests:
         if guest_email and '@' in guest_email:
-            result = send_email(guest_email.strip(), f"Reunião: {title}", html)
+            result = send_email(guest_email.strip(), f"Reuniao: {title}", html)
             if result:
                 success_count += 1
             else:

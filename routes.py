@@ -4754,14 +4754,23 @@ def crm2_create_meeting(lead_id):
     email_status = 'not_sent'
     email_count = 0
     try:
-        from email_service import send_meeting_invite
-        # Format date for display
-        parts = meeting_date.split('-')
-        display_date = f"{parts[2]}/{parts[1]}/{parts[0]}" if len(parts) == 3 else meeting_date
-        email_count = send_meeting_invite(guests, titulo, descricao, display_date, horario_inicio, horario_fim, current_user.full_name)
-        email_status = f'{email_count} email(s) enviado(s)' if email_count > 0 else 'nenhum email enviado'
-        print(f"[crm2] Email status: {email_status} para {guests}")
+        from email_service import send_meeting_invite, is_email_configured, MAIL_USERNAME, MAIL_PASSWORD, MAIL_SERVER, MAIL_PORT
+        smtp_configured = is_email_configured()
+        smtp_diag = f"configured={smtp_configured}, user='{MAIL_USERNAME}', pass={'SET(' + str(len(MAIL_PASSWORD)) + 'chars)' if MAIL_PASSWORD else 'EMPTY'}, server={MAIL_SERVER}:{MAIL_PORT}"
+        print(f"[crm2] SMTP diagnostico: {smtp_diag}")
+        
+        if not smtp_configured:
+            email_status = f'SMTP nao configurado! {smtp_diag}'
+        else:
+            # Format date for display
+            parts = meeting_date.split('-')
+            display_date = f"{parts[2]}/{parts[1]}/{parts[0]}" if len(parts) == 3 else meeting_date
+            email_count = send_meeting_invite(guests, titulo, descricao, display_date, horario_inicio, horario_fim, current_user.full_name)
+            email_status = f'{email_count} email(s) enviado(s)' if email_count > 0 else f'nenhum email enviado (smtp ok, check logs). {smtp_diag}'
+            print(f"[crm2] Email status: {email_status} para {guests}")
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         email_status = f'erro: {str(e)}'
         print(f"[crm2] Erro ao enviar emails: {e}")
     

@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}CRM 2 - Notificações{% endblock %}
+
+{% block content %}
+<style>
+    .notif-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 1.25rem 1.5rem;
+        margin-bottom: 0.75rem;
+        transition: all 0.2s;
+    }
+
+    [data-bs-theme="light"] .notif-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+    }
+
+    .notif-card.pending {
+        border-left: 4px solid #f59e0b;
+    }
+
+    .notif-card.accepted {
+        border-left: 4px solid #22c55e;
+        opacity: 0.8;
+    }
+
+    .notif-card.rejected {
+        border-left: 4px solid #ef4444;
+        opacity: 0.6;
+    }
+
+    .notif-status-badge {
+        display: inline-block;
+        padding: 0.15rem 0.6rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .badge-pending {
+        background: rgba(245, 158, 11, 0.15);
+        color: #f59e0b;
+    }
+
+    .badge-accepted {
+        background: rgba(34, 197, 94, 0.15);
+        color: #22c55e;
+    }
+
+    .badge-rejected {
+        background: rgba(239, 68, 68, 0.15);
+        color: #ef4444;
+    }
+
+    .btn-notif-action {
+        border: none;
+        padding: 0.4rem 0.8rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-notif-accept {
+        background: linear-gradient(135deg, #22c55e, #16a34a);
+        color: white;
+    }
+
+    .btn-notif-accept:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(34, 197, 94, 0.3);
+    }
+
+    .btn-notif-reject {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+    }
+
+    .btn-notif-reject:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);
+    }
+
+    .notif-info-box {
+        background: rgba(99, 102, 241, 0.05);
+        border-left: 3px solid #6366f1;
+        border-radius: 0 8px 8px 0;
+        padding: 0.75rem 1rem;
+        margin: 0.5rem 0;
+        font-size: 0.85rem;
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1"><i class="fas fa-bell me-2" style="color: #f59e0b;"></i>Notificações</h4>
+        <p class="text-muted mb-0" style="font-size: 0.9rem;">Solicitações de reunião e chamados</p>
+    </div>
+</div>
+
+{% if notifications %}
+{% for notif in notifications %}
+<div class="notif-card {{ notif.status|lower }}" id="notif-{{ notif.id }}">
+    <div class="d-flex justify-content-between align-items-start">
+        <div class="flex-grow-1">
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="fw-bold" style="font-size: 0.95rem;">{{ notif.titulo }}</span>
+                <span class="notif-status-badge badge-{{ notif.status|lower }}">
+                    {% if notif.status == 'PENDING' %}⏳ Pendente
+                    {% elif notif.status == 'ACCEPTED' %}✅ Aceita
+                    {% else %}❌ Recusada{% endif %}
+                </span>
+            </div>
+
+            <p class="text-muted mb-1" style="font-size: 0.85rem;">
+                <i class="fas fa-user me-1"></i> De: <strong>{{ notif.remetente.full_name }}</strong>
+                <span class="ms-3"><i class="fas fa-building me-1"></i> Lead: <strong>{{ notif.lead.nome_empresa
+                        }}</strong></span>
+            </p>
+
+            {% if notif.descricao %}
+            <p class="mb-1" style="font-size: 0.85rem;">{{ notif.descricao }}</p>
+            {% endif %}
+
+            {% if notif.meeting_data_json %}
+            <div class="notif-info-box">
+                {% set mdata = notif.meeting_data_json | tojson %}
+                <p class="mb-0"><strong>📅 Data:</strong> {{ notif.meeting_data_json }}</p>
+            </div>
+            {% endif %}
+
+            <p class="text-muted mb-0 mt-2" style="font-size: 0.75rem;">
+                <i class="fas fa-clock me-1"></i> {{ notif.created_at.strftime('%d/%m/%Y %H:%M') if notif.created_at
+                else '' }}
+            </p>
+        </div>
+
+        {% if notif.status == 'PENDING' %}
+        <div class="d-flex gap-2 ms-3">
+            <button class="btn-notif-action btn-notif-accept" onclick="handleNotification({{ notif.id }}, 'accept')"
+                title="Aceitar reunião">
+                <i class="fas fa-check me-1"></i> Aceitar
+            </button>
+            <button class="btn-notif-action btn-notif-reject" onclick="handleNotification({{ notif.id }}, 'reject')"
+                title="Recusar reunião">
+                <i class="fas fa-times me-1"></i> Recusar
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+{% else %}
+<div class="text-center py-5 text-muted"
+    style="background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.1);">
+    <i class="fas fa-bell-slash fa-3x mb-3" style="opacity: 0.3;"></i>
+    <p class="mb-0">Nenhuma notificação.</p>
+    <p class="small">Quando alguém solicitar uma reunião para você, aparecerá aqui.</p>
+</div>
+{% endif %}
+
+<script>
+    async function handleNotification(notifId, action) {
+        const actionText = action === 'accept' ? 'aceitar' : 'recusar';
+        if (!confirm(`Tem certeza que deseja ${actionText} essa solicitação?`)) return;
+
+        const card = document.getElementById(`notif-${notifId}`);
+        const buttons = card.querySelectorAll('.btn-notif-action');
+        buttons.forEach(b => { b.disabled = true; });
+
+        try {
+            const resp = await fetch(`/api/crm2/notification/${notifId}/${action}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await resp.json();
+
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Erro: ' + data.message);
+                buttons.forEach(b => { b.disabled = false; });
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Erro ao processar notificação.');
+            buttons.forEach(b => { b.disabled = false; });
+        }
+    }
+</script>
+{% endblock %}

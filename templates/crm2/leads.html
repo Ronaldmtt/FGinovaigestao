@@ -93,14 +93,26 @@
         font-weight: 600;
     }
 
-    .btn-delete-lead {
-        color: #ef4444;
+    .btn-action-lead {
         background: none;
         border: none;
         padding: 0.25rem 0.5rem;
         border-radius: 6px;
         transition: all 0.2s;
         cursor: pointer;
+    }
+
+    .btn-edit-lead {
+        color: #6366f1;
+    }
+
+    .btn-edit-lead:hover {
+        background: rgba(99, 102, 241, 0.15);
+        color: #4f46e5;
+    }
+
+    .btn-delete-lead {
+        color: #ef4444;
     }
 
     .btn-delete-lead:hover {
@@ -131,11 +143,15 @@
             </div>
         </div>
         <div class="row">
-            <div class="col-md-6 mb-3">
+            <div class="col-md-4 mb-3">
                 <label class="form-label">Email</label>
                 <input type="email" class="form-control" name="email" placeholder="email@empresa.com">
             </div>
-            <div class="col-md-6 mb-3">
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Email do Cliente</label>
+                <input type="email" class="form-control" name="email_cliente" placeholder="cliente@empresa.com">
+            </div>
+            <div class="col-md-4 mb-3">
                 <label class="form-label">Telefone</label>
                 <input type="text" class="form-control" name="telefone" placeholder="(00) 00000-0000">
             </div>
@@ -168,9 +184,10 @@
                     <th>Empresa</th>
                     <th>Contato</th>
                     <th>Email</th>
+                    <th>Email Cliente</th>
                     <th>Telefone</th>
                     <th>Data</th>
-                    <th style="width: 60px;"></th>
+                    <th style="width: 90px;"></th>
                 </tr>
             </thead>
             <tbody>
@@ -178,13 +195,28 @@
                 <tr id="lead-row-{{ lead.id }}">
                     <td class="fw-semibold">{{ lead.nome_empresa }}</td>
                     <td>{{ lead.nome_contato }}</td>
-                    <td><a href="mailto:{{ lead.email }}" class="text-decoration-none" style="color: #6366f1;">{{
-                            lead.email }}</a></td>
-                    <td>{{ lead.telefone }}</td>
+                    <td>
+                        {% if lead.email %}
+                        <a href="mailto:{{ lead.email }}" class="text-decoration-none" style="color: #6366f1;">{{
+                            lead.email }}</a>
+                        {% else %}-{% endif %}
+                    </td>
+                    <td>
+                        {% if lead.email_cliente %}
+                        <a href="mailto:{{ lead.email_cliente }}" class="text-decoration-none"
+                            style="color: #8b5cf6;">{{ lead.email_cliente }}</a>
+                        {% else %}-{% endif %}
+                    </td>
+                    <td>{{ lead.telefone or '-' }}</td>
                     <td class="text-muted" style="font-size: 0.85rem;">{{ lead.data_criacao.strftime('%d/%m/%Y') if
                         lead.data_criacao else '-' }}</td>
                     <td>
-                        <button class="btn-delete-lead" onclick="deleteLead({{ lead.id }})" title="Remover lead">
+                        <button class="btn-action-lead btn-edit-lead"
+                            onclick="openEditModal({{ lead.id }}, {{ lead|tojson }})" title="Editar lead">
+                            <i class="fas fa-pen"></i>
+                        </button>
+                        <button class="btn-action-lead btn-delete-lead" onclick="deleteLead({{ lead.id }})"
+                            title="Remover lead">
                             <i class="fas fa-trash-alt"></i>
                         </button>
                     </td>
@@ -202,7 +234,103 @@
     {% endif %}
 </div>
 
+<!-- Modal de Edição -->
+<div class="modal fade" id="editLeadModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 12px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold"><i class="fas fa-pen me-2" style="color: #6366f1;"></i>Editar Lead</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editLeadId">
+                <div class="mb-3">
+                    <label class="form-label"
+                        style="font-weight:500;font-size:0.85rem;text-transform:uppercase;letter-spacing:0.5px;">Empresa</label>
+                    <input type="text" class="form-control" id="editNomeEmpresa" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label"
+                        style="font-weight:500;font-size:0.85rem;text-transform:uppercase;letter-spacing:0.5px;">Nome do
+                        Contato</label>
+                    <input type="text" class="form-control" id="editNomeContato" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label"
+                        style="font-weight:500;font-size:0.85rem;text-transform:uppercase;letter-spacing:0.5px;">Email</label>
+                    <input type="email" class="form-control" id="editEmail">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label"
+                        style="font-weight:500;font-size:0.85rem;text-transform:uppercase;letter-spacing:0.5px;">Email
+                        do Cliente</label>
+                    <input type="email" class="form-control" id="editEmailCliente">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label"
+                        style="font-weight:500;font-size:0.85rem;text-transform:uppercase;letter-spacing:0.5px;">Telefone</label>
+                    <input type="text" class="form-control" id="editTelefone">
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn px-4" style="background-color: #6366f1; color: white; border: none;"
+                    onclick="saveEditLead()" id="btnSaveEdit">
+                    <i class="fas fa-save me-1"></i> Salvar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+    function openEditModal(leadId, lead) {
+        document.getElementById('editLeadId').value = leadId;
+        document.getElementById('editNomeEmpresa').value = lead.nome_empresa || '';
+        document.getElementById('editNomeContato').value = lead.nome_contato || '';
+        document.getElementById('editEmail').value = lead.email || '';
+        document.getElementById('editEmailCliente').value = lead.email_cliente || '';
+        document.getElementById('editTelefone').value = lead.telefone || '';
+
+        new bootstrap.Modal(document.getElementById('editLeadModal')).show();
+    }
+
+    async function saveEditLead() {
+        const leadId = document.getElementById('editLeadId').value;
+        const btn = document.getElementById('btnSaveEdit');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Salvando...';
+
+        try {
+            const response = await fetch(`/api/crm2/leads/${leadId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    nome_empresa: document.getElementById('editNomeEmpresa').value,
+                    nome_contato: document.getElementById('editNomeContato').value,
+                    email: document.getElementById('editEmail').value,
+                    email_cliente: document.getElementById('editEmailCliente').value,
+                    telefone: document.getElementById('editTelefone').value
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                bootstrap.Modal.getInstance(document.getElementById('editLeadModal')).hide();
+                location.reload();
+            } else {
+                alert('Erro: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Erro ao editar lead:', error);
+            alert('Erro ao salvar alterações.');
+        }
+
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save me-1"></i> Salvar';
+    }
+
     async function deleteLead(leadId) {
         if (!confirm('Tem certeza que deseja remover este lead?')) return;
 

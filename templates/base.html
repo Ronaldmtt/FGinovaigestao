@@ -393,13 +393,13 @@
                     </div>
                     <div class="nav-item">
                         <a href="#crm2Submenu"
-                            class="nav-link d-flex justify-content-between align-items-center {% if request.endpoint in ['crm2_leads', 'crm2_pipeline'] %}active{% endif %}"
+                            class="nav-link d-flex justify-content-between align-items-center {% if request.endpoint in ['crm2_leads', 'crm2_pipeline', 'crm2_notifications', 'crm2_lead_detail'] %}active{% endif %}"
                             data-bs-toggle="collapse" role="button"
-                            aria-expanded="{% if request.endpoint in ['crm2_leads', 'crm2_pipeline'] %}true{% else %}false{% endif %}">
+                            aria-expanded="{% if request.endpoint in ['crm2_leads', 'crm2_pipeline', 'crm2_notifications', 'crm2_lead_detail'] %}true{% else %}false{% endif %}">
                             <span><i class="fas fa-rocket"></i> CRM 2</span>
                             <i class="fas fa-chevron-down" style="font-size: 0.7rem;"></i>
                         </a>
-                        <div class="collapse {% if request.endpoint in ['crm2_leads', 'crm2_pipeline'] %}show{% endif %}"
+                        <div class="collapse {% if request.endpoint in ['crm2_leads', 'crm2_pipeline', 'crm2_notifications', 'crm2_lead_detail'] %}show{% endif %}"
                             id="crm2Submenu">
                             <div class="nav-item ms-3">
                                 <a href="{{ url_for('crm2_leads') }}"
@@ -415,6 +415,15 @@
                                     style="font-size: 0.85rem; padding: 0.5rem 1rem;">
                                     <i class="fas fa-chart-bar" style="font-size: 0.85rem;"></i>
                                     <span>Pipeline</span>
+                                </a>
+                            </div>
+                            <div class="nav-item ms-3">
+                                <a href="{{ url_for('crm2_notifications') }}"
+                                    class="nav-link d-flex justify-content-between align-items-center {% if request.endpoint == 'crm2_notifications' %}active{% endif %}"
+                                    style="font-size: 0.85rem; padding: 0.5rem 1rem;">
+                                    <span><i class="fas fa-bell" style="font-size: 0.85rem;"></i> Notificações</span>
+                                    <span class="badge rounded-pill bg-warning text-dark" id="crm2NotifBadge"
+                                        style="display: none; font-size: 0.65rem;">0</span>
                                 </a>
                             </div>
                         </div>
@@ -627,6 +636,33 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='js/kanban.js') }}"></script>
+
+    <!-- CRM2 Notification Badge Polling -->
+    {% if current_user.is_authenticated %}
+    <script>
+        (function () {
+            function refreshNotifBadge() {
+                fetch('/api/crm2/notifications/count')
+                    .then(r => r.json())
+                    .then(data => {
+                        const badge = document.getElementById('crm2NotifBadge');
+                        if (badge) {
+                            if (data.count > 0) {
+                                badge.textContent = data.count;
+                                badge.style.display = 'inline-block';
+                            } else {
+                                badge.style.display = 'none';
+                            }
+                        }
+                    })
+                    .catch(() => { });
+            }
+            refreshNotifBadge();
+            setInterval(refreshNotifBadge, 60000);
+        })();
+    </script>
+    {% endif %}
+
     {% block scripts %}{% endblock %}
 </body>
 

@@ -1,0 +1,822 @@
+{% extends "base.html" %}
+{% block title %}CRM 2 - {{ lead.nome_empresa }}{% endblock %}
+{% block content %}
+<style>
+    .detail-header {
+        background: linear-gradient(135deg, rgba(99, 102, 241, .1), rgba(139, 92, 246, .1));
+        border: 1px solid rgba(99, 102, 241, .2);
+        border-radius: 12px;
+        padding: 1.5rem 2rem;
+        margin-bottom: 1.5rem
+    }
+
+    .stage-badge {
+        display: inline-block;
+        padding: .3rem 1rem;
+        border-radius: 20px;
+        font-size: .8rem;
+        font-weight: 600;
+        color: #fff
+    }
+
+    .stage-Captação {
+        background: linear-gradient(135deg, #3b82f6, #2563eb)
+    }
+
+    .stage-Bloco\ 1 {
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed)
+    }
+
+    .stage-Bloco\ 2 {
+        background: linear-gradient(135deg, #06b6d4, #0891b2)
+    }
+
+    .stage-Proposta {
+        background: linear-gradient(135deg, #f59e0b, #d97706)
+    }
+
+    .stage-Contrato {
+        background: linear-gradient(135deg, #10b981, #059669)
+    }
+
+    .stage-Cliente {
+        background: linear-gradient(135deg, #22c55e, #16a34a)
+    }
+
+    .stage-Convertido {
+        background: linear-gradient(135deg, #6366f1, #4f46e5)
+    }
+
+    .info-card,
+    .obs-card,
+    .section-box {
+        background: rgba(255, 255, 255, .03);
+        border: 1px solid rgba(255, 255, 255, .1);
+        border-radius: 12px;
+        padding: 1.5rem
+    }
+
+    [data-bs-theme="light"] .info-card,
+    [data-bs-theme="light"] .obs-card,
+    [data-bs-theme="light"] .section-box {
+        background: #fff;
+        border: 1px solid #e2e8f0
+    }
+
+    .info-card label {
+        font-size: .75rem;
+        text-transform: uppercase;
+        letter-spacing: .5px;
+        color: var(--bs-secondary);
+        font-weight: 600;
+        margin-bottom: .25rem
+    }
+
+    .info-card .value {
+        font-size: .95rem;
+        font-weight: 500
+    }
+
+    .obs-card textarea {
+        background: rgba(255, 255, 255, .05);
+        border: 1px solid rgba(255, 255, 255, .1);
+        border-radius: 8px;
+        color: var(--bs-body-color);
+        resize: vertical;
+        min-height: 100px
+    }
+
+    [data-bs-theme="light"] .obs-card textarea {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6
+    }
+
+    .obs-card textarea:focus {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, .15)
+    }
+
+    .collapsible-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.5rem;
+        cursor: pointer;
+        transition: background .2s;
+        border-bottom: 1px solid rgba(255, 255, 255, .05)
+    }
+
+    .collapsible-header:hover {
+        background: rgba(99, 102, 241, .05)
+    }
+
+    .collapsible-header .chevron {
+        transition: transform .3s
+    }
+
+    .collapsible-header[aria-expanded="true"] .chevron {
+        transform: rotate(180deg)
+    }
+
+    .meeting-section {
+        background: rgba(255, 255, 255, .03);
+        border: 1px solid rgba(255, 255, 255, .1);
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: .75rem
+    }
+
+    [data-bs-theme="light"] .meeting-section {
+        background: #fff;
+        border: 1px solid #e2e8f0
+    }
+
+    .meeting-body {
+        padding: 1.5rem
+    }
+
+    .meeting-status {
+        display: inline-block;
+        padding: .15rem .6rem;
+        border-radius: 12px;
+        font-size: .75rem;
+        font-weight: 600
+    }
+
+    .status-created {
+        background: rgba(59, 130, 246, .15);
+        color: #3b82f6
+    }
+
+    .status-done {
+        background: rgba(16, 185, 129, .15);
+        color: #10b981
+    }
+
+    .status-cancelled {
+        background: rgba(239, 68, 68, .15);
+        color: #ef4444
+    }
+
+    .status-draft {
+        background: rgba(245, 158, 11, .15);
+        color: #f59e0b
+    }
+
+    .status-signed {
+        background: rgba(34, 197, 94, .15);
+        color: #22c55e
+    }
+
+    .transcript-box {
+        background: rgba(0, 0, 0, .1);
+        border-radius: 8px;
+        padding: 1rem;
+        max-height: 300px;
+        overflow-y: auto;
+        font-size: .85rem;
+        white-space: pre-wrap
+    }
+
+    [data-bs-theme="light"] .transcript-box {
+        background: #f8f9fa
+    }
+
+    .analysis-box {
+        background: rgba(99, 102, 241, .05);
+        border-left: 4px solid #6366f1;
+        border-radius: 0 8px 8px 0;
+        padding: 1rem;
+        font-size: .9rem
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: .75rem;
+        flex-wrap: wrap
+    }
+
+    .btn-crm {
+        border: none;
+        padding: .6rem 1.25rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: .85rem;
+        transition: all .2s;
+        cursor: pointer
+    }
+
+    .btn-crm:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, .15)
+    }
+
+    .btn-meeting {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        color: #fff
+    }
+
+    .btn-chamado {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: #fff
+    }
+
+    .btn-transcript {
+        background: linear-gradient(135deg, #06b6d4, #0891b2);
+        color: #fff
+    }
+
+    .btn-proposal {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: #fff
+    }
+
+    .btn-proposal-ai {
+        background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+        color: #fff
+    }
+
+    .btn-contract {
+        background: linear-gradient(135deg, #1e3a5f, #2563eb);
+        color: #fff
+    }
+
+    .btn-accept {
+        background: linear-gradient(135deg, #22c55e, #16a34a);
+        color: #fff
+    }
+
+    .btn-reject {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: #fff
+    }
+
+    .btn-client {
+        background: linear-gradient(135deg, #6366f1, #4f46e5);
+        color: #fff
+    }
+
+    .proposal-card,
+    .contract-card {
+        background: rgba(255, 255, 255, .03);
+        border: 1px solid rgba(255, 255, 255, .1);
+        border-radius: 12px;
+        padding: 1.25rem 1.5rem;
+        margin-bottom: .75rem
+    }
+
+    [data-bs-theme="light"] .proposal-card,
+    [data-bs-theme="light"] .contract-card {
+        background: #fff;
+        border: 1px solid #e2e8f0
+    }
+
+    .proposal-card.draft,
+    .contract-card.draft {
+        border-left: 4px solid #f59e0b
+    }
+
+    .proposal-card.accepted,
+    .contract-card.signed {
+        border-left: 4px solid #22c55e
+    }
+
+    .menu-btn {
+        background: none;
+        border: 1px solid rgba(255, 255, 255, .15);
+        border-radius: 6px;
+        color: var(--bs-body-color);
+        padding: .25rem .5rem;
+        cursor: pointer;
+        font-size: .8rem
+    }
+
+    .menu-btn:hover {
+        background: rgba(99, 102, 241, .1);
+        border-color: #6366f1
+    }
+
+    .contract-section-item {
+        background: rgba(255, 255, 255, .03);
+        border: 1px solid rgba(255, 255, 255, .08);
+        border-radius: 8px;
+        padding: .75rem 1rem;
+        margin-bottom: .5rem;
+        position: relative
+    }
+
+    [data-bs-theme="light"] .contract-section-item {
+        background: #f8f9fa;
+        border: 1px solid #e2e8f0
+    }
+
+    .contract-section-item .remove-section {
+        position: absolute;
+        top: .5rem;
+        right: .5rem;
+        background: none;
+        border: none;
+        color: #ef4444;
+        cursor: pointer;
+        font-size: .8rem;
+        opacity: .6
+    }
+
+    .contract-section-item .remove-section:hover {
+        opacity: 1
+    }
+</style>
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb" style="font-size:.85rem">
+        <li class="breadcrumb-item"><a href="{{ url_for('crm2_pipeline') }}" class="text-decoration-none"
+                style="color:#6366f1">Pipeline</a></li>
+        <li class="breadcrumb-item active">{{ lead.nome_empresa }}</li>
+    </ol>
+</nav>
+
+<div class="detail-header d-flex justify-content-between align-items-center">
+    <div>
+        <h4 class="fw-bold mb-1">{{ lead.nome_empresa }}</h4><span class="text-muted">{{ lead.nome_contato }}</span>
+    </div>
+    <span class="stage-badge stage-{{ lead.estagio }}">{{ lead.estagio }}</span>
+</div>
+
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-4 mb-4">
+        <div class="info-card mb-3">
+            <h6 class="fw-semibold mb-3"><i class="fas fa-id-card me-2" style="color:#6366f1"></i>Dados do Lead</h6>
+            <div class="mb-2"><label>Empresa</label>
+                <div class="value">{{ lead.nome_empresa }}</div>
+            </div>
+            <div class="mb-2"><label>Contato</label>
+                <div class="value">{{ lead.nome_contato }}</div>
+            </div>
+            <div class="mb-2"><label>Email</label>
+                <div class="value">{{ lead.email or '—' }}</div>
+            </div>
+            <div class="mb-2"><label>Email do Cliente</label>
+                <div class="value">{{ lead.email_cliente or '—' }}</div>
+            </div>
+            <div class="mb-2"><label>Telefone</label>
+                <div class="value">{{ lead.telefone or '—' }}</div>
+            </div>
+            <div class="mb-2"><label>Estágio</label>
+                <div class="value"><span class="stage-badge stage-{{ lead.estagio }}">{{ lead.estagio }}</span></div>
+            </div>
+        </div>
+
+        <div class="obs-card mb-3">
+            <h6 class="fw-semibold mb-3"><i class="fas fa-sticky-note me-2" style="color:#f59e0b"></i>Observações</h6>
+            <textarea class="form-control" id="obsText"
+                placeholder="Observações...">{{ lead.observacoes or '' }}</textarea>
+            <button onclick="saveObservacoes()" class="btn btn-sm mt-2 px-3" id="btnSaveObs"
+                style="background:#6366f1;color:#fff;border:none;border-radius:6px"><i
+                    class="fas fa-save me-1"></i>Salvar</button>
+            <span id="obsSaved" class="ms-2 text-success small" style="display:none">✓ Salvo</span>
+        </div>
+
+        <!-- Proposta Accept/Reject (Proposta stage) -->
+        {% if lead.estagio == 'Proposta' and propostas %}
+        <div class="section-box mb-3">
+            <h6 class="fw-semibold mb-3"><i class="fas fa-file-contract me-2" style="color:#f59e0b"></i>Proposta</h6>
+            <p class="text-muted small mb-3">Decida sobre a última proposta:</p>
+            <div class="d-flex gap-2">
+                <button class="btn-crm btn-accept flex-grow-1" onclick="acceptProposal({{ propostas[0].id }})"><i
+                        class="fas fa-check me-1"></i>Aceita</button>
+                <button class="btn-crm btn-reject flex-grow-1" onclick="rejectProposal({{ propostas[0].id }})"><i
+                        class="fas fa-times me-1"></i>Recusada</button>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Contrato Accept/Reject (Contrato stage) -->
+        {% if lead.estagio == 'Contrato' and contratos %}
+        <div class="section-box mb-3">
+            <h6 class="fw-semibold mb-3"><i class="fas fa-file-signature me-2" style="color:#10b981"></i>Contrato</h6>
+            <p class="text-muted small mb-3">Decida sobre o contrato:</p>
+            <div class="d-flex gap-2">
+                <button class="btn-crm btn-accept flex-grow-1" onclick="acceptContract({{ contratos[0].id }})"><i
+                        class="fas fa-check me-1"></i>Contrato Assinado</button>
+                <button class="btn-crm btn-reject flex-grow-1" onclick="rejectContract({{ contratos[0].id }})"><i
+                        class="fas fa-times me-1"></i>Contrato Recusado</button>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Criar Cliente (Cliente stage) -->
+        {% if lead.estagio == 'Cliente' %}
+        <div class="section-box mb-3">
+            <h6 class="fw-semibold mb-3"><i class="fas fa-user-plus me-2" style="color:#6366f1"></i>Converter em Cliente
+            </h6>
+            <button class="btn-crm btn-client w-100" onclick="openCreateClientModal()"><i
+                    class="fas fa-user-plus me-1"></i>Criar Cliente</button>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-8">
+        <!-- Action Buttons -->
+        <div class="action-buttons mb-4">
+            {% if lead.estagio in ['Captação', 'Bloco 1', 'Bloco 2'] %}
+            <button class="btn-crm btn-meeting" onclick="openMeetingModal()"><i class="fas fa-video me-1"></i>{% if
+                reunioes|length == 0 %}Criar Reunião{% else %}Criar Outra Reunião{% endif %}</button>
+            {% endif %}
+            {% if lead.estagio == 'Bloco 1' %}
+            <button class="btn-crm btn-chamado" onclick="openChamadoModal()"><i class="fas fa-bell me-1"></i>Abrir
+                Chamado</button>
+            {% endif %}
+            {% if lead.estagio == 'Bloco 2' %}
+            <button class="btn-crm btn-proposal" onclick="advanceToProposta()"><i
+                    class="fas fa-file-contract me-1"></i>Gerar Proposta</button>
+            {% endif %}
+            {% if lead.estagio == 'Proposta' %}
+            <button class="btn-crm btn-proposal-ai" onclick="generateProposalIA()" id="btnGenProposta"><i
+                    class="fas fa-brain me-1"></i>Gerar Proposta IA</button>
+            {% endif %}
+            {% if lead.estagio == 'Contrato' %}
+            <button class="btn-crm btn-contract" onclick="generateContractIA()" id="btnGenContrato"><i
+                    class="fas fa-brain me-1"></i>Gerar Contrato IA</button>
+            {% endif %}
+        </div>
+
+        <!-- CONTRATOS (collapsible) -->
+        {% if contratos or lead.estagio == 'Contrato' %}
+        <div class="meeting-section mb-3">
+            <div class="collapsible-header" data-bs-toggle="collapse" data-bs-target="#contractsSection"
+                aria-expanded="true">
+                <h6 class="fw-semibold mb-0"><i class="fas fa-file-signature me-2" style="color:#10b981"></i>Contratos
+                    ({{ contratos|length }})</h6>
+                <i class="fas fa-chevron-down chevron" style="font-size:.75rem;color:var(--bs-secondary)"></i>
+            </div>
+            <div class="collapse show" id="contractsSection">
+                <div class="p-3">
+                    {% if contratos %}
+                    {% for c in contratos %}
+                    <div class="contract-card {{ c.status|lower }}" id="contract-{{ c.id }}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <strong style="font-size:.95rem">{{ c.titulo }}</strong>
+                                    <span class="meeting-status status-{{ c.status|lower }}">{{ c.status }}</span>
+                                </div>
+                                <div class="text-muted" style="font-size:.8rem">
+                                    <i class="fas fa-calendar me-1"></i>{{ c.created_at.strftime('%d/%m/%Y') if
+                                    c.created_at else '' }}
+                                </div>
+                            </div>
+                            {% if c.pdf_path %}
+                            <div class="dropdown">
+                                <button class="menu-btn dropdown-toggle" data-bs-toggle="dropdown"><i
+                                        class="fas fa-ellipsis-v"></i></button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="/api/crm2/contract/{{ c.id }}/pdf"
+                                            target="_blank"><i class="fas fa-eye me-2 text-primary"></i>Visualizar
+                                            PDF</a></li>
+                                    <li><a class="dropdown-item"
+                                            href="/api/crm2/contract/{{ c.id }}/pdf?download=true"><i
+                                                class="fas fa-download me-2 text-success"></i>Baixar Contrato</a></li>
+                                    <li>
+                                        <hr class="dropdown-divider">
+                                    </li>
+                                    <li><a class="dropdown-item" href="#"
+                                            onclick="sendContract({{ c.id }});return false"><i
+                                                class="fas fa-paper-plane me-2 text-info"></i>Enviar Contrato</a></li>
+                                </ul>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="text-center py-3 text-muted"
+                        style="border:1px dashed rgba(255,255,255,.1);border-radius:12px"><i
+                            class="fas fa-file-alt fa-2x mb-2" style="opacity:.3"></i>
+                        <p class="mb-0 small">Nenhum contrato. Clique em "Gerar Contrato IA".</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- PROPOSTAS (collapsible) -->
+        {% if propostas or lead.estagio in ['Proposta','Contrato','Cliente','Convertido'] %}
+        <div class="meeting-section mb-3">
+            <div class="collapsible-header" data-bs-toggle="collapse" data-bs-target="#proposalsSection"
+                aria-expanded="{{ 'true' if lead.estagio == 'Proposta' else 'false' }}">
+                <h6 class="fw-semibold mb-0"><i class="fas fa-file-contract me-2" style="color:#f59e0b"></i>Propostas
+                    ({{ propostas|length }})</h6>
+                <i class="fas fa-chevron-down chevron" style="font-size:.75rem;color:var(--bs-secondary)"></i>
+            </div>
+            <div class="collapse {{ 'show' if lead.estagio == 'Proposta' else '' }}" id="proposalsSection">
+                <div class="p-3">
+                    {% for prop in propostas %}
+                    <div class="proposal-card {{ prop.status|lower }}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <strong style="font-size:.95rem">{{ prop.titulo }}</strong>
+                                    <span
+                                        class="meeting-status status-{% if prop.status == 'DRAFT' %}draft{% elif prop.status == 'ACCEPTED' %}done{% else %}cancelled{% endif %}">{{
+                                        prop.status }}</span>
+                                </div>
+                                <div class="text-muted" style="font-size:.8rem">
+                                    <i class="fas fa-money-bill-wave me-1"></i>{{ prop.valor or 'A definir' }}
+                                    <span class="ms-3"><i class="fas fa-clock me-1"></i>{{ prop.prazo or 'A definir'
+                                        }}</span>
+                                    <span class="ms-3"><i class="fas fa-calendar me-1"></i>{{
+                                        prop.created_at.strftime('%d/%m/%Y') if prop.created_at else '' }}</span>
+                                </div>
+                            </div>
+                            {% if prop.pdf_path %}
+                            <div class="dropdown">
+                                <button class="menu-btn dropdown-toggle" data-bs-toggle="dropdown"><i
+                                        class="fas fa-ellipsis-v"></i></button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="/api/crm2/proposal/{{ prop.id }}/pdf"
+                                            target="_blank"><i class="fas fa-eye me-2 text-primary"></i>Ver PDF</a></li>
+                                    <li><a class="dropdown-item"
+                                            href="/api/crm2/proposal/{{ prop.id }}/pdf?download=true"><i
+                                                class="fas fa-download me-2 text-success"></i>Baixar PDF</a></li>
+                                    <li>
+                                        <hr class="dropdown-divider">
+                                    </li>
+                                    <li><a class="dropdown-item" href="#"
+                                            onclick="sendProposalPDF({{ prop.id }});return false"><i
+                                                class="fas fa-paper-plane me-2 text-info"></i>Enviar PDF</a></li>
+                                </ul>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% if not propostas %}
+                    <div class="text-center py-3 text-muted"
+                        style="border:1px dashed rgba(255,255,255,.1);border-radius:12px">
+                        <p class="mb-0 small">Nenhuma proposta gerada.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- REUNIÕES (collapsible) -->
+        <div class="meeting-section mb-3">
+            <div class="collapsible-header" data-bs-toggle="collapse" data-bs-target="#meetingsSection"
+                aria-expanded="{{ 'true' if lead.estagio in ['Captação','Bloco 1','Bloco 2'] else 'false' }}">
+                <h6 class="fw-semibold mb-0"><i class="fas fa-calendar-check me-2" style="color:#8b5cf6"></i>Reuniões
+                    ({{ reunioes|length }})</h6>
+                <i class="fas fa-chevron-down chevron" style="font-size:.75rem;color:var(--bs-secondary)"></i>
+            </div>
+            <div class="collapse {{ 'show' if lead.estagio in ['Captação','Bloco 1','Bloco 2'] else '' }}"
+                id="meetingsSection">
+                <div class="p-3">
+                    {% for reuniao in reunioes %}
+                    <div class="meeting-section mb-2">
+                        <div class="collapsible-header" data-bs-toggle="collapse"
+                            data-bs-target="#meeting-{{ reuniao.id }}">
+                            <div><strong style="color:#6366f1">Reunião {{ reuniao.numero_reuniao }}</strong> <span
+                                    class="ms-2 text-muted" style="font-size:.85rem">{{ reuniao.titulo }}</span></div>
+                            <div class="d-flex align-items-center gap-2"><span class="text-muted"
+                                    style="font-size:.8rem">{{ reuniao.data }}</span><span
+                                    class="meeting-status status-{{ reuniao.status|lower }}">{{ reuniao.status }}</span>
+                            </div>
+                        </div>
+                        <div class="collapse" id="meeting-{{ reuniao.id }}">
+                            <div class="meeting-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-4"><label class="text-muted d-block"
+                                            style="font-size:.75rem;text-transform:uppercase">Data</label><span>{{
+                                            reuniao.data }}</span></div>
+                                    <div class="col-md-4"><label class="text-muted d-block"
+                                            style="font-size:.75rem;text-transform:uppercase">Horário</label><span>{{
+                                            reuniao.horario_inicio }} - {{ reuniao.horario_fim }}</span></div>
+                                    <div class="col-md-4"><label class="text-muted d-block"
+                                            style="font-size:.75rem;text-transform:uppercase">Participantes</label><span
+                                            style="font-size:.85rem">{{ reuniao.guests or '—' }}</span></div>
+                                </div>
+                                {% if reuniao.transcricao %}<div class="mb-3"><label class="text-muted d-block mb-2"
+                                        style="font-size:.75rem;text-transform:uppercase"><i
+                                            class="fas fa-file-alt me-1"></i>Transcrição</label>
+                                    <div class="transcript-box">{{ reuniao.transcricao }}</div>
+                                </div>{% endif %}
+                                {% if reuniao.analise %}<div class="mb-3"><label class="text-muted d-block mb-2"
+                                        style="font-size:.75rem;text-transform:uppercase"><i
+                                            class="fas fa-brain me-1"></i>Análise IA</label>
+                                    <div class="analysis-box">{{ reuniao.analise }}</div>
+                                </div>{% endif %}
+                                {% if reuniao.status == 'CREATED' and not reuniao.transcricao %}<button
+                                    class="btn-crm btn-transcript" onclick="refreshTranscript({{ reuniao.id }},this)"><i
+                                        class="fas fa-sync-alt me-1"></i>Buscar Transcrição</button>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% if not reunioes %}
+                    <div class="text-center py-3 text-muted"
+                        style="border:1px dashed rgba(255,255,255,.1);border-radius:12px">
+                        <p class="mb-0 small">Nenhuma reunião agendada.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Criar Reunião -->
+<div class="modal fade" id="meetingModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content" style="border-radius:12px">
+            <div class="modal-header" style="border-bottom:1px solid rgba(255,255,255,.1)">
+                <h5 class="modal-title fw-bold"><i class="fas fa-video me-2" style="color:#6366f1"></i>Criar Reunião
+                </h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3"><label class="form-label">Título *</label><input type="text" class="form-control"
+                        id="mtgTitle"></div>
+                <div class="row mb-3">
+                    <div class="col-md-4"><label class="form-label">Data *</label><input type="date"
+                            class="form-control" id="mtgDate"></div>
+                    <div class="col-md-4"><label class="form-label">Hora Início *</label><input type="time"
+                            class="form-control" id="mtgStart"></div>
+                    <div class="col-md-4"><label class="form-label">Hora Fim *</label><input type="time"
+                            class="form-control" id="mtgEnd"></div>
+                </div>
+                <div class="mb-3"><label class="form-label">Participantes</label><input type="text" class="form-control"
+                        id="mtgGuests" placeholder="emails separados por vírgula"></div>
+                <div class="mb-3"><label class="form-label">Descrição</label><textarea class="form-control"
+                        id="mtgDescription" rows="2"></textarea></div>
+                <div class="mb-3"><label class="form-label">Pauta</label><textarea class="form-control" id="mtgAgenda"
+                        rows="3"></textarea></div>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid rgba(255,255,255,.1)"><button
+                    class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button><button class="btn px-4"
+                    style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none"
+                    onclick="createMeeting()" id="btnCreateMeeting"><i
+                        class="fas fa-paper-plane me-1"></i>Criar</button></div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Chamado -->
+<div class="modal fade" id="chamadoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content" style="border-radius:12px">
+            <div class="modal-header" style="border-bottom:1px solid rgba(255,255,255,.1)">
+                <h5 class="modal-title fw-bold"><i class="fas fa-bell me-2" style="color:#f59e0b"></i>Abrir Chamado</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3"><label class="form-label">Enviar para *</label><select class="form-select"
+                        id="chamadoUser">
+                        <option value="">Selecione...</option>{% for user in users %}<option value="{{ user.id }}">{{
+                            user.full_name }}</option>{% endfor %}
+                    </select></div>
+                <div class="mb-3"><label class="form-label">Título *</label><input type="text" class="form-control"
+                        id="chamadoTitle"></div>
+                <div class="row mb-3">
+                    <div class="col-md-4"><label class="form-label">Data *</label><input type="date"
+                            class="form-control" id="chamadoDate"></div>
+                    <div class="col-md-4"><label class="form-label">Hora Início</label><input type="time"
+                            class="form-control" id="chamadoStart"></div>
+                    <div class="col-md-4"><label class="form-label">Hora Fim</label><input type="time"
+                            class="form-control" id="chamadoEnd"></div>
+                </div>
+                <div class="mb-3"><label class="form-label">Participantes</label><input type="text" class="form-control"
+                        id="chamadoGuests"></div>
+                <div class="mb-3"><label class="form-label">Descrição</label><textarea class="form-control"
+                        id="chamadoDesc" rows="2"></textarea></div>
+                <div class="mb-3"><label class="form-label">Pauta</label><textarea class="form-control"
+                        id="chamadoPauta" rows="2"></textarea></div>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid rgba(255,255,255,.1)"><button
+                    class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button><button class="btn px-4"
+                    style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none"
+                    onclick="createChamado()" id="btnCreateChamado"><i
+                        class="fas fa-paper-plane me-1"></i>Enviar</button></div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Proposta -->
+<div class="modal fade" id="proposalModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" style="border-radius:12px">
+            <div class="modal-header" style="border-bottom:1px solid rgba(255,255,255,.1)">
+                <h5 class="modal-title fw-bold"><i class="fas fa-file-contract me-2" style="color:#10b981"></i>Proposta
+                    Comercial</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3"><label class="form-label">Título *</label><input type="text" class="form-control"
+                        id="propTitulo"></div>
+                <div class="mb-3"><label class="form-label">Descrição</label><textarea class="form-control"
+                        id="propDescricao" rows="4"></textarea></div>
+                <div class="mb-3"><label class="form-label">Escopo</label><textarea class="form-control" id="propEscopo"
+                        rows="3"></textarea></div>
+                <div class="row mb-3">
+                    <div class="col-md-6"><label class="form-label">Valor *</label><input type="text"
+                            class="form-control" id="propValor" placeholder="R$ 0,00"></div>
+                    <div class="col-md-6"><label class="form-label">Prazo *</label><input type="text"
+                            class="form-control" id="propPrazo"></div>
+                </div>
+                <div class="mb-3"><label class="form-label">Cronograma</label><textarea class="form-control"
+                        id="propCronograma" rows="4"></textarea></div>
+                <div class="mb-3"><label class="form-label">Justificativa</label><textarea class="form-control"
+                        id="propJustificativa" rows="3"></textarea></div>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid rgba(255,255,255,.1)"><button
+                    class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button><button class="btn px-4"
+                    style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none"
+                    onclick="saveProposal()" id="btnSaveProposal"><i class="fas fa-save me-1"></i>Salvar
+                    Proposta</button></div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Contrato (dynamic sections) -->
+<div class="modal fade" id="contractModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" style="border-radius:12px">
+            <div class="modal-header" style="border-bottom:1px solid rgba(255,255,255,.1)">
+                <h5 class="modal-title fw-bold"><i class="fas fa-file-signature me-2" style="color:#1e3a5f"></i>Contrato
+                </h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3"><label class="form-label">Título do Contrato *</label><input type="text"
+                        class="form-control" id="contractTitulo"></div>
+                <label class="form-label fw-semibold">Seções do Contrato</label>
+                <div id="contractSections"></div>
+                <div class="text-center mt-2 mb-3">
+                    <button class="btn btn-sm btn-outline-primary px-3" onclick="openAddSectionModal()"
+                        style="border-radius:8px"><i class="fas fa-plus me-1"></i>Adicionar Seção</button>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid rgba(255,255,255,.1)"><button
+                    class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button><button class="btn px-4"
+                    style="background:linear-gradient(135deg,#1e3a5f,#2563eb);color:#fff;border:none"
+                    onclick="saveContract()" id="btnSaveContract"><i class="fas fa-save me-1"></i>Salvar
+                    Contrato</button></div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add Section Type -->
+<div class="modal fade" id="addSectionModal" tabindex="-1">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content" style="border-radius:12px">
+            <div class="modal-header" style="border-bottom:1px solid rgba(255,255,255,.1)">
+                <h6 class="modal-title fw-bold">Adicionar Seção</h6><button type="button" class="btn-close"
+                    data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <button class="btn btn-outline-primary w-100 mb-2" onclick="addContractSection('title')"><i
+                        class="fas fa-heading me-2"></i>Criar Título</button>
+                <button class="btn btn-outline-secondary w-100" onclick="addContractSection('description')"><i
+                        class="fas fa-paragraph me-2"></i>Criar Descrição</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Criar Cliente -->
+<div class="modal fade" id="createClientModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:12px">
+            <div class="modal-header" style="border-bottom:1px solid rgba(255,255,255,.1)">
+                <h5 class="modal-title fw-bold"><i class="fas fa-user-plus me-2" style="color:#6366f1"></i>Criar Cliente
+                </h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3"><label class="form-label">Nome *</label><input type="text" class="form-control"
+                        id="clientNome" value="{{ lead.nome_empresa }}"></div>
+                <div class="row mb-3">
+                    <div class="col-md-6"><label class="form-label">Email</label><input type="email"
+                            class="form-control" id="clientEmail" value="{{ lead.email_cliente or lead.email or '' }}">
+                    </div>
+                    <div class="col-md-6"><label class="form-label">Telefone</label><input type="text"
+                            class="form-control" id="clientTelefone" value="{{ lead.telefone or '' }}"></div>
+                </div>
+                <div class="mb-3"><label class="form-label">Empresa</label><input type="text" class="form-control"
+                        id="clientEmpresa" value="{{ lead.nome_empresa }}"></div>
+                <div class="mb-3"><label class="form-label">Endereço</label><textarea class="form-control"
+                        id="clientEndereco" rows="2"></textarea></div>
+                <div class="mb-3"><label class="form-label">Observações</label><textarea class="form-control"
+                        id="clientObs" rows="2">Cliente convertido do CRM 2 - Lead: {{ lead.nome_empresa }}</textarea>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid rgba(255,255,255,.1)"><button
+                    class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button><button class="btn px-4"
+                    style="background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;border:none"
+                    onclick="createClient()" id="btnCreateClient"><i class="fas fa-user-plus me-1"></i>Criar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/static/js/crm2_lead_detail.js"></script>
+{% endblock %}

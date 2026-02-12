@@ -4386,6 +4386,7 @@ def crm2_leads():
             nome_empresa=request.form['nome_empresa'],
             nome_contato=request.form['nome_contato'],
             email=request.form.get('email', ''),
+            email_cliente=request.form.get('email_cliente', ''),
             telefone=request.form.get('telefone', ''),
             estagio='Lead'
         )
@@ -4515,6 +4516,985 @@ def crm2_api_leads():
             'nome_empresa': l.nome_empresa,
             'nome_contato': l.nome_contato,
             'email': l.email,
+            'email_cliente': l.email_cliente,
             'telefone': l.telefone
         } for l in leads]
+    })
+
+
+@app.route('/api/crm2/leads/<int:lead_id>', methods=['PUT'])
+@login_required
+def crm2_edit_lead(lead_id):
+    """Edit lead data."""
+    from models import Crm2Lead
+    if not current_user.is_admin and not current_user.acesso_crm:
+        return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+    
+    lead = Crm2Lead.query.get(lead_id)
+    if not lead:
+        return jsonify({'success': False, 'message': 'Lead não encontrado'})
+    
+    data = request.get_json()
+    lead.nome_empresa = data.get('nome_empresa', lead.nome_empresa)
+    lead.nome_contato = data.get('nome_contato', lead.nome_contato)
+    lead.email = data.get('email', lead.email)
+    lead.email_cliente = data.get('email_cliente', lead.email_cliente)
+    lead.telefone = data.get('telefone', lead.telefone)
+    lead.data_atualizacao = datetime.utcnow()
+    db.session.commit()
+    
+    return jsonify({'success': True, 'message': 'Lead atualizado com sucesso'})
+
+
+# ============================================
+# CRM 2 - LEAD DETAIL PAGE
+# ============================================
+
+@app.route('/crm2/lead/<int:lead_id>')
+@login_required
+def crm2_lead_detail(lead_id):
+    """Render lead detail page (behavior adapts per stage)."""
+    from models import Crm2Lead, Crm2Meeting, Crm2Proposal, Crm2Contract
+    if not current_user.is_admin and not current_user.acesso_crm:
+        flash('Você não tem permissão para acessar o CRM.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    lead = Crm2Lead.query.get_or_404(lead_id)
+    reunioes = Crm2Meeting.query.filter_by(lead_id=lead_id).order_by(Crm2Meeting.numero_reuniao).all()
+    propostas = Crm2Proposal.query.filter_by(lead_id=lead_id).order_by(Crm2Proposal.created_at.desc()).all()
+    contratos = Crm2Contract.query.filter_by(lead_id=lead_id).order_by(Crm2Contract.created_at.desc()).all()
+    users = User.query.order_by(User.nome).all()
+    
+    return render_template('crm2/lead_detail.html', lead=lead, reunioes=reunioes, propostas=propostas, contratos=contratos, users=users, stages=CRM2_STAGES)
+
+
+@app.route('/api/crm2/lead/<int:lead_id>/observacoes', methods=['PUT'])
+@login_required
+def crm2_save_observacoes(lead_id):
+    """Save lead observations."""
+    from models import Crm2Lead
+    if not current_user.is_admin and not current_user.acesso_crm:
+        return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+    
+    lead = Crm2Lead.query.get(lead_id)
+    if not lead:
+        return jsonify({'success': False, 'message': 'Lead não encontrado'})
+    
+    data = request.get_json()
+    lead.observacoes = data.get('observacoes', '')
+    lead.data_atualizacao = datetime.utcnow()
+    db.session.commit()
+    
+    return jsonify({'success': True, 'message': 'Observações salvas'})
+
+
+# ============================================
+# CRM 2 - MEETINGS (REUNIÕES)
+# ============================================
+
+@app.route('/api/crm2/lead/<int:lead_id>/reuniao', methods=['POST'])
+@login_required
+def crm2_create_meeting(lead_id):
+    """Create meeting via Transcritor API + send emails + auto-advance stage."""
+    from models import Crm2Lead, Crm2Meeting
+    if not current_user.is_admin and not current_user.acesso_crm:
+        return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+    
+    lead = Crm2Lead.query.get(lead_id)
+    if not lead:
+        return jsonify({'success': False, 'message': 'Lead não encontrado'})
+    
+    data = request.get_json()
+    titulo = data.get('titulo', '')
+    descricao = data.get('descricao', '')
+    pauta = data.get('pauta', '')
+    meeting_date = data.get('data', '')
+    horario_inicio = data.get('horario_inicio', '')
+    horario_fim = data.get('horario_fim', '')
+    guests_str = data.get('guests', '')
+    
+    if not titulo or not meeting_date or not horario_inicio or not horario_fim:
+        return jsonify({'success': False, 'message': 'Preencha todos os campos obrigatórios'})
+    
+    # Parse guests (comma-separated emails)
+    guests = [g.strip() for g in guests_str.split(',') if g.strip() and '@' in g.strip()]
+    
+    # Build description with agenda
+    full_description = descricao
+    if pauta:
+        full_description += f"\n\n--- PAUTA ---\n{pauta}"
+    
+    # Build ISO datetimes
+    start_iso = f"{meeting_date}T{horario_inicio}:00"
+    end_iso = f"{meeting_date}T{horario_fim}:00"
+    
+    # 1. Call Transcritor API to create meeting
+    meeting_provider_id = None
+    join_url = None
+    try:
+        from transcritor_service import criar_reuniao
+        result = criar_reuniao(titulo, full_description, start_iso, end_iso, guests)
+        if result.get('ok'):
+            api_result = result.get('result', {})
+            meeting_provider_id = api_result.get('meeting_id', '')
+            join_url = api_result.get('join_url', '')
+    except Exception as e:
+        print(f"[crm2] Erro ao criar reunião no transcritor: {e}")
+    
+    # 2. Calculate meeting number for this lead
+    existing_count = Crm2Meeting.query.filter_by(lead_id=lead_id).count()
+    numero = existing_count + 1
+    
+    # 3. Save meeting to DB
+    meeting = Crm2Meeting(
+        lead_id=lead_id,
+        titulo=titulo,
+        descricao=descricao,
+        pauta=pauta,
+        data=meeting_date,
+        horario_inicio=horario_inicio,
+        horario_fim=horario_fim,
+        guests=guests_str,
+        meeting_provider_id=meeting_provider_id,
+        join_url=join_url,
+        status='CREATED',
+        numero_reuniao=numero,
+        created_by_id=current_user.id
+    )
+    db.session.add(meeting)
+    
+    # 4. Send emails to all guests
+    try:
+        from email_service import send_meeting_invite
+        # Format date for display
+        parts = meeting_date.split('-')
+        display_date = f"{parts[2]}/{parts[1]}/{parts[0]}" if len(parts) == 3 else meeting_date
+        send_meeting_invite(guests, titulo, descricao, display_date, horario_inicio, horario_fim, current_user.full_name)
+    except Exception as e:
+        print(f"[crm2] Erro ao enviar emails: {e}")
+    
+    # 5. Auto-advance lead to next stage
+    next_stage = _get_next_stage(lead.estagio)
+    if next_stage:
+        lead.estagio = next_stage
+        lead.data_atualizacao = datetime.utcnow()
+    
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': f'Reunião {numero} criada! Lead movido para {lead.estagio}',
+        'meeting_id': meeting.id,
+        'numero_reuniao': numero,
+        'new_stage': lead.estagio,
+        'join_url': join_url
+    })
+
+
+def _get_next_stage(current_stage):
+    """Get the next stage in the pipeline."""
+    try:
+        idx = CRM2_STAGES.index(current_stage)
+        if idx < len(CRM2_STAGES) - 1:
+            return CRM2_STAGES[idx + 1]
+    except ValueError:
+        pass
+    return None
+
+
+@app.route('/api/crm2/meeting/<int:meeting_id>/refresh-transcript', methods=['POST'])
+@login_required
+def crm2_refresh_transcript(meeting_id):
+    """Fetch transcription from Transcritor API and generate AI analysis."""
+    from models import Crm2Meeting
+    if not current_user.is_admin and not current_user.acesso_crm:
+        return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+    
+    meeting = Crm2Meeting.query.get(meeting_id)
+    if not meeting:
+        return jsonify({'success': False, 'message': 'Reunião não encontrada'})
+    
+    # Fetch transcription
+    try:
+        from transcritor_service import buscar_transcricao
+        result = buscar_transcricao(meeting.titulo, meeting.data)
+        
+        if result.get('ok'):
+            meeting.transcricao = result['text']
+            meeting.status = 'DONE'
+            
+            # Generate AI analysis
+            try:
+                from ai_analysis_service import analisar_transcricao
+                analysis = analisar_transcricao(result['text'])
+                if analysis:
+                    meeting.analise = analysis
+            except Exception as e:
+                print(f"[crm2] Erro na análise IA: {e}")
+            
+            db.session.commit()
+            return jsonify({
+                'success': True,
+                'message': 'Transcrição obtida e análise gerada!',
+                'transcricao': meeting.transcricao,
+                'analise': meeting.analise
+            })
+        
+        if result.get('pending'):
+            return jsonify({'success': False, 'pending': True, 'message': 'Transcrição ainda sendo processada. Tente novamente em alguns minutos.'})
+        
+        return jsonify({'success': False, 'message': result.get('error', 'Transcrição não encontrada')})
+        
+    except Exception as e:
+        print(f"[crm2] Erro ao buscar transcrição: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+
+
+# ============================================
+# CRM 2 - NOTIFICATIONS (CHAMADOS)
+# ============================================
+
+@app.route('/crm2/notifications')
+@login_required
+def crm2_notifications():
+    """Render notifications page."""
+    from models import Crm2Notification
+    notifications = Crm2Notification.query.filter_by(
+        destinatario_id=current_user.id
+    ).order_by(Crm2Notification.created_at.desc()).all()
+    
+    return render_template('crm2/notifications.html', notifications=notifications)
+
+
+@app.route('/api/crm2/notifications/count')
+@login_required
+def crm2_notifications_count():
+    """Get pending notifications count for badge."""
+    from models import Crm2Notification
+    count = Crm2Notification.query.filter_by(
+        destinatario_id=current_user.id,
+        status='PENDING'
+    ).count()
+    return jsonify({'count': count})
+
+
+@app.route('/api/crm2/lead/<int:lead_id>/chamado', methods=['POST'])
+@login_required
+def crm2_create_chamado(lead_id):
+    """Create a meeting request notification for another user."""
+    from models import Crm2Lead, Crm2Meeting, Crm2Notification
+    import json as json_module
+    
+    if not current_user.is_admin and not current_user.acesso_crm:
+        return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+    
+    lead = Crm2Lead.query.get(lead_id)
+    if not lead:
+        return jsonify({'success': False, 'message': 'Lead não encontrado'})
+    
+    data = request.get_json()
+    destinatario_id = data.get('destinatario_id')
+    titulo = data.get('titulo', '')
+    descricao = data.get('descricao', '')
+    meeting_date = data.get('data', '')
+    horario_inicio = data.get('horario_inicio', '')
+    horario_fim = data.get('horario_fim', '')
+    guests_str = data.get('guests', '')
+    pauta = data.get('pauta', '')
+    
+    if not destinatario_id or not titulo or not meeting_date:
+        return jsonify({'success': False, 'message': 'Preencha todos os campos obrigatórios'})
+    
+    destinatario = User.query.get(destinatario_id)
+    if not destinatario:
+        return jsonify({'success': False, 'message': 'Usuário destinatário não encontrado'})
+    
+    # Save meeting data as JSON for later creation
+    meeting_data = {
+        'titulo': titulo,
+        'descricao': descricao,
+        'pauta': pauta,
+        'data': meeting_date,
+        'horario_inicio': horario_inicio,
+        'horario_fim': horario_fim,
+        'guests': guests_str
+    }
+    
+    # Create notification
+    notification = Crm2Notification(
+        lead_id=lead_id,
+        remetente_id=current_user.id,
+        destinatario_id=int(destinatario_id),
+        titulo=titulo,
+        descricao=descricao,
+        meeting_data_json=json_module.dumps(meeting_data),
+        status='PENDING'
+    )
+    db.session.add(notification)
+    db.session.commit()
+    
+    # Send email to the recipient
+    try:
+        from email_service import send_chamado_email
+        parts = meeting_date.split('-')
+        display_date = f"{parts[2]}/{parts[1]}/{parts[0]}" if len(parts) == 3 else meeting_date
+        
+        send_chamado_email(
+            to=destinatario.email,
+            user_name=destinatario.full_name,
+            remetente_name=current_user.full_name,
+            meeting_title=titulo,
+            meeting_date=display_date,
+            meeting_time=f"{horario_inicio} - {horario_fim}",
+            action_url=request.host_url.rstrip('/') + url_for('crm2_notifications')
+        )
+    except Exception as e:
+        print(f"[crm2] Erro ao enviar email de chamado: {e}")
+    
+    return jsonify({'success': True, 'message': f'Chamado enviado para {destinatario.full_name}'})
+
+
+@app.route('/api/crm2/notification/<int:notif_id>/accept', methods=['POST'])
+@login_required
+def crm2_accept_notification(notif_id):
+    """Accept a meeting request: create meeting, send emails, advance lead."""
+    from models import Crm2Lead, Crm2Meeting, Crm2Notification
+    import json as json_module
+    
+    notification = Crm2Notification.query.get(notif_id)
+    if not notification or notification.destinatario_id != current_user.id:
+        return jsonify({'success': False, 'message': 'Notificação não encontrada'})
+    
+    if notification.status != 'PENDING':
+        return jsonify({'success': False, 'message': 'Notificação já processada'})
+    
+    # Parse meeting data
+    meeting_info = json_module.loads(notification.meeting_data_json)
+    lead = Crm2Lead.query.get(notification.lead_id)
+    if not lead:
+        return jsonify({'success': False, 'message': 'Lead não encontrado'})
+    
+    # Parse guests and add recipient email
+    guests = [g.strip() for g in meeting_info.get('guests', '').split(',') if g.strip() and '@' in g.strip()]
+    if current_user.email and current_user.email not in guests:
+        guests.append(current_user.email)
+    
+    titulo = meeting_info['titulo']
+    meeting_date = meeting_info['data']
+    horario_inicio = meeting_info['horario_inicio']
+    horario_fim = meeting_info['horario_fim']
+    
+    # Build ISO datetimes
+    start_iso = f"{meeting_date}T{horario_inicio}:00"
+    end_iso = f"{meeting_date}T{horario_fim}:00"
+    
+    full_description = meeting_info.get('descricao', '')
+    if meeting_info.get('pauta'):
+        full_description += f"\n\n--- PAUTA ---\n{meeting_info['pauta']}"
+    
+    # 1. Create meeting via Transcritor API
+    meeting_provider_id = None
+    join_url = None
+    try:
+        from transcritor_service import criar_reuniao
+        result = criar_reuniao(titulo, full_description, start_iso, end_iso, guests)
+        if result.get('ok'):
+            api_result = result.get('result', {})
+            meeting_provider_id = api_result.get('meeting_id', '')
+            join_url = api_result.get('join_url', '')
+    except Exception as e:
+        print(f"[crm2] Erro ao criar reunião no transcritor: {e}")
+    
+    # 2. Calculate meeting number
+    existing_count = Crm2Meeting.query.filter_by(lead_id=lead.id).count()
+    numero = existing_count + 1
+    
+    # 3. Save meeting
+    meeting = Crm2Meeting(
+        lead_id=lead.id,
+        titulo=titulo,
+        descricao=meeting_info.get('descricao', ''),
+        pauta=meeting_info.get('pauta', ''),
+        data=meeting_date,
+        horario_inicio=horario_inicio,
+        horario_fim=horario_fim,
+        guests=', '.join(guests),
+        meeting_provider_id=meeting_provider_id,
+        join_url=join_url,
+        status='CREATED',
+        numero_reuniao=numero,
+        created_by_id=notification.remetente_id
+    )
+    db.session.add(meeting)
+    
+    # 4. Send emails
+    try:
+        from email_service import send_meeting_invite
+        parts = meeting_date.split('-')
+        display_date = f"{parts[2]}/{parts[1]}/{parts[0]}" if len(parts) == 3 else meeting_date
+        remetente = User.query.get(notification.remetente_id)
+        organizer = remetente.full_name if remetente else "Sistema"
+        send_meeting_invite(guests, titulo, meeting_info.get('descricao', ''), display_date, horario_inicio, horario_fim, organizer)
+    except Exception as e:
+        print(f"[crm2] Erro ao enviar emails: {e}")
+    
+    # 5. Auto-advance lead
+    next_stage = _get_next_stage(lead.estagio)
+    if next_stage:
+        lead.estagio = next_stage
+        lead.data_atualizacao = datetime.utcnow()
+    
+    # 6. Update notification
+    notification.status = 'ACCEPTED'
+    notification.meeting_id = meeting.id
+    notification.lida = True
+    
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': f'Reunião aceita e criada! Lead movido para {lead.estagio}',
+        'new_stage': lead.estagio
+    })
+
+
+@app.route('/api/crm2/notification/<int:notif_id>/reject', methods=['POST'])
+@login_required
+def crm2_reject_notification(notif_id):
+    """Reject a meeting request: cancel everything."""
+    from models import Crm2Notification
+    
+    notification = Crm2Notification.query.get(notif_id)
+    if not notification or notification.destinatario_id != current_user.id:
+        return jsonify({'success': False, 'message': 'Notificação não encontrada'})
+    
+    if notification.status != 'PENDING':
+        return jsonify({'success': False, 'message': 'Notificação já processada'})
+    
+    notification.status = 'REJECTED'
+    notification.lida = True
+    db.session.commit()
+    
+    return jsonify({'success': True, 'message': 'Reunião recusada'})
+
+
+# ============================================
+# CRM 2 - PROPOSALS (PROPOSTAS)
+# ============================================
+
+@app.route('/api/crm2/lead/<int:lead_id>/advance-proposta', methods=['POST'])
+@login_required
+def crm2_advance_to_proposta(lead_id):
+    """Move lead from Bloco 2 to Proposta stage."""
+    from models import Crm2Lead
+    if not current_user.is_admin and not current_user.acesso_crm:
+        return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+    
+    lead = Crm2Lead.query.get(lead_id)
+    if not lead:
+        return jsonify({'success': False, 'message': 'Lead não encontrado'})
+    
+    lead.estagio = 'Proposta'
+    lead.data_atualizacao = datetime.utcnow()
+    db.session.commit()
+    
+    return jsonify({'success': True, 'message': 'Lead movido para Proposta'})
+
+
+@app.route('/api/crm2/lead/<int:lead_id>/generate-proposal', methods=['POST'])
+@login_required
+def crm2_generate_proposal(lead_id):
+    """Generate AI proposal fields from all accumulated meeting data."""
+    from models import Crm2Lead, Crm2Meeting
+    if not current_user.is_admin and not current_user.acesso_crm:
+        return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+    
+    lead = Crm2Lead.query.get(lead_id)
+    if not lead:
+        return jsonify({'success': False, 'message': 'Lead não encontrado'})
+    
+    # Collect all meeting data
+    reunioes = Crm2Meeting.query.filter_by(lead_id=lead_id).order_by(Crm2Meeting.numero_reuniao).all()
+    reunioes_data = []
+    for r in reunioes:
+        reunioes_data.append({
+            'titulo': r.titulo,
+            'pauta': r.pauta or '',
+            'transcricao': r.transcricao or '',
+            'analise': r.analise or ''
+        })
+    
+    try:
+        from ai_analysis_service import gerar_proposta_ia
+        result = gerar_proposta_ia(
+            lead_nome=lead.nome_contato,
+            lead_empresa=lead.nome_empresa,
+            observacoes=lead.observacoes or '',
+            reunioes_data=reunioes_data
+        )
+        
+        if result:
+            return jsonify({'success': True, 'proposal': result})
+        else:
+            # Return default template if AI fails
+            return jsonify({'success': True, 'proposal': {
+                'titulo': f'Proposta Comercial — {lead.nome_empresa}',
+                'descricao': '',
+                'escopo': '',
+                'valor_sugerido': 'R$ 0,00',
+                'prazo': '30 dias úteis',
+                'cronograma': '',
+                'justificativa': ''
+            }})
+    except Exception as e:
+        print(f'[crm2] Erro ao gerar proposta IA: {e}')
+        return jsonify({'success': False, 'message': str(e)})
+
+
+@app.route('/api/crm2/lead/<int:lead_id>/save-proposal', methods=['POST'])
+@login_required
+def crm2_save_proposal(lead_id):
+    """Save proposal fields and generate PDF."""
+    from models import Crm2Lead, Crm2Proposal
+    if not current_user.is_admin and not current_user.acesso_crm:
+        return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+    
+    lead = Crm2Lead.query.get(lead_id)
+    if not lead:
+        return jsonify({'success': False, 'message': 'Lead não encontrado'})
+    
+    data = request.get_json()
+    
+    proposal = Crm2Proposal(
+        lead_id=lead_id,
+        titulo=data.get('titulo', f'Proposta — {lead.nome_empresa}'),
+        descricao=data.get('descricao', ''),
+        escopo=data.get('escopo', ''),
+        valor=data.get('valor', ''),
+        prazo=data.get('prazo', ''),
+        cronograma=data.get('cronograma', ''),
+        justificativa=data.get('justificativa', ''),
+        analise_ia=data.get('analise_ia', ''),
+        status='DRAFT',
+        created_by_id=current_user.id
+    )
+    db.session.add(proposal)
+    db.session.flush()  # Get proposal.id for PDF filename
+    
+    # Generate PDF
+    try:
+        from proposal_pdf_service import gerar_pdf_proposta
+        pdf_path = gerar_pdf_proposta(proposal, lead)
+        if pdf_path:
+            proposal.pdf_path = pdf_path
+    except Exception as e:
+        print(f'[crm2] Erro ao gerar PDF: {e}')
+    
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': 'Proposta salva com sucesso!',
+        'proposal_id': proposal.id,
+        'pdf_path': proposal.pdf_path
+    })
+
+
+@app.route('/api/crm2/proposal/<int:proposal_id>/pdf')
+@login_required
+def crm2_proposal_pdf(proposal_id):
+    """Serve proposal PDF for viewing/download."""
+    from models import Crm2Proposal
+    import os
+    
+    proposal = Crm2Proposal.query.get(proposal_id)
+    if not proposal or not proposal.pdf_path:
+        return jsonify({'success': False, 'message': 'PDF não encontrado'}), 404
+    
+    filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), proposal.pdf_path)
+    if not os.path.exists(filepath):
+        return jsonify({'success': False, 'message': 'Arquivo PDF não encontrado'}), 404
+    
+    download = request.args.get('download', 'false').lower() == 'true'
+    return send_file(
+        filepath,
+        mimetype='application/pdf',
+        as_attachment=download,
+        download_name=f'proposta_{proposal.id}.pdf'
+    )
+
+
+@app.route('/api/crm2/proposal/<int:proposal_id>/send', methods=['POST'])
+@login_required
+def crm2_send_proposal(proposal_id):
+    """Send proposal PDF via email to the lead contact."""
+    from models import Crm2Proposal
+    import os
+    
+    proposal = Crm2Proposal.query.get(proposal_id)
+    if not proposal or not proposal.pdf_path:
+        return jsonify({'success': False, 'message': 'PDF não encontrado'})
+    
+    lead = proposal.lead
+    recipient = lead.email_cliente or lead.email
+    if not recipient:
+        return jsonify({'success': False, 'message': 'Lead não possui email cadastrado'})
+    
+    filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), proposal.pdf_path)
+    if not os.path.exists(filepath):
+        return jsonify({'success': False, 'message': 'Arquivo PDF não encontrado'})
+    
+    try:
+        from email_service import send_email
+        
+        subject = f'Proposta Comercial — {lead.nome_empresa}'
+        body = (
+            f'Prezado(a) {lead.nome_contato},\n\n'
+            f'Segue em anexo a proposta comercial referente ao projeto discutido.\n\n'
+            f'Título: {proposal.titulo}\n'
+            f'Valor: {proposal.valor or "A definir"}\n'
+            f'Prazo: {proposal.prazo or "A definir"}\n\n'
+            f'Ficamos à disposição para quaisquer esclarecimentos.\n\n'
+            f'Atenciosamente,\n{current_user.full_name}'
+        )
+        
+        send_email(
+            to=[recipient],
+            subject=subject,
+            html_body=body,
+            attachment_path=filepath
+        )
+        
+        return jsonify({'success': True, 'message': f'Proposta enviada para {recipient}'})
+    except Exception as e:
+        print(f'[crm2] Erro ao enviar proposta: {e}')
+        return jsonify({'success': False, 'message': f'Erro ao enviar: {str(e)}'})
+
+
+@app.route('/api/crm2/proposal/<int:proposal_id>/accept', methods=['POST'])
+@login_required
+def crm2_accept_proposal(proposal_id):
+    """Accept proposal: mark as ACCEPTED and advance lead to Contrato."""
+    from models import Crm2Proposal
+    
+    proposal = Crm2Proposal.query.get(proposal_id)
+    if not proposal:
+        return jsonify({'success': False, 'message': 'Proposta não encontrada'})
+    
+    proposal.status = 'ACCEPTED'
+    
+    lead = proposal.lead
+    lead.estagio = 'Contrato'
+    lead.data_atualizacao = datetime.utcnow()
+    db.session.commit()
+    
+    return jsonify({'success': True, 'message': 'Proposta aceita! Lead movido para Contrato.'})
+
+
+@app.route('/api/crm2/proposal/<int:proposal_id>/reject', methods=['POST'])
+@login_required
+def crm2_reject_proposal(proposal_id):
+    """Reject proposal: delete the proposal."""
+    from models import Crm2Proposal
+    import os
+    
+    proposal = Crm2Proposal.query.get(proposal_id)
+    if not proposal:
+        return jsonify({'success': False, 'message': 'Proposta não encontrada'})
+    
+    # Delete PDF file if exists
+    if proposal.pdf_path:
+        filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), proposal.pdf_path)
+        if os.path.exists(filepath):
+            try:
+                os.remove(filepath)
+            except Exception:
+                pass
+    
+    db.session.delete(proposal)
+    db.session.commit()
+    
+    return jsonify({'success': True, 'message': 'Proposta recusada e removida.'})
+
+
+# ============================================
+# CRM 2 - CONTRACT ROUTES
+# ============================================
+
+@app.route('/api/crm2/lead/<int:lead_id>/advance-contrato', methods=['POST'])
+@login_required
+def crm2_advance_to_contrato(lead_id):
+    """Move lead from Proposta to Contrato stage."""
+    from models import Crm2Lead
+    if not current_user.is_admin and not current_user.acesso_crm:
+        return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+    
+    lead = Crm2Lead.query.get(lead_id)
+    if not lead:
+        return jsonify({'success': False, 'message': 'Lead não encontrado'})
+    
+    lead.estagio = 'Contrato'
+    lead.data_atualizacao = datetime.utcnow()
+    db.session.commit()
+    
+    return jsonify({'success': True, 'message': 'Lead movido para Contrato'})
+
+
+@app.route('/api/crm2/lead/<int:lead_id>/generate-contract', methods=['POST'])
+@login_required
+def crm2_generate_contract(lead_id):
+    """Generate contract sections via AI based on proposal data."""
+    from models import Crm2Lead, Crm2Proposal
+    if not current_user.is_admin and not current_user.acesso_crm:
+        return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+    
+    lead = Crm2Lead.query.get(lead_id)
+    if not lead:
+        return jsonify({'success': False, 'message': 'Lead não encontrado'})
+    
+    # Get latest accepted proposal data
+    proposal = Crm2Proposal.query.filter_by(lead_id=lead_id).order_by(Crm2Proposal.created_at.desc()).first()
+    
+    proposta_data = {}
+    if proposal:
+        proposta_data = {
+            'titulo': proposal.titulo or '',
+            'descricao': proposal.descricao or '',
+            'escopo': proposal.escopo or '',
+            'valor': proposal.valor or '',
+            'prazo': proposal.prazo or '',
+            'cronograma': proposal.cronograma or '',
+            'justificativa': proposal.justificativa or ''
+        }
+    
+    try:
+        from ai_analysis_service import gerar_contrato_ia
+        result = gerar_contrato_ia(lead.nome_contato, lead.nome_empresa, proposta_data)
+        
+        if result:
+            return jsonify({'success': True, 'contract': result})
+        else:
+            # Default contract structure
+            return jsonify({'success': True, 'contract': {
+                'titulo': f'Contrato de Prestação de Serviços — {lead.nome_empresa}',
+                'sections': [
+                    {'type': 'title', 'content': 'DAS PARTES'},
+                    {'type': 'description', 'content': 'Preencha os dados das partes contratantes.'},
+                    {'type': 'title', 'content': 'DO OBJETO'},
+                    {'type': 'description', 'content': 'Descreva o objeto do contrato.'},
+                    {'type': 'title', 'content': 'DO VALOR E PAGAMENTO'},
+                    {'type': 'description', 'content': f'Valor: {proposta_data.get("valor", "A definir")}. Prazo: {proposta_data.get("prazo", "A definir")}.'}
+                ]
+            }})
+    except Exception as e:
+        print(f'[crm2] Erro ao gerar contrato IA: {e}')
+        return jsonify({'success': False, 'message': f'Erro ao gerar: {str(e)}'})
+
+
+@app.route('/api/crm2/lead/<int:lead_id>/save-contract', methods=['POST'])
+@login_required
+def crm2_save_contract(lead_id):
+    """Save contract and generate PDF."""
+    from models import Crm2Lead, Crm2Contract, Crm2Proposal
+    if not current_user.is_admin and not current_user.acesso_crm:
+        return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+    
+    lead = Crm2Lead.query.get(lead_id)
+    if not lead:
+        return jsonify({'success': False, 'message': 'Lead não encontrado'})
+    
+    data = request.get_json()
+    titulo = data.get('titulo', f'Contrato — {lead.nome_empresa}')
+    sections = data.get('sections', [])
+    
+    # Find latest proposal
+    proposal = Crm2Proposal.query.filter_by(lead_id=lead_id).order_by(Crm2Proposal.created_at.desc()).first()
+    
+    contract = Crm2Contract(
+        lead_id=lead_id,
+        proposal_id=proposal.id if proposal else None,
+        titulo=titulo,
+        sections_json=json.dumps(sections, ensure_ascii=False),
+        status='DRAFT',
+        created_by_id=current_user.id
+    )
+    db.session.add(contract)
+    db.session.flush()
+    
+    # Generate PDF
+    try:
+        from proposal_pdf_service import gerar_pdf_contrato
+        pdf_path = gerar_pdf_contrato(contract, lead)
+        if pdf_path:
+            contract.pdf_path = pdf_path
+    except Exception as e:
+        print(f'[crm2] Erro ao gerar PDF do contrato: {e}')
+    
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': 'Contrato salvo com sucesso!',
+        'contract_id': contract.id,
+        'pdf_path': contract.pdf_path
+    })
+
+
+@app.route('/api/crm2/contract/<int:contract_id>/pdf')
+@login_required
+def crm2_contract_pdf(contract_id):
+    """Serve the contract PDF for view or download."""
+    from models import Crm2Contract
+    
+    contract = Crm2Contract.query.get(contract_id)
+    if not contract or not contract.pdf_path:
+        return jsonify({'success': False, 'message': 'PDF não encontrado'}), 404
+    
+    filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), contract.pdf_path)
+    if not os.path.exists(filepath):
+        return jsonify({'success': False, 'message': 'Arquivo não encontrado'}), 404
+    
+    download = request.args.get('download', 'false').lower() == 'true'
+    return send_file(
+        filepath,
+        mimetype='application/pdf',
+        as_attachment=download,
+        download_name=f'contrato_{contract.id}.pdf'
+    )
+
+
+@app.route('/api/crm2/contract/<int:contract_id>/send', methods=['POST'])
+@login_required
+def crm2_send_contract(contract_id):
+    """Send contract PDF to lead email."""
+    from models import Crm2Contract
+    import os
+    
+    contract = Crm2Contract.query.get(contract_id)
+    if not contract or not contract.pdf_path:
+        return jsonify({'success': False, 'message': 'PDF não encontrado'})
+    
+    lead = contract.lead
+    recipient = lead.email_cliente or lead.email
+    if not recipient:
+        return jsonify({'success': False, 'message': 'Lead não possui email cadastrado'})
+    
+    filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), contract.pdf_path)
+    if not os.path.exists(filepath):
+        return jsonify({'success': False, 'message': 'Arquivo PDF não encontrado'})
+    
+    try:
+        from email_service import send_email
+        
+        subject = f'Contrato de Prestação de Serviços — {lead.nome_empresa}'
+        body = (
+            f'Prezado(a) {lead.nome_contato},\n\n'
+            f'Segue em anexo o contrato referente aos serviços discutidos.\n\n'
+            f'Título: {contract.titulo}\n\n'
+            f'Por favor, revise o documento e retorne com sua confirmação.\n\n'
+            f'Atenciosamente,\n{current_user.full_name}'
+        )
+        
+        send_email(
+            to=[recipient],
+            subject=subject,
+            html_body=body,
+            attachment_path=filepath
+        )
+        
+        return jsonify({'success': True, 'message': f'Contrato enviado para {recipient}'})
+    except Exception as e:
+        print(f'[crm2] Erro ao enviar contrato: {e}')
+        return jsonify({'success': False, 'message': f'Erro ao enviar: {str(e)}'})
+
+
+@app.route('/api/crm2/contract/<int:contract_id>/accept', methods=['POST'])
+@login_required
+def crm2_accept_contract(contract_id):
+    """Mark contract as SIGNED and advance lead to Cliente."""
+    from models import Crm2Contract
+    
+    contract = Crm2Contract.query.get(contract_id)
+    if not contract:
+        return jsonify({'success': False, 'message': 'Contrato não encontrado'})
+    
+    contract.status = 'SIGNED'
+    lead = contract.lead
+    lead.estagio = 'Cliente'
+    lead.data_atualizacao = datetime.utcnow()
+    db.session.commit()
+    
+    return jsonify({'success': True, 'message': 'Contrato assinado! Lead movido para Cliente.'})
+
+
+@app.route('/api/crm2/contract/<int:contract_id>/reject', methods=['POST'])
+@login_required
+def crm2_reject_contract(contract_id):
+    """Reject contract: delete contract and PDF."""
+    from models import Crm2Contract
+    
+    contract = Crm2Contract.query.get(contract_id)
+    if not contract:
+        return jsonify({'success': False, 'message': 'Contrato não encontrado'})
+    
+    # Delete PDF file
+    if contract.pdf_path:
+        filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), contract.pdf_path)
+        if os.path.exists(filepath):
+            try:
+                os.remove(filepath)
+            except Exception:
+                pass
+    
+    db.session.delete(contract)
+    db.session.commit()
+    
+    return jsonify({'success': True, 'message': 'Contrato recusado e removido.'})
+
+
+# ============================================
+# CRM 2 - CREATE CLIENT FROM LEAD
+# ============================================
+
+@app.route('/api/crm2/lead/<int:lead_id>/create-client', methods=['POST'])
+@login_required
+def crm2_create_client_from_lead(lead_id):
+    """Create a Client record from CRM2 lead data."""
+    from models import Crm2Lead, Client
+    if not current_user.is_admin and not current_user.acesso_crm:
+        return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+    
+    lead = Crm2Lead.query.get(lead_id)
+    if not lead:
+        return jsonify({'success': False, 'message': 'Lead não encontrado'})
+    
+    data = request.get_json()
+    
+    # Generate unique public_code
+    import string
+    import secrets
+    public_code = ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(8))
+    
+    client = Client(
+        nome=data.get('nome', lead.nome_empresa),
+        email=data.get('email', lead.email_cliente or lead.email),
+        telefone=data.get('telefone', lead.telefone),
+        endereco=data.get('endereco', ''),
+        observacoes=data.get('observacoes', f'Cliente convertido do CRM 2 - Lead: {lead.nome_empresa}'),
+        empresa=data.get('empresa', lead.nome_empresa),
+        public_code=public_code,
+        creator_id=current_user.id
+    )
+    db.session.add(client)
+    db.session.flush()
+    
+    # Update lead stage
+    lead.estagio = 'Convertido'
+    lead.data_atualizacao = datetime.utcnow()
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': f'Cliente "{client.nome}" criado com sucesso!',
+        'client_id': client.id
     })

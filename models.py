@@ -194,13 +194,114 @@ class Crm2Lead(db.Model):
     nome_empresa = db.Column(db.String(200), nullable=False)
     nome_contato = db.Column(db.String(200), nullable=False)
     email = db.Column(db.String(200), nullable=True)
+    email_cliente = db.Column(db.String(200), nullable=True)
     telefone = db.Column(db.String(50), nullable=True)
+    observacoes = db.Column(db.Text, nullable=True)
     estagio = db.Column(db.String(100), nullable=False, default='Lead')
     data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
     data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
+    reunioes = db.relationship('Crm2Meeting', backref='lead', lazy=True, cascade='all, delete-orphan', order_by='Crm2Meeting.numero_reuniao')
+    
     def __repr__(self):
         return f'<Crm2Lead {self.nome_empresa} - {self.nome_contato}>'
+
+
+class Crm2Meeting(db.Model):
+    __tablename__ = 'crm2_meetings'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    lead_id = db.Column(db.Integer, db.ForeignKey('crm2_leads.id'), nullable=False)
+    titulo = db.Column(db.String(300), nullable=False)
+    descricao = db.Column(db.Text, nullable=True)
+    pauta = db.Column(db.Text, nullable=True)
+    data = db.Column(db.String(20), nullable=False)  # YYYY-MM-DD
+    horario_inicio = db.Column(db.String(10), nullable=False)  # HH:MM
+    horario_fim = db.Column(db.String(10), nullable=False)  # HH:MM
+    guests = db.Column(db.Text, nullable=True)  # comma-separated emails
+    meeting_provider_id = db.Column(db.String(200), nullable=True)
+    join_url = db.Column(db.String(500), nullable=True)
+    status = db.Column(db.String(50), nullable=False, default='CREATED')  # CREATED, DONE, CANCELLED
+    transcricao = db.Column(db.Text, nullable=True)
+    analise = db.Column(db.Text, nullable=True)
+    numero_reuniao = db.Column(db.Integer, nullable=False, default=1)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    
+    def __repr__(self):
+        return f'<Crm2Meeting {self.titulo} - Reunião {self.numero_reuniao}>'
+
+
+class Crm2Notification(db.Model):
+    __tablename__ = 'crm2_notifications'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    lead_id = db.Column(db.Integer, db.ForeignKey('crm2_leads.id'), nullable=False)
+    meeting_id = db.Column(db.Integer, db.ForeignKey('crm2_meetings.id'), nullable=True)
+    remetente_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    destinatario_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    titulo = db.Column(db.String(300), nullable=False)
+    descricao = db.Column(db.Text, nullable=True)
+    meeting_data_json = db.Column(db.Text, nullable=True)  # JSON with meeting details
+    status = db.Column(db.String(50), nullable=False, default='PENDING')  # PENDING, ACCEPTED, REJECTED
+    lida = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    lead = db.relationship('Crm2Lead', backref='notifications')
+    meeting = db.relationship('Crm2Meeting', backref='notification')
+    remetente = db.relationship('User', foreign_keys=[remetente_id], backref='crm2_notifications_sent')
+    destinatario = db.relationship('User', foreign_keys=[destinatario_id], backref='crm2_notifications_received')
+    
+    def __repr__(self):
+        return f'<Crm2Notification {self.titulo} - {self.status}>'
+
+
+class Crm2Proposal(db.Model):
+    __tablename__ = 'crm2_proposals'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    lead_id = db.Column(db.Integer, db.ForeignKey('crm2_leads.id'), nullable=False)
+    titulo = db.Column(db.String(500), nullable=False)
+    descricao = db.Column(db.Text, nullable=True)
+    escopo = db.Column(db.Text, nullable=True)
+    valor = db.Column(db.String(100), nullable=True)
+    prazo = db.Column(db.String(200), nullable=True)
+    cronograma = db.Column(db.Text, nullable=True)
+    justificativa = db.Column(db.Text, nullable=True)
+    analise_ia = db.Column(db.Text, nullable=True)
+    campos_json = db.Column(db.Text, nullable=True)  # Extra dynamic fields as JSON
+    pdf_path = db.Column(db.String(500), nullable=True)
+    status = db.Column(db.String(50), nullable=False, default='DRAFT')  # DRAFT, ACCEPTED, REJECTED
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    
+    lead = db.relationship('Crm2Lead', backref=db.backref('propostas', lazy=True, cascade='all, delete-orphan', order_by='Crm2Proposal.created_at.desc()'))
+    created_by = db.relationship('User', backref='crm2_proposals_created')
+    
+    def __repr__(self):
+        return f'<Crm2Proposal {self.titulo} - {self.status}>'
+
+
+class Crm2Contract(db.Model):
+    __tablename__ = 'crm2_contracts'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    lead_id = db.Column(db.Integer, db.ForeignKey('crm2_leads.id'), nullable=False)
+    proposal_id = db.Column(db.Integer, db.ForeignKey('crm2_proposals.id'), nullable=True)
+    titulo = db.Column(db.String(500), nullable=False)
+    sections_json = db.Column(db.Text, nullable=True)  # JSON: [{type:'title'|'description', content:'...'}]
+    pdf_path = db.Column(db.String(500), nullable=True)
+    status = db.Column(db.String(50), nullable=False, default='DRAFT')  # DRAFT, SIGNED, REJECTED
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    
+    lead = db.relationship('Crm2Lead', backref=db.backref('contratos', lazy=True, cascade='all, delete-orphan', order_by='Crm2Contract.created_at.desc()'))
+    proposal = db.relationship('Crm2Proposal', backref='contract')
+    created_by = db.relationship('User', backref='crm2_contracts_created')
+    
+    def __repr__(self):
+        return f'<Crm2Contract {self.titulo} - {self.status}>'
+
 
 
 class FileCategory(db.Model):

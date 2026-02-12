@@ -5622,3 +5622,78 @@ def crm2_create_client_from_lead(lead_id):
         'message': f'Cliente "{client.nome}" criado com sucesso!',
         'client_id': client.id
     })
+
+
+@app.route('/api/crm2/fix-stages', methods=['POST'])
+@login_required
+def crm2_fix_stages():
+    """Consistency check: auto-correct lead stages based on data."""
+    if not current_user.is_admin and not current_user.acesso_crm:
+        return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+    
+    # Import necessary models
+    from models import Crm2Lead, Crm2Meeting, Crm2Notification, Crm2Proposal, Crm2Contract
+    
+    # Get all active leads
+    leads = Crm2Lead.query.filter(
+        Crm2Lead.estagio != 'Convertido', 
+        Crm2Lead.estagio != 'Perdido', 
+        Crm2Lead.estagio != 'Arquivado'
+    ).all()
+    
+    count = 0
+    details = []
+    
+    for lead in leads:
+        original_stage = lead.estagio
+        new_stage = original_stage
+        
+        # 1. Captação -> Bloco 1 (Has Meeting)
+        if lead.estagio == 'Captação':
+            has_meeting = Crm2Meeting.query.filter_by(lead_id=lead.id).count() > 0
+            if has_meeting:
+                new_stage = 'Bloco 1'
+        
+        # 2. Bloco 1 -> Bloco 2 (Has Accepted Notification AND Meeting)
+        # Check if any meeting was created from a notification (or just has an accepted notification)
+        if new_stage == 'Bloco 1':
+            # Check for accepted notification for this lead
+            has_accepted_chamado = Crm2Notification.query.filter_by(lead_id=lead.id, status='ACCEPTED').count() > 0
+            # Also check if user has created a meeting manually that implies 'Bloco 2' progress? 
+            # The rule is explicit: "tem chamado aceito ? bloco 2"
+            if has_accepted_chamado:
+                new_stage = 'Bloco 2'
+        
+        # 3. Bloco 2 -> Proposta (Has Proposal)
+        if new_stage == 'Bloco 2':
+            has_proposal = Crm2Proposal.query.filter_by(lead_id=lead.id).count() > 0
+            if has_proposal:
+                new_stage = 'Proposta'
+        
+        # 4. Proposta -> Contrato (Has Contract)
+        if new_stage == 'Proposta':
+            has_contract = Crm2Contract.query.filter_by(lead_id=lead.id).count() > 0
+            if has_contract:
+                new_stage = 'Contrato'
+                
+        # 5. Contrato -> Cliente (Has Signed Contract or Accepted)
+        if new_stage == 'Contrato':
+            has_signed = Crm2Contract.query.filter_by(lead_id=lead.id, status='SIGNED').count() > 0
+            if has_signed:
+                new_stage = 'Cliente'
+        
+        # Apply change if needed
+        if new_stage != original_stage:
+            lead.estagio = new_stage
+            lead.data_atualizacao = datetime.utcnow()
+            details.append(f"Lead {lead.id} ({lead.nome_empresa}): {original_stage} -> {new_stage}")
+            count += 1
+            
+    if count > 0:
+        db.session.commit()
+        
+    return jsonify({
+        'success': True,
+        'message': f'{count} leads atualizados.',
+        'details': details
+    })

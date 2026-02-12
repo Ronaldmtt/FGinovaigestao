@@ -247,6 +247,11 @@
         <h4 class="fw-bold mb-1"><i class="fas fa-chart-bar me-2" style="color: #6366f1;"></i>Pipeline</h4>
         <p class="text-muted mb-0" style="font-size: 0.9rem;">Gerencie seus leads ao longo do funil de vendas</p>
     </div>
+    {% if current_user.is_admin %}
+    <button class="btn btn-outline-warning btn-sm" onclick="fixPipelineStages(this)">
+        <i class="fas fa-tools me-2"></i>Reparar Estágios
+    </button>
+    {% endif %}
 </div>
 
 <div class="pipeline-container">
@@ -566,6 +571,72 @@
         } catch (error) {
             console.error('Erro ao arquivar lead:', error);
             alert('Erro ao remover lead do pipeline.');
+        }
+    }
+
+    async function fixPipelineStages(btn) {
+        if (!confirm('Isso irá verificar todos os leads e corrigir seus estágios com base nos dados (reuniões, propostas, contratos). Deseja continuar?')) return;
+
+        const originalContent = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Verificando...';
+
+        try {
+            const response = await fetch('/api/crm2/fix-stages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                let msg = data.message;
+                if (data.details && data.details.length > 0) {
+                    msg += '\n\nDetalhes:\n' + data.details.join('\n');
+                }
+                alert(msg);
+                location.reload();
+            } else {
+                alert('Erro: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            alert('Erro ao reparar estágios.');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalContent;
+        }
+    }
+
+    async function fixPipelineStages(btn) {
+        if (!confirm('Isso irá verificar todos os leads e corrigir seus estágios com base nos dados (reuniões, propostas, contratos). Deseja continuar?')) return;
+
+        const originalContent = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Verificando...';
+
+        try {
+            const response = await fetch('/api/crm2/fix-stages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                let msg = data.message;
+                if (data.details && data.details.length > 0) {
+                    msg += '\n\nDetalhes:\n' + data.details.join('\n');
+                }
+                alert(msg);
+                location.reload();
+            } else {
+                alert('Erro: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            alert('Erro ao reparar estágios.');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalContent;
         }
     }
 </script>

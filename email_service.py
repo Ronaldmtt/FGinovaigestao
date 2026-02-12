@@ -12,7 +12,13 @@ MAIL_PORT = int(os.getenv("MAIL_PORT", "587"))
 MAIL_USE_TLS = os.getenv("MAIL_USE_TLS", "true").lower() == "true"
 MAIL_USERNAME = os.getenv("MAIL_USERNAME", "")
 MAIL_PASSWORD = os.getenv("MAIL_PASSWORD", "")
-MAIL_DEFAULT_SENDER = os.getenv("MAIL_DEFAULT_SENDER", "GESTÃOINOVA <noreply@inovailab.com.br>")
+MAIL_DEFAULT_SENDER = os.getenv("MAIL_DEFAULT_SENDER", "")
+
+def _get_sender():
+    """Get the From header. Use MAIL_DEFAULT_SENDER if set, otherwise MAIL_USERNAME."""
+    if MAIL_DEFAULT_SENDER:
+        return MAIL_DEFAULT_SENDER
+    return f"GESTÃO INOVA <{MAIL_USERNAME}>" if MAIL_USERNAME else ""
 
 
 def is_email_configured():
@@ -39,9 +45,12 @@ def send_email(to, subject, html_body, text_body=None, attachment_path=None):
         return False
     
     try:
+        sender = _get_sender()
+        print(f"[email] Preparando envio: de={sender}, para={to}, assunto={subject}")
+        print(f"[email] SMTP config: server={MAIL_SERVER}, port={MAIL_PORT}, tls={MAIL_USE_TLS}, user={MAIL_USERNAME}")
         msg = MIMEMultipart("mixed")
         msg["Subject"] = subject
-        msg["From"] = MAIL_DEFAULT_SENDER
+        msg["From"] = sender
         
         if isinstance(to, list):
             msg["To"] = ", ".join(to)
@@ -135,10 +144,16 @@ def send_meeting_invite(guests, title, description, date, start_time, end_time, 
     """
     html = _base_template(content, f"📅 Convite: {title}")
     success_count = 0
+    errors = []
+    print(f"[email] send_meeting_invite chamado para {len(guests)} guests: {guests}")
     for guest_email in guests:
         if guest_email and '@' in guest_email:
-            if send_email(guest_email.strip(), f"Reunião: {title}", html):
+            result = send_email(guest_email.strip(), f"Reunião: {title}", html)
+            if result:
                 success_count += 1
+            else:
+                errors.append(guest_email)
+    print(f"[email] Resultado: {success_count} enviados, {len(errors)} falharam: {errors}")
     return success_count
 
 

@@ -4508,6 +4508,27 @@ def crm2_archive_lead():
     return jsonify({'success': True, 'message': f'Lead "{lead.nome_empresa}" removido do pipeline'})
 
 
+@app.route('/api/crm2/test-email')
+@login_required
+def crm2_test_email():
+    """Test SMTP by sending a test email to the current user."""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'message': 'Apenas admin'}), 403
+    try:
+        from email_service import send_email, is_email_configured, MAIL_USERNAME, MAIL_PASSWORD, MAIL_SERVER, MAIL_PORT
+        config_info = f"configured={is_email_configured()}, user={MAIL_USERNAME}, pass={'*' * len(MAIL_PASSWORD) if MAIL_PASSWORD else 'VAZIO'}, server={MAIL_SERVER}:{MAIL_PORT}"
+        if not is_email_configured():
+            return jsonify({'success': False, 'message': f'SMTP não configurado. {config_info}'})
+        result = send_email(
+            current_user.email,
+            'Teste SMTP - Gestão Inova',
+            '<h2>✅ Email de teste</h2><p>Se você está lendo isso, o SMTP está funcionando!</p>'
+        )
+        return jsonify({'success': result, 'message': f'Enviado para {current_user.email}' if result else f'Falha ao enviar. {config_info}'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Erro: {str(e)}'})
+
+
 @app.route('/api/crm2/generate-pauta', methods=['POST'])
 @login_required
 def crm2_generate_pauta():

@@ -1710,7 +1710,7 @@
         wrapper.remove();
     }
 
-    function addTodo(textVal = null, isCompleted = false) {
+    function addTodo(textVal = null, isCompleted = false, dateVal = null) {
         const newTodoText = document.getElementById('newTodoText');
         const text = textVal || newTodoText.value.trim();
 
@@ -1719,21 +1719,31 @@
             const todoDiv = document.createElement('div');
             const tempId = 'new-' + Date.now();
 
+            // Se houver data, formatar para exibição inicial
+            let initialDateDisplay = '';
+            let dateColorClass = 'text-muted';
+
+            if (dateVal) {
+                const dateInfo = formatDueDate(dateVal);
+                initialDateDisplay = dateInfo.text;
+                dateColorClass = dateInfo.colorClass;
+            }
+
             todoDiv.className = 'todo-item-wrapper mb-3';
             todoDiv.innerHTML = `
             <div class="d-flex align-items-center">
                 <input type="checkbox" class="form-check-input me-2" onchange="toggleTodo(this)" ${isCompleted ? 'checked' : ''}>
                 <span class="todo-text ${isCompleted ? 'text-decoration-line-through text-muted' : ''}" style="flex-grow: 1; cursor: pointer;" data-todo-id="${tempId}" onclick="enableTodoEdit(this)">${text}</span>
                 <div class="todo-date-picker position-relative" data-todo-id="${tempId}">
-                    <span class="todo-date-display text-muted" 
+                    <span class="todo-date-display ${dateColorClass}" 
                           onclick="toggleTodoDatePicker(this, '${tempId}')"
                           style="cursor: pointer; font-size: 12px; padding: 2px 6px; border-radius: 4px;">
-                        <i class="fas fa-calendar-alt me-1"></i>
+                        <i class="fas fa-calendar-alt me-1"></i>${initialDateDisplay}
                     </span>
                     <input type="date" 
                            class="todo-date-input" 
                            style="position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;"
-                           value=""
+                           value="${dateVal || ''}"
                            onchange="handleNewTodoDateChange(this, '${tempId}')">
                 </div>
                 <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="removeTodo(this)">
@@ -1758,7 +1768,7 @@
             todoDiv.dataset.todoId = tempId;
             todoDiv.dataset.todoText = text;
             todoDiv.dataset.todoCompleted = isCompleted;
-            todoDiv.dataset.todoDueDate = '';
+            todoDiv.dataset.todoDueDate = dateVal || '';
             todoDiv.dataset.todoComentario = '';
 
             todosList.appendChild(todoDiv);
@@ -3206,15 +3216,16 @@ O resultado deve ser salvo em um arquivo .md dentro da pasta raiz do projeto. Si
 ${periodText ? `**PERÍODO DE ANÁLISE:**\n${periodText}\n` : ''}**Regras de Execução:**
 1. **ANÁLISE DE CONTEXTO (MANDATÓRIO):** Antes de planejar, analise a estrutura de arquivos e o histórico recente para entender o que JÁ FOI FEITO. Não proponha criar o que já existe.
 2. **Formato de Checklist Markdown (- [ ]):** Gere uma lista de verificação técnica para ser importada no Kanban.
-3. **NÃO crie subtítulos (####, #####).** O conteúdo deve seguir estritamente o formato de checklist sem headers extras. Se criar subtítulos, o sistema não conseguirá processar o conteúdo.
-4. **Estrutura sugerida:**
+3. **DATAS:** Se houver uma data relevante (ex: data do commit ou "hoje"), adicione-a no final da linha no formato **[DD/MM/YYYY]**. Exemplo: "- [x] Fix login bug [12/02/2026]".
+4. **NÃO crie subtítulos (####, #####).** O conteúdo deve seguir estritamente o formato de checklist sem headers extras. Se criar subtítulos, o sistema não conseguirá processar o conteúdo.
+5. **Estrutura sugerida:**
    - [ ] **Análise**: Verificar arquivos X, Y e Z para garantir integridade.
    - [ ] **Backend**: Criar/Modificar rotas e models necessários.
    - [ ] **Frontend**: Atualizar views e JS.
    - [ ] **Verificação**: Testes manuais/automatizados.
-5. **TRADUÇÃO OBRIGATÓRIA:** Traduza SEMPRE todo o conteúdo, especialmente mensagens de commit em inglês, para Português. Mantenha apenas termos técnicos (Fix, Refactor, Feature) no original.
-6. **ARQUIVOS:** Ao sugerir criação de arquivos, considere sempre a RAIZ do projeto. Crie o arquivo .md dentro da pasta raiz do projeto.
-7. **Criação de Documentação:** Se a tarefa for sobre documentação, crie o arquivo .md correspondente com base no contexto do projeto.`;
+6. **TRADUÇÃO OBRIGATÓRIA:** Traduza SEMPRE todo o conteúdo, especialmente mensagens de commit em inglês, para Português. Mantenha apenas termos técnicos (Fix, Refactor, Feature) no original.
+7. **ARQUIVOS:** Ao sugerir criação de arquivos, considere sempre a RAIZ do projeto. Crie o arquivo .md dentro da pasta raiz do projeto.
+8. **Criação de Documentação:** Se a tarefa for sobre documentação, crie o arquivo .md correspondente com base no contexto do projeto.`;
 
         document.getElementById('todoAiPromptText').value = prompt;
     }
@@ -3263,6 +3274,20 @@ ${periodText ? `**PERÍODO DE ANÁLISE:**\n${periodText}\n` : ''}**Regras de Exe
 
             if (match && match[2]) {
                 let cleanText = match[2].trim();
+                let dateVal = null;
+
+                // Tentar extrair data no formato [DD/MM/YYYY]
+                const dateMatch = cleanText.match(/\[(\d{2})\/(\d{2})\/(\d{4})\]$/);
+                if (dateMatch) {
+                    // Converter DD/MM/YYYY para YYYY-MM-DD
+                    const day = dateMatch[1];
+                    const month = dateMatch[2];
+                    const year = dateMatch[3];
+                    dateVal = `${year}-${month}-${day}`;
+
+                    // Remover a data do texto e limpar espaços finais
+                    cleanText = cleanText.replace(dateMatch[0], '').trim();
+                }
 
                 // Limpar "fru fru" (Markdown bold/italic excessivo)
                 cleanText = cleanText.replace(/\*\*/g, ''); // Remove negrito (**Texto**)
@@ -3270,7 +3295,7 @@ ${periodText ? `**PERÍODO DE ANÁLISE:**\n${periodText}\n` : ''}**Regras de Exe
 
                 if (cleanText) {
                     const isCompleted = match[1].toLowerCase() === 'x';
-                    addTodo(cleanText, isCompleted);
+                    addTodo(cleanText, isCompleted, dateVal);
                     count++;
                 }
             }

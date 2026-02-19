@@ -4826,6 +4826,9 @@ def crm2_refresh_transcript(meeting_id):
         from transcritor_service import buscar_transcricao
         result = buscar_transcricao(meeting.titulo, meeting.data)
         
+        if not result:
+             return jsonify({'success': False, 'message': 'Erro ao conectar com serviço de transcrição (Resposta vazia)'})
+
         if result.get('ok'):
             meeting.transcricao = result['text']
             meeting.status = 'DONE'
@@ -5697,3 +5700,15 @@ def crm2_fix_stages():
         'message': f'{count} leads atualizados.',
         'details': details
     })
+
+
+def _get_next_stage(current_stage):
+    try:
+        if current_stage not in CRM2_STAGES:
+            return None
+        current_index = CRM2_STAGES.index(current_stage)
+        if current_index < len(CRM2_STAGES) - 1:
+            return CRM2_STAGES[current_index + 1]
+    except Exception:
+        pass
+    return None

@@ -1962,7 +1962,8 @@ def api_update_task(task_id):
         # Atualizar to-do's
         if 'todos' in data:
             # Primeiro, remover todos os to-do's existentes
-            TodoItem.query.filter_by(task_id=task.id).delete()
+            # synchronize_session=False evita conflito quando os todos já foram carregados na sessão
+            TodoItem.query.filter_by(task_id=task.id).delete(synchronize_session=False)
             
             # Adicionar os novos to-do's
             for todo_data in data['todos']:

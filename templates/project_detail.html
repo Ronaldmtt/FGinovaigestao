@@ -990,6 +990,124 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
     </div>
 </div>
 
+<!-- Modal de Detalhes/Edição da Credencial -->
+<div class="modal fade" id="credentialDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-key me-2"></i>Credencial de API</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editCredId" value="">
+
+                <!-- Modo leitura -->
+                <div id="credDetailView">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small mb-1">Nome</label>
+                            <p class="fw-semibold mb-0" id="detailNome">-</p>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label text-muted small mb-1">Provedor</label>
+                            <p class="mb-0" id="detailProvedor">-</p>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label text-muted small mb-1">Ambiente</label>
+                            <p class="mb-0" id="detailAmbiente">-</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted small mb-1">Chave de API (mascarada)</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control font-monospace" id="detailApiKeyMasked" readonly
+                                placeholder="(sem chave)">
+                            <button class="btn btn-outline-secondary" type="button" onclick="copyApiKeyMasked()"
+                                title="Copiar">
+                                <i class="fas fa-copy" id="copyMaskedIcon"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted">A chave completa não é exibida por segurança. Para substituí-la, use o
+                            modo edição.</small>
+                    </div>
+
+                    <div class="mb-3" id="detailDescricaoWrap">
+                        <label class="form-label text-muted small mb-1">Descrição</label>
+                        <p class="mb-0" id="detailDescricao">-</p>
+                    </div>
+
+                    <div class="text-muted small border-top pt-2">
+                        <i class="fas fa-clock me-1"></i>
+                        Criada em <span id="detailCreatedAt">-</span> por <span id="detailCreatedBy">-</span>
+                    </div>
+                </div>
+
+                <!-- Modo edição -->
+                <div id="credEditView" style="display:none;">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Nome <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editCredNome">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Provedor <span class="text-danger">*</span></label>
+                            <select class="form-select" id="editCredProvedor">
+                                <option value="OpenAI">OpenAI</option>
+                                <option value="Gemini">Gemini</option>
+                                <option value="Anthropic">Anthropic</option>
+                                <option value="AWS">AWS</option>
+                                <option value="Azure">Azure</option>
+                                <option value="Google Cloud">Google Cloud</option>
+                                <option value="Stripe">Stripe</option>
+                                <option value="Twilio">Twilio</option>
+                                <option value="SendGrid">SendGrid</option>
+                                <option value="Outro">Outro</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Ambiente</label>
+                            <select class="form-select" id="editCredAmbiente">
+                                <option value="production">Production</option>
+                                <option value="staging">Staging</option>
+                                <option value="development">Development</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Nova Chave/API Key</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control font-monospace" id="editCredApiKey"
+                                    placeholder="Deixe em branco para manter a chave atual">
+                                <button class="btn btn-outline-secondary" type="button"
+                                    onclick="toggleEditKeyVisibility()" id="toggleEditKeyBtn">
+                                    <i class="fas fa-eye" id="toggleEditKeyIcon"></i>
+                                </button>
+                            </div>
+                            <small class="text-muted">Deixe em branco para manter a chave atual. Ao preencher, a chave
+                                atual será substituída.</small>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Descrição</label>
+                            <textarea class="form-control" id="editCredDescricao" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-outline-primary" id="editCredToggleBtn"
+                    onclick="toggleCredEditMode()">
+                    <i class="fas fa-edit me-1"></i>Editar
+                </button>
+                <button type="button" class="btn btn-primary" id="saveCredEditBtn" style="display:none;"
+                    onclick="saveCredentialEdit()">
+                    <i class="fas fa-save me-1"></i>Salvar Alterações
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
     #dropZone.drag-over {
         background-color: rgba(59, 130, 246, 0.1);
@@ -1436,7 +1554,7 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
 
         noMsg.style.display = 'none';
         container.innerHTML = credentialsData.map(cred => `
-        <div class="credential-card">
+        <div class="credential-card" onclick="openCredentialDetail(${cred.id})" style="cursor:pointer;">
             <div class="d-flex justify-content-between align-items-start">
                 <div>
                     <h6 class="mb-1">${cred.nome}</h6>
@@ -1446,9 +1564,14 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
                     </p>
                     <code class="small">${cred.api_key_masked || '(sem chave)'}</code>
                 </div>
-                <button class="btn btn-sm btn-outline-danger" onclick="deleteCredential(${cred.id})">
-                    <i class="fas fa-trash"></i>
-                </button>
+                <div class="d-flex gap-1">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); openCredentialDetail(${cred.id})" title="Editar">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteCredential(${cred.id})" title="Deletar">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
             </div>
             ${cred.descricao ? `<p class="small text-muted mt-2 mb-0">${cred.descricao}</p>` : ''}
         </div>
@@ -1503,6 +1626,111 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
                     alert(data.message || 'Erro ao excluir credencial');
                 }
             });
+    }
+
+    function openCredentialDetail(credId) {
+        const cred = credentialsData.find(c => c.id === credId);
+        if (!cred) return;
+
+        // Preenche o modo leitura
+        document.getElementById('editCredId').value = cred.id;
+        document.getElementById('detailNome').textContent = cred.nome;
+        document.getElementById('detailProvedor').textContent = cred.provedor;
+        document.getElementById('detailAmbiente').innerHTML = `<span class="badge bg-info">${cred.ambiente}</span>`;
+        document.getElementById('detailApiKeyMasked').value = cred.api_key_masked || '';
+        document.getElementById('detailDescricao').textContent = cred.descricao || '(sem descrição)';
+        document.getElementById('detailCreatedAt').textContent = cred.created_at || '-';
+        document.getElementById('detailCreatedBy').textContent = cred.created_by || '-';
+
+        // Reset para modo leitura
+        document.getElementById('credDetailView').style.display = '';
+        document.getElementById('credEditView').style.display = 'none';
+        document.getElementById('editCredToggleBtn').style.display = '';
+        document.getElementById('saveCredEditBtn').style.display = 'none';
+
+        new bootstrap.Modal(document.getElementById('credentialDetailModal')).show();
+    }
+
+    function toggleCredEditMode() {
+        const cred = credentialsData.find(c => c.id === parseInt(document.getElementById('editCredId').value));
+        if (!cred) return;
+
+        // Preenche o formulário de edição
+        document.getElementById('editCredNome').value = cred.nome;
+        document.getElementById('editCredProvedor').value = cred.provedor;
+        document.getElementById('editCredAmbiente').value = cred.ambiente;
+        document.getElementById('editCredApiKey').value = '';
+        document.getElementById('editCredDescricao').value = cred.descricao || '';
+
+        // Troca para modo edição
+        document.getElementById('credDetailView').style.display = 'none';
+        document.getElementById('credEditView').style.display = '';
+        document.getElementById('editCredToggleBtn').style.display = 'none';
+        document.getElementById('saveCredEditBtn').style.display = '';
+    }
+
+    function saveCredentialEdit() {
+        const credId = document.getElementById('editCredId').value;
+        const data = {
+            nome: document.getElementById('editCredNome').value,
+            provedor: document.getElementById('editCredProvedor').value,
+            ambiente: document.getElementById('editCredAmbiente').value,
+            descricao: document.getElementById('editCredDescricao').value
+        };
+        const newKey = document.getElementById('editCredApiKey').value;
+        if (newKey) data.api_key = newKey;
+
+        if (!data.nome || !data.provedor) {
+            alert('Nome e Provedor são obrigatórios');
+            return;
+        }
+
+        const btn = document.getElementById('saveCredEditBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Salvando...';
+
+        fetch(`/api/project/${projectId}/credentials/${credId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        })
+            .then(r => r.json())
+            .then(res => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save me-1"></i>Salvar Alterações';
+                if (res.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('credentialDetailModal')).hide();
+                    loadCredentials();
+                } else {
+                    alert(res.message || 'Erro ao salvar credencial');
+                }
+            })
+            .catch(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save me-1"></i>Salvar Alterações';
+                alert('Erro de conexão ao salvar.');
+            });
+    }
+
+    function copyApiKeyMasked() {
+        const input = document.getElementById('detailApiKeyMasked');
+        navigator.clipboard.writeText(input.value).then(() => {
+            const icon = document.getElementById('copyMaskedIcon');
+            icon.className = 'fas fa-check text-success';
+            setTimeout(() => { icon.className = 'fas fa-copy'; }, 2000);
+        });
+    }
+
+    function toggleEditKeyVisibility() {
+        const input = document.getElementById('editCredApiKey');
+        const icon = document.getElementById('toggleEditKeyIcon');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.className = 'fas fa-eye-slash';
+        } else {
+            input.type = 'password';
+            icon.className = 'fas fa-eye';
+        }
     }
 
     // ========== ENDPOINTS ==========

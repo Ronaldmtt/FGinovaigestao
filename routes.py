@@ -3675,6 +3675,19 @@ def update_project_credential(project_id, credential_id):
         return jsonify({'success': False, 'message': f'Erro ao atualizar credencial: {str(e)}'}), 500
 
 
+@app.route('/api/project/<int:project_id>/credentials/<int:credential_id>/reveal', methods=['GET'])
+@login_required
+@requires_permission('acesso_projetos')
+def reveal_project_credential(project_id, credential_id):
+    """Retornar chave completa para cópia (apenas usuários autorizados)"""
+    credential = ProjectApiCredential.query.filter_by(id=credential_id, project_id=project_id).first_or_404()
+    rpa_log.info(f"Chave API revelada: {credential.nome} (ID: {credential_id}) por {current_user.email}", regiao="api")
+    return jsonify({
+        'success': True,
+        'api_key': credential.api_key_encrypted or ''
+    })
+
+
 @app.route('/api/project/<int:project_id>/credentials/<int:credential_id>', methods=['DELETE'])
 @login_required
 @requires_permission('acesso_projetos')

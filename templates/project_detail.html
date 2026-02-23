@@ -1713,12 +1713,35 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
     }
 
     function copyApiKeyMasked() {
-        const input = document.getElementById('detailApiKeyMasked');
-        navigator.clipboard.writeText(input.value).then(() => {
-            const icon = document.getElementById('copyMaskedIcon');
-            icon.className = 'fas fa-check text-success';
-            setTimeout(() => { icon.className = 'fas fa-copy'; }, 2000);
-        });
+        const credId = document.getElementById('editCredId').value;
+        const icon = document.getElementById('copyMaskedIcon');
+        const btn = icon.closest('button');
+
+        // Indica carregamento
+        icon.className = 'fas fa-spinner fa-spin';
+        btn.disabled = true;
+
+        fetch(`/api/project/${projectId}/credentials/${credId}/reveal`)
+            .then(r => r.json())
+            .then(res => {
+                btn.disabled = false;
+                if (res.success && res.api_key) {
+                    navigator.clipboard.writeText(res.api_key).then(() => {
+                        icon.className = 'fas fa-check text-success';
+                        setTimeout(() => { icon.className = 'fas fa-copy'; }, 2000);
+                    });
+                } else {
+                    icon.className = 'fas fa-times text-danger';
+                    setTimeout(() => { icon.className = 'fas fa-copy'; }, 2000);
+                    alert('Não foi possível recuperar a chave completa.');
+                }
+            })
+            .catch(() => {
+                btn.disabled = false;
+                icon.className = 'fas fa-times text-danger';
+                setTimeout(() => { icon.className = 'fas fa-copy'; }, 2000);
+                alert('Erro de conexão ao buscar chave.');
+            });
     }
 
     function toggleEditKeyVisibility() {

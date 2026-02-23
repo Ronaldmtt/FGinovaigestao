@@ -373,7 +373,7 @@ class ProjectApiCredential(db.Model):
     nome = db.Column(db.String(100), nullable=False)
     provedor = db.Column(db.String(100), nullable=False)
     descricao = db.Column(db.Text)
-    api_key_masked = db.Column(db.String(50))
+    api_key_masked = db.Column(db.String(200))
     api_key_encrypted = db.Column(db.Text)
     ambiente = db.Column(db.String(20), default='development')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

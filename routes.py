@@ -3602,7 +3602,7 @@ def create_project_credential(project_id):
     api_key_masked = ''
     if api_key:
         if len(api_key) > 8:
-            api_key_masked = api_key[:4] + '*' * (len(api_key) - 8) + api_key[-4:]
+            api_key_masked = api_key[:4] + '****...****' + api_key[-4:]
         else:
             api_key_masked = '*' * len(api_key)
     
@@ -3660,7 +3660,7 @@ def update_project_credential(project_id, credential_id):
     if 'api_key' in data and data['api_key']:
         api_key = data['api_key']
         if len(api_key) > 8:
-            credential.api_key_masked = api_key[:4] + '*' * (len(api_key) - 8) + api_key[-4:]
+            credential.api_key_masked = api_key[:4] + '****...****' + api_key[-4:]
         else:
             credential.api_key_masked = '*' * len(api_key)
         credential.api_key_encrypted = api_key

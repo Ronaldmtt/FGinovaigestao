@@ -1967,9 +1967,12 @@ def api_update_task(task_id):
             
             # Adicionar os novos to-do's
             for todo_data in data['todos']:
-                if todo_data.get('texto', '').strip():  # Só adicionar se houver texto
+                texto_raw = todo_data.get('texto', '').strip()
+                if texto_raw:  # Só adicionar se houver texto
+                    # Prevenir string muito grande na db.String(300)
+                    texto_safed = texto_raw[:300]
                     todo = TodoItem(
-                        texto=todo_data['texto'],
+                        texto=texto_safed,
                         completed=todo_data.get('completed', False),
                         task_id=task.id
                     )
@@ -1977,7 +1980,11 @@ def api_update_task(task_id):
                         todo.completed_at = datetime.utcnow()
                     # Adicionar data de vencimento se fornecida
                     if todo_data.get('due_date'):
-                        todo.due_date = datetime.strptime(todo_data['due_date'], '%Y-%m-%d').date()
+                        try:
+                            todo.due_date = datetime.strptime(todo_data['due_date'], '%Y-%m-%d').date()
+                        except ValueError:
+                            # Ignorar datas incorretas vindas de inputs gerados (ex: dia 31 em mês de 30)
+                            pass
                     # Adicionar comentário se fornecido
                     if todo_data.get('comentario'):
                         todo.comentario = todo_data['comentario']
@@ -2122,13 +2129,16 @@ def api_update_todo(todo_id):
             novo_texto = data.get('texto', '').strip()
             if not novo_texto:
                 return jsonify({'success': False, 'message': 'Texto não pode ser vazio'}), 400
-            todo.texto = novo_texto
+            todo.texto = novo_texto[:300]
         
         # Atualizar data de vencimento se fornecida
         if 'due_date' in data:
             due_date_str = data.get('due_date')
             if due_date_str:
-                todo.due_date = datetime.strptime(due_date_str, '%Y-%m-%d').date()
+                try:
+                    todo.due_date = datetime.strptime(due_date_str, '%Y-%m-%d').date()
+                except ValueError:
+                    pass # Evitar falha se o front enviar data inválida
             else:
                 todo.due_date = None
         

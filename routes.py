@@ -1924,6 +1924,8 @@ def api_update_task(task_id):
     titulo_antigo = task.titulo
     descricao_antiga = task.descricao
     
+    import traceback
+    
     try:
         # Atualizar campos
         titulo_mudou = False
@@ -1961,34 +1963,40 @@ def api_update_task(task_id):
         
         # Atualizar to-do's
         if 'todos' in data:
+            print(f"DEBUG: Recebendo {len(data['todos'])} to-dos para a tarefa {task_id}")
             # Primeiro, remover todos os to-do's existentes
             # synchronize_session=False evita conflito quando os todos já foram carregados na sessão
             TodoItem.query.filter_by(task_id=task.id).delete(synchronize_session=False)
             
             # Adicionar os novos to-do's
-            for todo_data in data['todos']:
-                texto_raw = todo_data.get('texto', '').strip()
-                if texto_raw:  # Só adicionar se houver texto
-                    # Prevenir string muito grande na db.String(300)
-                    texto_safed = texto_raw[:300]
-                    todo = TodoItem(
-                        texto=texto_safed,
-                        completed=todo_data.get('completed', False),
-                        task_id=task.id
-                    )
-                    if todo_data.get('completed'):
-                        todo.completed_at = datetime.utcnow()
-                    # Adicionar data de vencimento se fornecida
-                    if todo_data.get('due_date'):
-                        try:
-                            todo.due_date = datetime.strptime(todo_data['due_date'], '%Y-%m-%d').date()
-                        except ValueError:
-                            # Ignorar datas incorretas vindas de inputs gerados (ex: dia 31 em mês de 30)
-                            pass
-                    # Adicionar comentário se fornecido
-                    if todo_data.get('comentario'):
-                        todo.comentario = todo_data['comentario']
-                    db.session.add(todo)
+            for idx, todo_data in enumerate(data['todos']):
+                try:
+                    texto_raw = todo_data.get('texto', '').strip()
+                    if texto_raw:  # Só adicionar se houver texto
+                        # Prevenir string muito grande na db.String(300)
+                        texto_safed = texto_raw[:300]
+                        todo = TodoItem(
+                            texto=texto_safed,
+                            completed=todo_data.get('completed', False),
+                            task_id=task.id
+                        )
+                        if todo_data.get('completed'):
+                            todo.completed_at = datetime.utcnow()
+                        # Adicionar data de vencimento se fornecida
+                        if todo_data.get('due_date'):
+                            try:
+                                todo.due_date = datetime.strptime(todo_data['due_date'], '%Y-%m-%d').date()
+                            except ValueError as e:
+                                print(f"DEBUG: Data de to-do inválida ('{todo_data['due_date']}'): {str(e)}")
+                                # Ignorar datas incorretas vindas de inputs gerados (ex: dia 31 em mês de 30)
+                                pass
+                        # Adicionar comentário se fornecido
+                        if todo_data.get('comentario'):
+                            todo.comentario = todo_data['comentario']
+                        db.session.add(todo)
+                except Exception as e_todo:
+                    print(f"ERROR: Falha ao processar o to-do {idx} ({todo_data}): {str(e_todo)}")
+                    raise e_todo # Repassar para o bloco superior logar e dar rollback
         
         db.session.commit()
         

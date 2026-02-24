@@ -1129,6 +1129,8 @@
             todos: getCurrentTodos()
         };
 
+        console.log("DEBUG KANBAN: Tentando salvar tarefa com payload:", JSON.stringify(formData));
+
         fetch(`/api/tasks/${taskId}`, {
             method: 'PUT',
             headers: {
@@ -1139,6 +1141,7 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
+                    console.log("DEBUG KANBAN: Tarefa salva com sucesso.");
                     updateDrawerAutoSaveStatus('salvo');
 
                     // Recarregar to-dos do servidor para obter IDs reais
@@ -1169,11 +1172,14 @@
                         updateTaskCard(data.task);
                     }
                 } else {
+                    console.error("DEBUG KANBAN: O backend retornou erro. server message:", data.message);
+                    alert("Erro ao salvar: " + (data.message || "Motivo desconhecido"));
                     updateDrawerAutoSaveStatus('erro');
                 }
             })
             .catch(error => {
-                console.error('Erro ao salvar tarefa:', error);
+                console.error('DEBUG KANBAN: Erro de rede ou parse ao salvar tarefa. Payload:', formData, 'Erro:', error);
+                alert("Erro catastrófico ao salvar, verifique o console.");
                 updateDrawerAutoSaveStatus('erro');
             });
     }

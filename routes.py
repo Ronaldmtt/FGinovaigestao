@@ -4809,13 +4809,16 @@ def crm2_create_meeting(lead_id):
         email_status = f'erro: {str(e)}'
         print(f"[crm2] Erro ao enviar emails: {e}")
     
-    # 5. Auto-advance lead one stage
-    next_stage = _get_next_stage(lead.estagio)
+    # 5. Auto-advance lead ONLY if it's the first meeting (Captação -> Bloco 1)
+    # Subsequent meetings in Bloco 1 or beyond should NOT auto-advance the pipeline.
+    # Advancement from Bloco 1 to Bloco 2 should only happen via "Abrir Chamado" flow.
     stage_msg = ''
-    if next_stage:
-        lead.estagio = next_stage
-        lead.data_atualizacao = datetime.utcnow()
-        stage_msg = f' Lead movido para {next_stage}.'
+    if lead.estagio == 'Captação':
+        next_stage = _get_next_stage(lead.estagio)
+        if next_stage:
+            lead.estagio = next_stage
+            lead.data_atualizacao = datetime.utcnow()
+            stage_msg = f' Lead movido para {next_stage}.'
     
     db.session.commit()
     

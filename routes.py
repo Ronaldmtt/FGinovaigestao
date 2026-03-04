@@ -642,17 +642,24 @@ def projects():
             elif c_prog <= 75: c_pc = 'progress-warning'
             else:              c_pc = 'progress-success'
             children_list.append({
-                'id':           c.id,
-                'nome':         c.nome,
-                'status':       c.status,
-                'status_label': c_si['label'],
-                'status_class': c_si['class'],
-                'progress':     c_prog,
+                'id':             c.id,
+                'nome':           c.nome,
+                'status':         c.status,
+                'status_label':   c_si['label'],
+                'status_class':   c_si['class'],
+                'progress':       c_prog,
                 'progress_color': c_pc,
-                'leader':       c_resp.full_name if c_resp else '-',
-                'client':       project.client.nome if project.client else '-',
-                'data_inicio':  c.data_inicio.strftime('%d/%m/%Y') if c.data_inicio else '',
-                'data_fim':     c.data_fim.strftime('%d/%m/%Y') if c.data_fim else '',
+                'leader':         c_resp.full_name if c_resp else '-',
+                'client':         project.client.nome if project.client else '-',
+                'data_inicio':    c.data_inicio.strftime('%d/%m/%Y') if c.data_inicio else '',
+                'data_fim':       c.data_fim.strftime('%d/%m/%Y') if c.data_fim else '',
+                # Badges de infra
+                'has_github':     c.has_github if hasattr(c, 'has_github') else False,
+                'has_env':        c.has_env    if hasattr(c, 'has_env')    else None,
+                'has_backup_db':  c.has_backup_db if hasattr(c, 'has_backup_db') else None,
+                'rpa_identifier': c.rpa_identifier if hasattr(c, 'rpa_identifier') else None,
+                'rpa_status':     None,  # não buscamos status RPA dos filhos por performance
+                'can_edit':       current_user.is_admin or current_user.id == c.responsible_id,
             })
         projects_data[-1]['children'] = children_list
         

@@ -495,10 +495,12 @@ def projects():
     status_filter = request.args.get('status')
     
     # Query base para contar todos os projetos (independente de filtros)
+    # Filtra projetos filhos (parent_id IS NOT NULL) — eles só aparecem no carrossel do pai
     if current_user.is_admin:
-        base_query = Project.query
+        base_query = Project.query.filter(Project.parent_id == None)  # noqa
     else:
         base_query = Project.query.filter(
+            Project.parent_id == None,  # noqa
             (Project.responsible_id == current_user.id) |
             (Project.team_members.contains(current_user))
         ).distinct()

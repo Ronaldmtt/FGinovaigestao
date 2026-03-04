@@ -54,7 +54,7 @@
 
 <!-- Banner: projeto filho (preenchido via JS) -->
 <div id="childBanner" class="alert alert-info d-flex align-items-center gap-2 py-2 px-3 mb-3"
-    style="display:none!important;border-radius:8px;">
+    style="display:none;border-radius:8px;">
     <i class="fas fa-link"></i>
     <span>Fase de: <a id="childBannerLink" href="#" class="fw-semibold alert-link"></a></span>
 </div>
@@ -2493,6 +2493,11 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
         const btnL = document.getElementById('carouselLeft');
         const btnR = document.getElementById('carouselRight');
 
+        // Calcula quantos cards cabem na área visível
+        const outer = document.querySelector('.linked-track-outer');
+        const cardW = 220 + 16;
+        const visibleCards = outer ? Math.max(1, Math.floor(outer.offsetWidth / cardW)) : 3;
+
         track.innerHTML = linkedData.map((p, i) => `
             <div class="linked-card" onclick="window.location='/project/${p.id}'">
                 <button class="lc-detach" onclick="event.stopPropagation(); detachLinkedProject(${p.id})" title="Desvincular">
@@ -2514,27 +2519,32 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
             </div>
         `).join('');
 
-        // Dots
-        const totalDots = Math.max(1, linkedData.length - CARDS_VISIBLE + 1);
+        // Dots — um por card
         dots.innerHTML = '';
-        for (let i = 0; i < Math.min(totalDots, linkedData.length); i++) {
+        linkedData.forEach((_, i) => {
             const d = document.createElement('span');
             d.className = 'linked-dot' + (i === carouselIndex ? ' active' : '');
-            d.onclick = () => { carouselIndex = i; applyCarouselTransform(); };
+            d.onclick = () => { carouselIndex = i; applyCarouselTransform(visibleCards); };
             dots.appendChild(d);
-        }
+        });
 
-        // Setas
-        btnL.style.display = linkedData.length > CARDS_VISIBLE ? 'flex' : 'none';
-        btnR.style.display = linkedData.length > CARDS_VISIBLE ? 'flex' : 'none';
+        // Setas — mostrar quando os cards não cabem todos
+        const showArrows = linkedData.length > visibleCards;
+        btnL.style.display = showArrows ? 'flex' : 'none';
+        btnR.style.display = showArrows ? 'flex' : 'none';
 
-        applyCarouselTransform();
+        applyCarouselTransform(visibleCards);
     }
 
-    function applyCarouselTransform() {
+    function applyCarouselTransform(visibleCards) {
+        if (visibleCards === undefined) {
+            const outer = document.querySelector('.linked-track-outer');
+            const cardW = 220 + 16;
+            visibleCards = outer ? Math.max(1, Math.floor(outer.offsetWidth / cardW)) : 3;
+        }
         const track = document.getElementById('linkedTrack');
-        const cardW = 220 + 16; // width + gap
-        const maxIdx = Math.max(0, linkedData.length - CARDS_VISIBLE);
+        const cardW = 220 + 16;
+        const maxIdx = Math.max(0, linkedData.length - visibleCards);
         carouselIndex = Math.max(0, Math.min(carouselIndex, maxIdx));
         track.style.transform = `translateX(-${carouselIndex * cardW}px)`;
 

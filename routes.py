@@ -621,17 +621,40 @@ def projects():
             'project': project,
             'rpa_identifier': project.rpa_identifier,
             'rpa_status': None,
-            'children': [
-                {
-                    'id': c.id,
-                    'nome': c.nome,
-                    'status': c.status,
-                    'progress': c.progress_percent or 0,
-                }
-                for c in project.children.order_by(Project.created_at.asc()).all()
-            ],
+            'children': [],  # preenchido abaixo
             'children_count': project.children.count(),
         })
+
+        # Dados completos dos filhos para o slider
+        children_list = []
+        for c in project.children.order_by(Project.created_at.asc()).all():
+            c_resp = User.query.get(c.responsible_id)
+            c_prog = c.progress_percent or 0
+            c_status_map = {
+                'em_andamento': {'label': 'Em Andamento', 'class': 'status-active'},
+                'em_teste':     {'label': 'Em Teste',     'class': 'status-testing'},
+                'concluido':    {'label': 'Concluído',    'class': 'status-completed'},
+                'pausado':      {'label': 'Em Espera',    'class': 'status-paused'},
+                'cancelado':    {'label': 'Cancelado',    'class': 'status-delayed'},
+            }
+            c_si = c_status_map.get(c.status, {'label': c.status, 'class': 'status-paused'})
+            if c_prog <= 25:   c_pc = 'progress-danger'
+            elif c_prog <= 75: c_pc = 'progress-warning'
+            else:              c_pc = 'progress-success'
+            children_list.append({
+                'id':           c.id,
+                'nome':         c.nome,
+                'status':       c.status,
+                'status_label': c_si['label'],
+                'status_class': c_si['class'],
+                'progress':     c_prog,
+                'progress_color': c_pc,
+                'leader':       c_resp.full_name if c_resp else '-',
+                'client':       project.client.nome if project.client else '-',
+                'data_inicio':  c.data_inicio.strftime('%d/%m/%Y') if c.data_inicio else '',
+                'data_fim':     c.data_fim.strftime('%d/%m/%Y') if c.data_fim else '',
+            })
+        projects_data[-1]['children'] = children_list
         
         # Buscar status RPA se existir identificador
         if project.rpa_identifier:

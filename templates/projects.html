@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}Projetos - Sistema de Gerenciamento de Projetos{% endblock %}
 
@@ -93,15 +93,172 @@
         {% if projects_data %}
         {% for p in projects_data %}
         <div class="col-12 col-md-6">
+
+            {% if p.children %}
+            {# ===== GRUPO COM SLIDER (pai + filhos) ===== #}
+            <div class="card-slider-group" id="csg_{{ p.id }}">
+                <!-- Clip: só um card visível por vez -->
+                <div class="csg-clip">
+                    <div class="csg-track" id="cst_{{ p.id }}">
+
+                        <!-- Slide 0: card do projeto pai -->
+                        <div class="csg-slide">
+                            <div class="project-card {{ p.glow_class }}"
+                                onclick="window.location.href='{{ url_for('project_detail', id=p.id) }}'">
+                                <div class="project-card-header">
+                                    <div class="d-flex align-items-center flex-grow-1" style="min-width:0;">
+                                        <h5 class="project-card-title mb-0 text-truncate" title="{{ p.nome }}">{{ p.nome
+                                            }}</h5>
+                                        <div class="d-flex flex-column align-items-end ms-2 gap-1">
+                                            <div class="d-flex gap-1">
+                                                <div class="d-flex align-items-center bg-dark rounded px-1"
+                                                    style="height:20px;"
+                                                    title="GitHub: {{ 'Ativo' if p.project.has_github else 'Inativo' }}">
+                                                    <i class="fab fa-github text-light" style="font-size:.8rem;"></i>
+                                                    <i class="fas fa-{{ 'check' if p.project.has_github else 'times' }}-circle text-{{ 'success' if p.project.has_github else 'danger' }} ms-1"
+                                                        style="font-size:.6rem;"></i>
+                                                </div>
+                                                {% if p.project.has_env is not false %}
+                                                <div class="d-flex align-items-center bg-dark rounded px-1"
+                                                    style="height:20px;"
+                                                    title="ENV: {{ 'Ativo' if p.project.has_env else 'Pendente' }}">
+                                                    <i class="fas fa-file-code text-light" style="font-size:.8rem;"></i>
+                                                    <i class="fas fa-{{ 'check' if p.project.has_env else 'times' }}-circle text-{{ 'success' if p.project.has_env else 'danger' }} ms-1"
+                                                        style="font-size:.6rem;"></i>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="d-flex gap-1">
+                                                {% if p.project.has_backup_db is not false %}
+                                                <div class="d-flex align-items-center bg-dark rounded px-1"
+                                                    style="height:20px;" title="Backup DB">
+                                                    <i class="fas fa-database text-light" style="font-size:.8rem;"></i>
+                                                    <i class="fas fa-{{ 'check' if p.project.has_backup_db else 'times' }}-circle text-{{ 'success' if p.project.has_backup_db else 'danger' }} ms-1"
+                                                        style="font-size:.6rem;"></i>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="dropdown align-self-start" onclick="event.stopPropagation()">
+                                        <button class="project-card-actions pt-0" type="button"
+                                            data-bs-toggle="dropdown"><i class="fas fa-ellipsis-v"></i></button>
+                                        <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
+                                            <li><a class="dropdown-item" href="javascript:void(0)"
+                                                    onclick="editProject({{ p.id }})"><i
+                                                        class="fas fa-edit me-2"></i>Editar</a></li>
+                                            {% if p.can_edit %}<li>
+                                                <hr class="dropdown-divider">
+                                            </li>
+                                            <li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal"
+                                                    data-bs-target="#deleteModal{{ p.id }}"><i
+                                                        class="fas fa-trash-alt me-2"></i>Excluir</a></li>{% endif %}
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="project-card-body">
+                                    <div class="project-card-info"><i class="fas fa-user-circle text-primary"></i><span
+                                            class="text-truncate">{{ p.leader }}</span></div>
+                                    <div class="project-card-info"><i class="fas fa-building text-secondary"></i><span
+                                            class="text-truncate">{{ p.client }}</span></div>
+                                    <div class="d-flex align-items-center mt-2"><span
+                                            class="status-badge {{ p.status_class }}">{{ p.status_label }}</span></div>
+                                    <div class="project-card-info mt-2">
+                                        <div class="d-flex flex-column small w-100">
+                                            <span class="text-secondary"><i class="fas fa-play text-muted me-2"
+                                                    style="font-size:.8em;"></i>{{
+                                                p.project.data_inicio.strftime('%d/%m/%Y') if p.project.data_inicio else
+                                                '-' }}</span>
+                                            <span class="text-secondary mt-1"><i
+                                                    class="fas fa-flag-checkered text-muted me-2"
+                                                    style="font-size:.8em;"></i>{{
+                                                p.project.data_fim.strftime('%d/%m/%Y') if p.project.data_fim else '-'
+                                                }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="project-card-footer">
+                                    <div class="progress-container-card">
+                                        <div class="progress-bar-custom">
+                                            <div class="progress-fill {{ p.progress_color }}"
+                                                style="width:{{ p.progress }}%;"></div>
+                                        </div>
+                                        <span class="progress-text">{{ p.progress }}%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>{# /slide 0 #}
+
+                        <!-- Slides 1..N: cards dos filhos -->
+                        {% for c in p.children %}
+                        <div class="csg-slide">
+                            <div class="project-card" onclick="window.location.href='/project/{{ c.id }}'">
+                                <!-- badge "fase de" -->
+                                <div class="csg-fase-badge"><i class="fas fa-link me-1"></i>Fase de: <strong>{{ p.nome
+                                        }}</strong></div>
+                                <div class="project-card-header">
+                                    <div class="d-flex align-items-center flex-grow-1" style="min-width:0;">
+                                        <h5 class="project-card-title mb-0 text-truncate" title="{{ c.nome }}">{{ c.nome
+                                            }}</h5>
+                                    </div>
+                                </div>
+                                <div class="project-card-body">
+                                    <div class="project-card-info"><i class="fas fa-user-circle text-primary"></i><span
+                                            class="text-truncate">{{ c.leader }}</span></div>
+                                    <div class="project-card-info"><i class="fas fa-building text-secondary"></i><span
+                                            class="text-truncate">{{ c.client }}</span></div>
+                                    <div class="d-flex align-items-center mt-2"><span
+                                            class="status-badge {{ c.status_class }}">{{ c.status_label }}</span></div>
+                                    <div class="project-card-info mt-2">
+                                        <div class="d-flex flex-column small w-100">
+                                            <span class="text-secondary"><i class="fas fa-play text-muted me-2"
+                                                    style="font-size:.8em;"></i>{{ c.data_inicio or '-' }}</span>
+                                            <span class="text-secondary mt-1"><i
+                                                    class="fas fa-flag-checkered text-muted me-2"
+                                                    style="font-size:.8em;"></i>{{ c.data_fim or '-' }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="project-card-footer">
+                                    <div class="progress-container-card">
+                                        <div class="progress-bar-custom">
+                                            <div class="progress-fill {{ c.progress_color }}"
+                                                style="width:{{ c.progress }}%;"></div>
+                                        </div>
+                                        <span class="progress-text">{{ c.progress }}%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>{# /slide filho #}
+                        {% endfor %}
+
+                    </div>{# /csg-track #}
+                </div>{# /csg-clip #}
+
+                <!-- Navegação: setas e dots FORA do clip -->
+                <div class="csg-nav">
+                    <button class="csg-arrow" id="csgL_{{ p.id }}" onclick="csgMove('{{ p.id }}', -1)" disabled><i
+                            class="fas fa-chevron-left"></i></button>
+                    <div class="csg-dots" id="csgD_{{ p.id }}">
+                        {# 1 dot para o pai + 1 por filho #}
+                        <span class="csg-dot active" onclick="csgGoTo('{{ p.id }}', 0)"></span>
+                        {% for c in p.children %}<span class="csg-dot"
+                            onclick="csgGoTo('{{ p.id }}', {{ loop.index }})"></span>{% endfor %}
+                    </div>
+                    <button class="csg-arrow" id="csgR_{{ p.id }}" onclick="csgMove('{{ p.id }}', 1)"><i
+                            class="fas fa-chevron-right"></i></button>
+                </div>
+            </div>{# /card-slider-group #}
+
+            {% else %}
+            {# ===== CARD SIMPLES sem filhos ===== #}
             <div class="project-card {{ p.glow_class }}"
                 onclick="window.location.href='{{ url_for('project_detail', id=p.id) }}'">
                 <div class="project-card-header">
                     <div class="d-flex align-items-center flex-grow-1" style="min-width: 0;">
                         <h5 class="project-card-title mb-0 text-truncate" title="{{ p.nome }}">{{ p.nome }}</h5>
                         <div class="d-flex flex-column align-items-end ms-2 gap-1">
-                            <!-- Linha 1: GitHub e ENV -->
                             <div class="d-flex gap-1">
-                                <!-- GitHub -->
                                 <div class="d-flex align-items-center bg-dark rounded px-1" style="height: 20px;"
                                     title="GitHub: {{ 'Ativo' if p.project.has_github else 'Inativo' }}">
                                     <i class="fab fa-github text-light" style="font-size: 0.8rem;"></i>
@@ -111,7 +268,6 @@
                                     <i class="fas fa-times-circle text-danger ms-1" style="font-size: 0.6rem;"></i>
                                     {% endif %}
                                 </div>
-                                <!-- ENV -->
                                 {% if p.project.has_env is not false %}
                                 <div class="d-flex align-items-center bg-dark rounded px-1" style="height: 20px;"
                                     title="ENV: {{ 'Ativo' if p.project.has_env else 'Pendente' }}">
@@ -124,10 +280,7 @@
                                 </div>
                                 {% endif %}
                             </div>
-
-                            <!-- Linha 2: Backup DB e RPA -->
                             <div class="d-flex gap-1">
-                                <!-- Backup DB -->
                                 {% if p.project.has_backup_db is not false %}
                                 <div class="d-flex align-items-center bg-dark rounded px-1" style="height: 20px;"
                                     title="Backup DB: {{ 'Ativo' if p.project.has_backup_db else 'Pendente' }}">
@@ -139,7 +292,6 @@
                                     {% endif %}
                                 </div>
                                 {% endif %}
-                                <!-- RPA Status -->
                                 <div class="d-flex align-items-center bg-dark rounded px-1" style="height: 20px;"
                                     title="RPA: {{ p.rpa_status if p.rpa_identifier else 'Não Configurado' }}">
                                     <i class="fas fa-robot text-light" style="font-size: 0.8rem;"></i>
@@ -234,43 +386,10 @@
                         <span class="progress-text">{{ p.progress }}%</span>
                     </div>
                 </div>
+            </div>{# /project-card simples #}
+            {% endif %}
 
-                {% if p.children %}
-                <!-- Mini-carrossel de projetos vinculados -->
-                <div class="linked-mini-section" onclick="event.stopPropagation()">
-                    <div class="linked-mini-header">
-                        <i class="fas fa-sitemap me-1" style="font-size:.7rem;"></i>
-                        <span>{{ p.children_count }} fase{{ 's' if p.children_count != 1 else '' }} vinculada{{ 's' if
-                            p.children_count != 1 else '' }}</span>
-                        <div class="linked-mini-arrows ms-auto">
-                            <button class="lm-arrow" onclick="lmMove('{{ p.id }}', -1)" id="lmL_{{ p.id }}"><i
-                                    class="fas fa-chevron-left"></i></button>
-                            <button class="lm-arrow" onclick="lmMove('{{ p.id }}', 1)" id="lmR_{{ p.id }}"><i
-                                    class="fas fa-chevron-right"></i></button>
-                        </div>
-                    </div>
-                    <div class="linked-mini-outer">
-                        <div class="linked-mini-track" id="lmt_{{ p.id }}">
-                            {% for c in p.children %}
-                            <a href="/project/{{ c.id }}" class="linked-mini-card lmc-status-{{ c.status }}">
-                                <div class="lmc-name">{{ c.nome }}</div>
-                                <div class="lmc-bar">
-                                    <div class="lmc-fill" style="width:{{ c.progress }}%"></div>
-                                </div>
-                            </a>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    <div class="linked-mini-dots" id="lmd_{{ p.id }}">
-                        {% for c in p.children %}
-                        <span class="lm-dot {% if loop.first %}active{% endif %}"
-                            onclick="lmGoTo('{{ p.id }}', {{ loop.index0 }})"></span>
-                        {% endfor %}
-                    </div>
-                </div>
-                {% endif %}
-            </div>
-        </div>
+        </div>{# /col #}
         {% endfor %}
         {% else %}
         <div class="col-12">
@@ -284,7 +403,9 @@
     </div>
 </div>
 
+
 <!-- Modais de exclusão -->
+
 {% for project in projects %}
 {% if current_user.is_admin or current_user.id == project.responsible_id %}
 <div class="modal fade" id="deleteModal{{ project.id }}" tabindex="-1">
@@ -1194,166 +1315,134 @@
         }
     }
 
-    // ===== MINI-CARROSSEL DE PROJETOS VINCULADOS =====
-    const lmIndex = {}; // { projectId: currentIndex }
+    // ===== SLIDER DE CARD COMPLETO (pai + filhos) =====
+    const csgIdx = {}; // { projectId: currentIndex }
 
-    function lmMove(pid, dir) {
-        const track = document.getElementById('lmt_' + pid);
+    function csgMove(pid, dir) {
+        const track = document.getElementById('cst_' + pid);
         if (!track) return;
-        const cards = track.querySelectorAll('.linked-mini-card');
-        if (!cards.length) return;
-        lmIndex[pid] = Math.max(0, Math.min((lmIndex[pid] || 0) + dir, cards.length - 1));
-        lmApply(pid, cards.length);
+        const total = track.querySelectorAll('.csg-slide').length;
+        csgIdx[pid] = Math.max(0, Math.min((csgIdx[pid] || 0) + dir, total - 1));
+        csgApply(pid, total);
     }
 
-    function lmGoTo(pid, idx) {
-        const track = document.getElementById('lmt_' + pid);
+    function csgGoTo(pid, idx) {
+        const track = document.getElementById('cst_' + pid);
         if (!track) return;
-        const cards = track.querySelectorAll('.linked-mini-card');
-        lmIndex[pid] = idx;
-        lmApply(pid, cards.length);
+        const total = track.querySelectorAll('.csg-slide').length;
+        csgIdx[pid] = idx;
+        csgApply(pid, total);
     }
 
-    function lmApply(pid, total) {
-        const idx = lmIndex[pid] || 0;
-        const cardW = 170 + 10; // card width + gap
-        const track = document.getElementById('lmt_' + pid);
-        track.style.transform = `translateX(-${idx * cardW}px)`;
+    function csgApply(pid, total) {
+        const idx = csgIdx[pid] || 0;
+        const track = document.getElementById('cst_' + pid);
+        // Translate by full 100% of the clip per slide
+        track.style.transform = `translateX(-${idx * 100}%)`;
 
         // Dots
-        const dots = document.querySelectorAll(`#lmd_${pid} .lm-dot`);
+        const dots = document.querySelectorAll(`#csgD_${pid} .csg-dot`);
         dots.forEach((d, i) => d.classList.toggle('active', i === idx));
 
-        // Setas
-        const btnL = document.getElementById('lmL_' + pid);
-        const btnR = document.getElementById('lmR_' + pid);
+        // Arrows
+        const btnL = document.getElementById('csgL_' + pid);
+        const btnR = document.getElementById('csgR_' + pid);
         if (btnL) btnL.disabled = idx === 0;
         if (btnR) btnR.disabled = idx >= total - 1;
     }
 </script>
 
 <style>
-    /* Mini-carrossel de projetos vinculados nos cards da listagem */
-    .linked-mini-section {
-        border-top: 1px solid rgba(255, 255, 255, .08);
-        padding: 10px 14px 8px;
-        background: rgba(0, 0, 0, .15);
-        cursor: default;
+    /* ===== FULL-CARD SLIDER GROUP ===== */
+    .card-slider-group {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
     }
 
-    .linked-mini-header {
+    /* Clip: hides slides outside the visible area */
+    .csg-clip {
+        overflow: hidden;
+        border-radius: 12px;
+        flex: 1;
+    }
+
+    /* Track: flex row of equal-width slides */
+    .csg-track {
+        display: flex;
+        transition: transform .4s cubic-bezier(.4, 0, .2, 1);
+        height: 100%;
+    }
+
+    /* Each slide is exactly the width of the clip */
+    .csg-slide {
+        flex: 0 0 100%;
+        height: 100%;
+    }
+
+    /* Cards inside slides need full height */
+    .csg-slide .project-card {
+        height: 100%;
+        border-radius: 0;
+    }
+
+    /* "Fase de" badge on child slides */
+    .csg-fase-badge {
+        background: rgba(45, 89, 134, .25);
+        border-bottom: 1px solid rgba(45, 89, 134, .4);
+        color: #7ab3e0;
+        font-size: .72rem;
+        padding: 5px 15px;
         display: flex;
         align-items: center;
         gap: 4px;
-        font-size: .72rem;
-        color: #6c757d;
-        margin-bottom: 8px;
     }
 
-    .linked-mini-arrows {
+    /* Nav row: arrows + dots */
+    .csg-nav {
         display: flex;
-        gap: 4px;
-    }
-
-    .lm-arrow {
-        background: none;
-        border: 1px solid rgba(255, 255, 255, .15);
-        border-radius: 4px;
-        width: 22px;
-        height: 22px;
-        display: inline-flex;
         align-items: center;
         justify-content: center;
-        cursor: pointer;
-        font-size: .65rem;
-        color: #aaa;
-        padding: 0;
-        transition: background .15s, color .15s;
+        gap: 8px;
+        padding: 8px 0 4px;
     }
 
-    .lm-arrow:hover {
-        background: rgba(255, 255, 255, .1);
+    .csg-arrow {
+        background: rgba(255, 255, 255, .07);
+        border: 1px solid rgba(255, 255, 255, .15);
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: .7rem;
+        color: #adb5bd;
+        cursor: pointer;
+        padding: 0;
+        transition: background .15s, color .15s;
+        flex-shrink: 0;
+    }
+
+    .csg-arrow:hover {
+        background: rgba(45, 89, 134, .4);
         color: #fff;
     }
 
-    .lm-arrow:disabled {
-        opacity: .3;
+    .csg-arrow:disabled {
+        opacity: .25;
         cursor: default;
     }
 
-    .linked-mini-outer {
-        overflow: hidden;
-        border-radius: 6px;
-    }
-
-    .linked-mini-track {
+    .csg-dots {
         display: flex;
-        gap: 10px;
-        transition: transform .3s cubic-bezier(.4, 0, .2, 1);
+        gap: 6px;
+        align-items: center;
     }
 
-    .linked-mini-card {
-        flex: 0 0 160px;
-        background: rgba(255, 255, 255, .04);
-        border: 1px solid rgba(255, 255, 255, .1);
-        border-radius: 8px;
-        padding: 8px 10px;
-        text-decoration: none;
-        cursor: pointer;
-        transition: border-color .2s, background .2s;
-        display: block;
-    }
-
-    .linked-mini-card:hover {
-        border-color: rgba(45, 89, 134, .6);
-        background: rgba(45, 89, 134, .15);
-    }
-
-    .lmc-name {
-        font-size: .75rem;
-        font-weight: 600;
-        color: #e9ecef;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        margin-bottom: 6px;
-    }
-
-    .lmc-bar {
-        height: 3px;
-        background: rgba(255, 255, 255, .1);
-        border-radius: 2px;
-        overflow: hidden;
-    }
-
-    .lmc-fill {
-        height: 100%;
-        border-radius: 2px;
-        background: linear-gradient(90deg, #3b82f6, #2d5986);
-    }
-
-    .lmc-status-concluido .lmc-fill {
-        background: linear-gradient(90deg, #4ec991, #198754);
-    }
-
-    .lmc-status-pausado .lmc-fill {
-        background: linear-gradient(90deg, #ffc107, #fd7e14);
-    }
-
-    .lmc-status-cancelado .lmc-fill {
-        background: linear-gradient(90deg, #ff6b7a, #dc3545);
-    }
-
-    .linked-mini-dots {
-        display: flex;
-        justify-content: center;
-        gap: 5px;
-        margin-top: 6px;
-    }
-
-    .lm-dot {
-        width: 5px;
-        height: 5px;
+    .csg-dot {
+        width: 6px;
+        height: 6px;
         border-radius: 50%;
         background: rgba(255, 255, 255, .2);
         cursor: pointer;
@@ -1361,8 +1450,8 @@
         display: inline-block;
     }
 
-    .lm-dot.active {
-        background: #2d5986;
+    .csg-dot.active {
+        background: #3b82f6;
         transform: scale(1.4);
     }
 </style>

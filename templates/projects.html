@@ -96,159 +96,162 @@
 
             {% if p.children %}
             {# ===== GRUPO COM SLIDER (pai + filhos) ===== #}
-            <div class="card-slider-group" id="csg_{{ p.id }}">
-                <!-- Clip: só um card visível por vez -->
-                <div class="csg-clip">
-                    <div class="csg-track" id="cst_{{ p.id }}">
+            <div class="csg-clip" id="csg_{{ p.id }}">
+                <div class="csg-track" id="cst_{{ p.id }}">
 
-                        <!-- Slide 0: card do projeto pai -->
-                        <div class="csg-slide">
-                            <div class="project-card {{ p.glow_class }}"
-                                onclick="window.location.href='{{ url_for('project_detail', id=p.id) }}'">
-                                <div class="project-card-header">
-                                    <div class="d-flex align-items-center flex-grow-1" style="min-width:0;">
-                                        <h5 class="project-card-title mb-0 text-truncate" title="{{ p.nome }}">{{ p.nome
-                                            }}</h5>
-                                        <div class="d-flex flex-column align-items-end ms-2 gap-1">
-                                            <div class="d-flex gap-1">
-                                                <div class="d-flex align-items-center bg-dark rounded px-1"
-                                                    style="height:20px;"
-                                                    title="GitHub: {{ 'Ativo' if p.project.has_github else 'Inativo' }}">
-                                                    <i class="fab fa-github text-light" style="font-size:.8rem;"></i>
-                                                    <i class="fas fa-{{ 'check' if p.project.has_github else 'times' }}-circle text-{{ 'success' if p.project.has_github else 'danger' }} ms-1"
-                                                        style="font-size:.6rem;"></i>
-                                                </div>
-                                                {% if p.project.has_env is not false %}
-                                                <div class="d-flex align-items-center bg-dark rounded px-1"
-                                                    style="height:20px;"
-                                                    title="ENV: {{ 'Ativo' if p.project.has_env else 'Pendente' }}">
-                                                    <i class="fas fa-file-code text-light" style="font-size:.8rem;"></i>
-                                                    <i class="fas fa-{{ 'check' if p.project.has_env else 'times' }}-circle text-{{ 'success' if p.project.has_env else 'danger' }} ms-1"
-                                                        style="font-size:.6rem;"></i>
-                                                </div>
-                                                {% endif %}
+                    <!-- Slide 0: card do projeto pai -->
+                    <div class="csg-slide">
+                        <div class="project-card {{ p.glow_class }}"
+                            onclick="window.location.href='{{ url_for('project_detail', id=p.id) }}'">
+                            <div class="project-card-header">
+                                <div class="d-flex align-items-center flex-grow-1" style="min-width:0;">
+                                    <h5 class="project-card-title mb-0 text-truncate" title="{{ p.nome }}">{{ p.nome
+                                        }}</h5>
+                                    <div class="d-flex flex-column align-items-end ms-2 gap-1">
+                                        <div class="d-flex gap-1">
+                                            <div class="d-flex align-items-center bg-dark rounded px-1"
+                                                style="height:20px;"
+                                                title="GitHub: {{ 'Ativo' if p.project.has_github else 'Inativo' }}">
+                                                <i class="fab fa-github text-light" style="font-size:.8rem;"></i>
+                                                <i class="fas fa-{{ 'check' if p.project.has_github else 'times' }}-circle text-{{ 'success' if p.project.has_github else 'danger' }} ms-1"
+                                                    style="font-size:.6rem;"></i>
                                             </div>
-                                            <div class="d-flex gap-1">
-                                                {% if p.project.has_backup_db is not false %}
-                                                <div class="d-flex align-items-center bg-dark rounded px-1"
-                                                    style="height:20px;" title="Backup DB">
-                                                    <i class="fas fa-database text-light" style="font-size:.8rem;"></i>
-                                                    <i class="fas fa-{{ 'check' if p.project.has_backup_db else 'times' }}-circle text-{{ 'success' if p.project.has_backup_db else 'danger' }} ms-1"
-                                                        style="font-size:.6rem;"></i>
-                                                </div>
-                                                {% endif %}
+                                            {% if p.project.has_env is not false %}
+                                            <div class="d-flex align-items-center bg-dark rounded px-1"
+                                                style="height:20px;"
+                                                title="ENV: {{ 'Ativo' if p.project.has_env else 'Pendente' }}">
+                                                <i class="fas fa-file-code text-light" style="font-size:.8rem;"></i>
+                                                <i class="fas fa-{{ 'check' if p.project.has_env else 'times' }}-circle text-{{ 'success' if p.project.has_env else 'danger' }} ms-1"
+                                                    style="font-size:.6rem;"></i>
                                             </div>
+                                            {% endif %}
                                         </div>
-                                    </div>
-                                    <div class="dropdown align-self-start" onclick="event.stopPropagation()">
-                                        <button class="project-card-actions pt-0" type="button"
-                                            data-bs-toggle="dropdown"><i class="fas fa-ellipsis-v"></i></button>
-                                        <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
-                                            <li><a class="dropdown-item" href="javascript:void(0)"
-                                                    onclick="editProject({{ p.id }})"><i
-                                                        class="fas fa-edit me-2"></i>Editar</a></li>
-                                            {% if p.can_edit %}<li>
-                                                <hr class="dropdown-divider">
-                                            </li>
-                                            <li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal"
-                                                    data-bs-target="#deleteModal{{ p.id }}"><i
-                                                        class="fas fa-trash-alt me-2"></i>Excluir</a></li>{% endif %}
-                                        </ul>
-                                    </div>
-                                </div>
-                                <div class="project-card-body">
-                                    <div class="project-card-info"><i class="fas fa-user-circle text-primary"></i><span
-                                            class="text-truncate">{{ p.leader }}</span></div>
-                                    <div class="project-card-info"><i class="fas fa-building text-secondary"></i><span
-                                            class="text-truncate">{{ p.client }}</span></div>
-                                    <div class="d-flex align-items-center mt-2"><span
-                                            class="status-badge {{ p.status_class }}">{{ p.status_label }}</span></div>
-                                    <div class="project-card-info mt-2">
-                                        <div class="d-flex flex-column small w-100">
-                                            <span class="text-secondary"><i class="fas fa-play text-muted me-2"
-                                                    style="font-size:.8em;"></i>{{
-                                                p.project.data_inicio.strftime('%d/%m/%Y') if p.project.data_inicio else
-                                                '-' }}</span>
-                                            <span class="text-secondary mt-1"><i
-                                                    class="fas fa-flag-checkered text-muted me-2"
-                                                    style="font-size:.8em;"></i>{{
-                                                p.project.data_fim.strftime('%d/%m/%Y') if p.project.data_fim else '-'
-                                                }}</span>
+                                        <div class="d-flex gap-1">
+                                            {% if p.project.has_backup_db is not false %}
+                                            <div class="d-flex align-items-center bg-dark rounded px-1"
+                                                style="height:20px;" title="Backup DB">
+                                                <i class="fas fa-database text-light" style="font-size:.8rem;"></i>
+                                                <i class="fas fa-{{ 'check' if p.project.has_backup_db else 'times' }}-circle text-{{ 'success' if p.project.has_backup_db else 'danger' }} ms-1"
+                                                    style="font-size:.6rem;"></i>
+                                            </div>
+                                            {% endif %}
                                         </div>
                                     </div>
                                 </div>
-                                <div class="project-card-footer">
-                                    <div class="progress-container-card">
-                                        <div class="progress-bar-custom">
-                                            <div class="progress-fill {{ p.progress_color }}"
-                                                style="width:{{ p.progress }}%;"></div>
-                                        </div>
-                                        <span class="progress-text">{{ p.progress }}%</span>
+                                <div class="dropdown align-self-start" onclick="event.stopPropagation()">
+                                    <button class="project-card-actions pt-0" type="button" data-bs-toggle="dropdown"><i
+                                            class="fas fa-ellipsis-v"></i></button>
+                                    <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
+                                        <li><a class="dropdown-item" href="javascript:void(0)"
+                                                onclick="editProject({{ p.id }})"><i
+                                                    class="fas fa-edit me-2"></i>Editar</a></li>
+                                        {% if p.can_edit %}<li>
+                                            <hr class="dropdown-divider">
+                                        </li>
+                                        <li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal"
+                                                data-bs-target="#deleteModal{{ p.id }}"><i
+                                                    class="fas fa-trash-alt me-2"></i>Excluir</a></li>{% endif %}
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="project-card-body">
+                                <div class="project-card-info"><i class="fas fa-user-circle text-primary"></i><span
+                                        class="text-truncate">{{ p.leader }}</span></div>
+                                <div class="project-card-info"><i class="fas fa-building text-secondary"></i><span
+                                        class="text-truncate">{{ p.client }}</span></div>
+                                <div class="d-flex align-items-center mt-2"><span
+                                        class="status-badge {{ p.status_class }}">{{ p.status_label }}</span></div>
+                                <div class="project-card-info mt-2">
+                                    <div class="d-flex flex-column small w-100">
+                                        <span class="text-secondary"><i class="fas fa-play text-muted me-2"
+                                                style="font-size:.8em;"></i>{{
+                                            p.project.data_inicio.strftime('%d/%m/%Y') if p.project.data_inicio else
+                                            '-' }}</span>
+                                        <span class="text-secondary mt-1"><i
+                                                class="fas fa-flag-checkered text-muted me-2"
+                                                style="font-size:.8em;"></i>{{
+                                            p.project.data_fim.strftime('%d/%m/%Y') if p.project.data_fim else '-'
+                                            }}</span>
                                     </div>
                                 </div>
                             </div>
-                        </div>{# /slide 0 #}
+                            <div class="project-card-footer">
+                                <div class="progress-container-card">
+                                    <div class="progress-bar-custom">
+                                        <div class="progress-fill {{ p.progress_color }}"
+                                            style="width:{{ p.progress }}%;"></div>
+                                    </div>
+                                    <span class="progress-text">{{ p.progress }}%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>{# /slide 0 #}
 
-                        <!-- Slides 1..N: cards dos filhos -->
-                        {% for c in p.children %}
-                        <div class="csg-slide">
-                            <div class="project-card" onclick="window.location.href='/project/{{ c.id }}'">
-                                <!-- badge "fase de" -->
-                                <div class="csg-fase-badge"><i class="fas fa-link me-1"></i>Fase de: <strong>{{ p.nome
-                                        }}</strong></div>
-                                <div class="project-card-header">
-                                    <div class="d-flex align-items-center flex-grow-1" style="min-width:0;">
-                                        <h5 class="project-card-title mb-0 text-truncate" title="{{ c.nome }}">{{ c.nome
-                                            }}</h5>
-                                    </div>
+                    <!-- Slides 1..N: cards dos filhos -->
+                    {% for c in p.children %}
+                    <div class="csg-slide">
+                        <div class="project-card"
+                            onclick="window.location.href='{{ url_for('project_detail', id=c.id) }}'">
+                            <!-- badge "fase de" -->
+                            <div class="csg-fase-badge"><i class="fas fa-link me-1"></i>Fase de: <strong>{{ p.nome
+                                    }}</strong></div>
+                            <div class="project-card-header">
+                                <div class="d-flex align-items-center flex-grow-1" style="min-width:0;">
+                                    <h5 class="project-card-title mb-0 text-truncate" title="{{ c.nome }}">{{ c.nome
+                                        }}</h5>
                                 </div>
-                                <div class="project-card-body">
-                                    <div class="project-card-info"><i class="fas fa-user-circle text-primary"></i><span
-                                            class="text-truncate">{{ c.leader }}</span></div>
-                                    <div class="project-card-info"><i class="fas fa-building text-secondary"></i><span
-                                            class="text-truncate">{{ c.client }}</span></div>
-                                    <div class="d-flex align-items-center mt-2"><span
-                                            class="status-badge {{ c.status_class }}">{{ c.status_label }}</span></div>
-                                    <div class="project-card-info mt-2">
-                                        <div class="d-flex flex-column small w-100">
-                                            <span class="text-secondary"><i class="fas fa-play text-muted me-2"
-                                                    style="font-size:.8em;"></i>{{ c.data_inicio or '-' }}</span>
-                                            <span class="text-secondary mt-1"><i
-                                                    class="fas fa-flag-checkered text-muted me-2"
-                                                    style="font-size:.8em;"></i>{{ c.data_fim or '-' }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="project-card-footer">
-                                    <div class="progress-container-card">
-                                        <div class="progress-bar-custom">
-                                            <div class="progress-fill {{ c.progress_color }}"
-                                                style="width:{{ c.progress }}%;"></div>
-                                        </div>
-                                        <span class="progress-text">{{ c.progress }}%</span>
+                            </div>
+                            <div class="project-card-body">
+                                <div class="project-card-info"><i class="fas fa-user-circle text-primary"></i><span
+                                        class="text-truncate">{{ c.leader }}</span></div>
+                                <div class="project-card-info"><i class="fas fa-building text-secondary"></i><span
+                                        class="text-truncate">{{ c.client }}</span></div>
+                                <div class="d-flex align-items-center mt-2"><span
+                                        class="status-badge {{ c.status_class }}">{{ c.status_label }}</span></div>
+                                <div class="project-card-info mt-2">
+                                    <div class="d-flex flex-column small w-100">
+                                        <span class="text-secondary"><i class="fas fa-play text-muted me-2"
+                                                style="font-size:.8em;"></i>{{ c.data_inicio or '-' }}</span>
+                                        <span class="text-secondary mt-1"><i
+                                                class="fas fa-flag-checkered text-muted me-2"
+                                                style="font-size:.8em;"></i>{{ c.data_fim or '-' }}</span>
                                     </div>
                                 </div>
                             </div>
-                        </div>{# /slide filho #}
-                        {% endfor %}
+                            <div class="project-card-footer">
+                                <div class="progress-container-card">
+                                    <div class="progress-bar-custom">
+                                        <div class="progress-fill {{ c.progress_color }}"
+                                            style="width:{{ c.progress }}%;"></div>
+                                    </div>
+                                    <span class="progress-text">{{ c.progress }}%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>{# /slide filho #}
+                    {% endfor %}
 
-                    </div>{# /csg-track #}
-                </div>{# /csg-clip #}
+                </div>{# /csg-track #}
 
-                <!-- Navegação: setas e dots FORA do clip -->
-                <div class="csg-nav">
-                    <button class="csg-arrow" id="csgL_{{ p.id }}" onclick="csgMove('{{ p.id }}', -1)" disabled><i
-                            class="fas fa-chevron-left"></i></button>
-                    <div class="csg-dots" id="csgD_{{ p.id }}">
-                        {# 1 dot para o pai + 1 por filho #}
-                        <span class="csg-dot active" onclick="csgGoTo('{{ p.id }}', 0)"></span>
-                        {% for c in p.children %}<span class="csg-dot"
-                            onclick="csgGoTo('{{ p.id }}', {{ loop.index }})"></span>{% endfor %}
-                    </div>
-                    <button class="csg-arrow" id="csgR_{{ p.id }}" onclick="csgMove('{{ p.id }}', 1)"><i
-                            class="fas fa-chevron-right"></i></button>
+                <!-- Seta Esquerda (dentro do clip) -->
+                <button class="csg-arrow csg-arrow-l" id="csgL_{{ p.id }}"
+                    onclick="event.stopPropagation(); csgMove('{{ p.id }}', -1)" disabled>
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <!-- Seta Direita (dentro do clip) -->
+                <button class="csg-arrow csg-arrow-r" id="csgR_{{ p.id }}"
+                    onclick="event.stopPropagation(); csgMove('{{ p.id }}', 1)">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+                <!-- Dots (dentro do clip, fundo) -->
+                <div class="csg-dots" id="csgD_{{ p.id }}">
+                    <span class="csg-dot active" onclick="event.stopPropagation(); csgGoTo('{{ p.id }}', 0)"></span>
+                    {% for c in p.children %}<span class="csg-dot"
+                        onclick="event.stopPropagation(); csgGoTo('{{ p.id }}', {{ loop.index }})"></span>{% endfor
+                    %}
                 </div>
-            </div>{# /card-slider-group #}
+
+            </div>{# /csg-clip = card-slider-group #}
 
             {% else %}
             {# ===== CARD SIMPLES sem filhos ===== #}
@@ -381,7 +384,8 @@
                 <div class="project-card-footer">
                     <div class="progress-container-card">
                         <div class="progress-bar-custom">
-                            <div class="progress-fill {{ p.progress_color }}" style="width: {{ p.progress }}%;"></div>
+                            <div class="progress-fill {{ p.progress_color }}" style="width: {{ p.progress }}%;">
+                            </div>
                         </div>
                         <span class="progress-text">{{ p.progress }}%</span>
                     </div>
@@ -417,7 +421,8 @@
             </div>
             <div class="modal-body">
                 <p>Tem certeza que deseja deletar o projeto <strong>"{{ project.nome }}"</strong>?</p>
-                <p class="text-warning"><i class="fas fa-exclamation-triangle me-2"></i>Esta ação não pode ser desfeita.
+                <p class="text-warning"><i class="fas fa-exclamation-triangle me-2"></i>Esta ação não pode ser
+                    desfeita.
                 </p>
             </div>
             <div class="modal-footer border-secondary">
@@ -513,12 +518,14 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             {{ form.data_inicio.label(class="form-label") }}
-                            {{ form.data_inicio(class="form-control bg-dark text-light border-secondary", type="date")
+                            {{ form.data_inicio(class="form-control bg-dark text-light border-secondary",
+                            type="date")
                             }}
                         </div>
                         <div class="col-md-6">
                             {{ form.data_fim.label(class="form-label") }}
-                            {{ form.data_fim(class="form-control bg-dark text-light border-secondary", type="date") }}
+                            {{ form.data_fim(class="form-control bg-dark text-light border-secondary", type="date")
+                            }}
                         </div>
                     </div>
 
@@ -1353,37 +1360,42 @@
 </script>
 
 <style>
-    /* ===== FULL-CARD SLIDER GROUP ===== */
-    .card-slider-group {
+    /* ===== FULL-CARD SLIDER ===== */
+
+    /* csg-clip IS the visual card — identical look to .project-card */
+    .csg-clip {
+        position: relative;
+        overflow: hidden;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: #1e2228;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
         display: flex;
         flex-direction: column;
         height: 100%;
+        /* stays the same height as other cards in the row */
     }
 
-    /* Clip: hides slides outside the visible area */
-    .csg-clip {
-        overflow: hidden;
-        border-radius: 12px;
-        flex: 1;
-    }
-
-    /* Track: flex row of equal-width slides */
+    /* Track: flex row, each slide = 100% clip width */
     .csg-track {
         display: flex;
         transition: transform .4s cubic-bezier(.4, 0, .2, 1);
-        height: 100%;
+        flex: 1;
     }
 
-    /* Each slide is exactly the width of the clip */
     .csg-slide {
         flex: 0 0 100%;
-        height: 100%;
+        display: flex;
+        flex-direction: column;
     }
 
-    /* Cards inside slides need full height */
+    /* Cards inside slides: no border/bg/radius (clip handles it) */
     .csg-slide .project-card {
-        height: 100%;
+        flex: 1;
+        border: none;
         border-radius: 0;
+        background: transparent;
+        box-shadow: none;
     }
 
     /* "Fase de" badge on child slides */
@@ -1392,59 +1404,70 @@
         border-bottom: 1px solid rgba(45, 89, 134, .4);
         color: #7ab3e0;
         font-size: .72rem;
-        padding: 5px 15px;
+        padding: 5px 14px;
         display: flex;
         align-items: center;
         gap: 4px;
+        flex-shrink: 0;
     }
 
-    /* Nav row: arrows + dots */
-    .csg-nav {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        padding: 8px 0 4px;
-    }
-
+    /* Arrows: absolutely positioned at left/right center edges */
     .csg-arrow {
-        background: rgba(255, 255, 255, .07);
-        border: 1px solid rgba(255, 255, 255, .15);
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 10;
+        background: rgba(0, 0, 0, .45);
+        border: 1px solid rgba(255, 255, 255, .2);
         border-radius: 50%;
         width: 28px;
         height: 28px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: .7rem;
-        color: #adb5bd;
+        font-size: .68rem;
+        color: #e0e0e0;
         cursor: pointer;
         padding: 0;
-        transition: background .15s, color .15s;
-        flex-shrink: 0;
+        transition: background .15s, color .15s, opacity .15s;
+    }
+
+    .csg-arrow-l {
+        left: 8px;
+    }
+
+    .csg-arrow-r {
+        right: 8px;
     }
 
     .csg-arrow:hover {
-        background: rgba(45, 89, 134, .4);
+        background: rgba(59, 130, 246, .6);
         color: #fff;
     }
 
     .csg-arrow:disabled {
-        opacity: .25;
+        opacity: .2;
         cursor: default;
+        pointer-events: none;
     }
 
+    /* Dots: bottom center, absolutely positioned */
     .csg-dots {
+        position: absolute;
+        bottom: 10px;
+        left: 50%;
+        transform: translateX(-50%);
         display: flex;
         gap: 6px;
         align-items: center;
+        z-index: 10;
     }
 
     .csg-dot {
         width: 6px;
         height: 6px;
         border-radius: 50%;
-        background: rgba(255, 255, 255, .2);
+        background: rgba(255, 255, 255, .35);
         cursor: pointer;
         transition: background .2s, transform .2s;
         display: inline-block;
@@ -1452,7 +1475,7 @@
 
     .csg-dot.active {
         background: #3b82f6;
-        transform: scale(1.4);
+        transform: scale(1.5);
     }
 </style>
 {% endblock %}

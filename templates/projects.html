@@ -234,6 +234,41 @@
                         <span class="progress-text">{{ p.progress }}%</span>
                     </div>
                 </div>
+
+                {% if p.children %}
+                <!-- Mini-carrossel de projetos vinculados -->
+                <div class="linked-mini-section" onclick="event.stopPropagation()">
+                    <div class="linked-mini-header">
+                        <i class="fas fa-sitemap me-1" style="font-size:.7rem;"></i>
+                        <span>{{ p.children_count }} fase{{ 's' if p.children_count != 1 else '' }} vinculada{{ 's' if
+                            p.children_count != 1 else '' }}</span>
+                        <div class="linked-mini-arrows ms-auto">
+                            <button class="lm-arrow" onclick="lmMove('{{ p.id }}', -1)" id="lmL_{{ p.id }}"><i
+                                    class="fas fa-chevron-left"></i></button>
+                            <button class="lm-arrow" onclick="lmMove('{{ p.id }}', 1)" id="lmR_{{ p.id }}"><i
+                                    class="fas fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                    <div class="linked-mini-outer">
+                        <div class="linked-mini-track" id="lmt_{{ p.id }}">
+                            {% for c in p.children %}
+                            <a href="/project/{{ c.id }}" class="linked-mini-card lmc-status-{{ c.status }}">
+                                <div class="lmc-name">{{ c.nome }}</div>
+                                <div class="lmc-bar">
+                                    <div class="lmc-fill" style="width:{{ c.progress }}%"></div>
+                                </div>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="linked-mini-dots" id="lmd_{{ p.id }}">
+                        {% for c in p.children %}
+                        <span class="lm-dot {% if loop.first %}active{% endif %}"
+                            onclick="lmGoTo('{{ p.id }}', {{ loop.index0 }})"></span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
         {% endfor %}
@@ -1158,5 +1193,177 @@
             targetCheckbox.checked = false;
         }
     }
+
+    // ===== MINI-CARROSSEL DE PROJETOS VINCULADOS =====
+    const lmIndex = {}; // { projectId: currentIndex }
+
+    function lmMove(pid, dir) {
+        const track = document.getElementById('lmt_' + pid);
+        if (!track) return;
+        const cards = track.querySelectorAll('.linked-mini-card');
+        if (!cards.length) return;
+        lmIndex[pid] = Math.max(0, Math.min((lmIndex[pid] || 0) + dir, cards.length - 1));
+        lmApply(pid, cards.length);
+    }
+
+    function lmGoTo(pid, idx) {
+        const track = document.getElementById('lmt_' + pid);
+        if (!track) return;
+        const cards = track.querySelectorAll('.linked-mini-card');
+        lmIndex[pid] = idx;
+        lmApply(pid, cards.length);
+    }
+
+    function lmApply(pid, total) {
+        const idx = lmIndex[pid] || 0;
+        const cardW = 170 + 10; // card width + gap
+        const track = document.getElementById('lmt_' + pid);
+        track.style.transform = `translateX(-${idx * cardW}px)`;
+
+        // Dots
+        const dots = document.querySelectorAll(`#lmd_${pid} .lm-dot`);
+        dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+
+        // Setas
+        const btnL = document.getElementById('lmL_' + pid);
+        const btnR = document.getElementById('lmR_' + pid);
+        if (btnL) btnL.disabled = idx === 0;
+        if (btnR) btnR.disabled = idx >= total - 1;
+    }
 </script>
+
+<style>
+    /* Mini-carrossel de projetos vinculados nos cards da listagem */
+    .linked-mini-section {
+        border-top: 1px solid rgba(255, 255, 255, .08);
+        padding: 10px 14px 8px;
+        background: rgba(0, 0, 0, .15);
+        cursor: default;
+    }
+
+    .linked-mini-header {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: .72rem;
+        color: #6c757d;
+        margin-bottom: 8px;
+    }
+
+    .linked-mini-arrows {
+        display: flex;
+        gap: 4px;
+    }
+
+    .lm-arrow {
+        background: none;
+        border: 1px solid rgba(255, 255, 255, .15);
+        border-radius: 4px;
+        width: 22px;
+        height: 22px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: .65rem;
+        color: #aaa;
+        padding: 0;
+        transition: background .15s, color .15s;
+    }
+
+    .lm-arrow:hover {
+        background: rgba(255, 255, 255, .1);
+        color: #fff;
+    }
+
+    .lm-arrow:disabled {
+        opacity: .3;
+        cursor: default;
+    }
+
+    .linked-mini-outer {
+        overflow: hidden;
+        border-radius: 6px;
+    }
+
+    .linked-mini-track {
+        display: flex;
+        gap: 10px;
+        transition: transform .3s cubic-bezier(.4, 0, .2, 1);
+    }
+
+    .linked-mini-card {
+        flex: 0 0 160px;
+        background: rgba(255, 255, 255, .04);
+        border: 1px solid rgba(255, 255, 255, .1);
+        border-radius: 8px;
+        padding: 8px 10px;
+        text-decoration: none;
+        cursor: pointer;
+        transition: border-color .2s, background .2s;
+        display: block;
+    }
+
+    .linked-mini-card:hover {
+        border-color: rgba(45, 89, 134, .6);
+        background: rgba(45, 89, 134, .15);
+    }
+
+    .lmc-name {
+        font-size: .75rem;
+        font-weight: 600;
+        color: #e9ecef;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 6px;
+    }
+
+    .lmc-bar {
+        height: 3px;
+        background: rgba(255, 255, 255, .1);
+        border-radius: 2px;
+        overflow: hidden;
+    }
+
+    .lmc-fill {
+        height: 100%;
+        border-radius: 2px;
+        background: linear-gradient(90deg, #3b82f6, #2d5986);
+    }
+
+    .lmc-status-concluido .lmc-fill {
+        background: linear-gradient(90deg, #4ec991, #198754);
+    }
+
+    .lmc-status-pausado .lmc-fill {
+        background: linear-gradient(90deg, #ffc107, #fd7e14);
+    }
+
+    .lmc-status-cancelado .lmc-fill {
+        background: linear-gradient(90deg, #ff6b7a, #dc3545);
+    }
+
+    .linked-mini-dots {
+        display: flex;
+        justify-content: center;
+        gap: 5px;
+        margin-top: 6px;
+    }
+
+    .lm-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, .2);
+        cursor: pointer;
+        transition: background .2s, transform .2s;
+        display: inline-block;
+    }
+
+    .lm-dot.active {
+        background: #2d5986;
+        transform: scale(1.4);
+    }
+</style>
 {% endblock %}

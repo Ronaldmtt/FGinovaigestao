@@ -620,7 +620,17 @@ def projects():
             'can_edit': current_user.is_admin or current_user.id == project.responsible_id,
             'project': project,
             'rpa_identifier': project.rpa_identifier,
-            'rpa_status': None
+            'rpa_status': None,
+            'children': [
+                {
+                    'id': c.id,
+                    'nome': c.nome,
+                    'status': c.status,
+                    'progress': c.progress_percent or 0,
+                }
+                for c in project.children.order_by(Project.created_at.asc()).all()
+            ],
+            'children_count': project.children.count(),
         })
         
         # Buscar status RPA se existir identificador

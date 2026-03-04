@@ -100,7 +100,7 @@
                 <div class="csg-track" id="cst_{{ p.id }}">
 
                     <!-- Slide 0: card do projeto pai -->
-                    <div class="csg-slide">
+                    <div class="csg-slide" data-glow="{{ p.glow_class }}">
                         <div class="project-card {{ p.glow_class }}"
                             onclick="window.location.href='{{ url_for('project_detail', id=p.id) }}'">
                             <div class="project-card-header">
@@ -890,6 +890,39 @@
         background-color: rgba(214, 51, 132, 0.15) !important;
     }
 
+    /* ---- Glow classes also apply to csg-clip (slider container) ---- */
+    .csg-clip.glow-green {
+        box-shadow: 0 0 10px rgba(78, 201, 145, .6);
+        border-color: #4ec991;
+        background-color: rgba(78, 201, 145, .07) !important;
+    }
+
+    .csg-clip.glow-orange {
+        box-shadow: 0 0 10px rgba(255, 193, 7, .6);
+        border-color: #ffc107;
+        background-color: rgba(255, 193, 7, .07) !important;
+    }
+
+    .csg-clip.glow-red {
+        animation: blink-red 1s infinite ease-in-out !important;
+    }
+
+    .csg-clip.glow-purple {
+        animation: blink-purple 1s infinite ease-in-out !important;
+    }
+
+    .csg-clip.glow-complete {
+        box-shadow: 0 0 10px rgba(13, 202, 240, .6);
+        border-color: #0dcaf0;
+        background-color: rgba(13, 202, 240, .07) !important;
+    }
+
+    .csg-clip.glow-pink-test {
+        animation: blink-pink 1.5s infinite ease-in-out !important;
+        border-color: #d63384 !important;
+        background-color: rgba(214, 51, 132, .12) !important;
+    }
+
     /* Header do Card */
     .project-card-header {
         padding: 15px;
@@ -1423,6 +1456,17 @@
             }
         }
     }
+
+    // Init: apply correct glow to all clips on page load
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.csg-clip').forEach(function (clip) {
+            const pid = clip.id.replace('csg_', '');
+            const track = document.getElementById('cst_' + pid);
+            if (!track) return;
+            const total = track.querySelectorAll('.csg-slide').length;
+            csgApply(pid, total);
+        });
+    });
 </script>
 
 <style>

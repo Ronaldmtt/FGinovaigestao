@@ -196,43 +196,44 @@
                             <div class="csg-fase-badge"><i class="fas fa-link me-1"></i>Fase de: <strong>{{ p.nome
                                     }}</strong></div>
                             <div class="project-card-header">
-                                <div style="flex:1 1 0%; min-width:0; overflow:hidden;">
+                                <div class="d-flex align-items-center flex-grow-1" style="min-width:0;">
                                     <h5 class="project-card-title mb-0 text-truncate" title="{{ c.nome }}">{{ c.nome }}
                                     </h5>
-                                </div>
-                                <div class="d-flex flex-column align-items-end gap-1 ms-2" style="flex-shrink:0;">
-                                    <div class="d-flex gap-1">
-                                        <div class="d-flex align-items-center bg-dark rounded px-1" style="height:20px;"
-                                            title="GitHub">
-                                            <i class="fab fa-github text-light" style="font-size:.8rem;"></i>
-                                            <i class="fas fa-{{ 'check' if c.has_github else 'times' }}-circle text-{{ 'success' if c.has_github else 'danger' }} ms-1"
-                                                style="font-size:.6rem;"></i>
+                                    <div class="d-flex flex-column align-items-end ms-2 gap-1">
+                                        <div class="d-flex gap-1">
+                                            <div class="d-flex align-items-center bg-dark rounded px-1"
+                                                style="height:20px;" title="GitHub">
+                                                <i class="fab fa-github text-light" style="font-size:.8rem;"></i>
+                                                <i class="fas fa-{{ 'check' if c.has_github else 'times' }}-circle text-{{ 'success' if c.has_github else 'danger' }} ms-1"
+                                                    style="font-size:.6rem;"></i>
+                                            </div>
+                                            {% if c.has_env is not none %}
+                                            <div class="d-flex align-items-center bg-dark rounded px-1"
+                                                style="height:20px;" title="ENV">
+                                                <i class="fas fa-file-code text-light" style="font-size:.8rem;"></i>
+                                                <i class="fas fa-{{ 'check' if c.has_env else 'times' }}-circle text-{{ 'success' if c.has_env else 'danger' }} ms-1"
+                                                    style="font-size:.6rem;"></i>
+                                            </div>
+                                            {% endif %}
                                         </div>
-                                        {% if c.has_env is not none %}
-                                        <div class="d-flex align-items-center bg-dark rounded px-1" style="height:20px;"
-                                            title="ENV">
-                                            <i class="fas fa-file-code text-light" style="font-size:.8rem;"></i>
-                                            <i class="fas fa-{{ 'check' if c.has_env else 'times' }}-circle text-{{ 'success' if c.has_env else 'danger' }} ms-1"
-                                                style="font-size:.6rem;"></i>
-                                        </div>
-                                        {% endif %}
-                                    </div>
-                                    <div class="d-flex gap-1">
-                                        {% if c.has_backup_db is not none %}
-                                        <div class="d-flex align-items-center bg-dark rounded px-1" style="height:20px;"
-                                            title="Backup DB">
-                                            <i class="fas fa-database text-light" style="font-size:.8rem;"></i>
-                                            <i class="fas fa-{{ 'check' if c.has_backup_db else 'times' }}-circle text-{{ 'success' if c.has_backup_db else 'danger' }} ms-1"
-                                                style="font-size:.6rem;"></i>
-                                        </div>
-                                        {% endif %}
-                                        <div class="d-flex align-items-center bg-dark rounded px-1" style="height:20px;"
-                                            title="RPA">
-                                            <i class="fas fa-robot text-light" style="font-size:.8rem;"></i>
-                                            {% if c.rpa_identifier %}<i class="fas fa-check-circle text-success ms-1"
-                                                style="font-size:.6rem;"></i>{% else %}<i
-                                                class="fas fa-question-circle text-secondary ms-1"
-                                                style="font-size:.6rem;"></i>{% endif %}
+                                        <div class="d-flex gap-1">
+                                            {% if c.has_backup_db is not none %}
+                                            <div class="d-flex align-items-center bg-dark rounded px-1"
+                                                style="height:20px;" title="Backup DB">
+                                                <i class="fas fa-database text-light" style="font-size:.8rem;"></i>
+                                                <i class="fas fa-{{ 'check' if c.has_backup_db else 'times' }}-circle text-{{ 'success' if c.has_backup_db else 'danger' }} ms-1"
+                                                    style="font-size:.6rem;"></i>
+                                            </div>
+                                            {% endif %}
+                                            <div class="d-flex align-items-center bg-dark rounded px-1"
+                                                style="height:20px;" title="RPA">
+                                                <i class="fas fa-robot text-light" style="font-size:.8rem;"></i>
+                                                {% if c.rpa_identifier %}<i
+                                                    class="fas fa-check-circle text-success ms-1"
+                                                    style="font-size:.6rem;"></i>{% else %}<i
+                                                    class="fas fa-question-circle text-secondary ms-1"
+                                                    style="font-size:.6rem;"></i>{% endif %}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

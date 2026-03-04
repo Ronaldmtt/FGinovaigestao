@@ -641,6 +641,28 @@ def projects():
             if c_prog <= 25:   c_pc = 'progress-danger'
             elif c_prog <= 75: c_pc = 'progress-warning'
             else:              c_pc = 'progress-success'
+            # glow_class do filho (mesma lógica do pai)
+            c_glow = ''
+            if c.status == 'concluido':
+                c_glow = 'glow-complete'
+            elif c.status == 'em_teste':
+                c_glow = 'glow-pink-test'
+            elif c.status == 'pausado':
+                c_glow = ''
+            elif c.data_inicio and c.data_fim:
+                from datetime import date as _date
+                today = _date.today()
+                if today < c.data_inicio:
+                    pct = 0.0
+                elif today > c.data_fim:
+                    pct = 1.1
+                else:
+                    td = (c.data_fim - c.data_inicio).days
+                    pct = (today - c.data_inicio).days / td if td > 0 else 1.0
+                if pct < 0.6:   c_glow = 'glow-green'
+                elif pct < 0.9: c_glow = 'glow-orange'
+                elif pct <= 1.0: c_glow = 'glow-red'
+                else:           c_glow = 'glow-purple'
             children_list.append({
                 'id':             c.id,
                 'nome':           c.nome,
@@ -649,6 +671,7 @@ def projects():
                 'status_class':   c_si['class'],
                 'progress':       c_prog,
                 'progress_color': c_pc,
+                'glow_class':     c_glow,
                 'leader':         c_resp.full_name if c_resp else '-',
                 'client':         project.client.nome if project.client else '-',
                 'data_inicio':    c.data_inicio.strftime('%d/%m/%Y') if c.data_inicio else '',
@@ -658,9 +681,10 @@ def projects():
                 'has_env':        c.has_env    if hasattr(c, 'has_env')    else None,
                 'has_backup_db':  c.has_backup_db if hasattr(c, 'has_backup_db') else None,
                 'rpa_identifier': c.rpa_identifier if hasattr(c, 'rpa_identifier') else None,
-                'rpa_status':     None,  # não buscamos status RPA dos filhos por performance
+                'rpa_status':     None,
                 'can_edit':       current_user.is_admin or current_user.id == c.responsible_id,
             })
+
         projects_data[-1]['children'] = children_list
         
         # Buscar status RPA se existir identificador

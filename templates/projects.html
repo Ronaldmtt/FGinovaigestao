@@ -189,9 +189,10 @@
 
                     <!-- Slides 1..N: cards dos filhos -->
                     {% for c in p.children %}
-                    <div class="csg-slide">
-                        <div class="project-card"
+                    <div class="csg-slide" data-glow="{{ c.glow_class }}">
+                        <div class="project-card {{ c.glow_class }}"
                             onclick="window.location.href='{{ url_for('project_detail', id=c.id) }}'">
+
                             <!-- badge "fase de" -->
                             <div class="csg-fase-badge"><i class="fas fa-link me-1"></i>Fase de: <strong>{{ p.nome
                                     }}</strong></div>
@@ -1397,6 +1398,7 @@
     function csgApply(pid, total) {
         const idx = csgIdx[pid] || 0;
         const track = document.getElementById('cst_' + pid);
+        const clip = document.getElementById('csg_' + pid);
         // Translate by full 100% of the clip per slide
         track.style.transform = `translateX(-${idx * 100}%)`;
 
@@ -1409,6 +1411,17 @@
         const btnR = document.getElementById('csgR_' + pid);
         if (btnL) btnL.disabled = idx === 0;
         if (btnR) btnR.disabled = idx >= total - 1;
+
+        // Glow: update clip border color based on current slide
+        if (clip) {
+            const glowClasses = ['glow-complete', 'glow-pink-test', 'glow-green', 'glow-orange', 'glow-red', 'glow-purple'];
+            clip.classList.remove(...glowClasses);
+            const slides = track.querySelectorAll('.csg-slide');
+            if (slides[idx]) {
+                const g = slides[idx].dataset.glow;
+                if (g) clip.classList.add(g);
+            }
+        }
     }
 </script>
 

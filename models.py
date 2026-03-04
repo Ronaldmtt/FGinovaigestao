@@ -100,6 +100,11 @@ class Project(db.Model):
     # Integração RPA
     rpa_identifier = db.Column(db.String(100), nullable=True)
 
+    # Vinculação de projetos (parent/child)
+    parent_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=True)
+    parent   = db.relationship('Project', remote_side='Project.id', foreign_keys='Project.parent_id',
+                               backref=db.backref('children', lazy='dynamic'))
+
     # Relacionamentos many-to-many com usuários (equipe)
     team_members = db.relationship('User', secondary=project_users, backref=db.backref('team_projects', lazy='dynamic'))
     tasks = db.relationship('Task', backref='project', lazy=True)

@@ -51,6 +51,52 @@
     </div>
 </div>
 
+
+<!-- Banner: projeto filho (preenchido via JS) -->
+<div id="childBanner" class="alert alert-info d-flex align-items-center gap-2 py-2 px-3 mb-3"
+    style="display:none!important;border-radius:8px;">
+    <i class="fas fa-link"></i>
+    <span>Fase de: <a id="childBannerLink" href="#" class="fw-semibold alert-link"></a></span>
+</div>
+
+<!-- Seção: Projetos Vinculados (carrossel) -->
+<div id="linkedProjectsSection" class="card mb-4" style="display:none;">
+    <div class="card-header d-flex justify-content-between align-items-center"
+        style="background:linear-gradient(135deg,#1e3a5f,#2d5986);color:#fff;border-radius:8px 8px 0 0;">
+        <div>
+            <i class="fas fa-sitemap me-2"></i>
+            <strong>Projetos Vinculados</strong>
+            <span class="badge ms-2" id="linkedBadge" style="background:rgba(255,255,255,.2);font-size:.75rem;">0</span>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-light" onclick="openNewChildModal()" title="Criar novo projeto vinculado">
+                <i class="fas fa-plus me-1"></i>Novo
+            </button>
+            <button class="btn btn-sm btn-outline-light" onclick="openAttachModal()" title="Vincular projeto existente">
+                <i class="fas fa-link me-1"></i>Vincular existente
+            </button>
+        </div>
+    </div>
+    <div class="card-body py-3 px-3" style="background:var(--bs-body-bg);">
+        <!-- Carrossel -->
+        <div class="linked-carousel-wrapper position-relative">
+            <button class="linked-arrow linked-arrow-left" id="carouselLeft" onclick="carouselMove(-1)"
+                style="display:none;">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <div class="linked-track-outer">
+                <div class="linked-track" id="linkedTrack"></div>
+            </div>
+            <button class="linked-arrow linked-arrow-right" id="carouselRight" onclick="carouselMove(1)"
+                style="display:none;">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+        <!-- Bolinhas -->
+        <div class="linked-dots" id="linkedDots"></div>
+    </div>
+</div>
+
 <!-- Sistema de Abas -->
 <ul class="nav nav-tabs mt-4" id="projectTabs" role="tablist">
     <li class="nav-item" role="presentation">
@@ -990,6 +1036,67 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
     </div>
 </div>
 
+<!-- Modal: Novo projeto vinculado -->
+<div class="modal fade" id="newChildModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-plus-circle me-2 text-primary"></i>Novo Projeto Vinculado</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Nome do Projeto <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="newChildNome" placeholder="Ex: Sistema — Fase 2">
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Data Início</label>
+                        <input type="date" class="form-control" id="newChildInicio">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Data Fim</label>
+                        <input type="date" class="form-control" id="newChildFim">
+                    </div>
+                </div>
+                <p class="text-muted small mt-3 mb-0"><i class="fas fa-info-circle me-1"></i>O novo projeto herdará o
+                    cliente deste projeto e será criado como vinculado.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-primary" onclick="saveNewChild()">
+                    <i class="fas fa-plus me-1"></i>Criar e Vincular
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Vincular projeto existente -->
+<div class="modal fade" id="attachModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-link me-2 text-primary"></i>Vincular Projeto Existente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-3">Selecione um projeto do mesmo cliente para vincular como fase deste
+                    projeto.</p>
+                <div id="attachList">
+                    <div class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-primary" onclick="confirmAttach()">
+                    <i class="fas fa-link me-1"></i>Vincular Selecionado
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal de Detalhes/Edição da Credencial -->
 <div class="modal fade" id="credentialDetailModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -1109,6 +1216,170 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
 </div>
 
 <style>
+    /* ===== PROJETOS VINCULADOS — CARROSSEL ===== */
+    .linked-carousel-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        overflow: hidden;
+    }
+
+    .linked-track-outer {
+        flex: 1;
+        overflow: hidden;
+    }
+
+    .linked-track {
+        display: flex;
+        gap: 16px;
+        transition: transform .35s cubic-bezier(.4, 0, .2, 1);
+        will-change: transform;
+    }
+
+    .linked-card {
+        flex: 0 0 220px;
+        background: var(--bs-body-bg);
+        border: 1.5px solid var(--bs-border-color);
+        border-radius: 12px;
+        padding: 16px;
+        cursor: pointer;
+        transition: transform .2s, box-shadow .2s, border-color .2s;
+        position: relative;
+        min-height: 140px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .linked-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, .15);
+        border-color: #2d5986;
+    }
+
+    .linked-card .lc-name {
+        font-weight: 600;
+        font-size: .95rem;
+        margin-bottom: 6px;
+        line-height: 1.3;
+        color: var(--bs-body-color);
+    }
+
+    .linked-card .lc-status {
+        font-size: .72rem;
+        padding: 2px 8px;
+        border-radius: 20px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+    }
+
+    .lc-status-em_andamento {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .lc-status-concluido {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+    .lc-status-pausado {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .lc-status-cancelado {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .linked-card .lc-progress-bar {
+        height: 4px;
+        border-radius: 2px;
+        background: var(--bs-border-color);
+        margin: 10px 0 6px;
+        overflow: hidden;
+    }
+
+    .linked-card .lc-progress-fill {
+        height: 100%;
+        border-radius: 2px;
+        background: linear-gradient(90deg, #3b82f6, #2d5986);
+        transition: width .6s ease;
+    }
+
+    .linked-card .lc-meta {
+        font-size: .72rem;
+        color: var(--bs-secondary-color);
+    }
+
+    .linked-card .lc-detach {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: none;
+        border: none;
+        color: #aaa;
+        font-size: .75rem;
+        cursor: pointer;
+        padding: 2px 4px;
+        border-radius: 4px;
+        opacity: 0;
+        transition: opacity .2s, color .2s;
+    }
+
+    .linked-card:hover .lc-detach {
+        opacity: 1;
+    }
+
+    .linked-card .lc-detach:hover {
+        color: #ef4444;
+        background: rgba(239, 68, 68, .1);
+    }
+
+    .linked-arrow {
+        background: var(--bs-body-bg);
+        border: 1.5px solid var(--bs-border-color);
+        border-radius: 50%;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        flex-shrink: 0;
+        transition: background .2s, border-color .2s;
+        color: var(--bs-body-color);
+    }
+
+    .linked-arrow:hover {
+        background: #2d5986;
+        border-color: #2d5986;
+        color: #fff;
+    }
+
+    .linked-dots {
+        display: flex;
+        justify-content: center;
+        gap: 6px;
+        margin-top: 12px;
+    }
+
+    .linked-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--bs-border-color);
+        cursor: pointer;
+        transition: background .2s, transform .2s;
+    }
+
+    .linked-dot.active {
+        background: #2d5986;
+        transform: scale(1.3);
+    }
+
     #dropZone.drag-over {
         background-color: rgba(59, 130, 246, 0.1);
         border-color: #3b82f6 !important;
@@ -2166,5 +2437,217 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
             targetCheckbox.checked = false;
         }
     }
+
+    // ========== PROJETOS VINCULADOS — CARROSSEL ==========
+
+    let linkedData = [];
+    let carouselIndex = 0;
+    const CARDS_VISIBLE = 3; // quantos cards ficam visíveis ao mesmo tempo
+
+    function loadLinkedProjects() {
+        fetch(`/api/project/${projectId}/children`)
+            .then(r => r.json())
+            .then(res => {
+                if (!res.success) return;
+
+                linkedData = res.children || [];
+
+                // Banner de filho
+                const banner = document.getElementById('childBanner');
+                if (res.parent) {
+                    banner.style.display = 'flex';
+                    const link = document.getElementById('childBannerLink');
+                    link.href = `/project/${res.parent.id}`;
+                    link.textContent = res.parent.nome;
+                } else {
+                    banner.style.display = 'none';
+                }
+
+                // Seção de filhos (só mostra se o projeto for raiz)
+                const section = document.getElementById('linkedProjectsSection');
+                if (res.is_parent) {
+                    section.style.display = '';
+                    document.getElementById('linkedBadge').textContent = linkedData.length;
+                    carouselIndex = 0;
+                    renderLinkedCarousel();
+                } else {
+                    section.style.display = 'none';
+                }
+            })
+            .catch(() => { });
+    }
+
+    function statusLabel(s) {
+        const map = {
+            em_andamento: 'Em andamento',
+            concluido: 'Concluído',
+            pausado: 'Pausado',
+            cancelado: 'Cancelado'
+        };
+        return map[s] || s;
+    }
+
+    function renderLinkedCarousel() {
+        const track = document.getElementById('linkedTrack');
+        const dots = document.getElementById('linkedDots');
+        const btnL = document.getElementById('carouselLeft');
+        const btnR = document.getElementById('carouselRight');
+
+        track.innerHTML = linkedData.map((p, i) => `
+            <div class="linked-card" onclick="window.location='/project/${p.id}'">
+                <button class="lc-detach" onclick="event.stopPropagation(); detachLinkedProject(${p.id})" title="Desvincular">
+                    <i class="fas fa-times"></i>
+                </button>
+                <div>
+                    <div class="lc-name">${p.nome}</div>
+                    <span class="lc-status lc-status-${p.status}">${statusLabel(p.status)}</span>
+                </div>
+                <div>
+                    <div class="lc-progress-bar">
+                        <div class="lc-progress-fill" style="width:${p.progress_percent}%"></div>
+                    </div>
+                    <div class="lc-meta">
+                        ${p.progress_percent}% concluído
+                        ${p.data_fim ? ' · até ' + p.data_fim : ''}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        // Dots
+        const totalDots = Math.max(1, linkedData.length - CARDS_VISIBLE + 1);
+        dots.innerHTML = '';
+        for (let i = 0; i < Math.min(totalDots, linkedData.length); i++) {
+            const d = document.createElement('span');
+            d.className = 'linked-dot' + (i === carouselIndex ? ' active' : '');
+            d.onclick = () => { carouselIndex = i; applyCarouselTransform(); };
+            dots.appendChild(d);
+        }
+
+        // Setas
+        btnL.style.display = linkedData.length > CARDS_VISIBLE ? 'flex' : 'none';
+        btnR.style.display = linkedData.length > CARDS_VISIBLE ? 'flex' : 'none';
+
+        applyCarouselTransform();
+    }
+
+    function applyCarouselTransform() {
+        const track = document.getElementById('linkedTrack');
+        const cardW = 220 + 16; // width + gap
+        const maxIdx = Math.max(0, linkedData.length - CARDS_VISIBLE);
+        carouselIndex = Math.max(0, Math.min(carouselIndex, maxIdx));
+        track.style.transform = `translateX(-${carouselIndex * cardW}px)`;
+
+        // Atualizar dots
+        document.querySelectorAll('.linked-dot').forEach((d, i) => {
+            d.classList.toggle('active', i === carouselIndex);
+        });
+
+        // Setas
+        document.getElementById('carouselLeft').disabled = carouselIndex === 0;
+        document.getElementById('carouselRight').disabled = carouselIndex >= maxIdx;
+    }
+
+    function carouselMove(dir) {
+        carouselIndex += dir;
+        applyCarouselTransform();
+    }
+
+    // Modal: Novo filho
+    function openNewChildModal() {
+        document.getElementById('newChildNome').value = '';
+        document.getElementById('newChildInicio').value = '';
+        document.getElementById('newChildFim').value = '';
+        new bootstrap.Modal(document.getElementById('newChildModal')).show();
+    }
+
+    function saveNewChild() {
+        const nome = document.getElementById('newChildNome').value.trim();
+        if (!nome) { alert('Nome do projeto é obrigatório'); return; }
+
+        fetch(`/api/project/${projectId}/children/new`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                nome,
+                data_inicio: document.getElementById('newChildInicio').value || null,
+                data_fim: document.getElementById('newChildFim').value || null,
+            })
+        })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('newChildModal')).hide();
+                    loadLinkedProjects();
+                } else {
+                    alert(res.message || 'Erro ao criar projeto');
+                }
+            });
+    }
+
+    // Modal: Vincular existente
+    let _selectedLinkId = null;
+
+    function openAttachModal() {
+        _selectedLinkId = null;
+        document.getElementById('attachList').innerHTML =
+            '<div class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>';
+        new bootstrap.Modal(document.getElementById('attachModal')).show();
+
+        fetch(`/api/project/${projectId}/linkable`)
+            .then(r => r.json())
+            .then(res => {
+                const list = document.getElementById('attachList');
+                if (!res.success || res.projects.length === 0) {
+                    list.innerHTML = '<p class="text-muted text-center py-2">Nenhum projeto disponível para vincular.</p>';
+                    return;
+                }
+                list.innerHTML = res.projects.map(p => `
+                    <div class="d-flex align-items-center gap-3 py-2 border-bottom linkable-item"
+                         style="cursor:pointer;" onclick="selectLinkProject(${p.id}, this)">
+                        <input type="radio" name="linkProj" value="${p.id}" id="lp_${p.id}" style="flex-shrink:0;">
+                        <label for="lp_${p.id}" style="cursor:pointer;flex:1;margin:0;">
+                            <div class="fw-semibold">${p.nome}</div>
+                            <small class="text-muted">${statusLabel(p.status)}</small>
+                        </label>
+                    </div>
+                `).join('');
+            });
+    }
+
+    function selectLinkProject(id, row) {
+        _selectedLinkId = id;
+        document.querySelectorAll('.linkable-item').forEach(r => r.style.background = '');
+        row.style.background = 'rgba(45,89,134,.12)';
+        document.getElementById('lp_' + id).checked = true;
+    }
+
+    function confirmAttach() {
+        if (!_selectedLinkId) { alert('Selecione um projeto'); return; }
+        fetch(`/api/project/${projectId}/children/attach/${_selectedLinkId}`, { method: 'POST' })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('attachModal')).hide();
+                    loadLinkedProjects();
+                } else {
+                    alert(res.message || 'Erro ao vincular projeto');
+                }
+            });
+    }
+
+    function detachLinkedProject(childId) {
+        if (!confirm('Desvincular este projeto? Ele continuará existindo de forma independente.')) return;
+        fetch(`/api/project/${projectId}/children/${childId}`, { method: 'DELETE' })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) loadLinkedProjects();
+                else alert(res.message || 'Erro ao desvincular');
+            });
+    }
+
+    // Carregar ao iniciar
+    document.addEventListener('DOMContentLoaded', loadLinkedProjects);
+
 </script>
 {% endblock %}

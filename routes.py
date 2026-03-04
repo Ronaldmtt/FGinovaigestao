@@ -3725,6 +3725,157 @@ def delete_project_credential(project_id, credential_id):
         return jsonify({'success': False, 'message': f'Erro ao remover credencial: {str(e)}'}), 500
 
 
+
+# ========== PROJETOS VINCULADOS (PARENT/CHILD) ==========
+
+
+@app.route('/api/project/<int:project_id>/children', methods=['GET'])
+@login_required
+@requires_permission('acesso_projetos')
+def get_project_children(project_id):
+    """Retorna filhos do projeto e informações do pai"""
+    project = Project.query.get_or_404(project_id)
+    children = project.children.order_by(Project.created_at.asc()).all()
+
+    def serialize(p):
+        responsible = User.query.get(p.responsible_id)
+        return {
+            'id': p.id,
+            'nome': p.nome,
+            'status': p.status,
+            'progress_percent': p.progress_percent or 0,
+            'data_inicio': p.data_inicio.strftime('%d/%m/%Y') if p.data_inicio else None,
+            'data_fim': p.data_fim.strftime('%d/%m/%Y') if p.data_fim else None,
+            'responsible_name': responsible.full_name if responsible else '—',
+            'parent_id': p.parent_id,
+            'children_count': p.children.count(),
+        }
+
+    parent_info = None
+    if project.parent_id:
+        pai = Project.query.get(project.parent_id)
+        if pai:
+            parent_info = {'id': pai.id, 'nome': pai.nome}
+
+    return jsonify({
+        'success': True,
+        'children': [serialize(c) for c in children],
+        'parent': parent_info,
+        'is_parent': project.parent_id is None,
+    })
+
+
+@app.route('/api/project/<int:project_id>/children/new', methods=['POST'])
+@login_required
+@requires_permission('acesso_projetos')
+def create_child_project(project_id):
+    """Cria um novo projeto filho vinculado ao pai"""
+    parent = Project.query.get_or_404(project_id)
+
+    # Somente projetos raiz podem ser pais
+    if parent.parent_id is not None:
+        return jsonify({'success': False, 'message': 'Projetos filhos não podem ter filhos próprios'}), 400
+
+    data = request.get_json()
+    nome = (data.get('nome') or '').strip()
+    if not nome:
+        return jsonify({'success': False, 'message': 'Nome do projeto é obrigatório'}), 400
+
+    responsible_id = data.get('responsible_id') or parent.responsible_id
+    data_inicio = None
+    data_fim = None
+    try:
+        if data.get('data_inicio'):
+            data_inicio = datetime.strptime(data['data_inicio'], '%Y-%m-%d').date()
+        if data.get('data_fim'):
+            data_fim = datetime.strptime(data['data_fim'], '%Y-%m-%d').date()
+    except ValueError:
+        pass
+
+    try:
+        child = Project(
+            nome=nome,
+            client_id=parent.client_id,
+            responsible_id=responsible_id,
+            status='em_andamento',
+            parent_id=project_id,
+            data_inicio=data_inicio,
+            data_fim=data_fim,
+        )
+        db.session.add(child)
+        db.session.commit()
+        rpa_log.info(f"Projeto filho criado: '{nome}' (ID:{child.id}) vinculado ao pai ID:{project_id}", regiao="projetos")
+        return jsonify({'success': True, 'message': 'Projeto vinculado criado!', 'child_id': child.id})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/project/<int:project_id>/children/attach/<int:child_id>', methods=['POST'])
+@login_required
+@requires_permission('acesso_projetos')
+def attach_child_project(project_id, child_id):
+    """Vincula um projeto existente como filho"""
+    parent = Project.query.get_or_404(project_id)
+    child = Project.query.get_or_404(child_id)
+
+    if parent.parent_id is not None:
+        return jsonify({'success': False, 'message': 'Projetos filhos não podem ser pais'}), 400
+    if child.parent_id is not None:
+        return jsonify({'success': False, 'message': 'Este projeto já está vinculado a outro projeto'}), 400
+    if child_id == project_id:
+        return jsonify({'success': False, 'message': 'Um projeto não pode ser filho de si mesmo'}), 400
+    # Evitar ciclos
+    if child.children.count() > 0:
+        return jsonify({'success': False, 'message': 'Este projeto já tem filhos — não pode ser vinculado como filho'}), 400
+
+    try:
+        child.parent_id = project_id
+        db.session.commit()
+        rpa_log.info(f"Projeto '{child.nome}' (ID:{child_id}) vinculado ao pai ID:{project_id}", regiao="projetos")
+        return jsonify({'success': True, 'message': f"Projeto '{child.nome}' vinculado com sucesso!"})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/project/<int:project_id>/children/<int:child_id>', methods=['DELETE'])
+@login_required
+@requires_permission('acesso_projetos')
+def detach_child_project(project_id, child_id):
+    """Desvincula um projeto filho (mantém o projeto, só remove o vínculo)"""
+    child = Project.query.filter_by(id=child_id, parent_id=project_id).first_or_404()
+    try:
+        child.parent_id = None
+        db.session.commit()
+        rpa_log.info(f"Projeto '{child.nome}' (ID:{child_id}) desvinculado do pai ID:{project_id}", regiao="projetos")
+        return jsonify({'success': True, 'message': 'Projeto desvinculado com sucesso!'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/project/<int:project_id>/linkable', methods=['GET'])
+@login_required
+@requires_permission('acesso_projetos')
+def get_linkable_projects(project_id):
+    """Lista projetos do mesmo cliente que podem ser vinculados (sem pai, sem filhos, não é o próprio)"""
+    project = Project.query.get_or_404(project_id)
+    candidates = Project.query.filter(
+        Project.client_id == project.client_id,
+        Project.id != project_id,
+        Project.parent_id == None  # noqa
+    ).order_by(Project.nome.asc()).all()
+
+    # Excluir os que já têm filhos (não podem virar filhos)
+    result = []
+    for p in candidates:
+        if p.children.count() == 0:
+            result.append({'id': p.id, 'nome': p.nome, 'status': p.status})
+
+    return jsonify({'success': True, 'projects': result})
+
+
 @app.route('/api/project/<int:project_id>/endpoints', methods=['GET'])
 @login_required
 @requires_permission('acesso_projetos')

@@ -65,6 +65,23 @@
                         </div>
                     </div>
 
+                    <div class="row" id="areaEntidade">
+                        <div class="col-md-12 mb-3" id="boxCliente" style="display:block;">
+                            <label class="form-label text-success"><i class="fas fa-user-tag me-1"></i>Vincular a
+                                Cliente (Opcional)</label>
+                            <select class="form-select bg-dark text-white border-secondary" id="transCliente">
+                                <option value="">Nenhum (Entrada Avulsa / Aporte)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12 mb-3" id="boxFornecedor" style="display:none;">
+                            <label class="form-label text-danger"><i class="fas fa-truck-loading me-1"></i>Vincular a
+                                Fornecedor (Opcional)</label>
+                            <select class="form-select bg-dark text-white border-secondary" id="transFornecedor">
+                                <option value="">Nenhum (Saída Avulsa / Impostos)</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <div class="row">
                         <div class="col-md-8 mb-3">
                             <label class="form-label">Descrição (Documento/Motivo)</label>
@@ -182,7 +199,11 @@
                     tbody.innerHTML += `
                         <tr>
                             <td>${trData}</td>
-                            <td><strong>${t.descricao}</strong></td>
+                            <td>
+                                <strong>${t.descricao}</strong>
+                                ${t.cliente ? `<br><small class="text-success"><i class="fas fa-user-tag me-1"></i>${t.cliente}</small>` : ''}
+                                ${t.fornecedor ? `<br><small class="text-danger"><i class="fas fa-truck-loading me-1"></i>${t.fornecedor}</small>` : ''}
+                            </td>
                             <td>
                                 <span class="badge" style="background-color: ${t.cor_cc}">${t.centro_custo}</span>
                             </td>
@@ -222,6 +243,43 @@
                     sel.innerHTML += `<option value="${a.id}">${a.nome} (${a.tipo === 'wallet' ? 'Corrente/Caixa' : 'Cartão Crédito'})</option>`;
                 });
             });
+
+        // Load Clients
+        fetch('/api/financeiro/clients')
+            .then(res => res.json())
+            .then(data => {
+                const sel = document.getElementById('transCliente');
+                sel.innerHTML = '<option value="">Nenhum (Entrada Avulsa / Aporte)</option>';
+                data.forEach(c => {
+                    sel.innerHTML += `<option value="${c.id}">${c.nome}</option>`;
+                });
+            });
+
+        // Load Suppliers
+        fetch('/api/financeiro/suppliers')
+            .then(res => res.json())
+            .then(data => {
+                const sel = document.getElementById('transFornecedor');
+                sel.innerHTML = '<option value="">Nenhum (Saída Avulsa / Impostos)</option>';
+                data.forEach(s => {
+                    sel.innerHTML += `<option value="${s.id}">${s.nome}</option>`;
+                });
+            });
+
+        // Add Listeners on radios to toggle Entities
+        document.querySelectorAll('input[name="transTipo"]').forEach(r => {
+            r.addEventListener('change', (e) => {
+                if (e.target.value === 'income') {
+                    document.getElementById('boxCliente').style.display = 'block';
+                    document.getElementById('boxFornecedor').style.display = 'none';
+                    document.getElementById('transFornecedor').value = '';
+                } else {
+                    document.getElementById('boxCliente').style.display = 'none';
+                    document.getElementById('boxFornecedor').style.display = 'block';
+                    document.getElementById('transCliente').value = '';
+                }
+            });
+        });
     }
 
     function saveTransaction() {
@@ -235,6 +293,12 @@
         formData.append('valor', limparMoeda(document.getElementById('transValor').value));
         formData.append('cost_center_id', document.getElementById('transCategoria').value);
         formData.append('account_id', document.getElementById('transConta').value);
+
+        const cid = document.getElementById('transCliente').value;
+        if (cid) formData.append('client_id', cid);
+
+        const fid = document.getElementById('transFornecedor').value;
+        if (fid) formData.append('supplier_id', fid);
 
         const fileInput = document.getElementById('transAnexo');
         if (fileInput.files.length > 0) {

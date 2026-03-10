@@ -4,7 +4,7 @@ import datetime as dt
 import os
 from werkzeug.utils import secure_filename
 from sqlalchemy import func
-from models import db, FinCostCenter, FinAccount, FinTransaction, FinGoal
+from models import db, FinCostCenter, FinAccount, FinTransaction, FinGoal, FinSupplier, Client
 
 def register_finance_routes(app):
     
@@ -46,6 +46,63 @@ def register_finance_routes(app):
     def finance_goals():
         if not current_user.is_admin: return "Acesso Negado", 403
         return render_template('financeiro/goals.html')
+
+    @app.route('/financeiro/fornecedores')
+    @login_required
+    def finance_suppliers():
+        if not current_user.is_admin: return "Acesso Negado", 403
+        return render_template('financeiro/suppliers.html')
+
+    # ==========================
+    # REST API - SUPPLIERS
+    # ==========================
+    @app.route('/api/financeiro/suppliers', methods=['GET', 'POST'])
+    @login_required
+    def api_suppliers():
+        if not current_user.is_admin: return jsonify({'error': 'Acesso negado'}), 403
+        
+        if request.method == 'GET':
+            suppliers = FinSupplier.query.filter_by(is_active=True).all()
+            return jsonify([{'id': s.id, 'nome': s.nome, 'email': s.email, 'telefone': s.telefone} for s in suppliers])
+        
+        if request.method == 'POST':
+            data = request.get_json()
+            nome = data.get('nome')
+            if not nome: return jsonify({'success': False, 'message': 'Nome é obrigatório'}), 400
+            
+            novoS = FinSupplier(nome=nome, email=data.get('email'), telefone=data.get('telefone'))
+            db.session.add(novoS)
+            db.session.commit()
+            return jsonify({'success': True, 'message': 'Fornecedor cadastrado'})
+
+    @app.route('/api/financeiro/suppliers/<int:s_id>', methods=['PUT', 'DELETE'])
+    @login_required
+    def api_suppliers_detail(s_id):
+        if not current_user.is_admin: return jsonify({'error': 'Acesso negado'}), 403
+        sup = FinSupplier.query.get_or_404(s_id)
+        
+        if request.method == 'PUT':
+            data = request.get_json()
+            sup.nome = data.get('nome', sup.nome)
+            sup.email = data.get('email', sup.email)
+            sup.telefone = data.get('telefone', sup.telefone)
+            db.session.commit()
+            return jsonify({'success': True, 'message': 'Fornecedor atualizado'})
+            
+        if request.method == 'DELETE':
+            sup.is_active = False # Soft delete
+            db.session.commit()
+            return jsonify({'success': True})
+
+    # ==========================
+    # REST API - CLIENTS (FOR FINANCEIRO)
+    # ==========================
+    @app.route('/api/financeiro/clients', methods=['GET'])
+    @login_required
+    def api_finance_clients():
+        if not current_user.is_admin: return jsonify({'error': 'Acesso negado'}), 403
+        clientes = Client.query.all()
+        return jsonify([{'id': c.id, 'nome': getattr(c, 'nome', f'Cliente #{c.id}')} for c in clientes])
 
     # ==========================
     # REST API - COST CENTERS
@@ -175,7 +232,9 @@ def register_finance_routes(app):
                 'conta': t.account.nome if t.account else '-',
                 'centro_custo': t.cost_center.nome if t.cost_center else '-',
                 'cor_cc': t.cost_center.cor if t.cost_center else '#ccc',
-                'comprovante_url': t.comprovante_url
+                'comprovante_url': t.comprovante_url,
+                'cliente': t.client.nome if t.client else None,
+                'fornecedor': t.supplier.nome if t.supplier else None
             } for t in transacoes])
             
         if request.method == 'POST':
@@ -212,7 +271,9 @@ def register_finance_routes(app):
                 account_id=data.get('account_id'),
                 cost_center_id=data.get('cost_center_id') or None,
                 user_id=current_user.id,
-                comprovante_url=comprovante_filename
+                comprovante_url=comprovante_filename,
+                client_id=int(data.get('client_id')) if data.get('client_id') else None,
+                supplier_id=int(data.get('supplier_id')) if data.get('supplier_id') else None
             )
             db.session.add(trans)
             db.session.commit()

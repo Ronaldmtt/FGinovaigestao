@@ -106,6 +106,22 @@ with app.app_context():
         db.session.rollback() # A coluna já deve existir ou houve erro de driver
         pass
     
+    try:
+        db.session.execute(text("ALTER TABLE fin_transactions ADD COLUMN client_id INTEGER"))
+        db.session.commit()
+        print("Migração Executada: client_id em fin_transactions.")
+    except Exception:
+        db.session.rollback()
+        pass
+
+    try:
+        db.session.execute(text("ALTER TABLE fin_transactions ADD COLUMN supplier_id INTEGER"))
+        db.session.commit()
+        print("Migração Executada: supplier_id em fin_transactions.")
+    except Exception:
+        db.session.rollback()
+        pass
+    
     # Create default admin user if it doesn't exist
     from models import User
     from werkzeug.security import generate_password_hash

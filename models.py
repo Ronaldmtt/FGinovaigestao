@@ -708,6 +708,12 @@ class FinTransaction(db.Model):
     cost_center_id = db.Column(db.Integer, db.ForeignKey('fin_cost_centers.id'), nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True) # Quem lançou (Tracker/Auditoria)
     comprovante_url = db.Column(db.String(255), nullable=True) # URL Fisica de anexo
+    client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=True) # Vinculo com cliente (Entradas)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('fin_suppliers.id'), nullable=True) # Vinculo com fornecedor (Saidas)
+    
+    # Relationships
+    client = db.relationship('Client', backref='finance_transactions')
+    supplier = db.relationship('FinSupplier', backref='transactions')
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 class FinGoal(db.Model):
@@ -727,3 +733,12 @@ class FinGoal(db.Model):
             return 0
         perc = (self.valor_atual / self.valor_alvo) * 100
         return min(perc, 100.0)
+
+class FinSupplier(db.Model):
+    __tablename__ = 'fin_suppliers'
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(150), nullable=False)
+    email = db.Column(db.String(150), nullable=True)
+    telefone = db.Column(db.String(50), nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

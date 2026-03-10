@@ -425,13 +425,13 @@
                     {% if current_user.is_admin %}
                     <div class="nav-item">
                         <a href="#financeiroSubmenu"
-                            class="nav-link d-flex justify-content-between align-items-center {% if request.endpoint in ['finance_dashboard', 'finance_cost_centers', 'finance_accounts', 'finance_transactions', 'finance_reports', 'finance_goals'] %}active{% endif %}"
+                            class="nav-link d-flex justify-content-between align-items-center {% if request.endpoint in ['finance_dashboard', 'finance_cost_centers', 'finance_accounts', 'finance_transactions', 'finance_reports', 'finance_goals', 'finance_suppliers'] %}active{% endif %}"
                             data-bs-toggle="collapse" role="button"
-                            aria-expanded="{% if request.endpoint in ['finance_dashboard', 'finance_cost_centers', 'finance_accounts', 'finance_transactions', 'finance_reports', 'finance_goals'] %}true{% else %}false{% endif %}">
+                            aria-expanded="{% if request.endpoint in ['finance_dashboard', 'finance_cost_centers', 'finance_accounts', 'finance_transactions', 'finance_reports', 'finance_goals', 'finance_suppliers'] %}true{% else %}false{% endif %}">
                             <span><i class="fas fa-money-bill-wave"></i> Financeiro PJ</span>
                             <i class="fas fa-chevron-down" style="font-size: 0.7rem;"></i>
                         </a>
-                        <div class="collapse {% if request.endpoint in ['finance_dashboard', 'finance_cost_centers', 'finance_accounts', 'finance_transactions', 'finance_reports', 'finance_goals'] %}show{% endif %}"
+                        <div class="collapse {% if request.endpoint in ['finance_dashboard', 'finance_cost_centers', 'finance_accounts', 'finance_transactions', 'finance_reports', 'finance_goals', 'finance_suppliers'] %}show{% endif %}"
                             id="financeiroSubmenu">
 
                             <div class="nav-item ms-3">
@@ -458,6 +458,15 @@
                                     style="font-size: 0.85rem; padding: 0.5rem 1rem;">
                                     <i class="fas fa-wallet" style="font-size: 0.85rem;"></i>
                                     <span>Contas & Cartões</span>
+                                </a>
+                            </div>
+
+                            <div class="nav-item ms-3">
+                                <a href="{{ url_for('finance_suppliers') }}"
+                                    class="nav-link {% if request.endpoint == 'finance_suppliers' %}active{% endif %}"
+                                    style="font-size: 0.85rem; padding: 0.5rem 1rem;">
+                                    <i class="fas fa-truck-loading" style="font-size: 0.85rem;"></i>
+                                    <span>Fornecedores</span>
                                 </a>
                             </div>
 

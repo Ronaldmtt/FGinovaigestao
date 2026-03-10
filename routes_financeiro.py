@@ -88,7 +88,7 @@ def register_finance_routes(app):
             contas = FinAccount.query.filter_by(is_active=True).all()
             result = []
             for a in contas:
-                if a.tipo == 'card':
+                if a.tipo == 'credit_card':
                     hoje = dt.date.today()
                     # Calculate current invoice (sum of expenses for this card in current month)
                     fatura_atual = sum(t.valor for t in a.transactions if t.tipo == 'expense' and t.data.month == hoje.month and t.data.year == hoje.year)
@@ -100,12 +100,12 @@ def register_finance_routes(app):
                     'nome': a.nome,
                     'tipo': a.tipo,
                     'saldo_inicial': a.saldo_inicial,
-                    'saldo_atual': a.saldo_atual if a.tipo == 'wallet' else 0,
-                    'limite_credito': a.limite_credito if a.tipo == 'card' else 0,
+                    'saldo_atual': getattr(a, 'saldo_atual', 0.0) if a.tipo == 'wallet' else 0,
+                    'limite_credito': a.limite_credito if a.tipo == 'credit_card' else 0,
                     'fatura_atual': fatura_atual,
-                    'dia_vencimento': a.dia_vencimento if a.tipo == 'card' else None,
-                    'icone': a.icone,
-                    'cor': a.cor
+                    'dia_vencimento': a.dia_vencimento if a.tipo == 'credit_card' else None,
+                    'icone': 'fas fa-wallet' if a.tipo == 'wallet' else 'fas fa-credit-card',
+                    'cor': '#333333'
                 })
             return jsonify(result)
             

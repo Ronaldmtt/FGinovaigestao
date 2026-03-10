@@ -4949,8 +4949,30 @@ def crm2_create_meeting(lead_id):
     if not titulo or not meeting_date or not horario_inicio or not horario_fim:
         return jsonify({'success': False, 'message': 'Preencha todos os campos obrigatórios'})
     
-    # Parse guests (comma-separated emails)
-    guests = [g.strip() for g in guests_str.split(',') if g.strip() and '@' in g.strip()]
+    # Parse guests (comma-separated or space-separated emails)
+    import re
+    
+    # Try splitting by comma, if not, try splitting by space
+    raw_guests = [g.strip() for g in guests_str.replace(';', ',').replace(' ', ',').split(',') if g.strip()]
+    
+    # Basic email regex validation
+    email_pattern = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
+    
+    guests = []
+    invalid_guests = []
+    
+    for g in raw_guests:
+        if email_pattern.match(g):
+            if g not in guests:  # avoid duplicates
+                guests.append(g)
+        else:
+            invalid_guests.append(g)
+            
+    if invalid_guests:
+        return jsonify({
+            'success': False, 
+            'message': f'Os seguintes e-mails são inválidos ou estão mal digitados: {", ".join(invalid_guests)}. Verifique se não esqueceu a vírgula separando-os.'
+        })
     
     # Always include hub email for transcription
     HUB_EMAIL = 'hub@inovailab.com'
@@ -5190,6 +5212,30 @@ def crm2_create_chamado(lead_id):
     destinatario = User.query.get(destinatario_id)
     if not destinatario:
         return jsonify({'success': False, 'message': 'Usuário destinatário não encontrado'})
+        
+    # Guest email validation
+    import re
+    email_pattern = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
+    raw_guests = [g.strip() for g in guests_str.replace(';', ',').replace(' ', ',').split(',') if g.strip()]
+    
+    guests = []
+    invalid_guests = []
+    
+    for g in raw_guests:
+        if email_pattern.match(g):
+            if g not in guests:
+                guests.append(g)
+        else:
+            invalid_guests.append(g)
+            
+    if invalid_guests:
+        return jsonify({
+            'success': False, 
+            'message': f'Os seguintes e-mails de convidados são inválidos ou mal digitados: {", ".join(invalid_guests)}. Verifique se não esqueceu a vírgula separando-os.'
+        })
+        
+    # Rebuild normalized guests string
+    guests_str = ', '.join(guests)
     
     # Save meeting data as JSON for later creation
     meeting_data = {

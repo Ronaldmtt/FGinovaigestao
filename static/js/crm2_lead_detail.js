@@ -86,13 +86,22 @@ function renderGuestChips() {
 
     currentGuests.forEach((email, index) => {
         const chip = document.createElement('div');
-        chip.className = 'badge bg-secondary d-flex align-items-center p-2 rounded-pill';
         chip.style.fontSize = '0.85rem';
 
-        chip.innerHTML = `
-            <span class="me-2">${email}</span>
-            <i class="fas fa-times cursor-pointer" onclick="removeGuest(${index})" style="cursor: pointer;" title="Remover"></i>
-        `;
+        if (email.toLowerCase() === 'hub@inovailab.com') {
+            chip.className = 'badge bg-info text-dark d-flex align-items-center p-2 rounded-pill';
+            chip.innerHTML = `
+                <i class="fas fa-robot me-2" title="IA Transcritora"></i>
+                <span class="me-2">${email}</span>
+                <i class="fas fa-lock opacity-50" title="Obrigatório para registrar a reunião."></i>
+            `;
+        } else {
+            chip.className = 'badge bg-secondary d-flex align-items-center p-2 rounded-pill';
+            chip.innerHTML = `
+                <span class="me-2">${email}</span>
+                <i class="fas fa-times cursor-pointer" onclick="removeGuest(${index})" style="cursor: pointer;" title="Remover do convite"></i>
+            `;
+        }
         container.appendChild(chip);
     });
 

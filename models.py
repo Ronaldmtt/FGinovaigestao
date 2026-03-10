@@ -647,3 +647,83 @@ class SystemApiKey(db.Model):
             'is_expired': bool(is_expired)
         }
         return data
+from models import db
+from datetime import datetime
+
+class FinCostCenter(db.Model):
+    __tablename__ = 'fin_cost_centers'
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), nullable=False)
+    icone = db.Column(db.String(50), default='fas fa-tags')
+    cor = db.Column(db.String(20), default='#6366f1')
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relação reversa opcional para pegar todos lançamentos atrelados
+    transactions = db.relationship('FinTransaction', backref='cost_center', lazy=True)
+
+class FinAccount(db.Model):
+    __tablename__ = 'fin_accounts'
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), nullable=False)
+    tipo = db.Column(db.String(20), nullable=False) # 'wallet' (caixa/banco) ou 'credit_card'
+    saldo_inicial = db.Column(db.Float, default=0.0) # Para as wallets
+    limite_credito = db.Column(db.Float, default=0.0) # Para cartões
+    dia_fechamento = db.Column(db.Integer, nullable=True) # Para cartões
+    dia_vencimento = db.Column(db.Integer, nullable=True) # Para cartões
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    transactions = db.relationship('FinTransaction', backref='account', lazy=True)
+
+    @property
+    def saldo_atual(self):
+        """Calcula o saldo real na wallet somando receitas e tirando despesas baseada nas transações."""
+        if self.tipo != 'wallet':
+            return 0.0
+            
+        receitas = sum(t.valor for t in self.transactions if t.tipo == 'income')
+        despesas = sum(t.valor for t in self.transactions if t.tipo == 'expense')
+        return self.saldo_inicial + receitas - despesas
+        
+    def fatura_mensal(self, month, year):
+        """Calcula o que deve ser pago nesse mês específico."""
+        if self.tipo != 'credit_card':
+            return 0.0
+        
+        # Simples: Tudo que for expense daquele mes no cartão vira fatura
+        total = sum(t.valor for t in self.transactions if t.tipo == 'expense' and t.data.month == month and t.data.year == year)
+        return total
+
+class FinTransaction(db.Model):
+    __tablename__ = 'fin_transactions'
+    id = db.Column(db.Integer, primary_key=True)
+    tipo = db.Column(db.String(20), nullable=False) # 'income' ou 'expense'
+    valor = db.Column(db.Float, nullable=False) # Valor absoluto p/ facilitar
+    data = db.Column(db.Date, nullable=False, default=datetime.utcnow)
+    descricao = db.Column(db.String(255), nullable=False)
+    
+    # Foreign Keys
+    account_id = db.Column(db.Integer, db.ForeignKey('fin_accounts.id'), nullable=False)
+    cost_center_id = db.Column(db.Integer, db.ForeignKey('fin_cost_centers.id'), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True) # Quem lançou (Tracker/Auditoria)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class FinGoal(db.Model):
+    __tablename__ = 'fin_goals'
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), nullable=False)
+    valor_alvo = db.Column(db.Float, nullable=False)
+    valor_atual = db.Column(db.Float, default=0.0)
+    prazo = db.Column(db.Date, nullable=True)
+    icone = db.Column(db.String(50), default='fas fa-bullseye')
+    cor = db.Column(db.String(20), default='#10b981')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @property
+    def progress_percent(self):
+        if self.valor_alvo <= 0:
+            return 0
+        perc = (self.valor_atual / self.valor_alvo) * 100
+        return min(perc, 100.0)

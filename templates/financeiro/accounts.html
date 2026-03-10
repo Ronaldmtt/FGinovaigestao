@@ -1,0 +1,215 @@
+{% extends 'base.html' %}
+{% block title %}Contas e Cartões - Financeiro PJ{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-wallet me-2 text-primary"></i>Contas e Cartões</h2>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newAccountModal">
+        <i class="fas fa-plus me-2"></i>Adicionar Conta/Cartão
+    </button>
+</div>
+
+<div class="row" id="accountsGrid">
+    <div class="col-12 mt-5">
+        <h5 class="text-center text-muted">Buscando contas no sistema...</h5>
+    </div>
+</div>
+
+<!-- Modal Nova Conta -->
+<div class="modal fade" id="newAccountModal" tabindex="-1" aria-hidden="true" data-bs-theme="dark">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header border-bottom border-secondary">
+                <h5 class="modal-title">Nova Conta Institucional</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formAccount">
+                    <div class="mb-3">
+                        <label class="form-label">Nome (Ex: Conta Banco do Brasil, Itaú Corporate)</label>
+                        <input type="text" class="form-control bg-dark text-white border-secondary" id="accNome"
+                            required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tipo de Conta</label>
+                        <select class="form-select bg-dark text-white border-secondary" id="accTipo"
+                            onchange="toggleAccountFields()">
+                            <option value="wallet">Carteira / Conta Corrente / Caixa</option>
+                            <option value="credit_card">Cartão de Crédito</option>
+                        </select>
+                    </div>
+
+                    <!-- Campos de Wallet -->
+                    <div class="mb-3" id="walletFields">
+                        <label class="form-label">Saldo Inicial (R$)</label>
+                        <input type="number" step="0.01" class="form-control bg-dark text-white border-secondary"
+                            id="accSaldo" value="0.00">
+                    </div>
+
+                    <!-- Campos de Cartão -->
+                    <div class="row" id="cardFields" style="display: none;">
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Limite de Crédito Disponibilizado (R$)</label>
+                            <input type="number" step="0.01" class="form-control bg-dark text-white border-secondary"
+                                id="accLimite" value="0.00">
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Dia do Fechamento</label>
+                            <input type="number" min="1" max="31"
+                                class="form-control bg-dark text-white border-secondary" id="accFechamento" value="1">
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Dia do Vencimento</label>
+                            <input type="number" min="1" max="31"
+                                class="form-control bg-dark text-white border-secondary" id="accVencimento" value="10">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-top border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="saveAccount()">Cadastrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleAccountFields() {
+        const type = document.getElementById('accTipo').value;
+        if (type === 'credit_card') {
+            document.getElementById('walletFields').style.display = 'none';
+            document.getElementById('cardFields').style.display = 'flex';
+        } else {
+            document.getElementById('walletFields').style.display = 'block';
+            document.getElementById('cardFields').style.display = 'none';
+        }
+    }
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', loadAccounts);
+
+    const formatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+
+    function loadAccounts() {
+        const grid = document.getElementById('accountsGrid');
+        grid.innerHTML = '<div class="col-12 mt-5 text-center text-muted">Aguarde...</div>';
+
+        fetch('/api/financeiro/accounts')
+            .then(res => res.json())
+            .then(data => {
+                grid.innerHTML = '';
+                if (data.length === 0) {
+                    grid.innerHTML = '<div class="col-12 mt-5 text-center text-muted">Nenhuma conta ou cartão cadastrado.</div>';
+                    return;
+                }
+
+                data.forEach(acc => {
+                    let accHtml = '';
+
+                    if (acc.tipo === 'wallet') {
+                        accHtml = `
+                        <div class="col-md-4 mb-4">
+                            <div class="card h-100 bg-dark text-white border border-secondary shadow-sm">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="bg-primary rounded-circle p-2 me-2">
+                                                <i class="fas fa-university text-white"></i>
+                                            </div>
+                                            <h5 class="card-title mb-0">${acc.nome}</h5>
+                                        </div>
+                                        <button class="btn btn-sm text-danger" onclick="deleteAccount(${acc.id})" title="Remover Conta"><i class="fas fa-trash"></i></button>
+                                    </div>
+                                    <p class="text-muted mb-1 small">Saldo Atual</p>
+                                    <h3 class="${acc.saldo_atual >= 0 ? 'text-success' : 'text-danger'} mb-0">${formatter.format(acc.saldo_atual || 0)}</h3>
+                                </div>
+                            </div>
+                        </div>`;
+                    } else if (acc.tipo === 'credit_card') {
+                        let faturado = acc.fatura_atual || 0;
+                        let limite = acc.limite_credito || 1;
+                        let pc = Math.min((faturado / limite) * 100, 100).toFixed(0);
+
+                        accHtml = `
+                        <div class="col-md-4 mb-4">
+                            <div class="card h-100 bg-dark text-white border border-secondary shadow-sm" style="background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="bg-warning rounded-circle p-2 me-2 text-dark">
+                                                <i class="fas fa-credit-card"></i>
+                                            </div>
+                                            <h5 class="card-title mb-0">${acc.nome}</h5>
+                                        </div>
+                                        <button class="btn btn-sm text-danger" onclick="deleteAccount(${acc.id})" title="Remover Cartão"><i class="fas fa-trash"></i></button>
+                                    </div>
+                                    <p class="text-muted mb-1 small">Fatura Atual (Vence dia ${acc.dia_vencimento})</p>
+                                    <h3 class="text-warning mb-3">${formatter.format(faturado)}</h3>
+                                    
+                                    <div class="d-flex justify-content-between text-muted small mb-1">
+                                        <span>Limite Consumido</span>
+                                        <span>${pc}%</span>
+                                    </div>
+                                    <div class="progress bg-black" style="height: 6px;">
+                                        <div class="progress-bar bg-warning" role="progressbar" style="width: ${pc}%;" aria-valuenow="${pc}" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    <div class="mt-2 text-end text-muted" style="font-size: 0.75rem;">
+                                        Limite Disp: ${formatter.format(limite - faturado)}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`;
+                    }
+
+                    grid.innerHTML += accHtml;
+                });
+            });
+    }
+
+    function saveAccount() {
+        const payload = {
+            nome: document.getElementById('accNome').value,
+            tipo: document.getElementById('accTipo').value,
+            saldo_inicial: document.getElementById('accSaldo').value,
+            limite_credito: document.getElementById('accLimite').value,
+            dia_fechamento: document.getElementById('accFechamento').value,
+            dia_vencimento: document.getElementById('accVencimento').value
+        };
+
+        fetch('/api/financeiro/accounts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).then(res => res.json()).then(res => {
+            if (res.success) {
+                bootstrap.Modal.getInstance(document.getElementById('newAccountModal')).hide();
+                loadAccounts();
+                document.getElementById('formAccount').reset();
+                toggleAccountFields(); // reset visibility
+            } else {
+                alert(res.message);
+            }
+        });
+    }
+
+    function deleteAccount(id) {
+        if (confirm('Tem certeza? Lançamentos ligados a essa conta não serão apagados.')) {
+            fetch(`/api/financeiro/accounts/${id}`, { method: 'DELETE' })
+                .then(res => res.json())
+                .then(res => {
+                    if (res.success) loadAccounts();
+                });
+        }
+    }
+
+    document.getElementById('newAccountModal').addEventListener('hidden.bs.modal', function () {
+        document.getElementById('formAccount').reset();
+        toggleAccountFields();
+    });
+</script>
+{% endblock %}

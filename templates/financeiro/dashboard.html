@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard Financeiro - FGinovaigestao{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-chart-pie me-2 text-primary"></i>Dashboard Financeiro PJ</h2>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Saldo Atual -->
+    <div class="col-md-3">
+        <div class="card bg-primary text-white h-100">
+            <div class="card-body">
+                <h6 class="card-title opacity-75">Saldo de Caixas & Bancos</h6>
+                <h3 class="mt-3 mb-0" id="dashBalance">R$ 0,00</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Receitas -->
+    <div class="col-md-3">
+        <div class="card bg-success text-white h-100">
+            <div class="card-body">
+                <h6 class="card-title opacity-75">Receitas (Mês Atual)</h6>
+                <h3 class="mt-3 mb-0" id="dashIncome">R$ 0,00</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Despesas -->
+    <div class="col-md-3">
+        <div class="card bg-danger text-white h-100">
+            <div class="card-body">
+                <h6 class="card-title opacity-75">Despesas (Mês Atual)</h6>
+                <h3 class="mt-3 mb-0" id="dashExpense">R$ 0,00</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Balanço -->
+    <div class="col-md-3">
+        <div class="card bg-info text-dark h-100">
+            <div class="card-body">
+                <h6 class="card-title opacity-75">Balanço (Mês Atual)</h6>
+                <h3 class="mt-3 mb-0" id="dashNet">R$ 0,00</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">Últimos Lançamentos</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Descrição</th>
+                                <th>Conta/Cartão</th>
+                                <th>Centro de Custo</th>
+                                <th class="text-end">Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentTransactionsTable">
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">Nenhum lançamento recente.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', loadDashboard);
+
+    const formatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+
+    function loadDashboard() {
+        document.getElementById('dashBalance').innerHTML = '<i class="fas fa-spinner fa-spin fa-sm"></i>';
+        document.getElementById('dashIncome').innerHTML = '<i class="fas fa-spinner fa-spin fa-sm"></i>';
+        document.getElementById('dashExpense').innerHTML = '<i class="fas fa-spinner fa-spin fa-sm"></i>';
+        document.getElementById('dashNet').innerHTML = '<i class="fas fa-spinner fa-spin fa-sm"></i>';
+
+        fetch('/api/financeiro/dashboard-stats')
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('dashBalance').textContent = formatter.format(data.saldo_wallets || 0);
+                document.getElementById('dashIncome').textContent = formatter.format(data.receitas_mes || 0);
+                document.getElementById('dashExpense').textContent = formatter.format(data.despesas_mes || 0);
+
+                const bal = data.balanco_mes || 0;
+                const netEl = document.getElementById('dashNet');
+                netEl.textContent = formatter.format(bal);
+
+                if (bal > 0) {
+                    netEl.className = 'mt-3 mb-0 text-success fw-bold';
+                } else if (bal < 0) {
+                    netEl.className = 'mt-3 mb-0 text-danger fw-bold';
+                } else {
+                    netEl.className = 'mt-3 mb-0 text-dark fw-bold';
+                }
+
+                const tbody = document.getElementById('recentTransactionsTable');
+                tbody.innerHTML = '';
+
+                if (!data.recent_transactions || data.recent_transactions.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Nenhum lançamento no mês.</td></tr>';
+                } else {
+                    data.recent_transactions.forEach(t => {
+                        const isIncome = t.tipo === 'income';
+                        const trData = t.data.split('-').reverse().join('/');
+
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${trData}</td>
+                                <td><strong>${t.descricao}</strong><br><small class="text-muted"><i class="fas fa-tag"></i> ${t.centro_custo}</small></td>
+                                <td><i class="fas fa-wallet fa-sm me-2 opacity-50"></i>${t.conta}</td>
+                                <td class="text-end ${isIncome ? 'text-success' : 'text-danger'} font-monospace">
+                                    ${isIncome ? '+' : '-'} ${formatter.format(t.valor)}
+                                </td>
+                            </tr>
+                        `;
+                    });
+                }
+            });
+    }
+</script>
+{% endblock %}

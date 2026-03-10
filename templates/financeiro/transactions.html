@@ -1,0 +1,223 @@
+{% extends 'base.html' %}
+{% block title %}Lançamentos Financeiros - Financeiro PJ{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-exchange-alt me-2 text-primary"></i>Lançamentos Financeiros</h2>
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary">
+            <i class="fas fa-filter me-2"></i>Filtrar
+        </button>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newTransactionModal">
+            <i class="fas fa-plus me-2"></i>Novo Lançamento
+        </button>
+    </div>
+</div>
+
+<div class="card bg-dark text-white">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Descrição</th>
+                        <th>Categoria</th>
+                        <th>Conta Ref.</th>
+                        <th class="text-end">Valor (R$)</th>
+                        <th class="text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="transactionsTable">
+                    <tr>
+                        <td colspan="6" class="text-center text-muted">Carregando lançamentos...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Novo Lançamento -->
+<div class="modal fade" id="newTransactionModal" tabindex="-1" aria-hidden="true" data-bs-theme="dark">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header border-bottom border-secondary">
+                <h5 class="modal-title">Novo Lançamento Manual</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formTransaction">
+
+                    <div class="mb-4">
+                        <label class="form-label d-block text-center">Tipo de Movimentação</label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="transTipo" id="btnIncome" autocomplete="off"
+                                value="income" checked>
+                            <label class="btn btn-outline-success" for="btnIncome"><i
+                                    class="fas fa-arrow-down me-2"></i>Entrada (Receita)</label>
+
+                            <input type="radio" class="btn-check" name="transTipo" id="btnExpense" autocomplete="off"
+                                value="expense">
+                            <label class="btn btn-outline-danger" for="btnExpense"><i
+                                    class="fas fa-arrow-up me-2"></i>Saída (Despesa)</label>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label">Descrição (Documento/Motivo)</label>
+                            <input type="text" class="form-control bg-dark text-white border-secondary"
+                                id="transDescricao" required placeholder="Ex: Pagamento Fornecedor XYZ">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Data Ocorrência</label>
+                            <input type="date" class="form-control bg-dark text-white border-secondary" id="transData"
+                                required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Valor do Documento (R$)</label>
+                            <input type="number" step="0.01"
+                                class="form-control bg-dark text-white border-secondary form-control-lg text-end"
+                                id="transValor" required placeholder="0.00">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Centro de Custo (Categoria)</label>
+                            <select class="form-select bg-dark text-white border-secondary" id="transCategoria"
+                                required>
+                                <option value="" selected disabled>Carregando...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Conta de Saída/Entrada</label>
+                            <select class="form-select bg-dark text-white border-secondary" id="transConta" required>
+                                <option value="" selected disabled>Carregando...</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-top border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="saveTransaction()">Lançar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        loadTransactions();
+        loadSelects();
+
+        // Sincronizar data de hoje como padrão no lançamento
+        document.getElementById('transData').valueAsDate = new Date();
+    });
+
+    const formatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+
+    function loadTransactions() {
+        const tbody = document.getElementById('transactionsTable');
+        fetch('/api/financeiro/transactions')
+            .then(res => res.json())
+            .then(data => {
+                tbody.innerHTML = '';
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Nenhum lançamento no período.</td></tr>';
+                    return;
+                }
+
+                data.forEach(t => {
+                    const isIncome = t.tipo === 'income';
+                    const trData = t.data.split('-').reverse().join('/');
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${trData}</td>
+                            <td><strong>${t.descricao}</strong></td>
+                            <td>
+                                <span class="badge" style="background-color: ${t.cor_cc}">${t.centro_custo}</span>
+                            </td>
+                            <td><i class="fas fa-wallet me-2 opacity-50"></i>${t.conta}</td>
+                            <td class="text-end ${isIncome ? 'text-success' : 'text-danger'} font-monospace">
+                                ${isIncome ? '+' : '-'} ${formatter.format(t.valor)}
+                            </td>
+                            <td class="text-center">
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteTransaction(${t.id})" title="Apagar Registro"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            });
+    }
+
+    function loadSelects() {
+        // Load Categorias
+        fetch('/api/financeiro/cost-centers')
+            .then(res => res.json())
+            .then(data => {
+                const sel = document.getElementById('transCategoria');
+                sel.innerHTML = '<option value="" selected disabled>Selecione a Categoria</option>';
+                data.forEach(c => {
+                    sel.innerHTML += `<option value="${c.id}">${c.nome}</option>`;
+                });
+            });
+
+        // Load Accounts
+        fetch('/api/financeiro/accounts')
+            .then(res => res.json())
+            .then(data => {
+                const sel = document.getElementById('transConta');
+                sel.innerHTML = '<option value="" selected disabled>Selecione Banco/Cartão</option>';
+                data.forEach(a => {
+                    sel.innerHTML += `<option value="${a.id}">${a.nome} (${a.tipo === 'wallet' ? 'Corrente/Caixa' : 'Cartão Crédito'})</option>`;
+                });
+            });
+    }
+
+    function saveTransaction() {
+        // Encontra o radio checkado do Tipo
+        const tipoRow = document.querySelector('input[name="transTipo"]:checked');
+
+        const payload = {
+            tipo: tipoRow ? tipoRow.value : 'expense',
+            descricao: document.getElementById('transDescricao').value,
+            data: document.getElementById('transData').value,
+            valor: document.getElementById('transValor').value,
+            cost_center_id: document.getElementById('transCategoria').value,
+            account_id: document.getElementById('transConta').value
+        };
+
+        fetch('/api/financeiro/transactions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).then(res => res.json()).then(res => {
+            if (res.success) {
+                bootstrap.Modal.getInstance(document.getElementById('newTransactionModal')).hide();
+                loadTransactions();
+                document.getElementById('formTransaction').reset();
+                document.getElementById('transData').valueAsDate = new Date();
+            } else {
+                alert(res.message);
+            }
+        });
+    }
+
+    function deleteTransaction(id) {
+        if (confirm('Atenção: A deleção de um lançamento afeta retroativamente as finanças bancárias e saldos mostrados nos Dashboards. Tem absoluta certeza?')) {
+            fetch(`/api/financeiro/transactions/${id}`, { method: 'DELETE' })
+                .then(res => res.json())
+                .then(res => {
+                    if (res.success) loadTransactions();
+                });
+        }
+    }
+</script>
+{% endblock %}

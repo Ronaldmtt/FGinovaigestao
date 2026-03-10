@@ -422,6 +422,67 @@
                     </div>
                     {% endif %}
 
+                    {% if current_user.is_admin %}
+                    <div class="nav-item">
+                        <a href="#financeiroSubmenu"
+                            class="nav-link d-flex justify-content-between align-items-center {% if request.endpoint in ['finance_dashboard', 'finance_cost_centers', 'finance_accounts', 'finance_transactions', 'finance_reports', 'finance_goals'] %}active{% endif %}"
+                            data-bs-toggle="collapse" role="button"
+                            aria-expanded="{% if request.endpoint in ['finance_dashboard', 'finance_cost_centers', 'finance_accounts', 'finance_transactions', 'finance_reports', 'finance_goals'] %}true{% else %}false{% endif %}">
+                            <span><i class="fas fa-money-bill-wave"></i> Financeiro PJ</span>
+                            <i class="fas fa-chevron-down" style="font-size: 0.7rem;"></i>
+                        </a>
+                        <div class="collapse {% if request.endpoint in ['finance_dashboard', 'finance_cost_centers', 'finance_accounts', 'finance_transactions', 'finance_reports', 'finance_goals'] %}show{% endif %}"
+                            id="financeiroSubmenu">
+
+                            <div class="nav-item ms-3">
+                                <a href="{{ url_for('finance_dashboard') }}"
+                                    class="nav-link {% if request.endpoint == 'finance_dashboard' %}active{% endif %}"
+                                    style="font-size: 0.85rem; padding: 0.5rem 1rem;">
+                                    <i class="fas fa-chart-pie" style="font-size: 0.85rem;"></i>
+                                    <span>Dashboard</span>
+                                </a>
+                            </div>
+
+                            <div class="nav-item ms-3">
+                                <a href="{{ url_for('finance_transactions') }}"
+                                    class="nav-link {% if request.endpoint == 'finance_transactions' %}active{% endif %}"
+                                    style="font-size: 0.85rem; padding: 0.5rem 1rem;">
+                                    <i class="fas fa-exchange-alt" style="font-size: 0.85rem;"></i>
+                                    <span>Lançamentos</span>
+                                </a>
+                            </div>
+
+                            <div class="nav-item ms-3">
+                                <a href="{{ url_for('finance_accounts') }}"
+                                    class="nav-link {% if request.endpoint == 'finance_accounts' %}active{% endif %}"
+                                    style="font-size: 0.85rem; padding: 0.5rem 1rem;">
+                                    <i class="fas fa-wallet" style="font-size: 0.85rem;"></i>
+                                    <span>Contas & Cartões</span>
+                                </a>
+                            </div>
+
+                            <div class="nav-item ms-3">
+                                <a href="{{ url_for('finance_cost_centers') }}"
+                                    class="nav-link {% if request.endpoint == 'finance_cost_centers' %}active{% endif %}"
+                                    style="font-size: 0.85rem; padding: 0.5rem 1rem;">
+                                    <i class="fas fa-tags" style="font-size: 0.85rem;"></i>
+                                    <span>Centros de Custo</span>
+                                </a>
+                            </div>
+
+                            <div class="nav-item ms-3">
+                                <a href="{{ url_for('finance_goals') }}"
+                                    class="nav-link {% if request.endpoint == 'finance_goals' %}active{% endif %}"
+                                    style="font-size: 0.85rem; padding: 0.5rem 1rem;">
+                                    <i class="fas fa-bullseye" style="font-size: 0.85rem;"></i>
+                                    <span>Metas Caixa</span>
+                                </a>
+                            </div>
+
+                        </div>
+                    </div>
+                    {% endif %}
+
                     <div class="nav-item">
                         <a href="{{ url_for('reports') }}"
                             class="nav-link {% if request.endpoint == 'reports' %}active{% endif %}">

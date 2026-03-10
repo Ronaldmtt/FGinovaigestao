@@ -6026,3 +6026,12 @@ try:
     register_finance_routes(app)
 except Exception as e:
     pass
+
+
+# CARREGANDO MODULO FINANCEIRO PJ (FIX FINAL)
+try:
+    from routes_financeiro import register_finance_routes
+    register_finance_routes(app)
+    print('Modulo Financeiro Carregado com Sucesso')
+except Exception as e:
+    print(f'Erro crítico ao carregar modulo financeiro: {e}')

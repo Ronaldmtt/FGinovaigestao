@@ -11,37 +11,37 @@ def register_finance_routes(app):
     # ==========================
     @app.route('/financeiro/dashboard')
     @login_required
-    def fin_dashboard():
+    def finance_dashboard():
         if not current_user.is_admin: return "Acesso Negado", 403
         return render_template('financeiro/dashboard.html')
 
     @app.route('/financeiro/contas')
     @login_required
-    def fin_contas():
+    def finance_accounts():
         if not current_user.is_admin: return "Acesso Negado", 403
         return render_template('financeiro/accounts.html')
 
     @app.route('/financeiro/centros-custo')
     @login_required
-    def fin_cost_centers():
+    def finance_cost_centers():
         if not current_user.is_admin: return "Acesso Negado", 403
         return render_template('financeiro/cost_centers.html')
 
     @app.route('/financeiro/lancamentos')
     @login_required
-    def fin_lancamentos():
+    def finance_transactions():
         if not current_user.is_admin: return "Acesso Negado", 403
         return render_template('financeiro/transactions.html')
 
     @app.route('/financeiro/relatorios')
     @login_required
-    def fin_relatorios():
+    def finance_reports():
         if not current_user.is_admin: return "Acesso Negado", 403
         return render_template('financeiro/reports.html')
 
     @app.route('/financeiro/metas')
     @login_required
-    def fin_metas():
+    def finance_goals():
         if not current_user.is_admin: return "Acesso Negado", 403
         return render_template('financeiro/goals.html')
 

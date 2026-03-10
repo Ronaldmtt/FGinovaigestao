@@ -71,6 +71,8 @@ def login():
         user = User.query.filter_by(email=form.email.data).first()
         if user and user.password_hash and form.password.data and check_password_hash(user.password_hash, form.password.data):
             login_user(user)
+            user.ultimo_acesso = datetime.utcnow()
+            db.session.commit()
             rpa_log.info(f"{user.nome} entrou no sistema", regiao="autenticacao")
             return redirect(url_for('dashboard'))
         rpa_log.warn(f"Tentativa de login falhou: {form.email.data}", regiao="autenticacao")
@@ -296,6 +298,7 @@ def admin_edit_user(user_id):
         user.acesso_kanban = form.acesso_kanban.data
         user.acesso_crm = form.acesso_crm.data
         user.receber_notificacoes = form.receber_notificacoes.data
+        user.ativo = form.ativo.data
         
         # Só atualiza a senha se uma nova foi fornecida
         if form.password.data:
@@ -360,7 +363,7 @@ def clients():
     clients = query.order_by(Client.nome).all()
     
     form = ClientForm()
-    all_users = User.query.filter_by(is_admin=False).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
+    all_users = User.query.filter_by(is_admin=False, ativo=True).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
     
     return render_template('clients.html', 
                          clients=clients, 
@@ -713,7 +716,7 @@ def projects():
     
     form = ProjectForm()
     clients = Client.query.order_by(Client.nome).all()
-    users = User.query.filter_by(is_admin=False).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
+    users = User.query.filter_by(is_admin=False, ativo=True).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
     
     return render_template('projects.html', 
                          projects=projects,  # Manter para modals
@@ -775,7 +778,7 @@ def new_project():
         return redirect(url_for('projects'))
     
     clients = Client.query.order_by(Client.nome).all()
-    users = User.query.filter_by(is_admin=False).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
+    users = User.query.filter_by(is_admin=False, ativo=True).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
     return render_template('projects.html', form=form, clients=clients, users=users, current_filters={'client_id': None, 'responsible_id': None, 'status': None})
 
 @app.route('/projects/new-manual', methods=['POST'])
@@ -1119,7 +1122,7 @@ def tasks():
         client_ids = list(set([p.client_id for p in all_projects]))
         all_clients = Client.query.filter(Client.id.in_(client_ids)).order_by(Client.nome).all() if client_ids else []
     
-    all_users = User.query.filter_by(is_admin=False).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
+    all_users = User.query.filter_by(is_admin=False, ativo=True).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
     
     return render_template('tasks.html', 
                          tasks=tasks, 
@@ -1171,7 +1174,7 @@ def new_task():
         client_ids = list(set([p.client_id for p in all_projects]))
         all_clients = Client.query.filter(Client.id.in_(client_ids)).order_by(Client.nome).all() if client_ids else []
     
-    all_users = User.query.filter_by(is_admin=False).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
+    all_users = User.query.filter_by(is_admin=False, ativo=True).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
     
     return render_template('tasks.html',
                          tasks=tasks,
@@ -1222,7 +1225,7 @@ def get_task_data(task_id):
             (Project.team_members.contains(current_user))
         ).order_by(Client.nome, Project.nome).all()
     
-    users = User.query.filter_by(is_admin=False).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
+    users = User.query.filter_by(is_admin=False, ativo=True).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
     
     projects_list = [{
         'id': p.id,
@@ -1664,7 +1667,7 @@ def get_project_data(id):
     
     # Buscar dados necessários para o formulário
     clients = Client.query.order_by(Client.nome).all()
-    users = User.query.filter_by(is_admin=False).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
+    users = User.query.filter_by(is_admin=False, ativo=True).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
     
     # Preparar dados do projeto
     project_data = {
@@ -1820,7 +1823,7 @@ def transcription_task():
     tasks = Task.query.all()
     all_projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
     all_clients = Client.query.order_by(Client.nome).all()
-    all_users = User.query.filter_by(is_admin=False).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
+    all_users = User.query.filter_by(is_admin=False, ativo=True).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
     
     return render_template('tasks.html',
                          tasks=tasks,
@@ -1923,7 +1926,7 @@ def kanban():
         clients = Client.query.filter(Client.id.in_(client_ids)).order_by(Client.nome).all() if client_ids else []
     
     # Todos os usuários para o modal de edição e filtros
-    all_users = User.query.filter_by(is_admin=False).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
+    all_users = User.query.filter_by(is_admin=False, ativo=True).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
     
     # Preparar dados de relacionamento para o front-end (filtros dependentes)
     relations_data = {
@@ -2814,7 +2817,7 @@ def export_tasks():
                 'client_name': project.client.nome if project.client else None
             })
         
-        users = User.query.filter_by(is_admin=False).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
+        users = User.query.filter_by(is_admin=False, ativo=True).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
         for user in users:
             export_data['users_reference'].append({
                 'id': user.id,
@@ -2902,7 +2905,7 @@ def import_tasks():
                             assigned_user = User.query.get(task_data['assigned_user_id'])
                         elif task_data.get('assigned_user_name'):
                             # Tentar encontrar por nome
-                            for user in User.query.filter_by(is_admin=False).all():
+                            for user in User.query.filter_by(is_admin=False, ativo=True).all():
                                 if user.full_name == task_data['assigned_user_name']:
                                     assigned_user = user
                                     break
@@ -4346,7 +4349,7 @@ def reports():
     if current_user.is_admin:
         projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
         clients = Client.query.order_by(Client.nome).all()
-        users = User.query.filter_by(is_admin=False).order_by(User.nome).all()
+        users = User.query.filter_by(is_admin=False, ativo=True).order_by(User.nome).all()
     else:
         # Filtrar projetos onde o usuário é responsável ou membro
         projects = Project.query.join(Client).filter(

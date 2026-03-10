@@ -18,105 +18,116 @@
 
                 <form method="POST">
                     {{ form.hidden_tag() }}
-                    
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             {{ form.nome.label(class="form-label") }}
                             {{ form.nome(class="form-control") }}
                             {% if form.nome.errors %}
-                                <div class="text-danger">
-                                    {% for error in form.nome.errors %}
-                                        <small>{{ error }}</small>
-                                    {% endfor %}
-                                </div>
+                            <div class="text-danger">
+                                {% for error in form.nome.errors %}
+                                <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
                             {% endif %}
                         </div>
-                        
+
                         <div class="col-md-6 mb-3">
                             {{ form.sobrenome.label(class="form-label") }}
                             {{ form.sobrenome(class="form-control") }}
                             {% if form.sobrenome.errors %}
-                                <div class="text-danger">
-                                    {% for error in form.sobrenome.errors %}
-                                        <small>{{ error }}</small>
-                                    {% endfor %}
-                                </div>
+                            <div class="text-danger">
+                                {% for error in form.sobrenome.errors %}
+                                <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
                             {% endif %}
                         </div>
                     </div>
-                    
+
                     <div class="mb-3">
                         {{ form.email.label(class="form-label") }}
                         {{ form.email(class="form-control") }}
                         {% if form.email.errors %}
-                            <div class="text-danger">
-                                {% for error in form.email.errors %}
-                                    <small>{{ error }}</small>
-                                {% endfor %}
-                            </div>
+                        <div class="text-danger">
+                            {% for error in form.email.errors %}
+                            <small>{{ error }}</small>
+                            {% endfor %}
+                        </div>
                         {% endif %}
                     </div>
-                    
+
                     <div class="mb-3">
                         {{ form.password.label(class="form-label") }}
-                        {{ form.password(class="form-control", placeholder="Deixe em branco para manter a senha atual") }}
+                        {{ form.password(class="form-control", placeholder="Deixe em branco para manter a senha atual")
+                        }}
                         <div class="form-text">Deixe em branco se não quiser alterar a senha</div>
                         {% if form.password.errors %}
-                            <div class="text-danger">
-                                {% for error in form.password.errors %}
-                                    <small>{{ error }}</small>
-                                {% endfor %}
-                            </div>
+                        <div class="text-danger">
+                            {% for error in form.password.errors %}
+                            <small>{{ error }}</small>
+                            {% endfor %}
+                        </div>
                         {% endif %}
                     </div>
-                    
+
                     <div class="mb-3 form-check">
                         {{ form.is_admin(class="form-check-input") }}
                         {{ form.is_admin.label(class="form-check-label") }}
                         {% if form.is_admin.errors %}
-                            <div class="text-danger">
-                                {% for error in form.is_admin.errors %}
-                                    <small>{{ error }}</small>
-                                {% endfor %}
-                            </div>
+                        <div class="text-danger">
+                            {% for error in form.is_admin.errors %}
+                            <small>{{ error }}</small>
+                            {% endfor %}
+                        </div>
                         {% endif %}
                     </div>
-                    
+
                     <hr class="my-3">
                     <h6 class="mb-3">Permissões de Acesso</h6>
-                    
+
                     <div class="mb-2 form-check">
                         {{ form.acesso_clientes(class="form-check-input") }}
                         {{ form.acesso_clientes.label(class="form-check-label") }}
                     </div>
-                    
+
                     <div class="mb-2 form-check">
                         {{ form.acesso_projetos(class="form-check-input") }}
                         {{ form.acesso_projetos.label(class="form-check-label") }}
                     </div>
-                    
+
                     <div class="mb-2 form-check">
                         {{ form.acesso_tarefas(class="form-check-input") }}
                         {{ form.acesso_tarefas.label(class="form-check-label") }}
                     </div>
-                    
+
                     <div class="mb-2 form-check">
                         {{ form.acesso_kanban(class="form-check-input") }}
                         {{ form.acesso_kanban.label(class="form-check-label") }}
                     </div>
-                    
+
                     <div class="mb-2 form-check">
                         {{ form.acesso_crm(class="form-check-input") }}
                         {{ form.acesso_crm.label(class="form-check-label") }}
                     </div>
-                    
+
+                    <hr class="my-3">
+                    <h6 class="mb-3">Status da Conta</h6>
+                    <div class="mb-3 form-check">
+                        {{ form.ativo(class="form-check-input") }}
+                        {{ form.ativo.label(class="form-check-label") }}
+                        <div class="form-text">Usuários desativados não poderão ser selecionados em projetos, equipes e
+                            tarefas.</div>
+                    </div>
+
                     <hr class="my-3">
                     <h6 class="mb-3">Configurações de Notificação</h6>
-                    
+
                     <div class="mb-3 form-check">
                         {{ form.receber_notificacoes(class="form-check-input") }}
                         {{ form.receber_notificacoes.label(class="form-check-label") }}
-                        <div class="form-text">Quando marcado, o usuário receberá emails sobre novas tarefas, mudanças de status e alterações de data.</div>
+                        <div class="form-text">Quando marcado, o usuário receberá emails sobre novas tarefas, mudanças
+                            de status e alterações de data.</div>
                     </div>
 
                     <div class="d-flex gap-2">

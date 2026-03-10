@@ -18,6 +18,8 @@ class User(UserMixin, db.Model):
     reset_token = db.Column(db.String(100))
     reset_token_expires = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    ativo = db.Column(db.Boolean, default=True, nullable=False)
+    ultimo_acesso = db.Column(db.DateTime, nullable=True)
     
 
     # Permissões de acesso às abas

@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 
 {% block title %}Gerenciar Usuários - Sistema de Gerenciamento de Projetos{% endblock %}
@@ -22,7 +21,8 @@
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label">Buscar por Nome</label>
-                        <input type="text" id="searchUser" class="form-control" placeholder="Digite o nome do usuário...">
+                        <input type="text" id="searchUser" class="form-control"
+                            placeholder="Digite o nome do usuário...">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Filtrar por Tipo</label>
@@ -35,7 +35,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="card">
             <div class="card-body">
                 <div class="table-responsive">
@@ -45,7 +45,9 @@
                                 <th>Nome</th>
                                 <th>Email</th>
                                 <th>Tipo</th>
+                                <th>Status</th>
                                 <th>Data de Criação</th>
+                                <th>Último Acesso</th>
                                 <th>Ações</th>
                             </tr>
                         </thead>
@@ -61,15 +63,26 @@
                                     <span class="badge bg-primary">Usuário</span>
                                     {% endif %}
                                 </td>
+                                <td>
+                                    {% if user.ativo %}
+                                    <span class="badge bg-success">Ativo</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Desativado</span>
+                                    {% endif %}
+                                </td>
                                 <td>{{ user.created_at.strftime('%d/%m/%Y') }}</td>
+                                <td>{{ user.ultimo_acesso.strftime('%d/%m/%Y %H:%M') if user.ultimo_acesso else 'Nunca
+                                    acessou' }}</td>
                                 <td>
                                     <div class="btn-group" role="group">
-                                        <a href="{{ url_for('admin_edit_user', user_id=user.id) }}" class="btn btn-sm btn-outline-primary" title="Editar usuário">
+                                        <a href="{{ url_for('admin_edit_user', user_id=user.id) }}"
+                                            class="btn btn-sm btn-outline-primary" title="Editar usuário">
                                             <i class="fas fa-edit"></i>
                                         </a>
                                         {% if user.id != current_user.id %}
-                                        <button type="button" class="btn btn-sm btn-outline-danger" title="Excluir usuário" 
-                                                onclick="confirmDelete('{{ user.full_name }}', {{ user.id }})">
+                                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                            title="Excluir usuário"
+                                            onclick="confirmDelete('{{ user.full_name }}', {{ user.id }})">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                         {% endif %}
@@ -97,56 +110,57 @@
                 <div class="modal-body">
                     {% if form %}
                     {{ form.hidden_tag() }}
-                    
+
                     <div class="mb-3">
                         {{ form.nome.label(class="form-label") }}
                         {{ form.nome(class="form-control") }}
                     </div>
-                    
+
                     <div class="mb-3">
                         {{ form.sobrenome.label(class="form-label") }}
                         {{ form.sobrenome(class="form-control") }}
                     </div>
-                    
+
                     <div class="mb-3">
                         {{ form.email.label(class="form-label") }}
                         {{ form.email(class="form-control") }}
                     </div>
-                    
+
                     <div class="mb-3">
                         {{ form.password.label(class="form-label") }}
                         {{ form.password(class="form-control") }}
                     </div>
-                    
+
                     <div class="mb-3 form-check">
                         {{ form.is_admin(class="form-check-input") }}
                         {{ form.is_admin.label(class="form-check-label") }}
                     </div>
-                    
+
                     <hr class="my-3">
                     <h6 class="mb-3">Permissões de Acesso</h6>
-                    <p class="text-muted small mb-3">Por padrão, todos os acessos estão marcados. Desmarque para restringir.</p>
-                    
+                    <p class="text-muted small mb-3">Por padrão, todos os acessos estão marcados. Desmarque para
+                        restringir.</p>
+
                     <div class="mb-2 form-check">
                         {{ form.acesso_clientes(class="form-check-input") }}
                         {{ form.acesso_clientes.label(class="form-check-label") }}
                     </div>
-                    
+
                     <div class="mb-2 form-check">
                         {{ form.acesso_projetos(class="form-check-input") }}
                         {{ form.acesso_projetos.label(class="form-check-label") }}
                     </div>
-                    
+
                     <div class="mb-2 form-check">
                         {{ form.acesso_tarefas(class="form-check-input") }}
                         {{ form.acesso_tarefas.label(class="form-check-label") }}
                     </div>
-                    
+
                     <div class="mb-2 form-check">
                         {{ form.acesso_kanban(class="form-check-input") }}
                         {{ form.acesso_kanban.label(class="form-check-label") }}
                     </div>
-                    
+
                     <div class="mb-2 form-check">
                         {{ form.acesso_crm(class="form-check-input") }}
                         {{ form.acesso_crm.label(class="form-check-label") }}
@@ -172,7 +186,8 @@
             </div>
             <div class="modal-body">
                 <p>Tem certeza que deseja excluir o usuário <strong id="deleteUserName"></strong>?</p>
-                <p class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i>Esta ação não pode ser desfeita.</p>
+                <p class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i>Esta ação não pode ser desfeita.
+                </p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -187,38 +202,38 @@
 </div>
 
 <script>
-function confirmDelete(userName, userId) {
-    document.getElementById('deleteUserName').textContent = userName;
-    document.getElementById('deleteUserForm').action = `/admin/users/delete/${userId}`;
-    new bootstrap.Modal(document.getElementById('deleteUserModal')).show();
-}
-
-// Filtro de usuários
-document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('searchUser');
-    const filterType = document.getElementById('filterType');
-    const table = document.getElementById('usersTable');
-    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
-    
-    function filterUsers() {
-        const searchTerm = searchInput.value.toLowerCase();
-        const typeFilter = filterType.value;
-        
-        Array.from(rows).forEach(row => {
-            const userName = row.cells[0].textContent.toLowerCase();
-            const userType = row.cells[2].querySelector('.badge').textContent.toLowerCase();
-            
-            const matchesSearch = userName.includes(searchTerm);
-            const matchesType = typeFilter === 'all' || 
-                              (typeFilter === 'admin' && userType.includes('administrador')) ||
-                              (typeFilter === 'user' && userType.includes('usuário'));
-            
-            row.style.display = (matchesSearch && matchesType) ? '' : 'none';
-        });
+    function confirmDelete(userName, userId) {
+        document.getElementById('deleteUserName').textContent = userName;
+        document.getElementById('deleteUserForm').action = `/admin/users/delete/${userId}`;
+        new bootstrap.Modal(document.getElementById('deleteUserModal')).show();
     }
-    
-    searchInput.addEventListener('keyup', filterUsers);
-    filterType.addEventListener('change', filterUsers);
-});
+
+    // Filtro de usuários
+    document.addEventListener('DOMContentLoaded', function () {
+        const searchInput = document.getElementById('searchUser');
+        const filterType = document.getElementById('filterType');
+        const table = document.getElementById('usersTable');
+        const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+        function filterUsers() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const typeFilter = filterType.value;
+
+            Array.from(rows).forEach(row => {
+                const userName = row.cells[0].textContent.toLowerCase();
+                const userType = row.cells[2].querySelector('.badge').textContent.toLowerCase();
+
+                const matchesSearch = userName.includes(searchTerm);
+                const matchesType = typeFilter === 'all' ||
+                    (typeFilter === 'admin' && userType.includes('administrador')) ||
+                    (typeFilter === 'user' && userType.includes('usuário'));
+
+                row.style.display = (matchesSearch && matchesType) ? '' : 'none';
+            });
+        }
+
+        searchInput.addEventListener('keyup', filterUsers);
+        filterType.addEventListener('change', filterUsers);
+    });
 </script>
 {% endblock %}

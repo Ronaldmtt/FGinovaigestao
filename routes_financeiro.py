@@ -1,6 +1,8 @@
 from flask import render_template, request, jsonify
 from flask_login import login_required, current_user
 import datetime as dt
+import os
+from werkzeug.utils import secure_filename
 from sqlalchemy import func
 from models import db, FinCostCenter, FinAccount, FinTransaction, FinGoal
 
@@ -128,14 +130,31 @@ def register_finance_routes(app):
             db.session.commit()
             return jsonify({'success': True, 'message': 'Conta cadastrada com sucesso'})
 
-    @app.route('/api/financeiro/accounts/<int:a_id>', methods=['DELETE'])
+    @app.route('/api/financeiro/accounts/<int:a_id>', methods=['DELETE', 'PUT'])
     @login_required
     def api_accounts_del(a_id):
         if not current_user.is_admin: return jsonify({'error': 'Acesso negado'}), 403
         acc = FinAccount.query.get_or_404(a_id)
-        acc.is_active = False # Soft delete
-        db.session.commit()
-        return jsonify({'success': True})
+        
+        if request.method == 'PUT':
+            data = request.get_json()
+            acc.nome = data.get('nome', acc.nome)
+            if 'saldo_inicial' in data:
+                acc.saldo_inicial = float(data['saldo_inicial'])
+            if acc.tipo == 'credit_card':
+                if 'limite_credito' in data:
+                    acc.limite_credito = float(data['limite_credito'])
+                if 'dia_vencimento' in data:
+                    acc.dia_vencimento = int(data['dia_vencimento']) if data['dia_vencimento'] else None
+                if 'dia_fechamento' in data:
+                    acc.dia_fechamento = int(data['dia_fechamento']) if data['dia_fechamento'] else None
+            db.session.commit()
+            return jsonify({'success': True, 'message': 'Conta atualizada com sucesso'})
+        
+        if request.method == 'DELETE':
+            acc.is_active = False # Soft delete
+            db.session.commit()
+            return jsonify({'success': True})
 
     # ==========================
     # REST API - TRANSACTIONS
@@ -155,11 +174,14 @@ def register_finance_routes(app):
                 'descricao': t.descricao,
                 'conta': t.account.nome if t.account else '-',
                 'centro_custo': t.cost_center.nome if t.cost_center else '-',
-                'cor_cc': t.cost_center.cor if t.cost_center else '#ccc'
+                'cor_cc': t.cost_center.cor if t.cost_center else '#ccc',
+                'comprovante_url': t.comprovante_url
             } for t in transacoes])
             
         if request.method == 'POST':
-            data = request.get_json()
+            # Support both json and multipart
+            if request.is_json: data = request.get_json()
+            else: data = request.form
             
             if not all([data.get('tipo'), data.get('valor'), data.get('data'), data.get('descricao'), data.get('account_id')]):
                 return jsonify({'success': False, 'message': 'Preencha todos os campos obrigatórios'}), 400
@@ -169,6 +191,19 @@ def register_finance_routes(app):
             except:
                 parsed_date = dt.date.today()
                 
+            # Tratar File Upload
+            comprovante_filename = None
+            if 'file' in request.files:
+                file = request.files['file']
+                if file and file.filename != '':
+                    filename = secure_filename(file.filename)
+                    import time
+                    filename = f"fin_{int(time.time())}_{filename}"
+                    from flask import current_app
+                    filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+                    file.save(filepath)
+                    comprovante_filename = filename
+                
             trans = FinTransaction(
                 tipo=data.get('tipo'),
                 valor=float(data.get('valor', 0.0)),
@@ -176,7 +211,8 @@ def register_finance_routes(app):
                 descricao=data.get('descricao'),
                 account_id=data.get('account_id'),
                 cost_center_id=data.get('cost_center_id') or None,
-                user_id=current_user.id
+                user_id=current_user.id,
+                comprovante_url=comprovante_filename
             )
             db.session.add(trans)
             db.session.commit()
@@ -194,6 +230,13 @@ def register_finance_routes(app):
     # ==========================
     # REST API - DASHBOARD STATS
     # ==========================
+    @app.route('/uploads/financeiro/<filename>')
+    @login_required
+    def finance_upload(filename):
+        from flask import current_app, send_from_directory
+        if not current_user.is_admin: return "Acesso Negado", 403
+        return send_from_directory(current_app.config['UPLOAD_FOLDER'], filename)
+        
     @app.route('/api/financeiro/dashboard-stats', methods=['GET'])
     @login_required
     def api_dashboard_stats():
@@ -332,9 +375,16 @@ def register_finance_routes(app):
         meta = FinGoal.query.get_or_404(g_id)
         if request.method == 'PUT':
             data = request.get_json()
-            meta.valor_atual = float(data.get('valor_atual', meta.valor_atual))
+            if 'nome' in data: meta.nome = data['nome']
+            if 'valor_alvo' in data: meta.valor_alvo = float(data['valor_alvo'])
+            if 'valor_atual' in data: meta.valor_atual = float(data['valor_atual'])
+            if 'prazo' in data:
+                try: meta.prazo = dt.datetime.strptime(data['prazo'], '%Y-%m-%d').date() if data['prazo'] else None
+                except: pass
+            if 'cor' in data: meta.cor = data['cor']
+            if 'icone' in data: meta.icone = data['icone']
             db.session.commit()
-            return jsonify({'success': True, 'message': 'Progresso atualizado'})
+            return jsonify({'success': True, 'message': 'Meta atualizada'})
             
         if request.method == 'DELETE':
             db.session.delete(meta)

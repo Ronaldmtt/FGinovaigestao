@@ -99,6 +99,14 @@
                             </select>
                         </div>
                     </div>
+
+                    <div class="row">
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Anexo (Opcional - Boleto/Comprovante)</label>
+                            <input type="file" class="form-control bg-dark text-white border-secondary" id="transAnexo"
+                                accept=".pdf,.png,.jpg,.jpeg">
+                        </div>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer border-top border-secondary">
@@ -166,6 +174,11 @@
                     const isIncome = t.tipo === 'income';
                     const trData = t.data.split('-').reverse().join('/');
 
+                    let fileLink = '';
+                    if (t.comprovante_url) {
+                        fileLink = `<a href="/uploads/financeiro/${t.comprovante_url}" target="_blank" class="btn btn-sm btn-outline-info me-1" title="Ver Comprovante"><i class="fas fa-paperclip"></i></a>`;
+                    }
+
                     tbody.innerHTML += `
                         <tr>
                             <td>${trData}</td>
@@ -178,6 +191,7 @@
                                 ${isIncome ? '+' : '-'} ${formatter.format(t.valor)}
                             </td>
                             <td class="text-center">
+                                ${fileLink}
                                 <button class="btn btn-sm btn-outline-danger" onclick="deleteTransaction(${t.id})" title="Apagar Registro"><i class="fas fa-trash"></i></button>
                             </td>
                         </tr>
@@ -214,19 +228,22 @@
         // Encontra o radio checkado do Tipo
         const tipoRow = document.querySelector('input[name="transTipo"]:checked');
 
-        const payload = {
-            tipo: tipoRow ? tipoRow.value : 'expense',
-            descricao: document.getElementById('transDescricao').value,
-            data: document.getElementById('transData').value,
-            valor: limparMoeda(document.getElementById('transValor').value),
-            cost_center_id: document.getElementById('transCategoria').value,
-            account_id: document.getElementById('transConta').value
-        };
+        const formData = new FormData();
+        formData.append('tipo', tipoRow ? tipoRow.value : 'expense');
+        formData.append('descricao', document.getElementById('transDescricao').value);
+        formData.append('data', document.getElementById('transData').value);
+        formData.append('valor', limparMoeda(document.getElementById('transValor').value));
+        formData.append('cost_center_id', document.getElementById('transCategoria').value);
+        formData.append('account_id', document.getElementById('transConta').value);
+
+        const fileInput = document.getElementById('transAnexo');
+        if (fileInput.files.length > 0) {
+            formData.append('file', fileInput.files[0]);
+        }
 
         fetch('/api/financeiro/transactions', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: formData
         }).then(res => res.json()).then(res => {
             if (res.success) {
                 bootstrap.Modal.getInstance(document.getElementById('newTransactionModal')).hide();

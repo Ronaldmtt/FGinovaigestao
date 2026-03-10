@@ -26,6 +26,7 @@
             </div>
             <div class="modal-body">
                 <form id="formAccount">
+                    <input type="hidden" id="accId" value="">
                     <div class="mb-3">
                         <label class="form-label">Nome (Ex: Conta Banco do Brasil, Itaú Corporate)</label>
                         <input type="text" class="form-control bg-dark text-white border-secondary" id="accNome"
@@ -152,7 +153,10 @@
                                             </div>
                                             <h5 class="card-title mb-0">${acc.nome}</h5>
                                         </div>
-                                        <button class="btn btn-sm text-danger" onclick="deleteAccount(${acc.id})" title="Remover Conta"><i class="fas fa-trash"></i></button>
+                                        <div>
+                                            <button class="btn btn-sm text-info me-1" onclick="editAccount(${acc.id}, '${acc.nome}', '${acc.tipo}', ${acc.saldo_inicial}, ${acc.limite_credito}, ${acc.dia_fechamento}, ${acc.dia_vencimento})" title="Editar Conta"><i class="fas fa-edit"></i></button>
+                                            <button class="btn btn-sm text-danger" onclick="deleteAccount(${acc.id})" title="Remover Conta"><i class="fas fa-trash"></i></button>
+                                        </div>
                                     </div>
                                     <p class="text-muted mb-1 small">Saldo Atual</p>
                                     <h3 class="${acc.saldo_atual >= 0 ? 'text-success' : 'text-danger'} mb-0">${formatter.format(acc.saldo_atual || 0)}</h3>
@@ -175,7 +179,10 @@
                                             </div>
                                             <h5 class="card-title mb-0">${acc.nome}</h5>
                                         </div>
-                                        <button class="btn btn-sm text-danger" onclick="deleteAccount(${acc.id})" title="Remover Cartão"><i class="fas fa-trash"></i></button>
+                                        <div>
+                                            <button class="btn btn-sm text-info me-1" onclick="editAccount(${acc.id}, '${acc.nome}', '${acc.tipo}', ${acc.saldo_inicial}, ${acc.limite_credito}, ${acc.dia_fechamento}, ${acc.dia_vencimento})" title="Editar Cartão"><i class="fas fa-edit"></i></button>
+                                            <button class="btn btn-sm text-danger" onclick="deleteAccount(${acc.id})" title="Remover Cartão"><i class="fas fa-trash"></i></button>
+                                        </div>
                                     </div>
                                     <p class="text-muted mb-1 small">Fatura Atual (Vence dia ${acc.dia_vencimento})</p>
                                     <h3 class="text-warning mb-3">${formatter.format(faturado)}</h3>
@@ -210,8 +217,12 @@
             dia_vencimento: document.getElementById('accVencimento').value
         };
 
-        fetch('/api/financeiro/accounts', {
-            method: 'POST',
+        const accId = document.getElementById('accId').value;
+        const url = accId ? `/api/financeiro/accounts/${accId}` : '/api/financeiro/accounts';
+        const method = accId ? 'PUT' : 'POST';
+
+        fetch(url, {
+            method: method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         }).then(res => res.json()).then(res => {
@@ -219,11 +230,24 @@
                 bootstrap.Modal.getInstance(document.getElementById('newAccountModal')).hide();
                 loadAccounts();
                 document.getElementById('formAccount').reset();
+                document.getElementById('accId').value = '';
                 toggleAccountFields(); // reset visibility
             } else {
                 alert(res.message);
             }
         });
+    }
+
+    function editAccount(id, nome, tipo, saldo, limite, fechamento, vencimento) {
+        document.getElementById('accId').value = id;
+        document.getElementById('accNome').value = nome;
+        document.getElementById('accTipo').value = tipo;
+        document.getElementById('accSaldo').value = formatter.format(saldo || 0);
+        document.getElementById('accLimite').value = formatter.format(limite || 0);
+        document.getElementById('accFechamento').value = fechamento || 1;
+        document.getElementById('accVencimento').value = vencimento || 1;
+        toggleAccountFields();
+        new bootstrap.Modal(document.getElementById('newAccountModal')).show();
     }
 
     function deleteAccount(id) {
@@ -238,6 +262,9 @@
 
     document.getElementById('newAccountModal').addEventListener('hidden.bs.modal', function () {
         document.getElementById('formAccount').reset();
+        document.getElementById('accId').value = '';
+        document.getElementById('accSaldo').value = 'R$ 0,00';
+        document.getElementById('accLimite').value = 'R$ 0,00';
         toggleAccountFields();
     });
 </script>

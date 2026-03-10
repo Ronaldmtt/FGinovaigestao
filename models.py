@@ -707,9 +707,9 @@ class FinTransaction(db.Model):
     account_id = db.Column(db.Integer, db.ForeignKey('fin_accounts.id'), nullable=False)
     cost_center_id = db.Column(db.Integer, db.ForeignKey('fin_cost_centers.id'), nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True) # Quem lançou (Tracker/Auditoria)
+    comprovante_url = db.Column(db.String(255), nullable=True) # URL Fisica de anexo
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
 class FinGoal(db.Model):
     __tablename__ = 'fin_goals'
     id = db.Column(db.Integer, primary_key=True)

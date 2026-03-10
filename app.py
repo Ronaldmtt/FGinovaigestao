@@ -94,7 +94,17 @@ def load_user(user_id):
 with app.app_context():
     # Import models to ensure tables are created
     import models
+    from sqlalchemy import text # Para scripts customizados DDL
     db.create_all()
+    
+    # [Auto-Migration] Add comprovante_url to fin_transactions if missing
+    try:
+        db.session.execute(text("ALTER TABLE fin_transactions ADD COLUMN comprovante_url VARCHAR(255)"))
+        db.session.commit()
+        print("Migração Executada: Adicionada a coluna comprovante_url em fin_transactions.")
+    except Exception as e:
+        db.session.rollback() # A coluna já deve existir ou houve erro de driver
+        pass
     
     # Create default admin user if it doesn't exist
     from models import User

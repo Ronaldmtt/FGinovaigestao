@@ -26,6 +26,7 @@
             </div>
             <div class="modal-body">
                 <form id="formGoal">
+                    <input type="hidden" id="goalId" value="">
                     <div class="mb-3">
                         <label class="form-label">Descrição da Meta</label>
                         <input type="text" class="form-control bg-dark text-white border-secondary" id="goalNome"
@@ -128,7 +129,15 @@
         return parseFloat(limpo) || 0;
     }
 
-    document.addEventListener('DOMContentLoaded', loadGoals);
+    document.addEventListener('DOMContentLoaded', () => {
+        loadGoals();
+        document.getElementById('newGoalModal').addEventListener('hidden.bs.modal', function () {
+            document.getElementById('formGoal').reset();
+            document.getElementById('goalId').value = '';
+            document.getElementById('goalAlvo').value = 'R$ 0,00';
+            document.getElementById('goalAtual').value = 'R$ 0,00';
+        });
+    });
 
     const formatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -195,8 +204,12 @@
             icone: document.getElementById('goalIcone').value
         };
 
-        fetch('/api/financeiro/goals', {
-            method: 'POST',
+        const goalId = document.getElementById('goalId').value;
+        const url = goalId ? `/api/financeiro/goals/${goalId}` : '/api/financeiro/goals';
+        const method = goalId ? 'PUT' : 'POST';
+
+        fetch(url, {
+            method: method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         }).then(res => res.json()).then(res => {
@@ -204,10 +217,36 @@
                 bootstrap.Modal.getInstance(document.getElementById('newGoalModal')).hide();
                 loadGoals();
                 document.getElementById('formGoal').reset();
+                document.getElementById('goalId').value = '';
+                document.getElementById('goalAlvo').value = 'R$ 0,00';
+                document.getElementById('goalAtual').value = 'R$ 0,00';
             } else {
                 alert(res.message);
             }
         });
+    }
+
+    function editGoal(id, nome, alvo, atual, prazo, cor, icone) {
+        document.getElementById('goalId').value = id;
+        document.getElementById('goalNome').value = nome;
+        document.getElementById('goalAlvo').value = formatter.format(alvo);
+        document.getElementById('goalAtual').value = formatter.format(atual);
+        document.getElementById('goalPrazo').value = prazo;
+        document.getElementById('goalCor').value = cor;
+        document.getElementById('goalIcone').value = icone;
+
+        // Reset check visuals
+        document.querySelectorAll('.icon-btn').forEach(btn => {
+            if (btn.dataset.icon === icone) {
+                btn.classList.add('bg-primary');
+                btn.classList.remove('bg-dark');
+            } else {
+                btn.classList.add('bg-dark');
+                btn.classList.remove('bg-primary');
+            }
+        });
+
+        new bootstrap.Modal(document.getElementById('newGoalModal')).show();
     }
 
     function deleteGoal(id) {

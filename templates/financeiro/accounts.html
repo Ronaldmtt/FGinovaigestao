@@ -43,16 +43,16 @@
                     <!-- Campos de Wallet -->
                     <div class="mb-3" id="walletFields">
                         <label class="form-label">Saldo Inicial (R$)</label>
-                        <input type="number" step="0.01" class="form-control bg-dark text-white border-secondary"
-                            id="accSaldo" value="0.00">
+                        <input type="text" class="form-control bg-dark text-white border-secondary money-mask"
+                            id="accSaldo" value="R$ 0,00" onkeyup="mascaraMoeda(this, event)">
                     </div>
 
                     <!-- Campos de Cartão -->
                     <div class="row" id="cardFields" style="display: none;">
                         <div class="col-12 mb-3">
                             <label class="form-label">Limite de Crédito Disponibilizado (R$)</label>
-                            <input type="number" step="0.01" class="form-control bg-dark text-white border-secondary"
-                                id="accLimite" value="0.00">
+                            <input type="text" class="form-control bg-dark text-white border-secondary money-mask"
+                                id="accLimite" value="R$ 0,00" onkeyup="mascaraMoeda(this, event)">
                         </div>
                         <div class="col-6 mb-3">
                             <label class="form-label">Dia do Fechamento</label>
@@ -91,6 +91,35 @@
 
 {% block scripts %}
 <script>
+    // JS Moeda
+    String.prototype.reverse = function () {
+        return this.split('').reverse().join('');
+    };
+
+    function mascaraMoeda(campo, evento) {
+        var tecla = (!evento) ? window.event.keyCode : evento.which;
+        var valor = campo.value.replace(/[^\d]+/gi, '').reverse();
+        var resultado = '';
+        var mascara = '##.###.###,##'.reverse();
+        for (var x = 0, y = 0; x < mascara.length && y < valor.length;) {
+            if (mascara.charAt(x) != '#') {
+                resultado += mascara.charAt(x);
+                x++;
+            } else {
+                resultado += valor.charAt(y);
+                y++;
+                x++;
+            }
+        }
+        campo.value = 'R$ ' + resultado.reverse();
+    }
+
+    function limparMoeda(valorFormatado) {
+        if (!valorFormatado) return 0.0;
+        var limpo = valorFormatado.replace('R$ ', '').replace(/\./g, '').replace(',', '.');
+        return parseFloat(limpo) || 0;
+    }
+
     document.addEventListener('DOMContentLoaded', loadAccounts);
 
     const formatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -175,8 +204,8 @@
         const payload = {
             nome: document.getElementById('accNome').value,
             tipo: document.getElementById('accTipo').value,
-            saldo_inicial: document.getElementById('accSaldo').value,
-            limite_credito: document.getElementById('accLimite').value,
+            saldo_inicial: limparMoeda(document.getElementById('accSaldo').value),
+            limite_credito: limparMoeda(document.getElementById('accLimite').value),
             dia_fechamento: document.getElementById('accFechamento').value,
             dia_vencimento: document.getElementById('accVencimento').value
         };

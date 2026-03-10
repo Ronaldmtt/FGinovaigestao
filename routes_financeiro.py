@@ -120,11 +120,9 @@ def register_finance_routes(app):
                 nome=nome, 
                 tipo=tipo,
                 saldo_inicial=float(data.get('saldo_inicial', 0.0)),
-                limite_credito=float(data.get('limite_credito', 0.0)) if tipo == 'card' else 0.0,
-                dia_vencimento=int(data.get('dia_vencimento')) if data.get('dia_vencimento') and tipo == 'card' else None,
-                icone=data.get('icone', 'fas fa-wallet'),
-                cor=data.get('cor', '#333333'),
-                company_id=1 # Default / future proof
+                limite_credito=float(data.get('limite_credito', 0.0)) if tipo == 'credit_card' else 0.0,
+                dia_vencimento=int(data.get('dia_vencimento')) if data.get('dia_vencimento') and tipo == 'credit_card' else None,
+                dia_fechamento=int(data.get('dia_fechamento')) if data.get('dia_fechamento') and tipo == 'credit_card' else None
             )
             db.session.add(nova_conta)
             db.session.commit()

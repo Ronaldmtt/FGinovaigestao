@@ -671,8 +671,19 @@
                     <div class="col-md-4"><label class="form-label">Hora Fim *</label><input type="time"
                             class="form-control" id="mtgEnd"></div>
                 </div>
-                <div class="mb-3"><label class="form-label">Participantes</label><input type="text" class="form-control"
-                        id="mtgGuests" placeholder="emails separados por vírgula"
+                <div class="mb-3">
+                    <label class="form-label">Participantes</label>
+                    <div id="guestChips" class="d-flex flex-wrap gap-2 mb-2">
+                        <!-- Guest chips will be rendered here by JS -->
+                    </div>
+                    <div class="input-group">
+                        <input type="email" class="form-control" id="mtgNewGuest" placeholder="Digite um e-mail válido">
+                        <button class="btn btn-outline-secondary" type="button" onclick="addGuest()">
+                            <i class="fas fa-plus"></i> Adicionar
+                        </button>
+                    </div>
+                    <!-- Hidden field to store comma-separated emails for the API -->
+                    <input type="hidden" id="mtgGuests"
                         value="hub@inovailab.com{% if lead.email %}, {{ lead.email }}{% endif %}{% if lead.email_cliente %}, {{ lead.email_cliente }}{% endif %}">
                 </div>
                 <div class="mb-3"><label class="form-label">Descrição</label><textarea class="form-control"

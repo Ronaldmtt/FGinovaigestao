@@ -34,6 +34,8 @@ function openMeetingModal() {
     new bootstrap.Modal(document.getElementById('meetingModal')).show();
 }
 
+let currentGuests = [];
+
 function openChamadoModal() {
     isChamadoMode = true;
     document.getElementById('meetingModalTitle').innerHTML = '<i class="fas fa-bell me-2" style="color:#f59e0b"></i>Abrir Chamado';
@@ -47,7 +49,103 @@ function openChamadoModal() {
     btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Enviar Chamado';
     btn.onclick = handleMeetingSubmit;
 
+    initGuestChips();
     new bootstrap.Modal(document.getElementById('meetingModal')).show();
+}
+
+function openReuniaoModal() {
+    isChamadoMode = false;
+    document.getElementById('meetingModalTitle').innerHTML = '<i class="fas fa-video me-2" style="color:#6366f1"></i>Nova Reunião';
+    document.getElementById('chamadoUserContainer').classList.add('d-none');
+
+    const btn = document.getElementById('btnCreateMeeting');
+    btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Criar Reunião';
+    btn.onclick = handleMeetingSubmit;
+
+    initGuestChips();
+}
+
+function initGuestChips() {
+    // Populate currentGuests from the hidden input
+    const hiddenInput = document.getElementById('mtgGuests');
+    if (hiddenInput && hiddenInput.value) {
+        currentGuests = hiddenInput.value.split(',').map(e => e.trim()).filter(e => e !== '');
+    } else {
+        currentGuests = ['hub@inovailab.com'];
+    }
+    // Remove exact duplicates from initialization
+    currentGuests = [...new Set(currentGuests)];
+    renderGuestChips();
+}
+
+function renderGuestChips() {
+    const container = document.getElementById('guestChips');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    currentGuests.forEach((email, index) => {
+        const chip = document.createElement('div');
+        chip.className = 'badge bg-secondary d-flex align-items-center p-2 rounded-pill';
+        chip.style.fontSize = '0.85rem';
+
+        chip.innerHTML = `
+            <span class="me-2">${email}</span>
+            <i class="fas fa-times cursor-pointer" onclick="removeGuest(${index})" style="cursor: pointer;" title="Remover"></i>
+        `;
+        container.appendChild(chip);
+    });
+
+    // Update the hidden input that API uses
+    const hiddenInput = document.getElementById('mtgGuests');
+    if (hiddenInput) hiddenInput.value = currentGuests.join(', ');
+}
+
+function addGuest() {
+    const input = document.getElementById('mtgNewGuest');
+    const newEmail = input.value.trim();
+
+    if (!newEmail) return;
+
+    // Regex simple validation
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!regex.test(newEmail)) {
+        alert('Por favor, digite um e-mail válido.');
+        return;
+    }
+
+    if (currentGuests.includes(newEmail)) {
+        alert('Este e-mail já foi adicionado.');
+        return;
+    }
+
+    currentGuests.push(newEmail);
+    input.value = '';
+    renderGuestChips();
+}
+
+// Allow Enter key to trigger addGuest
+document.addEventListener('DOMContentLoaded', () => {
+    const input = document.getElementById('mtgNewGuest');
+    if (input) {
+        input.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addGuest();
+            }
+        });
+    }
+
+    // Bind ReuniaoModal button event listeners if they exist
+    const btnNewMeeting = document.querySelector('[data-bs-target="#meetingModal"]:not([onclick="openChamadoModal()"])');
+    if (btnNewMeeting) {
+        btnNewMeeting.addEventListener('click', openReuniaoModal);
+    }
+});
+
+function removeGuest(index) {
+    currentGuests.splice(index, 1);
+    renderGuestChips();
 }
 
 function handleMeetingSubmit() {

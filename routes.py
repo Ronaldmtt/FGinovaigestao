@@ -6019,19 +6019,6 @@ try:
     from routes_financeiro import register_finance_routes
     register_finance_routes(app)
 except Exception as e:
-    print(f'Erro ao carregar modulo financeiro: {e}')
-
-try:
-    from routes_financeiro import register_finance_routes
-    register_finance_routes(app)
-except Exception as e:
-    pass
-
-
-# CARREGANDO MODULO FINANCEIRO PJ (FIX FINAL)
-try:
-    from routes_financeiro import register_finance_routes
-    register_finance_routes(app)
-    print('Modulo Financeiro Carregado com Sucesso')
-except Exception as e:
-    print(f'Erro crítico ao carregar modulo financeiro: {e}')
+    import traceback
+    with open('finance_error.txt', 'w') as err_file:
+        err_file.write(traceback.format_exc())

@@ -684,7 +684,7 @@
                     </div>
                     <!-- Hidden field to store comma-separated emails for the API -->
                     <input type="hidden" id="mtgGuests"
-                        value="hub@inovailab.com, {{ current_user.email }}{% if lead.email %}, {{ lead.email }}{% endif %}{% if lead.email_cliente %}, {{ lead.email_cliente }}{% endif %}">
+                        value="hub@inovailab.com{% if lead.email %}, {{ lead.email }}{% endif %}{% if lead.email_cliente %}, {{ lead.email_cliente }}{% endif %}">
                 </div>
                 <div class="mb-3"><label class="form-label">Descrição</label><textarea class="form-control"
                         id="mtgDescription" rows="2"></textarea></div>

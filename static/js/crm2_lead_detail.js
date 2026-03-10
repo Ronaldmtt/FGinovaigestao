@@ -1,5 +1,7 @@
 /* crm2_lead_detail.js — JS lógica para Contratos, Propostas, Clientes e Reuniões */
 const LEAD_ID = window.location.pathname.split('/').pop();
+let leadEmailVal = '';
+let leadClienteVal = '';
 
 /* ========== Observações ========== */
 function saveObservacoes() {
@@ -88,12 +90,20 @@ function renderGuestChips() {
         const chip = document.createElement('div');
         chip.style.fontSize = '0.85rem';
 
-        if (email.toLowerCase() === 'hub@inovailab.com') {
+        // E-mails travados
+        const lockedEmails = [
+            'hub@inovailab.com',
+            (leadEmailVal || '').toLowerCase().trim(),
+            (leadClienteVal || '').toLowerCase().trim()
+        ];
+
+        if (lockedEmails.includes(email.toLowerCase()) && email) {
+            let robotIcon = email.toLowerCase() === 'hub@inovailab.com' ? '<i class="fas fa-robot me-2" title="IA Transcritora"></i>' : '<i class="fas fa-user-tie me-2" title="Contato Fixo do Lead"></i>';
             chip.className = 'badge bg-info text-dark d-flex align-items-center p-2 rounded-pill';
             chip.innerHTML = `
-                <i class="fas fa-robot me-2" title="IA Transcritora"></i>
+                ${robotIcon}
                 <span class="me-2">${email}</span>
-                <i class="fas fa-lock opacity-50" title="Obrigatório para registrar a reunião."></i>
+                <i class="fas fa-lock opacity-50" title="Email obrigatório para a reunião."></i>
             `;
         } else {
             chip.className = 'badge bg-secondary d-flex align-items-center p-2 rounded-pill';

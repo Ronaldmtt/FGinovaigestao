@@ -827,6 +827,10 @@
     </div>
 </div>
 
-
+<script>
+    // Inicializar os e-mails bloqueados e fixos providos do Lead
+    leadEmailVal = "{{ lead.email or '' }}";
+    leadClienteVal = "{{ lead.email_cliente or '' }}";
+</script>
 <script src="/static/js/crm2_lead_detail.js"></script>
 {% endblock %}

@@ -55,9 +55,41 @@
                                 id="ccCor" value="#6366f1" title="Escolha a cor do relatório">
                         </div>
                         <div class="col-6 mb-3">
-                            <label class="form-label">Classes do Ícone (FontAwesome)</label>
-                            <input type="text" class="form-control bg-dark text-white border-secondary" id="ccIcone"
-                                placeholder="fas fa-bullhorn" value="fas fa-tags">
+                            <label class="form-label">Ícone do Categoria</label>
+                            <input type="hidden" id="ccIcone" value="fas fa-tags">
+                            <div class="d-flex align-items-center bg-dark border border-secondary rounded p-2"
+                                style="overflow-x: auto; white-space: nowrap; max-width: 100%; gap: 10px;"
+                                id="iconSelectorContainer">
+                                <!-- Lista de Ícones Populares -->
+                                <button type="button" class="btn btn-outline-secondary icon-btn active"
+                                    data-icon="fas fa-tags"><i class="fas fa-tags"></i></button>
+                                <button type="button" class="btn btn-outline-secondary icon-btn"
+                                    data-icon="fas fa-home"><i class="fas fa-home"></i></button>
+                                <button type="button" class="btn btn-outline-secondary icon-btn"
+                                    data-icon="fas fa-car"><i class="fas fa-car"></i></button>
+                                <button type="button" class="btn btn-outline-secondary icon-btn"
+                                    data-icon="fas fa-plane"><i class="fas fa-plane"></i></button>
+                                <button type="button" class="btn btn-outline-secondary icon-btn"
+                                    data-icon="fas fa-utensils"><i class="fas fa-utensils"></i></button>
+                                <button type="button" class="btn btn-outline-secondary icon-btn"
+                                    data-icon="fas fa-shopping-cart"><i class="fas fa-shopping-cart"></i></button>
+                                <button type="button" class="btn btn-outline-secondary icon-btn"
+                                    data-icon="fas fa-laptop"><i class="fas fa-laptop"></i></button>
+                                <button type="button" class="btn btn-outline-secondary icon-btn"
+                                    data-icon="fas fa-building"><i class="fas fa-building"></i></button>
+                                <button type="button" class="btn btn-outline-secondary icon-btn"
+                                    data-icon="fas fa-graduation-cap"><i class="fas fa-graduation-cap"></i></button>
+                                <button type="button" class="btn btn-outline-secondary icon-btn"
+                                    data-icon="fas fa-heartbeat"><i class="fas fa-heartbeat"></i></button>
+                                <button type="button" class="btn btn-outline-secondary icon-btn"
+                                    data-icon="fas fa-bolt"><i class="fas fa-bolt"></i></button>
+                                <button type="button" class="btn btn-outline-secondary icon-btn"
+                                    data-icon="fas fa-tools"><i class="fas fa-tools"></i></button>
+                                <button type="button" class="btn btn-outline-secondary icon-btn"
+                                    data-icon="fas fa-chart-line"><i class="fas fa-chart-line"></i></button>
+                                <button type="button" class="btn btn-outline-secondary icon-btn"
+                                    data-icon="fas fa-box"><i class="fas fa-box"></i></button>
+                            </div>
                         </div>
                     </div>
                 </form>
@@ -136,7 +168,22 @@
         document.getElementById('ccId').value = id;
         document.getElementById('ccNome').value = nome;
         document.getElementById('ccCor').value = cor;
+
+        // Atualiza UI de Ícone
         document.getElementById('ccIcone').value = icone;
+        document.querySelectorAll('.icon-btn').forEach(b => b.classList.remove('active'));
+        let found = false;
+        document.querySelectorAll('.icon-btn').forEach(b => {
+            if (b.getAttribute('data-icon') === icone) {
+                b.classList.add('active');
+                found = true;
+            }
+        });
+        if (!found) {
+            // Default fall-back
+            document.querySelector('.icon-btn[data-icon="fas fa-tags"]').classList.add('active');
+        }
+
         new bootstrap.Modal(document.getElementById('newCostCenterModal')).show();
     }
 
@@ -154,6 +201,21 @@
     document.getElementById('newCostCenterModal').addEventListener('hidden.bs.modal', function () {
         document.getElementById('formCostCenter').reset();
         document.getElementById('ccId').value = '';
+        document.getElementById('ccIcone').value = 'fas fa-tags';
+        document.querySelectorAll('.icon-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector('.icon-btn[data-icon="fas fa-tags"]').classList.add('active');
+    });
+
+    // Seletor de Ícones Logic
+    document.querySelectorAll('.icon-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            // Remove active from all
+            document.querySelectorAll('.icon-btn').forEach(b => b.classList.remove('active'));
+            // Add active to clicked
+            this.classList.add('active');
+            // Update hidden input
+            document.getElementById('ccIcone').value = this.getAttribute('data-icon');
+        });
     });
 </script>
 {% endblock %}

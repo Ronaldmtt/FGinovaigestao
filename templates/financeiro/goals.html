@@ -38,6 +38,11 @@
                                 id="goalAlvo" required placeholder="100000.00">
                         </div>
                         <div class="col-6 mb-3">
+                            <label class="form-label">Cor Hexadecimal</label>
+                            <input type="color" class="form-control form-control-color bg-dark border-secondary w-100"
+                                id="goalCor" value="#10b981" title="Cor principal da meta">
+                        </div>
+                        <div class="col-6 mb-3">
                             <label class="form-label">Já Alcançado (R$)</label>
                             <input type="number" step="0.01" class="form-control bg-dark text-white border-secondary"
                                 id="goalAtual" value="0.00">
@@ -46,6 +51,39 @@
                     <div class="mb-3">
                         <label class="form-label">Prazo Ideal (Opcional)</label>
                         <input type="date" class="form-control bg-dark text-white border-secondary" id="goalPrazo">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Ícone da Meta</label>
+                        <input type="hidden" id="goalIcone" value="fas fa-bullseye">
+                        <div class="d-flex align-items-center bg-dark border border-secondary rounded p-2"
+                            style="overflow-x: auto; white-space: nowrap; max-width: 100%; gap: 10px;"
+                            id="iconSelectorContainer">
+                            <!-- Lista de Ícones Populares -->
+                            <button type="button" class="btn btn-outline-secondary icon-btn active"
+                                data-icon="fas fa-bullseye"><i class="fas fa-bullseye"></i></button>
+                            <button type="button" class="btn btn-outline-secondary icon-btn"
+                                data-icon="fas fa-piggy-bank"><i class="fas fa-piggy-bank"></i></button>
+                            <button type="button" class="btn btn-outline-secondary icon-btn"
+                                data-icon="fas fa-chart-line"><i class="fas fa-chart-line"></i></button>
+                            <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="fas fa-home"><i
+                                    class="fas fa-home"></i></button>
+                            <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="fas fa-car"><i
+                                    class="fas fa-car"></i></button>
+                            <button type="button" class="btn btn-outline-secondary icon-btn"
+                                data-icon="fas fa-rocket"><i class="fas fa-rocket"></i></button>
+                            <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="fas fa-gem"><i
+                                    class="fas fa-gem"></i></button>
+                            <button type="button" class="btn btn-outline-secondary icon-btn"
+                                data-icon="fas fa-shield-alt"><i class="fas fa-shield-alt"></i></button>
+                            <button type="button" class="btn btn-outline-secondary icon-btn"
+                                data-icon="fas fa-hand-holding-usd"><i class="fas fa-hand-holding-usd"></i></button>
+                            <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="fas fa-gift"><i
+                                    class="fas fa-gift"></i></button>
+                            <button type="button" class="btn btn-outline-secondary icon-btn"
+                                data-icon="fas fa-money-bill-wave"><i class="fas fa-money-bill-wave"></i></button>
+                            <button type="button" class="btn btn-outline-secondary icon-btn"
+                                data-icon="fas fa-trophy"><i class="fas fa-trophy"></i></button>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -123,7 +161,9 @@
             nome: document.getElementById('goalNome').value,
             valor_alvo: document.getElementById('goalAlvo').value,
             valor_atual: document.getElementById('goalAtual').value,
-            prazo: document.getElementById('goalPrazo').value
+            prazo: document.getElementById('goalPrazo').value,
+            cor: document.getElementById('goalCor').value,
+            icone: document.getElementById('goalIcone').value
         };
 
         fetch('/api/financeiro/goals', {
@@ -150,5 +190,21 @@
                 });
         }
     }
+
+    // Modal Events and Selectors
+    document.getElementById('newGoalModal').addEventListener('hidden.bs.modal', function () {
+        document.getElementById('formGoal').reset();
+        document.getElementById('goalIcone').value = 'fas fa-bullseye';
+        document.querySelectorAll('.icon-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector('.icon-btn[data-icon="fas fa-bullseye"]').classList.add('active');
+    });
+
+    document.querySelectorAll('.icon-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            document.querySelectorAll('.icon-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            document.getElementById('goalIcone').value = this.getAttribute('data-icon');
+        });
+    });
 </script>
 {% endblock %}

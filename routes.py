@@ -6020,3 +6020,9 @@ try:
     register_finance_routes(app)
 except Exception as e:
     print(f'Erro ao carregar modulo financeiro: {e}')
+
+try:
+    from routes_financeiro import register_finance_routes
+    register_finance_routes(app)
+except Exception as e:
+    pass

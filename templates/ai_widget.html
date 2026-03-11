@@ -355,9 +355,6 @@
                             if (line.startsWith('data: ')) {
                                 const dataStr = line.replace('data: ', '').trim();
                                 if (dataStr === '[DONE]') {
-                                    if (window.needsReload) {
-                                        setTimeout(() => window.location.reload(), 1500);
-                                    }
                                     continue;
                                 }
                                 if (dataStr === '') continue;
@@ -381,8 +378,6 @@
                                         // Handle specific UI actions internally
                                         if (dataObj.action === 'navigate_to') {
                                             window.location.href = dataObj.url;
-                                        } else if (dataObj.action === 'ui_update') {
-                                            window.needsReload = true;
                                         } else if (dataObj.action === 'download_pdf') {
                                             fetch('/reports/generate_pdf', {
                                                 method: 'POST',

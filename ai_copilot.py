@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 from openai import OpenAI
 from extensions import db
-from models import AiChatHistory, User, Project, Task, SubTask, Lead, Meeting, Client
+from models import AiChatHistory, User, Project, Task, Meeting, Client
 
 # Initialize OpenAI Client
 client = None

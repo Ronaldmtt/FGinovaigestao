@@ -23,11 +23,15 @@ TOOLS = [
                 "properties": {
                     "url": {
                         "type": "string",
-                        "description": "Caminho (ex: /projects, /kanban). Use isso SOMENTE se não for um projeto específico."
+                        "description": "Caminho Exato. Use /projects, /tasks, /kanban, /ia-hub, /meetings, /reports (Relatórios), /crm2/leads (CRM 2)."
                     },
                     "project_search_term": {
                         "type": "string",
-                        "description": "Se o usuário pedir para abrir um projeto, coloque aqui o nome do projeto (ex: Inadimplência, FinOps). O sistema resolverá o ID correto."
+                        "description": "Se o usuário pedir para abrir um projeto, coloque aqui o nome dele."
+                    },
+                    "tab": {
+                        "type": "string",
+                        "description": "Aba específica dentro do projeto (ex: 'kanban'). Use apenas se o usuário pedir para abrir o kanban/tarefas de um projeto específico."
                     }
                 }
             }
@@ -134,13 +138,13 @@ Visão Geral: Há {active_projects} projetos em andamento no geral no sistema.
 {user.nome} possui {user_tasks} tarefas atribuídas.
 
 [Diretrizes]
-1. Se o usuário pedir para navegar ou abrir "a tela X", use a função `navigate_to`. As telas base são /projects, /tasks, /kanban, /ia-hub, /meetings.
-2. Se o usuário pedir para abrir um projeto Específico, mande o parâmetro `project_search_term` na tool `navigate_to`. O sistema cuidará de encontrar e abrir a URL certa. Nunca adivinhe ou crie a URL do projeto sozinho.
-3. Se o usuário pedir para listar projetos (de um cliente específico, ou em andamento), mande o parâmetro `client_search_term` na tool `list_projects`. O sistema irá buscar no banco de dados e devolver a lista para você mostrar ao usuário.
-4. Se o usuário pedir para criar um LEAD, chame imediatamente a ferramenta `create_lead`. Caso não tenha o NOME DA EMPRESA e NOME DO CONTATO, pergunte a ele antes de chamar a tool.
-5. Fale com naturalidade, seja objetivo. Se for criar algo, verifique explicitamente se possui as variáveis ou peça ao usuário o que falta.
-6. Analise pedidos gráficos e use `generate_dashboard` com dados falsos úteis/exemplos ou dados reais quando extraídos de `get_project_summary`.
-7. Suas respostas de chat devem usar Markdown com clareza.
+1. Se o usuário pedir para ir para uma página/aba geral, chame `navigate_to` com a URL exata: Projetos (/projects), Kanban Geral (/kanban), IA Hub (/ia-hub), Reuniões (/meetings), Relatórios (/reports), CRM 2 (/crm2/leads), Tarefas (/tasks).
+2. Se o usuário pedir para abrir um "Projeto Específico", mande `project_search_term` (ex: "Inadimplência") em `navigate_to` e DEIXE a `url` vazia.
+3. Se o usuário quiser o KANBAN de um projeto Específico (ex: "kanban do projeto inadimplência"), mande `project_search_term` = "inadimplência" e `tab` = "kanban" em `navigate_to`.
+4. Se o usuário pedir para listar projetos, use a tool `list_projects`.
+5. Se pedir para criar um LEAD, chame `create_lead`. Peça antes Empresa e Contato se faltarem.
+6. Fale com naturalidade, seja objetivo.
+7. Respostas em chat devem usar Markdown com clareza.
 """
     return prompt
 
@@ -151,14 +155,24 @@ def execute_tool(name, arguments, user):
     if name == "navigate_to":
         url = args.get("url")
         term = args.get("project_search_term")
+        tab = args.get("tab")
         
         if term:
-            # Tenta resolver o ID do projeto pelo nome
-            p = Project.query.filter(Project.nome.ilike(f"%{term}%")).first()
+            # Tenta resolver o ID do projeto pelo nome, mas respeitando permissões
+            query = Project.query.filter(Project.nome.ilike(f"%{term}%"))
+            if not user.is_admin:
+                query = query.filter(
+                    (Project.responsible_id == user.id) | 
+                    (Project.team_members.any(id=user.id))
+                )
+            
+            p = query.first()
             if p:
                 url = f"/projects/{p.id}"
+                if tab == 'kanban':
+                    url += "?tab=kanban"
             else:
-                return json.dumps({"status": "error", "message": f"Projeto contendo '{term}' não foi encontrado."})
+                return json.dumps({"status": "error", "message": f"Projeto contendo '{term}' não foi encontrado ou você não tem acesso."})
         elif not url:
             return json.dumps({"status": "error", "message": "Parâmetros 'url' ou 'project_search_term' ausentes."})
             

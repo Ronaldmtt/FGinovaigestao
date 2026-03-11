@@ -6,6 +6,13 @@ from openai import OpenAI
 from extensions import db
 from models import AiChatHistory, User, Project, Task, TodoItem, Meeting, Client, Crm2Lead, FinCostCenter, FinAccount, FinTransaction, FinGoal, FinSupplier, ProjectFile, ProjectApiEndpoint, Crm2Meeting
 
+# Setup Logger para Debug em Tempo Real
+logger = logging.getLogger("copilot")
+logger.setLevel(logging.DEBUG)
+fh = logging.FileHandler("copilot_debug.log", encoding="utf-8")
+fh.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+logger.addHandler(fh)
+
 # Initialize OpenAI Client
 client = None
 if os.environ.get("OPENAI_API_KEY"):
@@ -581,12 +588,18 @@ def chat_stream(user_id, user_message):
         
         # O GPT decidiu usar uma tool
         if tool_calls:
+            logger.info(f"GPT solicitou {len(tool_calls)} tool calls.")
             for tool_call in tool_calls:
                 function_name = tool_call.function.name
                 function_args = tool_call.function.arguments
                 
-                # Executa
-                tool_result = execute_tool(function_name, function_args, user)
+                logger.info(f"Executando {function_name} args: {function_args}")
+                try:
+                    tool_result = execute_tool(function_name, function_args, user)
+                    logger.debug(f"{function_name} Result: {str(tool_result)[:100]}")
+                except Exception as e:
+                    logger.error(f"Erro em {function_name}: {str(e)}", exc_info=True)
+                    tool_result = json.dumps({"status": "error", "message": f"Erro interno: {str(e)}"})
                 
                 # Avisa a UI que uma tool foi disparada (front vai escutar esse JSON)
                 yield f"data: {tool_result}\n\n"
@@ -616,5 +629,6 @@ def chat_stream(user_id, user_message):
             yield "data: [DONE]\n\n"
             
     except Exception as e:
-        logging.error(f"OpenAI Error: {str(e)}")
-        yield f"data: {json.dumps({'error': str(e)})}\n\n"
+        logger.error(f"Fatal copilot error: {e}", exc_info=True)
+        yield f"data: {json.dumps({'error': str(e), 'message': f'Houve uma falha fatal: {str(e)}'})}\n\n"
+        yield "data: [DONE]\n\n"

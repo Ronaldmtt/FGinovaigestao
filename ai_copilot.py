@@ -580,7 +580,7 @@ def chat_stream(user_id, user_message):
             
     try:
         iteration = 0
-        max_iterations = 5 # Revertido para 5 para controle de custos da OpenAI
+        max_iterations = 15 # Aumentado para 15 (Seguro para multi-ações complexas)
         
         while iteration < max_iterations:
             completion = client.chat.completions.create(
@@ -654,6 +654,14 @@ def chat_stream(user_id, user_message):
                 yield "data: [DONE]\n\n"
                 break
                 
+        if iteration >= max_iterations:
+            final_msg = "Atingi meu limite de processamento (15 etapas contínuas) para proteger a integridade do sistema. Se eu não terminei sua solicitação, por favor, peça para eu continuar de onde parei!"
+            ai_msg = AiChatHistory(user_id=user.id, role='assistant', content=final_msg)
+            db.session.add(ai_msg)
+            db.session.commit()
+            yield f"data: {json.dumps({'content': final_msg})}\n\n"
+            yield "data: [DONE]\n\n"
+            
     except Exception as e:
         logger.error(f"Fatal copilot error: {e}", exc_info=True)
         yield f"data: {json.dumps({'error': str(e), 'message': f'Houve uma falha fatal no motor: {str(e)}'})}\n\n"

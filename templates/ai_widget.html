@@ -354,7 +354,12 @@
                         for (let line of lines) {
                             if (line.startsWith('data: ')) {
                                 const dataStr = line.replace('data: ', '').trim();
-                                if (dataStr === '[DONE]') continue;
+                                if (dataStr === '[DONE]') {
+                                    if (window.needsReload) {
+                                        setTimeout(() => window.location.reload(), 1500);
+                                    }
+                                    continue;
+                                }
                                 if (dataStr === '') continue;
 
                                 try {
@@ -377,7 +382,7 @@
                                         if (dataObj.action === 'navigate_to') {
                                             window.location.href = dataObj.url;
                                         } else if (dataObj.action === 'ui_update') {
-                                            setTimeout(() => window.location.reload(), 2000);
+                                            window.needsReload = true;
                                         } else if (dataObj.action === 'download_pdf') {
                                             fetch('/reports/generate_pdf', {
                                                 method: 'POST',

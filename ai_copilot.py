@@ -580,7 +580,7 @@ def chat_stream(user_id, user_message):
             
     try:
         iteration = 0
-        max_iterations = 30 # Aumentado a pedido para loops massivos
+        max_iterations = 5 # Revertido para 5 para controle de custos da OpenAI
         
         while iteration < max_iterations:
             completion = client.chat.completions.create(

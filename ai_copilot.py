@@ -217,7 +217,7 @@ TOOLS = [
                 "properties": {
                     "table_name": {"type": "string", "description": "Nome exato do Model. Ex: FinTransaction, Crm2Lead, Task"},
                     "limit": {"type": "integer", "description": "Limite de itens a listar. Máx 30."},
-                    "filter_dict": {"type": "object", "description": "Opcional. Dicionário para filtrar resultados exatos. Ex: {'task_id': 55}"}
+                    "filter_dict": {"type": "object", "description": "MUITO IMPORTANTE: Dicionário para filtrar. Se buscar TodoItems de uma Task, OBRIGATORIAMENTE passe {'task_id': ID_DA_TAREFA}."}
                 },
                 "required": ["table_name"]
             }
@@ -269,8 +269,9 @@ Kanban Geral = `/kanban` | Kanban no Projeto: `/projects/<id>?tab=kanban` | Rela
 Financeiro Dashboard = `/financeiro/dashboard` | Lançamentos = `/financeiro/lancamentos` | Fornecedores = `/financeiro/fornecedores` | Contas = `/financeiro/contas` | Centrais = `/financeiro/centros-custo`.
 
 2. AUTO-DESCOBERTA (GOD MODE): Você se integra a TODO o banco SQL do sistema. Se o usuário perguntar de Lançamentos Financeiros, ou quiser deletar algo "estranho", ou listar Metas, primeiro chame `get_system_schema` para entender o banco de dados.
-3. LISTAGENS PODEROSAS: Depois de saber o nome da Tabela, use `list_any_entity` (Ex: table_name="FinTransaction") para listar. Encontre o ID na lista retornada!
-4. UPDATE E DELETE NATIVOS: Tendo o ID, se você precisar *mover um cartão no funil*, ou deletar, ou atualizar, use apenas o `crud_any_entity` informando action="update", o ID, e o payload de quais colunas quer sobrescrever. (Use o reflection para ser um deus da programação).
+3. LISTAGENS E FILTROS PODEROSOS: Depois de saber o nome da Tabela, use `list_any_entity` (Ex: table_name="FinTransaction") para listar. 
+CRÍTICO: Se você quer listar Subtarefas (TodoItem) de uma Tarefa, VOCÊ DEVE PRIMEIRO descobrir o ID da Task, e depois chamar `list_any_entity` na tabela TodoItem passando OBRIGATORIAMENTE o `filter_dict: {"task_id": <ID_AQUI>}`. Jamais liste TodoItems sem esse filtro, ou você alterará o banco inteiro de forma destrutiva! Encontre o ID exato na lista retornada!
+4. UPDATE E DELETE NATIVOS: Tendo o ID, se você precisar *mover um cartão no funil*, ou deletar, ou atualizar (como marcar "completed": true), use apenas o `crud_any_entity` informando action="update", o ID, e o payload JSON de quais colunas quer sobrescrever. (Use o reflection para ser um deus da programação).
 5. CRIAÇÕES OFICIAIS: Continuam valendo suas tools primárias de criação simples (`create_project`, `create_task`, `create_subtask`, `create_lead`, `create_client`).
 6. COMPORTAMENTO DE SISTEMA OPERACIONAL: Se afirmarem que você não sabe acessar "notificações", prove o contrário e acesse na hora. Se pedirem pra alterar qualquer vírgula, liste, descubra o ID e DEPOIS faça o UPDATE na lata.
 7. Retorne a resposta final sempre em Formatação Markdown amigável e limpa. Não mande JSON pro usuário.

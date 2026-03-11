@@ -267,7 +267,11 @@ Financeiro Dashboard = `/financeiro/dashboard` | Lançamentos = `/financeiro/lan
 
 def execute_tool(name, arguments, user):
     """Despacha a execução da tool no backend e retorna a mensagem que deve ser salva ou repassada ao GPT e ao Cliente."""
-    args = json.loads(arguments)
+    try:
+        args = json.loads(arguments) if arguments else {}
+    except Exception as e:
+        args = {}
+        print(f"Erro ao fazer parse do Tool Argument JSON: {e}")
     
     if name == "navigate_to":
         url = args.get("url")
@@ -514,7 +518,11 @@ def execute_tool(name, arguments, user):
             
         elif action in ["update", "move"]:
             try:
-                updates = json.loads(payload)
+                if isinstance(payload, dict):
+                    updates = payload
+                else:
+                    updates = json.loads(payload)
+                    
                 for key, val in updates.items():
                     if hasattr(record, key):
                         setattr(record, key, val)

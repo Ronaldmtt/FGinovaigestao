@@ -94,10 +94,11 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "list_projects",
-            "description": "Lista projetos filtrados por nome do cliente ou status. Use isso para responder perguntas como 'quais os projetos do cliente X?' ou 'quais projetos estão abertos?'.",
+            "description": "Lista projetos filtrados por nome do projeto, nome do cliente ou status. Use isso para responder perguntas como 'encontre o projeto X' ou 'quais os projetos do cliente Y?'.",
             "parameters": {
                 "type": "object",
                 "properties": {
+                    "project_search_term": {"type": "string", "description": "Nome ou trecho do nome do projeto para buscar."},
                     "client_search_term": {"type": "string", "description": "Nome do cliente para filtrar os projetos (ex: OAZ, InovaiLab)."},
                     "status_filter": {"type": "string", "description": "Status para filtrar (ex: em_andamento, concluido, pausado)."}
                 }
@@ -337,10 +338,13 @@ def execute_tool(name, arguments, user):
         return json.dumps({"status": "success", "results": res})
         
     elif name == "list_projects":
+        project_term = args.get("project_search_term")
         client_term = args.get("client_search_term")
         status_filter = args.get("status_filter")
         
         query = Project.query
+        if project_term:
+            query = query.filter(Project.nome.ilike(f"%{project_term}%"))
         if client_term:
             query = query.join(Client).filter(Client.nome.ilike(f"%{client_term}%"))
         if status_filter:

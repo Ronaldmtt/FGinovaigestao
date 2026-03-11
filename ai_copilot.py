@@ -580,7 +580,7 @@ def chat_stream(user_id, user_message):
             
     try:
         iteration = 0
-        max_iterations = 5
+        max_iterations = 30 # Aumentado a pedido para loops massivos
         
         while iteration < max_iterations:
             completion = client.chat.completions.create(

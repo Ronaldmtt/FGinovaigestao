@@ -311,8 +311,36 @@
                                             toolDiv.innerHTML = `<i class="fas fa-external-link-alt"></i> Redirecionando...`;
                                             msgsContainer.insertBefore(toolDiv, msgDiv);
                                             window.location.href = dataObj.url;
-                                        }
-                                        else if (dataObj.action === 'render_chart') {
+                                        } else if (dataObj.action === 'ui_update') {
+                                            const toolDiv = document.createElement('div');
+                                            toolDiv.className = 'msg-bubble tool';
+                                            toolDiv.innerHTML = `<i class="fas fa-check-circle"></i> Ação Concluída.`;
+                                            msgsContainer.insertBefore(toolDiv, msgDiv);
+                                            setTimeout(() => window.location.reload(), 2000);
+                                        } else if (dataObj.action === 'download_pdf') {
+                                            const toolDiv = document.createElement('div');
+                                            toolDiv.className = 'msg-bubble tool';
+                                            toolDiv.innerHTML = `<i class="fas fa-file-pdf"></i> Gerando Documento...`;
+                                            msgsContainer.insertBefore(toolDiv, msgDiv);
+
+                                            fetch('/reports/generate_pdf', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ project_ids: [dataObj.project_id] })
+                                            })
+                                                .then(response => response.blob())
+                                                .then(blob => {
+                                                    const url = window.URL.createObjectURL(blob);
+                                                    const a = document.createElement('a');
+                                                    a.style.display = 'none';
+                                                    a.href = url;
+                                                    a.download = 'Relatorio_Projeto.pdf';
+                                                    document.body.appendChild(a);
+                                                    a.click();
+                                                    window.URL.revokeObjectURL(url);
+                                                })
+                                                .catch(err => console.error("Erro ao gerar PDF:", err));
+                                        } else if (dataObj.action === 'render_chart') {
                                             // Renderiza char localmente no Hub
                                             const toolDiv = document.createElement('div');
                                             toolDiv.className = 'msg-bubble tool';

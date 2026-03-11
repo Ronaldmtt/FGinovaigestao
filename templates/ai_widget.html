@@ -369,6 +369,26 @@
                                         // Handle specific UI actions internally
                                         if (dataObj.action === 'navigate_to') {
                                             window.location.href = dataObj.url;
+                                        } else if (dataObj.action === 'ui_update') {
+                                            setTimeout(() => window.location.reload(), 2000);
+                                        } else if (dataObj.action === 'download_pdf') {
+                                            fetch('/reports/generate_pdf', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ project_ids: [dataObj.project_id] })
+                                            })
+                                                .then(response => response.blob())
+                                                .then(blob => {
+                                                    const url = window.URL.createObjectURL(blob);
+                                                    const a = document.createElement('a');
+                                                    a.style.display = 'none';
+                                                    a.href = url;
+                                                    a.download = 'Relatorio_Projeto.pdf';
+                                                    document.body.appendChild(a);
+                                                    a.click();
+                                                    window.URL.revokeObjectURL(url);
+                                                })
+                                                .catch(err => console.error("Erro ao gerar PDF:", err));
                                         }
                                     } else if (dataObj.content) {
                                         fullContent += dataObj.content;

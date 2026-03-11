@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 from openai import OpenAI
 from extensions import db
-from models import AiChatHistory, User, Project, Task, Meeting, Client, Crm2Lead
+from models import AiChatHistory, User, Project, Task, TodoItem, Meeting, Client, Crm2Lead
 
 # Initialize OpenAI Client
 client = None
@@ -114,6 +114,79 @@ TOOLS = [
                 "required": ["nome_empresa", "nome_contato"]
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "create_client",
+            "description": "Cria um Cliente Oficial no sistema (CRM 1). Use quando pedirem para criar um cliente.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "nome": {"type": "string", "description": "Nome do cliente ou empresa."}
+                },
+                "required": ["nome"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "create_project",
+            "description": "Cria um novo Projeto associado a um cliente. Diga 'criado' se sucesso.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "nome": {"type": "string", "description": "Título do projeto."},
+                    "client_search": {"type": "string", "description": "Nome do cliente para associar (opcional)."}
+                },
+                "required": ["nome"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "create_task",
+            "description": "Cria uma Tarefa e coloca no Kanban de um projeto.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "titulo": {"type": "string"},
+                    "project_search": {"type": "string", "description": "Nome do projeto onde a tarefa será salva."}
+                },
+                "required": ["titulo", "project_search"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "create_subtask",
+            "description": "Cria um Item/To-do (Subtarefa) dentro de uma Tarefa existente.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "texto": {"type": "string", "description": "O que precisa ser feito."},
+                    "task_search": {"type": "string", "description": "Nome da tarefa pai."}
+                },
+                "required": ["texto", "task_search"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "generate_pdf_report",
+            "description": "Gera um Relatório PDF de um Projeto Específico e manda para download.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "project_search": {"type": "string", "description": "Qual projeto gerar o PDF?"}
+                },
+                "required": ["project_search"]
+            }
+        }
     }
 ]
 
@@ -137,14 +210,15 @@ Nível Admin: {'Sim' if user.is_admin else 'Não'}
 Visão Geral: Há {active_projects} projetos em andamento no geral no sistema.
 {user.nome} possui {user_tasks} tarefas atribuídas.
 
-[Diretrizes]
-1. Se o usuário pedir para ir para uma página/aba geral, chame `navigate_to` com a URL exata: Projetos (/projects), Kanban Geral (/kanban), IA Hub (/ia-hub), Reuniões (/meetings), Relatórios (/reports), CRM 2 (/crm2/leads), Tarefas (/tasks).
-2. Se o usuário pedir para abrir um "Projeto Específico", mande `project_search_term` (ex: "Inadimplência") em `navigate_to` e DEIXE a `url` vazia.
-3. Se o usuário quiser o KANBAN de um projeto Específico (ex: "kanban do projeto inadimplência"), mande `project_search_term` = "inadimplência" e `tab` = "kanban" em `navigate_to`.
-4. Se o usuário pedir para listar projetos, use a tool `list_projects`.
-5. Se pedir para criar um LEAD, chame `create_lead`. Peça antes Empresa e Contato se faltarem.
-6. Fale com naturalidade, seja objetivo.
-7. Respostas em chat devem usar Markdown com clareza.
+[Diretrizes de Onisciência (Você possui controle absoluto)]
+1. NAVEGAÇÃO: Se pedirem para "ir para", use `navigate_to` com as bases: /projects, /kanban, /ia-hub, /meetings, /reports, /crm2/leads, /tasks. Para Kanban específico: `tab=kanban`.
+2. CONSULTAS: Para relatar quais projetos, clientes ou tarefas existem, primeiro faça as pesquisas usando `list_projects` ou as tools de RAG.
+3. CRIAÇÃO CRM: Criar LEAD = `create_lead`. Criar CLIENTE = `create_client`.
+4. CRIAÇÃO PROJETO: Criar PROJETO = `create_project`. Se o usuário não disser o cliente, crie sem cliente e avise que pode editar depois.
+5. KANBAN/TAREFAS: Criar TAREFA = `create_task`. Criar SUBTAREFA/TO-DO = `create_subtask`.
+6. RELATÓRIOS/PDF: Gerar, criar ou baixar relatório PDF do projeto = `generate_pdf_report`. (Gera automaticamente o download na UI).
+7. COMPORTAMENTO: Se o usuário pedir "faça tal coisa", FAÇA! Execute as tools com confiança absoluta e confirme textualmente. Se faltar a chave principal (ex: título da tarefa), pergunte de forma direta e gentil.
+8. Retorne a resposta do chat em Markdown claro.
 """
     return prompt
 
@@ -244,6 +318,69 @@ def execute_tool(name, arguments, user):
             "action": "chat_reply", 
             "content": f"Lead '{nome_empresa}' (Contato: {nome_contato}) criado com sucesso no CRM!"
         })
+
+    elif name == "create_client":
+        nome = args.get("nome")
+        c = Client(nome=nome, creator_id=user.id)
+        db.session.add(c)
+        db.session.commit()
+        return json.dumps({"status": "success", "action": "ui_update", "message": f"Cliente oficial '{nome}' criado no sistema."})
+
+    elif name == "create_project":
+        nome = args.get("nome")
+        client_search = args.get("client_search")
+        
+        client_id = None
+        if client_search:
+            c = Client.query.filter(Client.nome.ilike(f"%{client_search}%")).first()
+            if c: client_id = c.id
+            
+        if not client_id:
+            c = Client.query.first() # fallback caso não passe e não ache (devido à obrigatoriedade da foreign key em models antigos)
+            client_id = c.id if c else 1
+
+        p = Project(nome=nome, client_id=client_id, responsible_id=user.id)
+        db.session.add(p)
+        db.session.commit()
+        # Adiciona criador à equipe
+        p.team_members.append(user)
+        db.session.commit()
+        return json.dumps({"status": "success", "action": "ui_update", "message": f"Projeto '{nome}' criado com sucesso e adicionado aos seus projetos."})
+
+    elif name == "create_task":
+        titulo = args.get("titulo")
+        project_search = args.get("project_search")
+        
+        p = Project.query.filter(Project.nome.ilike(f"%{project_search}%")).first()
+        if not p:
+            return json.dumps({"status": "error", "message": f"Não encontrei um projeto com o nome '{project_search}'."})
+            
+        t = Task(titulo=titulo, project_id=p.id, assigned_user_id=user.id)
+        db.session.add(t)
+        db.session.commit()
+        return json.dumps({"status": "success", "action": "ui_update", "message": f"Tarefa '{titulo}' salva no projeto {p.nome}."})
+
+    elif name == "create_subtask":
+        texto = args.get("texto")
+        task_search = args.get("task_search")
+        
+        t = Task.query.filter(Task.titulo.ilike(f"%{task_search}%")).first()
+        if not t:
+            return json.dumps({"status": "error", "message": f"Não encontrei a tarefa '{task_search}'."})
+            
+        si = TodoItem(texto=texto, task_id=t.id)
+        db.session.add(si)
+        db.session.commit()
+        return json.dumps({"status": "success", "action": "ui_update", "message": f"To-do '{texto}' inserido na tarefa {t.titulo}."})
+
+    elif name == "generate_pdf_report":
+        term = args.get("project_search")
+        p = Project.query.filter(Project.nome.ilike(f"%{term}%")).first()
+        if not p: return json.dumps({"status": "error", "message": "Projeto não encontrado."})
+        
+        # Como o download em si precisa vir do navegador via form POST (devido ao header content-disposition de binário do PDF), 
+        # Nós usamos Action JSON pro widget disparar o fetch ou form nativo!
+        return json.dumps({"status": "success", "action": "download_pdf", "project_id": p.id, "message": f"Relatório do projeto '{p.nome}' gerado! O download vai começar em instantes."})
 
     return json.dumps({"status": "error", "message": "Unknown tool"})
 

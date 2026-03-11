@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 from openai import OpenAI
 from extensions import db
-from models import AiChatHistory, User, Project, Task, TodoItem, Meeting, Client, Crm2Lead
+from models import AiChatHistory, User, Project, Task, TodoItem, Meeting, Client, Crm2Lead, FinCostCenter, FinAccount, FinTransaction, FinGoal, FinSupplier, ProjectFile, ProjectApiEndpoint, Crm2Meeting
 
 # Initialize OpenAI Client
 client = None
@@ -187,6 +187,46 @@ TOOLS = [
                 "required": ["project_search"]
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_system_schema",
+            "description": "GOD MODE: Retorna o dicionário de todas as Tabelas (Models) do banco de dados e seus campos. Use para mapear as opções antes de editar ou listar algo novo.",
+            "parameters": {"type": "object", "properties": {}, "required": []}
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "list_any_entity",
+            "description": "Lê registros nativamente de qualquer tabela descoberta via get_system_schema. Retorna os nomes e IDs atuais.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "table_name": {"type": "string", "description": "Nome exato do Model. Ex: FinTransaction, Crm2Lead, Task"},
+                    "limit": {"type": "integer", "description": "Limite de itens a listar. Máx 30."}
+                },
+                "required": ["table_name"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "crud_any_entity",
+            "description": "Altera registros no banco. Serve para Update (ex: mudar data, nome), Delete e Move (ex: mudar coluna/status no kanban).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "action": {"type": "string", "enum": ["update", "delete", "move"]},
+                    "table_name": {"type": "string", "description": "Nome da tabela. Ex: Task, Client, FinTransaction"},
+                    "record_id": {"type": "integer", "description": "O ID do registro a ser alterado."},
+                    "payload_json": {"type": "string", "description": "Dicionário JSON de campos a serem alterados. Ex: '{\"status\": \"concluida\"}'. Para delete, mande vazio."}
+                },
+                "required": ["action", "table_name", "record_id"]
+            }
+        }
     }
 ]
 
@@ -211,14 +251,17 @@ Visão Geral: Há {active_projects} projetos em andamento no geral no sistema.
 {user.nome} possui {user_tasks} tarefas atribuídas.
 
 [Diretrizes de Onisciência (Você possui controle absoluto)]
-1. NAVEGAÇÃO: Se pedirem para "ir para", use `navigate_to` com as bases: /projects, /kanban, /ia-hub, /meetings, /reports, /crm2/leads, /tasks. Para Kanban específico: `tab=kanban`.
-2. CONSULTAS: Para relatar quais projetos, clientes ou tarefas existem, primeiro faça as pesquisas usando `list_projects` ou as tools de RAG.
-3. CRIAÇÃO CRM: Criar LEAD = `create_lead`. Criar CLIENTE = `create_client`.
-4. CRIAÇÃO PROJETO: Criar PROJETO = `create_project`. Se o usuário não disser o cliente, crie sem cliente e avise que pode editar depois.
-5. KANBAN/TAREFAS: Criar TAREFA = `create_task`. Criar SUBTAREFA/TO-DO = `create_subtask`.
-6. RELATÓRIOS/PDF: Gerar, criar ou baixar relatório PDF do projeto = `generate_pdf_report`. (Gera automaticamente o download na UI).
-7. COMPORTAMENTO: Se o usuário pedir "faça tal coisa", FAÇA! Execute as tools com confiança absoluta e confirme textualmente. Se faltar a chave principal (ex: título da tarefa), pergunte de forma direta e gentil.
-8. Retorne a resposta do chat em Markdown claro.
+1. NAVEGAÇÃO: Se pedirem para "ir para" ou abrir abas, use `navigate_to` de acordo com a URL. SEGREDO DAS URLs ABSOLUTAS: 
+Perfil = `/profile` | Dashboard Admin de Usuários = `/admin/users` | Notificações = `/crm2/notifications` | Reuniões = `/meetings`
+Kanban Geral = `/kanban` | Kanban no Projeto: `/projects/<id>?tab=kanban` | Relatórios = `/reports` 
+Financeiro Dashboard = `/financeiro/dashboard` | Lançamentos = `/financeiro/lancamentos` | Fornecedores = `/financeiro/fornecedores` | Contas = `/financeiro/contas` | Centrais = `/financeiro/centros-custo`.
+
+2. AUTO-DESCOBERTA (GOD MODE): Você se integra a TODO o banco SQL do sistema. Se o usuário perguntar de Lançamentos Financeiros, ou quiser deletar algo "estranho", ou listar Metas, primeiro chame `get_system_schema` para entender o banco de dados.
+3. LISTAGENS PODEROSAS: Depois de saber o nome da Tabela, use `list_any_entity` (Ex: table_name="FinTransaction") para listar. Encontre o ID na lista retornada!
+4. UPDATE E DELETE NATIVOS: Tendo o ID, se você precisar *mover um cartão no funil*, ou deletar, ou atualizar, use apenas o `crud_any_entity` informando action="update", o ID, e o payload de quais colunas quer sobrescrever. (Use o reflection para ser um deus da programação).
+5. CRIAÇÕES OFICIAIS: Continuam valendo suas tools primárias de criação simples (`create_project`, `create_task`, `create_subtask`, `create_lead`, `create_client`).
+6. COMPORTAMENTO DE SISTEMA OPERACIONAL: Se afirmarem que você não sabe acessar "notificações", prove o contrário e acesse na hora. Se pedirem pra alterar qualquer vírgula, liste, descubra o ID e DEPOIS faça o UPDATE na lata.
+7. Retorne a resposta final sempre em Formatação Markdown amigável e limpa. Não mande JSON pro usuário.
 """
     return prompt
 
@@ -231,6 +274,13 @@ def execute_tool(name, arguments, user):
         term = args.get("project_search_term")
         tab = args.get("tab")
         
+        if url == "/profile":
+            return json.dumps({"status": "success", "action": "navigate_to", "url": "/profile", "message": "Acessando Perfil de Usuário."})
+        if url == "/admin/users":
+            return json.dumps({"status": "success", "action": "navigate_to", "url": "/admin/users", "message": "Abrindo Painel de Controle de Membros."})
+        if url == "/crm2/notifications":
+            return json.dumps({"status": "success", "action": "navigate_to", "url": "/crm2/notifications", "message": "Acessando notificações."})
+            
         if term:
             # Tenta resolver o ID do projeto pelo nome, mas respeitando permissões
             query = Project.query.filter(Project.nome.ilike(f"%{term}%"))
@@ -249,6 +299,10 @@ def execute_tool(name, arguments, user):
                 return json.dumps({"status": "error", "message": f"Projeto contendo '{term}' não foi encontrado ou você não tem acesso."})
         elif not url:
             return json.dumps({"status": "error", "message": "Parâmetros 'url' ou 'project_search_term' ausentes."})
+            
+        # Tratamento de barra inicial caso o robô envie sem 
+        if not url.startswith("/"):
+            url = "/" + url
             
         # Retorna o payload especial para o frontend interceptar via SSE
         return json.dumps({"status": "success", "action": "navigate_to", "url": url, "message": "Navegando..."})
@@ -381,6 +435,94 @@ def execute_tool(name, arguments, user):
         # Como o download em si precisa vir do navegador via form POST (devido ao header content-disposition de binário do PDF), 
         # Nós usamos Action JSON pro widget disparar o fetch ou form nativo!
         return json.dumps({"status": "success", "action": "download_pdf", "project_id": p.id, "message": f"Relatório do projeto '{p.nome}' gerado! O download vai começar em instantes."})
+
+    elif name == "get_system_schema":
+        SCHEMA_MAP = {
+            "User": "id, nome, sobrenome, email, is_admin, ativo",
+            "Client": "id, nome, email, telefone, empresa, endereco",
+            "Project": "id, nome, status, progress_percent, client_id",
+            "Task": "id, titulo, descricao, status (pendente, em_andamento, concluida), project_id, ordem",
+            "TodoItem": "id, texto, completed (bool), task_id, due_date",
+            "Crm2Lead": "id, nome_empresa, nome_contato, estagio (ex: Lead, Qualificação, Fechado)",
+            "FinCostCenter": "id, nome",
+            "FinAccount": "id, nome, tipo (wallet/credit_card)",
+            "FinTransaction": "id, tipo (income/expense), valor, data, descricao, account_id",
+            "FinSupplier": "id, nome"
+        }
+        return json.dumps({"status": "success", "schema": SCHEMA_MAP})
+
+    elif name == "list_any_entity":
+        table_name = args.get("table_name")
+        limit = args.get("limit", 15)
+        
+        # Mapa dinamico de classes
+        models_dict = {
+            "User": User, "Client": Client, "Project": Project,
+            "Task": Task, "TodoItem": TodoItem, "Crm2Lead": Crm2Lead,
+            "FinCostCenter": FinCostCenter, "FinAccount": FinAccount,
+            "FinTransaction": FinTransaction, "FinSupplier": FinSupplier
+        }
+        
+        ModelClass = models_dict.get(table_name)
+        if not ModelClass:
+            return json.dumps({"status": "error", "message": f"Tabela '{table_name}' desconhecida ou não mapeada no God Mode."})
+            
+        try:
+            records = ModelClass.query.limit(limit).all()
+            results = []
+            for r in records:
+                # Usa dict comprehension pra tentar pegar propriedades basicas sem explodir
+                res_dict = {"id": getattr(r, "id", None)}
+                if hasattr(r, "nome"): res_dict["nome"] = r.nome
+                if hasattr(r, "titulo"): res_dict["titulo"] = r.titulo
+                if hasattr(r, "nome_empresa"): res_dict["nome_empresa"] = r.nome_empresa
+                if hasattr(r, "descricao"): res_dict["descricao"] = r.descricao
+                if hasattr(r, "status"): res_dict["status"] = r.status
+                if hasattr(r, "estagio"): res_dict["estagio"] = getattr(r, "estagio")
+                if hasattr(r, "valor"): res_dict["valor"] = getattr(r, "valor")
+                results.append(res_dict)
+                
+            return json.dumps({"status": "success", "table": table_name, "count": len(results), "data": results})
+        except Exception as e:
+            return json.dumps({"status": "error", "message": str(e)})
+
+    elif name == "crud_any_entity":
+        action = args.get("action")
+        table_name = args.get("table_name")
+        record_id = args.get("record_id")
+        payload = args.get("payload_json", "{}")
+        
+        models_dict = {
+            "User": User, "Client": Client, "Project": Project,
+            "Task": Task, "TodoItem": TodoItem, "Crm2Lead": Crm2Lead,
+            "FinCostCenter": FinCostCenter, "FinAccount": FinAccount,
+            "FinTransaction": FinTransaction, "FinSupplier": FinSupplier
+        }
+        
+        ModelClass = models_dict.get(table_name)
+        if not ModelClass:
+            return json.dumps({"status": "error", "message": "Model desconhecido."})
+            
+        record = ModelClass.query.get(record_id)
+        if not record:
+            return json.dumps({"status": "error", "message": f"Registro {record_id} na tabela {table_name} não encontrado."})
+            
+        if action == "delete":
+            db.session.delete(record)
+            db.session.commit()
+            return json.dumps({"status": "success", "action": "ui_update", "message": f"Registro {table_name} (id {record_id}) deletado à força."})
+            
+        elif action in ["update", "move"]:
+            try:
+                updates = json.loads(payload)
+                for key, val in updates.items():
+                    if hasattr(record, key):
+                        setattr(record, key, val)
+                db.session.commit()
+                return json.dumps({"status": "success", "action": "ui_update", "message": f"Registro {table_name} (id {record_id}) modificado com: {payload}"})
+            except Exception as e:
+                db.session.rollback()
+                return json.dumps({"status": "error", "message": f"Erro no JSON Payload de update: {str(e)}"})
 
     return json.dumps({"status": "error", "message": "Unknown tool"})
 

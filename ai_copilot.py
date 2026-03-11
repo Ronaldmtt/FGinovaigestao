@@ -579,96 +579,82 @@ def chat_stream(user_id, user_message):
             messages.append({"role": h.role, "content": h.content or ""})
             
     try:
-        completion = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=messages,
-            tools=TOOLS,
-            tool_choice="auto",
-            stream=False # Para simplicidade na primeira iteração do copilot
-        )
+        iteration = 0
+        max_iterations = 5
         
-        response_message = completion.choices[0].message
-        tool_calls = response_message.tool_calls
-        
-        # O GPT decidiu usar uma tool
-        if tool_calls:
-            logger.info(f"GPT solicitou {len(tool_calls)} tool calls.")
+        while iteration < max_iterations:
+            completion = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=messages,
+                tools=TOOLS,
+                tool_choice="auto",
+                stream=False
+            )
             
-            # Adiciona a resposta do assistente (que contem a listagem de ferramentas) ao histórico!
-            messages.append(response_message)
+            response_message = completion.choices[0].message
+            tool_calls = response_message.tool_calls
             
-            for tool_call in tool_calls:
-                function_name = tool_call.function.name
-                function_args = tool_call.function.arguments
+            if tool_calls:
+                logger.info(f"GPT solicitou {len(tool_calls)} tool calls na iteração {iteration+1}.")
                 
-                logger.info(f"Executando {function_name} args: {function_args}")
-                try:
-                    tool_result = execute_tool(function_name, function_args, user)
-                    logger.debug(f"{function_name} Result: {str(tool_result)[:100]}")
-                except Exception as e:
-                    logger.error(f"Erro em {function_name}: {str(e)}", exc_info=True)
-                    tool_result = json.dumps({"status": "error", "message": f"Erro interno: {str(e)}"})
+                # Adiciona a listagem de ferramentas invocadas ao histórico
+                messages.append(response_message)
                 
-                # Avisa a UI sobre o status
-                action_text = "Processando banco de dados..."
-                try:
-                    res_json = json.loads(tool_result)
-                    action_text = res_json.get("action", res_json.get("message", function_name))
-                except: pass
+                for tool_call in tool_calls:
+                    function_name = tool_call.function.name
+                    function_args = tool_call.function.arguments
+                    
+                    logger.info(f"Executando {function_name} args: {function_args}")
+                    try:
+                        tool_result = execute_tool(function_name, function_args, user)
+                        logger.debug(f"{function_name} Result: {str(tool_result)[:100]}")
+                    except Exception as e:
+                        logger.error(f"Erro em {function_name}: {str(e)}", exc_info=True)
+                        tool_result = json.dumps({"status": "error", "message": f"Erro interno: {str(e)}"})
+                    
+                    # Avisa a UI sobre o status em andamento
+                    action_text = "Processando banco de dados..."
+                    try:
+                        res_json = json.loads(tool_result)
+                        action_text = res_json.get("action", res_json.get("message", function_name))
+                    except: pass
+                    
+                    yield f"data: {json.dumps({'status': 'success', 'action': action_text})}\n\n"
+                    
+                    # Anexa o resultado da tool ao script system prompt pra OpenAI prosseguir
+                    messages.append({
+                        "tool_call_id": tool_call.id,
+                        "role": "tool",
+                        "name": function_name,
+                        "content": tool_result
+                    })
+                    
+                    # Salva no banco de intents
+                    sys_msg = AiChatHistory(user_id=user.id, role='assistant', tool_calls=function_args, tool_call_id=function_name)
+                    db.session.add(sys_msg)
+                    tool_msg = AiChatHistory(user_id=user.id, role='tool', content=tool_result)
+                    db.session.add(tool_msg)
+                    
+                db.session.commit()
+                iteration += 1
                 
-                yield f"data: {json.dumps({'status': 'success', 'action': action_text})}\n\n"
+                # E o looping roda novamente mandando o resultado pro GPT entender!
+                logger.info(f"Progredindo para Fase {iteration+1} do motor reflexivo...")
                 
-                # Anexa o resultado da tool ao array de mensagens da OpenAI para a 2a viagem
-                messages.append({
-                    "tool_call_id": tool_call.id,
-                    "role": "tool",
-                    "name": function_name,
-                    "content": tool_result
-                })
+            else:
+                # O GPT devolveu texto limpo. Fim do Multi-turn.
+                content = response_message.content
+                logger.info(f"Resposta Final do GPT finalizada: {str(content)[:100]}...")
                 
-                # Salva a intent no banco 
-                sys_msg = AiChatHistory(user_id=user.id, role='assistant', tool_calls=function_args, tool_call_id=function_name)
-                db.session.add(sys_msg)
-                
-                tool_msg = AiChatHistory(user_id=user.id, role='tool', content=tool_result)
-                db.session.add(tool_msg)
-                
-            db.session.commit()
-            
-            # FASE 8: Loop de Feedback (GPT lê os dados do banco e responde o usuário)
-            logger.info("Iniciando 2a chamada para o GPT processar os resultados das tools.")
-            try:
-                second_response = client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=messages,
-                    stream=False
-                )
-                final_content = second_response.choices[0].message.content
-                logger.info(f"Resposta Final GPT: {str(final_content)[:100]}...")
-                
-                ai_msg = AiChatHistory(user_id=user.id, role='assistant', content=final_content)
+                ai_msg = AiChatHistory(user_id=user.id, role='assistant', content=content)
                 db.session.add(ai_msg)
                 db.session.commit()
                 
-                yield f"data: {json.dumps({'content': final_content})}\n\n"
+                yield f"data: {json.dumps({'content': content})}\n\n"
                 yield "data: [DONE]\n\n"
-            except Exception as e:
-                logger.error(f"Erro na 2a chamada GPT: {e}", exc_info=True)
-                yield f"data: {json.dumps({'error': str(e), 'message': 'Erro ao formular a resposta final.'})}\n\n"
-                yield "data: [DONE]\n\n"
+                break
                 
-        else:
-            # Resposta pura normal (Texto)
-            content = response_message.content
-            ai_msg = AiChatHistory(user_id=user.id, role='assistant', content=content)
-            db.session.add(ai_msg)
-            db.session.commit()
-            
-            # Manda em chunk unico (ou poderiamos streamar)
-            yield f"data: {json.dumps({'content': content})}\n\n"
-            yield "data: [DONE]\n\n"
-            
     except Exception as e:
         logger.error(f"Fatal copilot error: {e}", exc_info=True)
-        yield f"data: {json.dumps({'error': str(e), 'message': f'Houve uma falha fatal: {str(e)}'})}\n\n"
+        yield f"data: {json.dumps({'error': str(e), 'message': f'Houve uma falha fatal no motor: {str(e)}'})}\n\n"
         yield "data: [DONE]\n\n"

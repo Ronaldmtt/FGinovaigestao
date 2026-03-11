@@ -4436,6 +4436,7 @@ def process_single_project_report(project_data):
 @login_required
 def generate_pdf():
     print("DEBUG: generate_pdf requested", flush=True)
+    import concurrent.futures
     
     # Inicializa variáveis
     projects = []

@@ -23,10 +23,13 @@ TOOLS = [
                 "properties": {
                     "url": {
                         "type": "string",
-                        "description": "Caminho relativo (ex: /projects, /kanban) ou URL completa."
+                        "description": "Caminho (ex: /projects, /kanban). Use isso SOMENTE se não for um projeto específico."
+                    },
+                    "project_search_term": {
+                        "type": "string",
+                        "description": "Se o usuário pedir para abrir um projeto, coloque aqui o nome do projeto (ex: Inadimplência, FinOps). O sistema resolverá o ID correto."
                     }
-                },
-                "required": ["url"]
+                }
             }
         }
     },
@@ -75,6 +78,20 @@ TOOLS = [
                 "required": ["search_term"]
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "list_projects",
+            "description": "Lista projetos filtrados por nome do cliente ou status. Use isso para responder perguntas como 'quais os projetos do cliente X?' ou 'quais projetos estão abertos?'.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "client_search_term": {"type": "string", "description": "Nome do cliente para filtrar os projetos (ex: OAZ, InovaiLab)."},
+                    "status_filter": {"type": "string", "description": "Status para filtrar (ex: em_andamento, concluido, pausado)."}
+                }
+            }
+        }
     }
 ]
 
@@ -99,10 +116,12 @@ Visão Geral: Há {active_projects} projetos em andamento no geral no sistema.
 {user.nome} possui {user_tasks} tarefas atribuídas.
 
 [Diretrizes]
-1. Se o usuário pedir para navegar ou abrir "a tela X", use a função `navigate_to` em vez de mandar um link.
-2. Fale com naturalidade, seja objetivo. Se for criar algo, verifique explicitamente se possui as variáveis ou peça ao usuário o que falta.
-3. Analise pedidos gráficos e use `generate_dashboard` com dados falsos úteis/exemplos ou dados reais quando extraídos de `get_project_summary`.
-4. Suas respostas de chat devem usar Markdown com clareza.
+1. Se o usuário pedir para navegar ou abrir "a tela X", use a função `navigate_to`. As telas base são /projects, /tasks, /kanban, /ia-hub, /meetings.
+2. Se o usuário pedir para abrir um projeto Específico, mande o parâmetro `project_search_term` na tool `navigate_to`. O sistema cuidará de encontrar e abrir a URL certa. Nunca adivinhe ou crie a URL do projeto sozinho.
+3. Se o usuário pedir para listar projetos (de um cliente específico, ou em andamento), mande o parâmetro `client_search_term` na tool `list_projects`. O sistema irá buscar no banco de dados e devolver a lista para você mostrar ao usuário.
+4. Fale com naturalidade, seja objetivo. Se for criar algo, verifique explicitamente se possui as variáveis ou peça ao usuário o que falta.
+5. Analise pedidos gráficos e use `generate_dashboard` com dados falsos úteis/exemplos ou dados reais quando extraídos de `get_project_summary`.
+6. Suas respostas de chat devem usar Markdown com clareza.
 """
     return prompt
 
@@ -112,8 +131,20 @@ def execute_tool(name, arguments, user):
     
     if name == "navigate_to":
         url = args.get("url")
-        # Retorna o payload especial para o frontend interceptar via SSE / JSON
-        return json.dumps({"status": "success", "action": "navigate_to", "url": url, "message": f"Navegando para {url}"})
+        term = args.get("project_search_term")
+        
+        if term:
+            # Tenta resolver o ID do projeto pelo nome
+            p = Project.query.filter(Project.nome.ilike(f"%{term}%")).first()
+            if p:
+                url = f"/projects/{p.id}"
+            else:
+                return json.dumps({"status": "error", "message": f"Projeto contendo '{term}' não foi encontrado."})
+        elif not url:
+            return json.dumps({"status": "error", "message": "Parâmetros 'url' ou 'project_search_term' ausentes."})
+            
+        # Retorna o payload especial para o frontend interceptar via SSE
+        return json.dumps({"status": "success", "action": "navigate_to", "url": url, "message": "Navegando..."})
         
     elif name == "create_meeting":
         # Simula criaçao
@@ -132,6 +163,27 @@ def execute_tool(name, arguments, user):
         for p in pts:
             res.append({"id": p.id, "nome": p.nome, "status": p.status, "cliente": p.client.nome if p.client else ""})
         return json.dumps({"status": "success", "results": res})
+        
+    elif name == "list_projects":
+        client_term = args.get("client_search_term")
+        status_filter = args.get("status_filter")
+        
+        query = Project.query
+        if client_term:
+            query = query.join(Client).filter(Client.nome.ilike(f"%{client_term}%"))
+        if status_filter:
+            query = query.filter(Project.status == status_filter)
+            
+        pts = query.all()
+        if not pts:
+            return json.dumps({"status": "success", "message": "Nenhum projeto encontrado com esses filtros.", "action": "chat_reply"})
+            
+        res_text = f"Encontrei {len(pts)} projetos:\n\n"
+        for p in pts:
+            client_name = p.client.nome if p.client else "Sem Cliente"
+            res_text += f"- **{p.nome}** ({client_name}) - Status: {p.status}\n"
+            
+        return json.dumps({"status": "success", "action": "chat_reply", "content": res_text})
         
     return json.dumps({"status": "error", "message": "Unknown tool"})
 

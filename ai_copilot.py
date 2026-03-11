@@ -297,7 +297,6 @@ def execute_tool(name, arguments, user):
             return json.dumps({"status": "success", "action": "navigate_to", "url": "/admin/users", "message": "Abrindo Painel de Controle de Membros."})
         if url == "/crm2/notifications":
             return json.dumps({"status": "success", "action": "navigate_to", "url": "/crm2/notifications", "message": "Acessando notificações."})
-            
         if term:
             # Tenta resolver o ID do projeto pelo nome, mas respeitando permissões
             query = Project.query.filter(Project.nome.ilike(f"%{term}%"))
@@ -317,9 +316,13 @@ def execute_tool(name, arguments, user):
         elif not url:
             return json.dumps({"status": "error", "message": "Parâmetros 'url' ou 'project_search_term' ausentes."})
             
-        # Tratamento de barra inicial caso o robô envie sem 
-        if not url.startswith("/"):
+        # Tratamento de barra inicial caso o robô envie sem, mas evite quebrar URLs com parametros
+        if not url.startswith("/") and not url.startswith("http"):
             url = "/" + url
+            
+        # Tratamento para um caso específico (hallucination)
+        if url.startswith("/workspace") or "workspace" in url:
+            return json.dumps({"status": "error", "message": "Erro 404: /workspace não existe. Para ver projetos, use /projects/<id> ou /kanban."})
             
         # Retorna o payload especial para o frontend interceptar via SSE
         return json.dumps({"status": "success", "action": "navigate_to", "url": url, "message": "Navegando..."})

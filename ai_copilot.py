@@ -582,6 +582,10 @@ def chat_stream(user_id, user_message):
             tool_choice="auto",
             stream=False # Para simplicidade na primeira iteração do copilot
         )
+        
+        response_message = completion.choices[0].message
+        tool_calls = response_message.tool_calls
+        
         # O GPT decidiu usar uma tool
         if tool_calls:
             logger.info(f"GPT solicitou {len(tool_calls)} tool calls.")

@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 from openai import OpenAI
 from extensions import db
-from models import AiChatHistory, User, Project, Task, Meeting, Client
+from models import AiChatHistory, User, Project, Task, Meeting, Client, Crm2Lead
 
 # Initialize OpenAI Client
 client = None
@@ -92,6 +92,24 @@ TOOLS = [
                 }
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "create_lead",
+            "description": "Cria um novo Lead no CRM. Use quando o usuário pedir para cadastrar/adicionar um lead.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "nome_empresa": {"type": "string"},
+                    "nome_contato": {"type": "string"},
+                    "email": {"type": "string", "description": "Email do lead (opcional)"},
+                    "telefone": {"type": "string", "description": "Telefone do lead (opcional)"},
+                    "observacoes": {"type": "string", "description": "Observações ou escopo do lead (opcional)"}
+                },
+                "required": ["nome_empresa", "nome_contato"]
+            }
+        }
     }
 ]
 
@@ -119,9 +137,10 @@ Visão Geral: Há {active_projects} projetos em andamento no geral no sistema.
 1. Se o usuário pedir para navegar ou abrir "a tela X", use a função `navigate_to`. As telas base são /projects, /tasks, /kanban, /ia-hub, /meetings.
 2. Se o usuário pedir para abrir um projeto Específico, mande o parâmetro `project_search_term` na tool `navigate_to`. O sistema cuidará de encontrar e abrir a URL certa. Nunca adivinhe ou crie a URL do projeto sozinho.
 3. Se o usuário pedir para listar projetos (de um cliente específico, ou em andamento), mande o parâmetro `client_search_term` na tool `list_projects`. O sistema irá buscar no banco de dados e devolver a lista para você mostrar ao usuário.
-4. Fale com naturalidade, seja objetivo. Se for criar algo, verifique explicitamente se possui as variáveis ou peça ao usuário o que falta.
-5. Analise pedidos gráficos e use `generate_dashboard` com dados falsos úteis/exemplos ou dados reais quando extraídos de `get_project_summary`.
-6. Suas respostas de chat devem usar Markdown com clareza.
+4. Se o usuário pedir para criar um LEAD, chame imediatamente a ferramenta `create_lead`. Caso não tenha o NOME DA EMPRESA e NOME DO CONTATO, pergunte a ele antes de chamar a tool.
+5. Fale com naturalidade, seja objetivo. Se for criar algo, verifique explicitamente se possui as variáveis ou peça ao usuário o que falta.
+6. Analise pedidos gráficos e use `generate_dashboard` com dados falsos úteis/exemplos ou dados reais quando extraídos de `get_project_summary`.
+7. Suas respostas de chat devem usar Markdown com clareza.
 """
     return prompt
 
@@ -185,6 +204,33 @@ def execute_tool(name, arguments, user):
             
         return json.dumps({"status": "success", "action": "chat_reply", "content": res_text})
         
+    elif name == "create_lead":
+        nome_empresa = args.get("nome_empresa")
+        nome_contato = args.get("nome_contato")
+        email = args.get("email")
+        telefone = args.get("telefone")
+        obs = args.get("observacoes")
+        
+        if not nome_empresa or not nome_contato:
+            return json.dumps({"status": "error", "message": "Faltam dados obrigatórios (nome_empresa, nome_contato)."})
+            
+        new_lead = Crm2Lead(
+            nome_empresa=nome_empresa,
+            nome_contato=nome_contato,
+            email=email,
+            telefone=telefone,
+            observacoes=obs,
+            estagio='Lead'
+        )
+        db.session.add(new_lead)
+        db.session.commit()
+        
+        return json.dumps({
+            "status": "success", 
+            "action": "chat_reply", 
+            "content": f"Lead '{nome_empresa}' (Contato: {nome_contato}) criado com sucesso no CRM!"
+        })
+
     return json.dumps({"status": "error", "message": "Unknown tool"})
 
 def chat_stream(user_id, user_message):

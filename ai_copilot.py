@@ -176,7 +176,8 @@ TOOLS = [
                 "type": "object",
                 "properties": {
                     "texto": {"type": "string", "description": "O que precisa ser feito."},
-                    "task_search": {"type": "string", "description": "Nome da tarefa pai."}
+                    "task_search": {"type": "string", "description": "Nome da tarefa pai."},
+                    "project_search": {"type": "string", "description": "Opcional: Nome do projeto para garantir a tarefa certa caso existam homônimos."}
                 },
                 "required": ["texto", "task_search"]
             }
@@ -270,6 +271,7 @@ Financeiro Dashboard = `/financeiro/dashboard` | Lançamentos = `/financeiro/lan
 5. CRIAÇÕES OFICIAIS: Continuam valendo suas tools primárias de criação simples (`create_project`, `create_task`, `create_subtask`, `create_lead`, `create_client`).
 6. COMPORTAMENTO DE SISTEMA OPERACIONAL: Se afirmarem que você não sabe acessar "notificações", prove o contrário e acesse na hora. Se pedirem pra alterar qualquer vírgula, liste, descubra o ID e DEPOIS faça o UPDATE na lata.
 7. Retorne a resposta final sempre em Formatação Markdown amigável e limpa. Não mande JSON pro usuário.
+8. PRECISÃO EXTREMA (PROIBIDO CHUTAR NOMES): NUNCA adivinhe ou assuma o nome de um projeto ou tarefa se a intenção do usuário for vaga. Se houver dúvida sobre EM QUAL tarefa/projeto inserir dados, PARE sua execução e pergunte ao usuário para que ele especifique o nome exato do projeto ou tarefa. O erro de inserir dados em tarefas alheias é fatal.
 """
     return prompt
 
@@ -432,10 +434,21 @@ def execute_tool(name, arguments, user):
     elif name == "create_subtask":
         texto = args.get("texto")
         task_search = args.get("task_search")
+        project_search = args.get("project_search")
         
-        t = Task.query.filter(Task.titulo.ilike(f"%{task_search}%")).first()
+        query = Task.query.filter(Task.titulo.ilike(f"%{task_search}%"))
+        
+        if project_search:
+            p = Project.query.filter(Project.nome.ilike(f"%{project_search}%")).first()
+            if p:
+                query = query.filter(Task.project_id == p.id)
+            else:
+                return json.dumps({"status": "error", "message": f"Projeto '{project_search}' não encontrado para filtrar a tarefa."})
+                
+        t = query.first()
+        
         if not t:
-            return json.dumps({"status": "error", "message": f"Não encontrei a tarefa '{task_search}'."})
+            return json.dumps({"status": "error", "message": f"Não encontrei a tarefa '{task_search}'. Peça mais detalhes ao usuário."})
             
         si = TodoItem(texto=texto, task_id=t.id)
         db.session.add(si)

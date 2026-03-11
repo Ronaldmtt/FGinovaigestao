@@ -216,7 +216,8 @@ TOOLS = [
                 "type": "object",
                 "properties": {
                     "table_name": {"type": "string", "description": "Nome exato do Model. Ex: FinTransaction, Crm2Lead, Task"},
-                    "limit": {"type": "integer", "description": "Limite de itens a listar. Máx 30."}
+                    "limit": {"type": "integer", "description": "Limite de itens a listar. Máx 30."},
+                    "filter_dict": {"type": "object", "description": "Opcional. Dicionário para filtrar resultados exatos. Ex: {'task_id': 55}"}
                 },
                 "required": ["table_name"]
             }
@@ -501,6 +502,7 @@ def execute_tool(name, arguments, user):
     elif name == "list_any_entity":
         table_name = args.get("table_name")
         limit = args.get("limit", 15)
+        filter_dict = args.get("filter_dict", {})
         
         # Mapa dinamico de classes
         models_dict = {
@@ -515,7 +517,13 @@ def execute_tool(name, arguments, user):
             return json.dumps({"status": "error", "message": f"Tabela '{table_name}' desconhecida ou não mapeada no God Mode."})
             
         try:
-            records = ModelClass.query.limit(limit).all()
+            query = ModelClass.query
+            if isinstance(filter_dict, dict):
+                for k, v in filter_dict.items():
+                    if hasattr(ModelClass, k):
+                        query = query.filter(getattr(ModelClass, k) == v)
+                        
+            records = query.limit(limit).all()
             results = []
             for r in records:
                 # Usa dict comprehension pra tentar pegar propriedades basicas sem explodir
@@ -527,6 +535,8 @@ def execute_tool(name, arguments, user):
                 if hasattr(r, "status"): res_dict["status"] = r.status
                 if hasattr(r, "estagio"): res_dict["estagio"] = getattr(r, "estagio")
                 if hasattr(r, "valor"): res_dict["valor"] = getattr(r, "valor")
+                if hasattr(r, "texto"): res_dict["texto"] = getattr(r, "texto")
+                if hasattr(r, "task_id"): res_dict["task_id"] = getattr(r, "task_id")
                 results.append(res_dict)
                 
             return json.dumps({"status": "success", "table": table_name, "count": len(results), "data": results})

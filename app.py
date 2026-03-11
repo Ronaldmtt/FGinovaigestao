@@ -95,7 +95,11 @@ with app.app_context():
     # Import models to ensure tables are created
     import models
     from sqlalchemy import text # Para scripts customizados DDL
-    db.create_all()
+    
+    try:
+        db.create_all()
+    except Exception as e:
+        print(f"Aviso: db.create_all() falhou. As tabelas podem precisar ser criadas manualmente ou faltam tipos personalizados no banco local (ex: pgvector). Erro: {e}")
     
     # [Auto-Migration] Add comprovante_url to fin_transactions if missing
     try:
@@ -169,6 +173,15 @@ import routes
 # Register API v1 Blueprint
 from api_v1 import api_v1
 app.register_blueprint(api_v1)
+
+# Register AI Copilot / Chat Blueprint
+from routes_chat import chat_bp
+app.register_blueprint(chat_bp)
+
+# Register Meetings Blueprint
+from routes_meetings import meetings_bp
+app.register_blueprint(meetings_bp)
+
 
 # --- SYSTEM-WIDE AUDIT LOGGING ---
 from flask import request

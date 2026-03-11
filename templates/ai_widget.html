@@ -1,0 +1,442 @@
+<style>
+    /* AI Copilot Widget Styles */
+    #ai-widget-container {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        z-index: 1050;
+        /* Above bootstrap modals */
+        font-family: inherit;
+    }
+
+    #ai-toggle-btn {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #6366f1, #a855f7);
+        color: white;
+        border: none;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    #ai-toggle-btn:hover {
+        transform: scale(1.05);
+        box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5);
+    }
+
+    #ai-chat-window {
+        position: absolute;
+        bottom: 80px;
+        right: 0;
+        width: 360px;
+        height: 500px;
+        background-color: var(--bs-body-bg);
+        border: 1px solid var(--bs-border-color);
+        border-radius: 16px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        display: none;
+        flex-direction: column;
+        overflow: hidden;
+        transition: opacity 0.3s ease;
+        opacity: 0;
+    }
+
+    #ai-chat-window.show {
+        display: flex;
+        opacity: 1;
+    }
+
+    #ai-chat-header {
+        background: linear-gradient(135deg, #1e1e2f, #2a2a40);
+        padding: 16px;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    #ai-chat-header .title {
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    #ai-chat-header .title i {
+        color: #a855f7;
+    }
+
+    #ai-close-btn {
+        background: none;
+        border: none;
+        color: white;
+        cursor: pointer;
+        font-size: 1.2rem;
+        opacity: 0.7;
+    }
+
+    #ai-close-btn:hover {
+        opacity: 1;
+    }
+
+    #ai-messages {
+        flex: 1;
+        padding: 16px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .ai-msg {
+        max-width: 85%;
+        padding: 10px 14px;
+        border-radius: 12px;
+        font-size: 0.9rem;
+        line-height: 1.4;
+        word-break: break-word;
+    }
+
+    .ai-msg.user {
+        align-self: flex-end;
+        background-color: #3b82f6;
+        color: white;
+        border-bottom-right-radius: 4px;
+    }
+
+    .ai-msg.assistant {
+        align-self: flex-start;
+        background-color: var(--bs-tertiary-bg);
+        color: var(--bs-body-color);
+        border-bottom-left-radius: 4px;
+        border: 1px solid var(--bs-border-color);
+    }
+
+    .ai-msg.tool {
+        align-self: center;
+        background-color: transparent;
+        color: #a855f7;
+        font-size: 0.8rem;
+        border: 1px dashed #a855f7;
+        text-align: center;
+        padding: 6px 12px;
+        border-radius: 8px;
+    }
+
+    #ai-input-area {
+        padding: 12px;
+        border-top: 1px solid var(--bs-border-color);
+        display: flex;
+        gap: 8px;
+        background-color: var(--bs-body-bg);
+    }
+
+    #ai-input {
+        flex: 1;
+        border: 1px solid var(--bs-border-color);
+        border-radius: 20px;
+        padding: 8px 16px;
+        background-color: var(--bs-tertiary-bg);
+        color: var(--bs-body-color);
+        outline: none;
+        font-size: 0.9rem;
+    }
+
+    #ai-input:focus {
+        border-color: #6366f1;
+    }
+
+    .ai-action-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: none;
+        background-color: var(--bs-tertiary-bg);
+        color: var(--bs-body-color);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s;
+    }
+
+    .ai-action-btn:hover {
+        background-color: rgba(99, 102, 241, 0.2);
+        color: #6366f1;
+    }
+
+    .ai-action-btn.active-mic {
+        background-color: #ef4444;
+        color: white;
+        animation: pulseMic 1.5s infinite;
+    }
+
+    @keyframes pulseMic {
+        0% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+        }
+
+        70% {
+            transform: scale(1.1);
+            box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+        }
+
+        100% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+        }
+    }
+
+    .ai-typing {
+        display: flex;
+        gap: 4px;
+        padding: 4px 8px;
+        align-items: center;
+    }
+
+    .ai-typing span {
+        width: 6px;
+        height: 6px;
+        background-color: #a855f7;
+        border-radius: 50%;
+        animation: typing 1s infinite alternate;
+    }
+
+    .ai-typing span:nth-child(2) {
+        animation-delay: 0.2s;
+    }
+
+    .ai-typing span:nth-child(3) {
+        animation-delay: 0.4s;
+    }
+
+    @keyframes typing {
+        from {
+            opacity: 0.3;
+            transform: translateY(0);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(-4px);
+        }
+    }
+</style>
+
+<div id="ai-widget-container">
+    <div id="ai-chat-window">
+        <div id="ai-chat-header">
+            <div class="title">
+                <i class="fas fa-sparkles"></i> O Ás Copilot
+            </div>
+            <button id="ai-close-btn"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="ai-messages">
+            <div class="ai-msg assistant">
+                Olá, {{ current_user.nome }}! Como posso te ajudar hoje? Posso criar leads, abrir projetos, ou gerar
+                gráficos.
+            </div>
+        </div>
+        <div id="ai-input-area">
+            <button class="ai-action-btn" id="ai-mic-btn" title="Falar">
+                <i class="fas fa-microphone"></i>
+            </button>
+            <input type="text" id="ai-input" placeholder="Digite uma mensagem..." autocomplete="off">
+            <button class="ai-action-btn" id="ai-send-btn" title="Enviar"
+                style="background-color: #6366f1; color: white;">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <button id="ai-toggle-btn" title="O Ás Copilot">
+        <i class="fas fa-robot"></i>
+    </button>
+</div>
+
+<!-- Included Marked.js for markdown rendering safely -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const toggleBtn = document.getElementById('ai-toggle-btn');
+        const closeBtn = document.getElementById('ai-close-btn');
+        const chatWindow = document.getElementById('ai-chat-window');
+        const msgsContainer = document.getElementById('ai-messages');
+        const inputField = document.getElementById('ai-input');
+        const sendBtn = document.getElementById('ai-send-btn');
+        const micBtn = document.getElementById('ai-mic-btn');
+
+        // Toggle Chat
+        toggleBtn.addEventListener('click', () => {
+            chatWindow.classList.add('show');
+            toggleBtn.style.display = 'none';
+            inputField.focus();
+        });
+
+        closeBtn.addEventListener('click', () => {
+            chatWindow.classList.remove('show');
+            setTimeout(() => toggleBtn.style.display = 'flex', 300);
+        });
+
+        const addMessage = (role, text) => {
+            const div = document.createElement('div');
+            div.className = 'ai-msg ' + role;
+            if (role === 'assistant') {
+                div.innerHTML = marked.parse(text);
+            } else {
+                div.textContent = text;
+            }
+            msgsContainer.appendChild(div);
+            msgsContainer.scrollTop = msgsContainer.scrollHeight;
+            return div;
+        };
+
+        const addTyping = () => {
+            const id = 'typing-' + Date.now();
+            const div = document.createElement('div');
+            div.className = 'ai-msg assistant';
+            div.id = id;
+            div.innerHTML = '<div class="ai-typing"><span></span><span></span><span></span></div>';
+            msgsContainer.appendChild(div);
+            msgsContainer.scrollTop = msgsContainer.scrollHeight;
+            return id;
+        };
+
+        const removeTyping = (id) => {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        };
+
+        const sendMessage = async () => {
+            const text = inputField.value.trim();
+            if (!text) return;
+
+            inputField.value = '';
+            addMessage('user', text);
+
+            const typingId = addTyping();
+
+            try {
+                const response = await fetch('/api/chat/message', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text })
+                });
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder('utf-8');
+                let done = false;
+                let fullContent = '';
+
+                removeTyping(typingId);
+
+                // We'll create one assistant message div and update it
+                const msgDiv = document.createElement('div');
+                msgDiv.className = 'ai-msg assistant';
+                msgsContainer.appendChild(msgDiv);
+
+                while (!done) {
+                    const { value, done: readerDone } = await reader.read();
+                    done = readerDone;
+                    if (value) {
+                        const chunk = decoder.decode(value, { stream: true });
+                        const lines = chunk.split('\n');
+
+                        for (let line of lines) {
+                            if (line.startsWith('data: ')) {
+                                const dataStr = line.replace('data: ', '').trim();
+                                if (dataStr === '[DONE]') continue;
+                                if (dataStr === '') continue;
+
+                                try {
+                                    const dataObj = JSON.parse(dataStr);
+                                    if (dataObj.status === 'success' && dataObj.action) {
+                                        // Tool Execute
+                                        const toolDiv = document.createElement('div');
+                                        toolDiv.className = 'ai-msg tool';
+                                        toolDiv.innerHTML = `<i class="fas fa-cogs"></i> Executando ação: ${dataObj.action}...`;
+                                        msgsContainer.insertBefore(toolDiv, msgDiv); // Put before the final answer
+
+                                        // Handle specific UI actions internally
+                                        if (dataObj.action === 'navigate_to') {
+                                            window.location.href = dataObj.url;
+                                        }
+                                    } else if (dataObj.content) {
+                                        fullContent += dataObj.content;
+                                        msgDiv.innerHTML = marked.parse(fullContent);
+                                        msgsContainer.scrollTop = msgsContainer.scrollHeight;
+                                    } else if (dataObj.error) {
+                                        msgDiv.innerHTML = `<span style="color:red">Erro: ${dataObj.error}</span>`;
+                                    }
+                                } catch (e) {
+                                    console.error("Error parsing SSE JSON", e, dataStr);
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                removeTyping(typingId);
+                addMessage('assistant', `<span style="color:red">Erro de conexão: ${error.message}</span>`);
+            }
+        };
+
+        sendBtn.addEventListener('click', sendMessage);
+        inputField.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        // Speech Recognition Setup
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'pt-BR';
+            recognition.continuous = false;
+            recognition.interimResults = false;
+
+            recognition.onstart = function () {
+                micBtn.classList.add('active-mic');
+                inputField.placeholder = "Ouvindo...";
+            };
+
+            recognition.onspeechend = function () {
+                recognition.stop();
+                micBtn.classList.remove('active-mic');
+                inputField.placeholder = "Digite uma mensagem...";
+            };
+
+            recognition.onresult = function (event) {
+                const transcript = event.results[0][0].transcript;
+                inputField.value = transcript;
+                // Optionally auto-send
+                // sendMessage(); 
+            };
+
+            recognition.onerror = function (event) {
+                console.error(event.error);
+                micBtn.classList.remove('active-mic');
+                inputField.placeholder = "Digite uma mensagem...";
+            };
+
+            micBtn.addEventListener('click', () => {
+                if (micBtn.classList.contains('active-mic')) {
+                    recognition.stop();
+                } else {
+                    recognition.start();
+                }
+            });
+        } else {
+            micBtn.style.display = 'none';
+            console.warn('Web Speech API não suportada neste navegador.');
+        }
+    });
+</script>

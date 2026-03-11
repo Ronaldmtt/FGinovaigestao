@@ -742,3 +742,47 @@ class FinSupplier(db.Model):
     telefone = db.Column(db.String(50), nullable=True)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# ==========================================
+# Módulo de Reuniões (Meetings Hub)
+# ==========================================
+meeting_participants = db.Table('meeting_participants',
+    db.Column('meeting_id', db.Integer, db.ForeignKey('meetings.id'), primary_key=True),
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True)
+)
+
+class Meeting(db.Model):
+    __tablename__ = 'meetings'
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    date_time = db.Column(db.DateTime, nullable=False)
+    project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=True) # Pode ser solta ou vinculada a proj
+    transcription_id = db.Column(db.String(100), nullable=True) # ID no FGTranscritor
+    transcription_content = db.Column(db.Text, nullable=True)
+    analysis_summary = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # Status: agendada, concluida, cancelada
+    status = db.Column(db.String(20), default='agendada')
+    
+    participants = db.relationship('User', secondary=meeting_participants, lazy='subquery',
+        backref=db.backref('meetings', lazy=True))
+    project = db.relationship('Project', backref='meetings', lazy=True)
+    creator = db.relationship('User', foreign_keys=[created_by_id])
+
+# ==========================================
+# AI Copilot (Assistente Virtual)
+# ==========================================
+class AiChatHistory(db.Model):
+    """Armazena o histórico de mensagens trocadas com o Copilot por usuário"""
+    __tablename__ = 'ai_chat_history'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    role = db.Column(db.String(20), nullable=False) # 'system', 'user', 'assistant', 'tool'
+    content = db.Column(db.Text, nullable=True)
+    tool_calls = db.Column(db.Text, nullable=True) # JSON string das chamadas de funcao
+    tool_call_id = db.Column(db.String(100), nullable=True) # ID para mensagens de tipo 'tool'
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    user = db.relationship('User', backref=db.backref('chat_history', lazy='dynamic'))

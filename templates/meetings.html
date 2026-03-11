@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Hub de Reuniões{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-video me-2 text-primary"></i> Hub de Reuniões</h2>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newMeetingModal">
+        <i class="fas fa-plus me-1"></i> Nova Reunião
+    </button>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('meetings_bp.meetings_hub') }}" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">Filtrar por Projeto</label>
+                <select name="project_id" class="form-select">
+                    <option value="">Todos os Projetos</option>
+                    {% for p in projects %}
+                    <option value="{{ p.id }}" {% if selected_project|string==p.id|string %}selected{% endif %}>
+                        {{ p.nome }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Filtrar por Participante</label>
+                <select name="user_id" class="form-select">
+                    <option value="">Todos os Usuários</option>
+                    {% for u in users %}
+                    <option value="{{ u.id }}" {% if selected_user|string==u.id|string %}selected{% endif %}>
+                        {{ u.full_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-secondary me-2"><i class="fas fa-filter"></i> Filtrar</button>
+                <a href="{{ url_for('meetings_bp.meetings_hub') }}" class="btn btn-outline-secondary">Limpar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Lista de Reuniões -->
+<div class="row">
+    {% for m in meetings %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h5 class="card-title text-truncate" title="{{ m.title }}">{{ m.title }}</h5>
+                    {% if m.status == 'concluida' %}
+                    <span class="badge bg-success">Concluída</span>
+                    {% elif m.status == 'cancelada' %}
+                    <span class="badge bg-danger">Cancelada</span>
+                    {% else %}
+                    <span class="badge bg-warning text-dark">Agendada</span>
+                    {% endif %}
+                </div>
+
+                <h6 class="card-subtitle mb-3 text-muted">
+                    <i class="far fa-calendar-alt me-1"></i>
+                    {{ m.date_time.strftime('%d/%m/%Y às %H:%M') }}
+                </h6>
+
+                {% if m.project %}
+                <p class="mb-2" style="font-size: 0.9rem;">
+                    <i class="fas fa-project-diagram text-secondary me-1"></i>
+                    Projeto: <strong>{{ m.project.nome }}</strong>
+                </p>
+                {% endif %}
+
+                <div class="mb-3">
+                    <small class="text-muted d-block mb-1">Participantes:</small>
+                    <div class="d-flex flex-wrap gap-1">
+                        {% for p in m.participants %}
+                        <span class="badge bg-secondary" title="{{ p.full_name }}">{{ p.nome }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent border-top-0 pt-0 pb-3 mt-auto text-end">
+                <a href="{{ url_for('meetings_bp.meeting_detail', meeting_id=m.id) }}"
+                    class="btn btn-sm btn-outline-primary">
+                    Visualizar Análise <i class="fas fa-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12 text-center py-5">
+        <div class="text-muted mb-3"><i class="fas fa-calendar-times fa-3x"></i></div>
+        <h5>Nenhuma reunião encontrada.</h5>
+        <p class="text-muted">Ajuste os filtros ou crie uma nova reunião.</p>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Modal Nova Reunião -->
+<div class="modal fade" id="newMeetingModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('meetings_bp.create_meeting') }}" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title">Agendar Nova Reunião</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Título da Reunião *</label>
+                        <input type="text" name="title" class="form-control" required
+                            placeholder="Ex: Kickoff do Projeto Alfa">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Data e Hora *</label>
+                        <input type="datetime-local" name="date_time" class="form-control" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Vincular a um Projeto</label>
+                        <select name="project_id" class="form-select">
+                            <option value="">Sem vínculo</option>
+                            {% for p in projects %}
+                            <option value="{{ p.id }}">{{ p.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Convidados / Participantes</label>
+                        <select name="participants" class="form-select" multiple size="4">
+                            {% for u in users %}
+                            {% if u.id != current_user.id %}
+                            <option value="{{ u.id }}">{{ u.full_name }}</option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Você será incluído automaticamente. Use Ctrl/Cmd para selecionar
+                            vários.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Criar Reunião</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('action') === 'new_meeting') {
+            const modalEl = document.getElementById('newMeetingModal');
+            const modal = new bootstrap.Modal(modalEl);
+
+            // Pre-select project if passed
+            const pid = urlParams.get('project_id');
+            if (pid) {
+                const select = modalEl.querySelector('select[name="project_id"]');
+                if (select) select.value = pid;
+            }
+
+            modal.show();
+        }
+    });
+</script>
+{% endblock %}

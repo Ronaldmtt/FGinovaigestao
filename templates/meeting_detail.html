@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Detalhes da Reunião - {{ meeting.title }}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{{ url_for('meetings_bp.meetings_hub') }}" class="btn btn-sm btn-outline-secondary mb-3">
+        <i class="fas fa-arrow-left me-1"></i> Voltar para reuniões
+    </a>
+    <div class="d-flex justify-content-between align-items-center">
+        <h2><i class="fas fa-video me-2 text-primary"></i> {{ meeting.title }}</h2>
+        <div>
+            {% if meeting.status == 'concluida' %}
+            <span class="badge bg-success fs-6 px-3 py-2">Concluída</span>
+            {% elif meeting.status == 'cancelada' %}
+            <span class="badge bg-danger fs-6 px-3 py-2">Cancelada</span>
+            {% else %}
+            <span class="badge bg-warning text-dark fs-6 px-3 py-2">Agendada</span>
+            {% endif %}
+        </div>
+    </div>
+    <div class="text-muted mt-2">
+        <i class="far fa-calendar-alt me-1"></i> {{ meeting.date_time.strftime('%d/%m/%Y às %H:%M') }}
+        {% if meeting.project %}
+        <span class="mx-2">|</span>
+        <i class="fas fa-project-diagram me-1"></i> Projeto: <a
+            href="{{ url_for('project_details', id=meeting.project.id) }}" class="text-decoration-none">{{
+            meeting.project.nome }}</a>
+        {% endif %}
+        <span class="mx-2">|</span>
+        <i class="fas fa-user-tie me-1"></i> Criador: {{ meeting.creator.full_name }}
+    </div>
+</div>
+
+<div class="row">
+    <!-- Coluna Principal (Resumo/Analise IA) -->
+    <div class="col-md-8">
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-robot text-primary me-2"></i> Análise de IA (Ata / Resumo)</h5>
+                {% if not meeting.analysis_summary %}
+                <button class="btn btn-sm btn-outline-primary" id="btn-process-ai" {% if not
+                    meeting.transcription_content %}disabled title="Requer transcrição" {% endif %}>
+                    <i class="fas fa-cog me-1"></i> Gerar Resumo
+                </button>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if meeting.analysis_summary %}
+                <div class="markdown-content">
+                    {{ meeting.analysis_summary | safe }}
+                </div>
+                {% else %}
+                <div class="text-center py-5 text-muted">
+                    <i class="fas fa-magic fa-3x mb-3 opacity-50"></i>
+                    <p>Nenhuma análise gerada ainda. Adicione uma transcrição ou texto base para a IA processar a ata.
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-align-left text-secondary me-2"></i> Transcrição</h5>
+            </div>
+            <div class="card-body">
+                {% if meeting.transcription_content %}
+                <div class="bg-light p-3 rounded"
+                    style="max-height: 400px; overflow-y: auto; white-space: pre-wrap; font-family: monospace; font-size: 0.9rem;">
+                    {{ meeting.transcription_content }}
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <p>Nenhuma transcrição associada a esta reunião.</p>
+                    <button class="btn btn-outline-secondary btn-sm"><i class="fas fa-upload me-1"></i> Fazer upload
+                        manual</button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Coluna Lateral (Participantes) -->
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0"><i class="fas fa-users text-info me-2"></i> Participantes ({{
+                    meeting.participants|length }})</h5>
+            </div>
+            <ul class="list-group list-group-flush">
+                {% for p in meeting.participants %}
+                <li class="list-group-item d-flex align-items-center">
+                    <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-3"
+                        style="width: 32px; height: 32px; font-size: 0.8rem;">
+                        {{ p.nome[0] }}{{ p.sobrenome[0] if p.sobrenome else '' }}
+                    </div>
+                    <div>
+                        <h6 class="mb-0">{{ p.full_name }}</h6>
+                        <small class="text-muted">{{ p.email }}</small>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Formatar markdown do resumo se existir e for texto puro
+        const mdContainers = document.querySelectorAll('.markdown-content');
+        mdContainers.forEach(container => {
+            // Verifica se o texto precisa de parse ou ja e html
+            const raw = container.innerHTML.trim();
+            if (!raw.startsWith('<') && raw.length > 0) {
+                container.innerHTML = marked.parse(raw);
+            }
+        });
+    });
+</script>
+{% endblock %}

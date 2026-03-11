@@ -1,0 +1,365 @@
+{% extends "base.html" %}
+
+{% block title %}O Ás Copilot - IA Hub{% endblock %}
+
+{% block content %}
+<style>
+    .ia-hub-container {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 120px);
+        background-color: var(--bs-body-bg);
+        border-radius: 16px;
+        border: 1px solid var(--bs-border-color);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+    .ia-hub-header {
+        padding: 20px;
+        background: linear-gradient(135deg, #1e1e2f, #2a2a40);
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+
+    .ia-hub-header i {
+        color: #a855f7;
+    }
+
+    .ia-hub-body {
+        flex: 1;
+        padding: 24px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .msg-bubble {
+        max-width: 80%;
+        padding: 16px 20px;
+        border-radius: 16px;
+        font-size: 1rem;
+        line-height: 1.5;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .msg-bubble.user {
+        align-self: flex-end;
+        background-color: #3b82f6;
+        color: white;
+        border-bottom-right-radius: 4px;
+    }
+
+    .msg-bubble.assistant {
+        align-self: flex-start;
+        background-color: var(--bs-tertiary-bg);
+        color: var(--bs-body-color);
+        border-bottom-left-radius: 4px;
+        border: 1px solid var(--bs-border-color);
+    }
+
+    .msg-bubble.tool {
+        align-self: center;
+        background-color: transparent;
+        color: #a855f7;
+        font-size: 0.9rem;
+        border: 1px dashed #a855f7;
+        text-align: center;
+        padding: 8px 16px;
+        border-radius: 8px;
+    }
+
+    .ia-hub-footer {
+        padding: 20px;
+        border-top: 1px solid var(--bs-border-color);
+        background-color: var(--bs-body-bg);
+    }
+
+    .input-wrapper {
+        display: flex;
+        gap: 12px;
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .hub-input {
+        flex: 1;
+        padding: 16px 24px;
+        border-radius: 30px;
+        border: 1px solid var(--bs-border-color);
+        background-color: var(--bs-tertiary-bg);
+        color: var(--bs-body-color);
+        font-size: 1rem;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+
+    .hub-input:focus {
+        border-color: #6366f1;
+    }
+
+    .hub-btn {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .hub-btn.mic {
+        background-color: var(--bs-tertiary-bg);
+        color: var(--bs-body-color);
+        border: 1px solid var(--bs-border-color);
+    }
+
+    .hub-btn.mic:hover {
+        background-color: rgba(99, 102, 241, 0.1);
+        color: #6366f1;
+    }
+
+    .hub-btn.mic.active {
+        background-color: #ef4444;
+        color: white;
+        border-color: #ef4444;
+        animation: pulseMic 1.5s infinite;
+    }
+
+    .hub-btn.send {
+        background: linear-gradient(135deg, #6366f1, #a855f7);
+        color: white;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+    }
+
+    .hub-btn.send:hover {
+        transform: scale(1.05);
+        box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5);
+    }
+
+    /* Estilos para renderização de gráficos na bolha */
+    .chart-container {
+        width: 100%;
+        max-width: 600px;
+        height: 300px;
+        margin-top: 16px;
+        background: white;
+        border-radius: 8px;
+        padding: 12px;
+    }
+
+    [data-bs-theme="dark"] .chart-container {
+        background: #1e1e2f;
+    }
+</style>
+
+<div class="ia-hub-container">
+    <div class="ia-hub-header">
+        <i class="fas fa-brain"></i>
+        <span>Central de Inteligência Artificial</span>
+    </div>
+
+    <div class="ia-hub-body" id="hub-messages">
+        <div class="msg-bubble assistant">
+            <h3>Bem-vindo à Central de IA!</h3>
+            <p>Este é um ambiente imersivo para interagirmos com mais clareza. Você pode pedir geração de relatórios
+                gráficos de projetos, insights detalhados ou análises amplas do sistema InovaiLab Gestão.</p>
+        </div>
+    </div>
+
+    <div class="ia-hub-footer">
+        <div class="input-wrapper">
+            <button class="hub-btn mic" id="hub-mic-btn" title="Entrada por voz">
+                <i class="fas fa-microphone"></i>
+            </button>
+            <input type="text" class="hub-input" id="hub-input-field"
+                placeholder="Descreva análises complexas, criação de relatórios ou comandos em lote..."
+                autocomplete="off">
+            <button class="hub-btn send" id="hub-send-btn">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Hide the global floating widget simply because we are in the HUB
+        const globalWidget = document.getElementById('ai-widget-container');
+        if (globalWidget) globalWidget.style.display = 'none';
+
+        const msgsContainer = document.getElementById('hub-messages');
+        const inputField = document.getElementById('hub-input-field');
+        const sendBtn = document.getElementById('hub-send-btn');
+        const micBtn = document.getElementById('hub-mic-btn');
+
+        let chartIdCounter = 0;
+
+        const addMessage = (role, text) => {
+            const div = document.createElement('div');
+            div.className = 'msg-bubble ' + role;
+            if (role === 'assistant') {
+                div.innerHTML = marked.parse(text);
+            } else {
+                div.textContent = text;
+            }
+            msgsContainer.appendChild(div);
+            msgsContainer.scrollTop = msgsContainer.scrollHeight;
+            return div;
+        };
+
+        const addTyping = () => {
+            const id = 'typing-' + Date.now();
+            const div = document.createElement('div');
+            div.className = 'msg-bubble assistant';
+            div.id = id;
+            div.innerHTML = '<div class="ai-typing"><span></span><span></span><span></span> Processando...</div>';
+            msgsContainer.appendChild(div);
+            msgsContainer.scrollTop = msgsContainer.scrollHeight;
+            return id;
+        };
+
+        const removeTyping = (id) => {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        };
+
+        const renderChart = (containerDiv, type, dataStr, title) => {
+            chartIdCounter++;
+            const canvasId = 'chart-' + chartIdCounter;
+            const chartWrapper = document.createElement('div');
+            chartWrapper.className = 'chart-container';
+            chartWrapper.innerHTML = `<h5>${title}</h5><canvas id="${canvasId}"></canvas>`;
+            containerDiv.appendChild(chartWrapper);
+            msgsContainer.scrollTop = msgsContainer.scrollHeight;
+
+            try {
+                const parsedData = JSON.parse(dataStr); // Espera {labels: [], datasets: []}
+                const ctx = document.getElementById(canvasId).getContext('2d');
+                new Chart(ctx, {
+                    type: type === 'kanban_stats' ? 'doughnut' : type,
+                    data: parsedData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom' }
+                        }
+                    }
+                });
+            } catch (e) {
+                chartWrapper.innerHTML += '<p class="text-danger">Erro ao renderizar gráfico: Dados inválidos.</p>';
+            }
+        };
+
+        const sendMessage = async () => {
+            const text = inputField.value.trim();
+            if (!text) return;
+
+            inputField.value = '';
+            addMessage('user', text);
+            const typingId = addTyping();
+
+            try {
+                const response = await fetch('/api/chat/message', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text })
+                });
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder('utf-8');
+                let done = false;
+                let fullContent = '';
+
+                removeTyping(typingId);
+                const msgDiv = document.createElement('div');
+                msgDiv.className = 'msg-bubble assistant';
+                msgsContainer.appendChild(msgDiv);
+
+                while (!done) {
+                    const { value, done: readerDone } = await reader.read();
+                    done = readerDone;
+                    if (value) {
+                        const chunk = decoder.decode(value, { stream: true });
+                        const lines = chunk.split('\n');
+
+                        for (let line of lines) {
+                            if (line.startsWith('data: ')) {
+                                const dataStr = line.replace('data: ', '').trim();
+                                if (dataStr === '[DONE]' || !dataStr) continue;
+
+                                try {
+                                    const dataObj = JSON.parse(dataStr);
+                                    if (dataObj.status === 'success' && dataObj.action) {
+
+                                        if (dataObj.action === 'navigate_to') {
+                                            const toolDiv = document.createElement('div');
+                                            toolDiv.className = 'msg-bubble tool';
+                                            toolDiv.innerHTML = `<i class="fas fa-external-link-alt"></i> Redirecionando...`;
+                                            msgsContainer.insertBefore(toolDiv, msgDiv);
+                                            window.location.href = dataObj.url;
+                                        }
+                                        else if (dataObj.action === 'render_chart') {
+                                            // Renderiza char localmente no Hub
+                                            const toolDiv = document.createElement('div');
+                                            toolDiv.className = 'msg-bubble tool';
+                                            toolDiv.innerHTML = `<i class="fas fa-chart-line"></i> Gráfico Gerado`;
+                                            msgsContainer.insertBefore(toolDiv, msgDiv);
+                                            renderChart(msgDiv, dataObj.chart_type, dataObj.data, "Gráfico de Análise");
+                                        }
+                                    } else if (dataObj.content) {
+                                        fullContent += dataObj.content;
+                                        // Se o div já tem chart dentro dele, nós criamos um wrap descritivo embaixo ou resetamos
+                                        if (msgDiv.querySelector('canvas')) {
+                                            // Nao sobrepor markdown em cima do chart gerado
+                                        } else {
+                                            msgDiv.innerHTML = marked.parse(fullContent);
+                                        }
+                                        msgsContainer.scrollTop = msgsContainer.scrollHeight;
+                                    } else if (dataObj.error) {
+                                        msgDiv.innerHTML += `<br><span style="color:red">Erro: ${dataObj.error}</span>`;
+                                    }
+                                } catch (e) { }
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                removeTyping(typingId);
+                addMessage('assistant', `<span style="color:red">Erro: ${error.message}</span>`);
+            }
+        };
+
+        sendBtn.addEventListener('click', sendMessage);
+        inputField.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'pt-BR';
+            recognition.onstart = () => { micBtn.classList.add('active'); inputField.placeholder = "Ouvindo..."; };
+            recognition.onspeechend = () => { recognition.stop(); micBtn.classList.remove('active'); inputField.placeholder = "Mensagem..."; };
+            recognition.onresult = (e) => { inputField.value = e.results[0][0].transcript; };
+            recognition.onerror = () => { micBtn.classList.remove('active'); };
+            micBtn.addEventListener('click', () => { micBtn.classList.contains('active') ? recognition.stop() : recognition.start(); });
+        } else {
+            micBtn.style.display = 'none';
+        }
+    });
+</script>
+{% endblock %}

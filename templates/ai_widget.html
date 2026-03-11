@@ -363,7 +363,14 @@
                                         // Tool Execute
                                         const toolDiv = document.createElement('div');
                                         toolDiv.className = 'ai-msg tool';
-                                        toolDiv.innerHTML = `<i class="fas fa-cogs"></i> Executando ação: ${dataObj.action}...`;
+
+                                        let actionString = dataObj.action;
+                                        if (actionString === 'ui_update') actionString = 'Sincronizando interface...';
+                                        if (actionString === 'chat_reply') actionString = dataObj.message || 'Processando registros...';
+                                        if (actionString === 'navigate_to') actionString = 'Navegando...';
+                                        if (actionString === 'download_pdf') actionString = 'Gerando Relatório PDF...';
+
+                                        toolDiv.innerHTML = `<i class="fas fa-cogs" style="color: #6366f1;"></i> <span style="font-size: 0.9em; color: #666;">${actionString}</span>`;
                                         msgsContainer.insertBefore(toolDiv, msgDiv); // Put before the final answer
 
                                         // Handle specific UI actions internally
@@ -395,7 +402,9 @@
                                         msgDiv.innerHTML = marked.parse(fullContent);
                                         msgsContainer.scrollTop = msgsContainer.scrollHeight;
                                     } else if (dataObj.error) {
-                                        msgDiv.innerHTML = `<span style="color:red">Erro: ${dataObj.error}</span>`;
+                                        const errStr = dataObj.message ? dataObj.message : dataObj.error;
+                                        msgDiv.innerHTML = `<span style="color:red; font-size:0.9em;"><i class="fas fa-exclamation-triangle"></i> Falha: ${errStr}</span>`;
+                                        msgsContainer.scrollTop = msgsContainer.scrollHeight;
                                     }
                                 } catch (e) {
                                     console.error("Error parsing SSE JSON", e, dataStr);

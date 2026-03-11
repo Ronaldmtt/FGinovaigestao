@@ -177,7 +177,9 @@ TOOLS = [
                 "properties": {
                     "texto": {"type": "string", "description": "O que precisa ser feito."},
                     "task_search": {"type": "string", "description": "Nome da tarefa pai."},
-                    "project_search": {"type": "string", "description": "Opcional: Nome do projeto para garantir a tarefa certa caso existam homônimos."}
+                    "project_search": {"type": "string", "description": "Opcional: Nome do projeto para garantir a tarefa certa caso existam homônimos."},
+                    "completed": {"type": "boolean", "description": "Opcional: Definir como 'true' se a subtarefa já nasceu concluída."},
+                    "due_date": {"type": "string", "description": "Opcional: Data de vencimento da subtarefa no formato YYYY-MM-DD."}
                 },
                 "required": ["texto", "task_search"]
             }
@@ -435,6 +437,8 @@ def execute_tool(name, arguments, user):
         texto = args.get("texto")
         task_search = args.get("task_search")
         project_search = args.get("project_search")
+        completed = args.get("completed", False)
+        due_date_str = args.get("due_date", None)
         
         query = Task.query.filter(Task.titulo.ilike(f"%{task_search}%"))
         
@@ -450,10 +454,25 @@ def execute_tool(name, arguments, user):
         if not t:
             return json.dumps({"status": "error", "message": f"Não encontrei a tarefa '{task_search}'. Peça mais detalhes ao usuário."})
             
-        si = TodoItem(texto=texto, task_id=t.id)
+        due_date_obj = None
+        if due_date_str:
+            try:
+                due_date_obj = datetime.strptime(due_date_str, '%Y-%m-%d').date()
+            except Exception:
+                pass
+                
+        si = TodoItem(
+            texto=texto, 
+            task_id=t.id, 
+            completed=completed,
+            due_date=due_date_obj
+        )
+        if completed:
+            si.completed_at = datetime.utcnow()
+            
         db.session.add(si)
         db.session.commit()
-        return json.dumps({"status": "success", "action": "ui_update", "message": f"To-do '{texto}' inserido na tarefa {t.titulo}."})
+        return json.dumps({"status": "success", "action": "ui_update", "message": f"To-do '{texto}' inserido na tarefa {t.titulo} (Concluído: {completed})."})
 
     elif name == "generate_pdf_report":
         term = args.get("project_search")

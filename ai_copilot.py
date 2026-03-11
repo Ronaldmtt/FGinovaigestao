@@ -270,7 +270,8 @@ Financeiro Dashboard = `/financeiro/dashboard` | Lançamentos = `/financeiro/lan
 
 2. AUTO-DESCOBERTA (GOD MODE): Você se integra a TODO o banco SQL do sistema. Se o usuário perguntar de Lançamentos Financeiros, ou quiser deletar algo "estranho", ou listar Metas, primeiro chame `get_system_schema` para entender o banco de dados.
 3. LISTAGENS E FILTROS PODEROSOS: Depois de saber o nome da Tabela, use `list_any_entity` (Ex: table_name="FinTransaction") para listar. 
-CRÍTICO: Se você quer listar Subtarefas (TodoItem) de uma Tarefa, VOCÊ DEVE PRIMEIRO descobrir o ID da Task, e depois chamar `list_any_entity` na tabela TodoItem passando OBRIGATORIAMENTE o `filter_dict: {{"task_id": <ID_AQUI>}}`. Jamais liste TodoItems sem esse filtro, ou você alterará o banco inteiro de forma destrutiva! Encontre o ID exato na lista retornada!
+CRÍTICO: Para encontrar uma Tarefa (Task), use `list_any_entity` na tabela Task enviando `filter_dict: {{"titulo": "nome ou parte do nome da tarefa"}}`.
+Depois de descobrir o ID da Task, para manipular suas Subtarefas (TodoItem), VOCÊ DEVE chamar `list_any_entity` na tabela TodoItem passando OBRIGATORIAMENTE o `filter_dict: {{"task_id": <ID_DA_TASK>}}`. O sistema bloqueia a listagem de TodoItems sem esse filtro!
 4. UPDATE E DELETE NATIVOS: Tendo o ID, se você precisar *mover um cartão no funil*, ou deletar, ou atualizar (como marcar "completed": true), use apenas o `crud_any_entity` informando action="update", o ID, e o payload JSON de quais colunas quer sobrescrever. (Use o reflection para ser um deus da programação).
 5. CRIAÇÕES OFICIAIS: Continuam valendo suas tools primárias de criação simples (`create_project`, `create_task`, `create_subtask`, `create_lead`, `create_client`).
 6. COMPORTAMENTO DE SISTEMA OPERACIONAL: Se afirmarem que você não sabe acessar "notificações", prove o contrário e acesse na hora. Se pedirem pra alterar qualquer vírgula, liste, descubra o ID e DEPOIS faça o UPDATE na lata.
@@ -521,11 +522,20 @@ def execute_tool(name, arguments, user):
             return json.dumps({"status": "error", "message": f"Tabela '{table_name}' desconhecida ou não mapeada no God Mode."})
             
         try:
+            # SAFETY BLOCK: Impedir o AI de destruir TodoItems acidentalmente
+            if table_name == 'TodoItem':
+                if not isinstance(filter_dict, dict) or 'task_id' not in filter_dict:
+                    return json.dumps({"status": "error", "message": "CRÍTICO BLOCK: É ESTRITAMENTE PROIBIDO listar TodoItems sem fornecer um filter_dict contendo o 'task_id'. Encontre o ID da Task primeiro buscando na tabela Task."})
+
             query = ModelClass.query
             if isinstance(filter_dict, dict):
                 for k, v in filter_dict.items():
                     if hasattr(ModelClass, k):
-                        query = query.filter(getattr(ModelClass, k) == v)
+                        col = getattr(ModelClass, k)
+                        if isinstance(v, str):
+                            query = query.filter(col.ilike(f"%{v}%"))
+                        else:
+                            query = query.filter(col == v)
                         
             records = query.limit(limit).all()
             results = []

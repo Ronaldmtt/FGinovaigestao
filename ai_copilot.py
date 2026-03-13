@@ -670,12 +670,19 @@ def chat_stream(user_id, user_message):
                     
                     # Avisa a UI sobre o status em andamento
                     action_text = "Processando banco de dados..."
+                    payload_frontend = {'status': 'success'}
                     try:
                         res_json = json.loads(tool_result)
                         action_text = res_json.get("action", res_json.get("message", function_name))
-                    except: pass
-                    
-                    yield f"data: {json.dumps({'status': 'success', 'action': action_text})}\n\n"
+                        payload_frontend['action'] = action_text
+                        if 'url' in res_json: payload_frontend['url'] = res_json['url']
+                        if 'project_id' in res_json: payload_frontend['project_id'] = res_json['project_id']
+                        if 'chart_type' in res_json: payload_frontend['chart_type'] = res_json['chart_type']
+                        if 'data' in res_json: payload_frontend['data'] = res_json['data']
+                    except:
+                        payload_frontend['action'] = action_text
+                        
+                    yield f"data: {json.dumps(payload_frontend)}\n\n"
                     
                     # Anexa o resultado da tool ao script system prompt pra OpenAI prosseguir
                     messages.append({

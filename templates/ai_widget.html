@@ -275,11 +275,23 @@
         const sendBtn = document.getElementById('ai-send-btn');
         const micBtn = document.getElementById('ai-mic-btn');
 
+        // Restaurar histórico de chat da sessão
+        const savedChat = sessionStorage.getItem('ai_chat_history');
+        if (savedChat) {
+            msgsContainer.innerHTML = savedChat;
+            msgsContainer.scrollTop = msgsContainer.scrollHeight;
+        }
+
+        const saveChat = () => {
+            sessionStorage.setItem('ai_chat_history', msgsContainer.innerHTML);
+        };
+
         // Toggle Chat
         toggleBtn.addEventListener('click', () => {
             chatWindow.classList.add('show');
             toggleBtn.style.display = 'none';
             inputField.focus();
+            msgsContainer.scrollTop = msgsContainer.scrollHeight;
         });
 
         closeBtn.addEventListener('click', () => {
@@ -297,6 +309,7 @@
             }
             msgsContainer.appendChild(div);
             msgsContainer.scrollTop = msgsContainer.scrollHeight;
+            saveChat();
             return div;
         };
 
@@ -308,12 +321,16 @@
             div.innerHTML = '<div class="ai-typing"><span></span><span></span><span></span></div>';
             msgsContainer.appendChild(div);
             msgsContainer.scrollTop = msgsContainer.scrollHeight;
+            saveChat();
             return id;
         };
 
         const removeTyping = (id) => {
             const el = document.getElementById(id);
-            if (el) el.remove();
+            if (el) {
+                el.remove();
+                saveChat();
+            }
         };
 
         const sendMessage = async () => {
@@ -374,6 +391,7 @@
 
                                         toolDiv.innerHTML = `<i class="fas fa-cogs" style="color: #6366f1;"></i> <span style="font-size: 0.9em; color: #666;">${actionString}</span>`;
                                         msgsContainer.insertBefore(toolDiv, msgDiv); // Put before the final answer
+                                        saveChat();
 
                                         // Handle specific UI actions internally
                                         if (dataObj.action === 'navigate_to') {
@@ -384,27 +402,49 @@
                                                 headers: { 'Content-Type': 'application/json' },
                                                 body: JSON.stringify({ project_ids: [dataObj.project_id] })
                                             })
-                                                .then(response => response.blob())
+                                                .then(response => {
+                                                    const contentType = response.headers.get("content-type");
+                                                    if (!contentType || !contentType.includes("application/pdf")) {
+                                                        throw new Error("Acesso Negado ou Projeto Não Encontrado (Erro 302/403). O PDF não pôde ser gerado.");
+                                                    }
+                                                    return response.blob();
+                                                })
                                                 .then(blob => {
                                                     const url = window.URL.createObjectURL(blob);
                                                     const a = document.createElement('a');
                                                     a.style.display = 'none';
                                                     a.href = url;
-                                                    a.download = 'Relatorio_Projeto.pdf';
+                                                    a.download = `Relatorio_Projeto_${dataObj.project_id}.pdf`;
                                                     document.body.appendChild(a);
                                                     a.click();
                                                     window.URL.revokeObjectURL(url);
+
+                                                    // Add an artificial success message
+                                                    const successDiv = document.createElement('div');
+                                                    successDiv.className = 'ai-msg tool';
+                                                    successDiv.innerHTML = `<i class="fas fa-check-circle" style="color: #10b981;"></i> <span style="font-size: 0.9em; color: #10b981;">Download do Relatório Iniciado!</span>`;
+                                                    msgsContainer.insertBefore(successDiv, msgDiv);
+                                                    msgsContainer.scrollTop = msgsContainer.scrollHeight;
                                                 })
-                                                .catch(err => console.error("Erro ao gerar PDF:", err));
+                                                .catch(err => {
+                                                    console.error("Erro ao gerar PDF:", err);
+                                                    const errorDiv = document.createElement('div');
+                                                    errorDiv.className = 'ai-msg tool';
+                                                    errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i> <span style="font-size: 0.9em; color: #ef4444;">Falha no PDF: ${err.message}</span>`;
+                                                    msgsContainer.insertBefore(errorDiv, msgDiv);
+                                                    msgsContainer.scrollTop = msgsContainer.scrollHeight;
+                                                });
                                         }
                                     } else if (dataObj.content) {
                                         fullContent += dataObj.content;
                                         msgDiv.innerHTML = marked.parse(fullContent);
                                         msgsContainer.scrollTop = msgsContainer.scrollHeight;
+                                        saveChat();
                                     } else if (dataObj.error) {
                                         const errStr = dataObj.message ? dataObj.message : dataObj.error;
                                         msgDiv.innerHTML = `<span style="color:red; font-size:0.9em;"><i class="fas fa-exclamation-triangle"></i> Falha: ${errStr}</span>`;
                                         msgsContainer.scrollTop = msgsContainer.scrollHeight;
+                                        saveChat();
                                     }
                                 } catch (e) {
                                     console.error("Error parsing SSE JSON", e, dataStr);

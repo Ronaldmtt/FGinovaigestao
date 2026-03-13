@@ -286,16 +286,25 @@
             sessionStorage.setItem('ai_chat_history', msgsContainer.innerHTML);
         };
 
+        // Restaurar estado aberto/fechado
+        const isChatOpen = sessionStorage.getItem('ai_chat_open') === 'true';
+        if (isChatOpen) {
+            chatWindow.classList.add('show');
+            toggleBtn.style.display = 'none';
+        }
+
         // Toggle Chat
         toggleBtn.addEventListener('click', () => {
             chatWindow.classList.add('show');
             toggleBtn.style.display = 'none';
             inputField.focus();
             msgsContainer.scrollTop = msgsContainer.scrollHeight;
+            sessionStorage.setItem('ai_chat_open', 'true');
         });
 
         closeBtn.addEventListener('click', () => {
             chatWindow.classList.remove('show');
+            sessionStorage.setItem('ai_chat_open', 'false');
             setTimeout(() => toggleBtn.style.display = 'flex', 300);
         });
 

@@ -310,9 +310,10 @@ def execute_tool(name, arguments, user):
             
             p = query.first()
             if p:
-                url = f"/projects/{p.id}"
                 if tab == 'kanban':
-                    url += "?tab=kanban"
+                    url = f"/kanban?project_id={p.id}"
+                else:
+                    url = f"/projects/{p.id}"
             else:
                 return json.dumps({"status": "error", "message": f"Projeto contendo '{term}' não foi encontrado ou você não tem acesso."})
         elif not url:

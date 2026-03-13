@@ -1919,14 +1919,27 @@ def kanban():
     
     # Para os filtros - mostrar apenas projetos que o usuário participa (exceto admin)
     if current_user.is_admin:
-        projects = Project.query.outerjoin(Client).filter(Project.show_in_kanban == True).order_by(Client.nome, Project.nome).all()
+        query_proj = Project.query.outerjoin(Client)
+        if project_filter:
+            query_proj = query_proj.filter((Project.show_in_kanban == True) | (Project.id.in_(project_filter)))
+        else:
+            query_proj = query_proj.filter(Project.show_in_kanban == True)
+            
+        projects = query_proj.order_by(Client.nome, Project.nome).all()
         clients = Client.query.order_by(Client.nome).all()
     else:
         # Filtrar projetos onde o usuário é responsável ou membro da equipe
-        projects = Project.query.outerjoin(Client).filter(
+        query_proj = Project.query.outerjoin(Client).filter(
             (Project.responsible_id == current_user.id) |
             (Project.team_members.contains(current_user))
-        ).filter(Project.show_in_kanban == True).order_by(Client.nome, Project.nome).all()
+        )
+        if project_filter:
+            query_proj = query_proj.filter((Project.show_in_kanban == True) | (Project.id.in_(project_filter)))
+        else:
+            query_proj = query_proj.filter(Project.show_in_kanban == True)
+            
+        projects = query_proj.order_by(Client.nome, Project.nome).all()
+        
         # Filtrar apenas clientes dos projetos do usuário
         client_ids = list(set([p.client_id for p in projects]))
         clients = Client.query.filter(Client.id.in_(client_ids)).order_by(Client.nome).all() if client_ids else []

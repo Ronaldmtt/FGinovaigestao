@@ -1854,6 +1854,12 @@ def kanban():
     project_filter = [int(x) for x in project_filter if x.isdigit()]
     client_filter = [int(x) for x in client_filter if x.isdigit()]
     user_filter = [int(x) for x in user_filter if x.isdigit()]
+
+    # Incluir subprojetos (filhos) se o pai for filtrado
+    if project_filter:
+        child_projects = Project.query.filter(Project.parent_id.in_(project_filter)).all()
+        child_ids = [cp.id for cp in child_projects]
+        project_filter.extend(child_ids)
     
     selected_project_name = None
     

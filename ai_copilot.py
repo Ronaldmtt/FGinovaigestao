@@ -270,7 +270,7 @@ Financeiro Dashboard = `/financeiro/dashboard` | Lançamentos = `/financeiro/lan
 
 2. AUTO-DESCOBERTA (GOD MODE): Você se integra a TODO o banco SQL do sistema. Se o usuário perguntar de Lançamentos Financeiros, ou quiser deletar algo "estranho", ou listar Metas, primeiro chame `get_system_schema` para entender o banco de dados.
 3. LISTAGENS E FILTROS PODEROSOS: Depois de saber o nome da Tabela, use `list_any_entity` (Ex: table_name="FinTransaction") para listar. 
-CRÍTICO: Para encontrar uma Tarefa (Task), use `list_any_entity` na tabela Task enviando `filter_dict: {{"titulo": "nome ou parte do nome da tarefa"}}`.
+CRÍTICO: Tarefas quase sempre pertencem a PROJETOS FILHOS (Subprojetos) e não ao projeto Pai central. Se o usuário pedir "tarefas do Game 360", NUNCA busque o nome do projeto na tabela Task direto. PRIMEIRO use `get_project_summary` ou `list_projects` para descobrir o ID do projeto correto (que pode se chamar "OÁZ - Game 360"). Só então, use `list_any_entity` na tabela Task enviando `filter_dict: {{"project_id": <ID_DO_PROJETO>}}`.
 Depois de descobrir o ID da Task, para manipular suas Subtarefas (TodoItem), VOCÊ DEVE chamar `list_any_entity` na tabela TodoItem passando OBRIGATORIAMENTE o `filter_dict: {{"task_id": <ID_DA_TASK>}}`. O sistema bloqueia a listagem de TodoItems sem esse filtro!
 4. UPDATE E DELETE NATIVOS: Tendo o ID, se você precisar *mover um cartão no funil*, ou deletar, ou atualizar (como marcar "completed": true), use apenas o `crud_any_entity` informando action="update", o ID, e o payload JSON de quais colunas quer sobrescrever. (Use o reflection para ser um deus da programação).
 5. CRIAÇÕES OFICIAIS: Continuam valendo suas tools primárias de criação simples (`create_project`, `create_task`, `create_subtask`, `create_lead`, `create_client`).
@@ -342,11 +342,34 @@ def execute_tool(name, arguments, user):
         
     elif name == "get_project_summary":
         term = args.get("search_term")
-        pts = Project.query.filter(Project.nome.ilike(f"%{term}%")).limit(5).all()
-        res = []
-        for p in pts:
-            res.append({"id": p.id, "nome": p.nome, "status": p.status, "cliente": p.client.nome if p.client else ""})
-        return json.dumps({"status": "success", "results": res})
+        projects = []
+        if str(term).isdigit():
+            projects = Project.query.filter_by(id=int(term)).all()
+        else:
+            projects = Project.query.filter(Project.nome.ilike(f"%{term}%")).limit(3).all()
+            
+        if not projects:
+            return json.dumps({"status": "error", "message": f"Nenhum projeto encontrado com o termo '{term}'."})
+            
+        results = []
+        for p in projects:
+            # Encontrar subprojetos para herdar tarefas no RAG
+            child_projects = Project.query.filter_by(parent_id=p.id).all()
+            all_project_ids = [p.id] + [cp.id for cp in child_projects]
+            
+            # Busca todas as tarefas da árvore desse projeto
+            tasks = Task.query.filter(Task.project_id.in_(all_project_ids)).all()
+            
+            p_data = {
+                "id": p.id,
+                "nome": p.nome,
+                "status": p.status,
+                "progresso": p.progress_percent,
+                "subprojetos": [cp.nome for cp in child_projects] if child_projects else [],
+                "tarefas_resumo": [{"id": t.id, "titulo": t.titulo, "status": t.status, "projeto_dono": t.project.nome} for t in tasks]
+            }
+            results.append(p_data)
+        return json.dumps({"status": "success", "results": results})
         
     elif name == "list_projects":
         project_term = args.get("project_search_term")

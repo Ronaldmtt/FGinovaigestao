@@ -2753,7 +2753,7 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
     }
 
     // GitHub Tab Dynamic Interaction
-    function loadGithubData(projectId, branch = null) {
+    function loadGithubData(projectId, branch = null, path = '') {
         const container = document.getElementById('githubDataContainer');
         if (!container) return;
         
@@ -2767,9 +2767,10 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
         `;
         
         let url = '/projects/' + projectId + '/github_data';
-        if (branch) {
-            url += '?branch=' + encodeURIComponent(branch);
-        }
+        let params = [];
+        if (branch) params.push('branch=' + encodeURIComponent(branch));
+        if (path) params.push('path=' + encodeURIComponent(path));
+        if (params.length > 0) url += '?' + params.join('&');
         
         fetch(url)
             .then(response => response.json())
@@ -2860,11 +2861,26 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
                 </button>
                 <ul class="dropdown-menu dropdown-menu-dark shadow" style="max-height: 250px; overflow-y: auto;">
                     ${branches.map(b => `
-                        <li><a class="dropdown-item ${b.name === data.current_branch ? 'active' : ''}" href="#" onclick="event.preventDefault(); loadGithubData('${projectId}', '${b.name}')">${b.name}</a></li>
+                        <li><a class="dropdown-item ${b.name === data.current_branch ? 'active' : ''}" href="#" onclick="event.preventDefault(); loadGithubData('${projectId}', '${b.name}', '')">${b.name}</a></li>
                     `).join('')}
                 </ul>
             </div>
         `;
+        
+        let pathBreadcrumbsHtml = '';
+        if (data.current_path) {
+            const parts = data.current_path.split('/');
+            let currentAccumulated = '';
+            pathBreadcrumbsHtml = `<span class="text-muted mx-2">/</span><a href="#" onclick="event.preventDefault(); loadGithubData('${projectId}', '${escapeHtml(data.current_branch || '')}', '')" class="text-info text-decoration-none hover-primary" title="Voltar para a raiz"><i class="fas fa-home"></i></a><span class="text-muted mx-2">/</span>`;
+            parts.forEach((p, idx) => {
+                currentAccumulated += (idx === 0 ? '' : '/') + p;
+                if (idx === parts.length - 1) {
+                    pathBreadcrumbsHtml += `<span class="text-light fw-bold">${escapeHtml(p)}</span>`;
+                } else {
+                    pathBreadcrumbsHtml += `<a href="#" onclick="event.preventDefault(); loadGithubData('${projectId}', '${escapeHtml(data.current_branch || '')}', '${escapeHtml(currentAccumulated)}')" class="text-info text-decoration-none hover-primary">${escapeHtml(p)}</a><span class="text-muted mx-2">/</span>`;
+                }
+            });
+        }
 
         // Elemento do commit atual (Latest Commit Hash and message clip)
         let latestCommitHtml = '';
@@ -2886,6 +2902,9 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
                 <div class="d-flex justify-content-between align-items-center mb-0 pb-1">
                     <div class="d-flex align-items-center">
                        ${branchSelectorHtml}
+                       ${pathBreadcrumbsHtml}
+                    </div>
+                    <div class="d-flex align-items-center">
                        <div class="me-3">
                            <i class="fas fa-history me-1 text-secondary hover-primary"></i> 
                            <strong class="text-light hover-primary border-bottom border-secondary border-opacity-50 pb-1" style="cursor: pointer; transition: 0.2s;" onclick="viewAllCommits('${projectId}', '${data.current_branch || ''}')" title="Ver Histórico Completo de Commits">${data.commit_count || 0}</strong> 
@@ -2926,7 +2945,7 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
                 `;
             });
         } else {
-            filesHtml += '<div class="list-group-item bg-dark text-muted">Nenhum arquivo encontrado na raiz.</div>';
+            filesHtml += '<div class="list-group-item bg-dark text-muted">A pasta está vazia.</div>';
         }
         filesHtml += `</div></div>`;
 
@@ -3074,7 +3093,7 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
         const projId = el.getAttribute('data-project');
         const branchStr = el.getAttribute('data-branch');
         if (type === 'dir') {
-             loadGithubData(projId, branchStr);
+             loadGithubData(projId, branchStr, path);
         } else {
              viewFileContent(path, projId, branchStr);
         }
@@ -3235,6 +3254,23 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
     });
 
 </script>
+
+<!-- GitHub File Viewer Modal -->
+<div class="modal fade" id="githubFileModal" tabindex="-1" aria-labelledby="githubFileModalLabel" aria-hidden="true" style="z-index: 1065;">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content bg-dark text-light border-secondary">
+      <div class="modal-header border-secondary bg-dark text-light" data-bs-theme="dark">
+        <h5 class="modal-title font-monospace text-truncate" id="githubFileModalLabel" style="max-width: 90%;">
+           <i class="fas fa-file-code text-info me-2"></i> ...
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-0" id="githubFileModalBody">
+           <!-- Content injected by JS -->
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- GitHub All Commits Modal -->
 <div class="modal fade" id="githubAllCommitsModal" tabindex="-1" aria-hidden="true" style="z-index: 1055;">

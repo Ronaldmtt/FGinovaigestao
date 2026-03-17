@@ -1127,6 +1127,8 @@ def get_github_data(id):
         # Usa o default da api se não tiver target
         if not target_branch:
             target_branch = repo_data.get('default_branch', 'main')
+            
+        target_path = request.args.get('path', '')
         
         def safe_get(url, params=None):
             try:
@@ -1160,9 +1162,12 @@ def get_github_data(id):
         except Exception:
             pass
         
-        # 3. Arquivos do diretório principal (Root) da branch
-        contents_params = {'ref': target_branch} if target_branch else None
-        contents_data = safe_get(f'https://api.github.com/repos/{repo_path}/contents', contents_params) or []
+        # 3. Arquivos do diretório solicitado da branch
+        contents_params = {'ref': target_branch} if target_branch else {}
+        contents_endpoint = f'https://api.github.com/repos/{repo_path}/contents/{target_path}'.strip('/')
+        if contents_endpoint.endswith('contents'): contents_endpoint = f'https://api.github.com/repos/{repo_path}/contents'
+        
+        contents_data = safe_get(contents_endpoint, contents_params) or []
         if isinstance(contents_data, dict) and 'message' in contents_data: 
             contents_data = []
             
@@ -1179,6 +1184,7 @@ def get_github_data(id):
             'success': True,
             'repo': repo_data,
             'current_branch': target_branch,
+            'current_path': target_path,
             'commit_count': total_commits,
             'commits': commits_data,
             'contents': contents_data,

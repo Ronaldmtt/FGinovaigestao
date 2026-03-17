@@ -2459,7 +2459,12 @@ def api_generate_todos_from_commits(task_id):
         since_date = now_utc.replace(hour=0, minute=0, second=0, microsecond=0)
         until_date = now_utc
 
-    repo_path = project.github_repo.replace('https://github.com/', '').strip('/')
+    import re
+    repo_match = re.search(r'(?:github\.com/)?([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(?:\.git|/)?$', project.github_repo)
+    if not repo_match:
+        return jsonify({'success': False, 'message': 'Formato de URL do repositório GitHub inválido.'})
+    
+    repo_path = f"{repo_match.group(1)}/{repo_match.group(2)}"
     
     headers = {
         'Accept': 'application/vnd.github.v3+json',

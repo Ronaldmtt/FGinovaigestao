@@ -2725,8 +2725,35 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
     // Carregar ao iniciar
     document.addEventListener('DOMContentLoaded', loadLinkedProjects);
 
+    // Helper function for relative time
+    function timeAgo(dateString) {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        const seconds = Math.floor((new Date() - date) / 1000);
+        
+        if (seconds < 60) return "agora mesmo";
+        
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return `há ${minutes} min`;
+        
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `há ${hours} h`;
+        
+        const days = Math.floor(hours / 24);
+        if (days === 1) return "ontem";
+        if (days < 30) return `há ${days} dias`;
+        
+        const months = Math.floor(days / 30);
+        if (months === 1) return "mês passado";
+        if (months < 12) return `há ${months} meses`;
+        
+        const years = Math.floor(months / 12);
+        if (years === 1) return "ano passado";
+        return `há ${years} anos`;
+    }
+
     // GitHub Tab Dynamic Interaction
-    function loadGithubData(projectId) {
+    function loadGithubData(projectId, branch = null) {
         const container = document.getElementById('githubDataContainer');
         if (!container) return;
         
@@ -2739,7 +2766,12 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
             </div>
         `;
         
-        fetch('/projects/' + projectId + '/github_data')
+        let url = '/projects/' + projectId + '/github_data';
+        if (branch) {
+            url += '?branch=' + encodeURIComponent(branch);
+        }
+        
+        fetch(url)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -2786,7 +2818,7 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
                     const row = document.getElementById('github-file-' + file.sha);
                     if (row && res.success) {
                         row.querySelector('.file-commit-msg').innerHTML = escapeHtml(res.message);
-                        row.querySelector('.file-commit-date').innerHTML = new Date(res.date).toLocaleDateString();
+                        row.querySelector('.file-commit-date').innerHTML = timeAgo(res.date);
                     } else if (row) {
                         row.querySelector('.file-commit-msg').innerHTML = '<span class="text-danger small">Não disponível</span>';
                         row.querySelector('.file-commit-date').innerHTML = '';
@@ -2820,14 +2852,26 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
         const languages = data.languages || {};
         const contributors = data.contributors || [];
 
+        // Dropdown interativo de Branches
+        let branchSelectorHtml = `
+            <div class="dropdown me-3">
+                <button class="btn btn-sm btn-dark border-secondary dropdown-toggle d-flex align-items-center text-light" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-code-branch me-2 text-info"></i> ${data.current_branch || repo.default_branch || 'main'}
+                </button>
+                <ul class="dropdown-menu dropdown-menu-dark shadow" style="max-height: 250px; overflow-y: auto;">
+                    ${branches.map(b => `
+                        <li><a class="dropdown-item ${b.name === data.current_branch ? 'active' : ''}" href="#" onclick="event.preventDefault(); loadGithubData('${projectId}', '${b.name}')">${b.name}</a></li>
+                    `).join('')}
+                </ul>
+            </div>
+        `;
+
         // 1. Arquivos (File Explorer)
         let filesHtml = `
         <div class="card bg-dark border-secondary mb-4">
             <div class="card-header border-secondary bg-dark text-light d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center">
-                   <div class="me-3">
-                       <i class="fas fa-code-branch me-1 text-info"></i> <span class="badge bg-secondary">${branches.length} Branch(es)</span>
-                   </div>
+                   ${branchSelectorHtml}
                    <div>
                        <i class="fas fa-users me-1 text-primary"></i> <span class="badge bg-secondary">${contributors.length} Contribuidor(es)</span>
                    </div>
@@ -2875,7 +2919,7 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
                 <div class="list-group-item bg-dark text-light border-secondary">
                     <div class="d-flex w-100 justify-content-between">
                         <strong class="mb-1 text-primary text-truncate" style="max-width: 80%;">${c.commit.message}</strong>
-                        <small class="text-muted">${new Date(c.commit.author.date).toLocaleDateString()}</small>
+                        <small class="text-muted">${timeAgo(c.commit.author.date)}</small>
                     </div>
                     <div class="d-flex align-items-center mt-1">
                         ${c.author && c.author.avatar_url ? `<img src="${c.author.avatar_url}" width="20" height="20" class="rounded-circle me-2">` : '<i class="fas fa-user-circle me-2 text-secondary"></i>'}
@@ -2984,7 +3028,7 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
                               </div>
                               <div class="d-flex justify-content-between mb-2 small text-light">
                                   <span class="text-muted">Atualizado</span>
-                                  <span>${new Date(repo.updated_at).toLocaleDateString()}</span>
+                                  <span title="${new Date(repo.updated_at).toLocaleString()}">${timeAgo(repo.updated_at)}</span>
                               </div>
                           </div>
                           

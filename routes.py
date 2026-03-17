@@ -1091,6 +1091,7 @@ def delete_project(id):
 @login_required
 def get_github_data(id):
     project = Project.query.get_or_404(id)
+    target_branch = request.args.get('branch')
     
     # Validações Básicas
     if not project.has_github:
@@ -1123,6 +1124,10 @@ def get_github_data(id):
         repo_resp.raise_for_status()
         repo_data = repo_resp.json()
         
+        # Usa o default da api se não tiver target
+        if not target_branch:
+            target_branch = repo_data.get('default_branch', 'main')
+        
         def safe_get(url, params=None):
             try:
                 resp = requests.get(url, headers=headers, params=params, timeout=10)
@@ -1132,11 +1137,14 @@ def get_github_data(id):
                 pass
             return None
 
-        # 2. Últimos 10 Commits
-        commits_data = safe_get(f'https://api.github.com/repos/{repo_path}/commits', {'per_page': 10}) or []
+        # 2. Últimos 10 Commits da branch
+        commits_params = {'per_page': 10}
+        if target_branch: commits_params['sha'] = target_branch
+        commits_data = safe_get(f'https://api.github.com/repos/{repo_path}/commits', commits_params) or []
         
-        # 3. Arquivos do diretório principal (Root)
-        contents_data = safe_get(f'https://api.github.com/repos/{repo_path}/contents') or []
+        # 3. Arquivos do diretório principal (Root) da branch
+        contents_params = {'ref': target_branch} if target_branch else None
+        contents_data = safe_get(f'https://api.github.com/repos/{repo_path}/contents', contents_params) or []
         if isinstance(contents_data, dict) and 'message' in contents_data: 
             contents_data = []
             
@@ -1152,6 +1160,7 @@ def get_github_data(id):
         return jsonify({
             'success': True,
             'repo': repo_data,
+            'current_branch': target_branch,
             'commits': commits_data,
             'contents': contents_data,
             'branches': branches_data,

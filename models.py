@@ -603,7 +603,7 @@ class LeadFile(db.Model):
     storage_path = db.Column(db.String(500), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    lead_id = db.Column(db.Integer, db.ForeignKey('leads.id'), nullable=False)
+    lead_id = db.Column(db.Integer, db.ForeignKey('lead.id'), nullable=False)
     uploaded_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     
     lead = db.relationship('Lead', backref=db.backref('arquivos', lazy=True, cascade='all, delete-orphan'))

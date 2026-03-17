@@ -2743,7 +2743,7 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    renderGithubData(data);
+                    renderGithubData(data, projectId);
                 } else {
                     container.innerHTML = `
                         <div class="alert alert-danger">
@@ -2763,7 +2763,48 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
             });
     }
 
-    function renderGithubData(data) {
+    // Utility function to escape HTML for safe display
+    function escapeHtml(unsafe) {
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    function fetchFileCommits(projectId, contents) {
+        if (!contents || contents.length === 0) return;
+        
+        let index = 0;
+        function loadNext() {
+            if (index >= contents.length) return;
+            const file = contents[index++];
+            fetch(`/projects/${projectId}/github_file_commit?path=${encodeURIComponent(file.path)}`)
+                .then(r => r.json())
+                .then(res => {
+                    const row = document.getElementById('github-file-' + file.sha);
+                    if (row && res.success) {
+                        row.querySelector('.file-commit-msg').innerHTML = escapeHtml(res.message);
+                        row.querySelector('.file-commit-date').innerHTML = new Date(res.date).toLocaleDateString();
+                    } else if (row) {
+                        row.querySelector('.file-commit-msg').innerHTML = '<span class="text-danger small">Não disponível</span>';
+                        row.querySelector('.file-commit-date').innerHTML = '';
+                    }
+                    setTimeout(loadNext, 100);
+                })
+                .catch(e => {
+                     const row = document.getElementById('github-file-' + file.sha);
+                     if (row) row.querySelector('.file-commit-msg').innerHTML = '<span class="text-danger small">Falha ao carregar</span>';
+                     setTimeout(loadNext, 100);
+                });
+        }
+        
+        // Start 3 concurrent workers to speed up loading
+        loadNext(); loadNext(); loadNext();
+    }
+
+    function renderGithubData(data, projectId) {
         const container = document.getElementById('githubDataContainer');
         const repo = data.repo;
         const commits = data.commits;
@@ -2774,43 +2815,134 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
              return;
         }
 
+        const contents = data.contents || [];
+        const branches = data.branches || [];
+        const languages = data.languages || {};
+        const contributors = data.contributors || [];
+
+        // 1. Arquivos (File Explorer)
+        let filesHtml = `
+        <div class="card bg-dark border-secondary mb-4">
+            <div class="card-header border-secondary bg-dark text-light d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                   <div class="me-3">
+                       <i class="fas fa-code-branch me-1 text-info"></i> <span class="badge bg-secondary">${branches.length} Branch(es)</span>
+                   </div>
+                   <div>
+                       <i class="fas fa-users me-1 text-primary"></i> <span class="badge bg-secondary">${contributors.length} Contribuidor(es)</span>
+                   </div>
+                </div>
+                <div>
+                   <a href="${repo.html_url}" target="_blank" class="btn btn-sm btn-outline-light"><i class="fas fa-external-link-alt"></i> Github</a>
+                </div>
+            </div>
+            <div class="list-group list-group-flush rounded-0">
+        `;
+
+        if (contents.length > 0) {
+            // Sort to put directories first
+            contents.sort((a, b) => {
+                if (a.type === b.type) return a.name.localeCompare(b.name);
+                return a.type === 'dir' ? -1 : 1;
+            });
+
+            contents.forEach(file => {
+                const icon = file.type === 'dir' ? 'fa-folder text-info' : 'fa-file text-secondary';
+                filesHtml += `
+                <div class="list-group-item bg-dark border-secondary text-light d-flex align-items-center py-2" id="github-file-${file.sha}">
+                    <div style="width: 30px;" class="text-center"><i class="fas ${icon}"></i></div>
+                    <div class="text-truncate px-2" style="width: 25%;">
+                        <a href="${file.html_url}" target="_blank" class="text-light text-decoration-none fw-semibold" style="cursor:pointer;">${file.name}</a>
+                    </div>
+                    <div class="flex-grow-1 text-truncate small text-muted px-2 file-commit-msg">
+                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" style="width: 0.8rem; height: 0.8rem;"></span> <span class="fst-italic opacity-75">Buscando commit...</span>
+                    </div>
+                    <div class="text-end small text-muted file-commit-date" style="width: 90px;">
+                        --
+                    </div>
+                </div>
+                `;
+            });
+        } else {
+            filesHtml += '<div class="list-group-item bg-dark text-muted">Nenhum arquivo encontrado na raiz.</div>';
+        }
+        filesHtml += `</div></div>`;
+
+        // 2. Últimos Commits
         let commitsHtml = '';
         if (commits && commits.length > 0) {
             commitsHtml = commits.slice(0, 5).map(c => `
                 <div class="list-group-item bg-dark text-light border-secondary">
                     <div class="d-flex w-100 justify-content-between">
-                        <h6 class="mb-1 text-primary">${c.commit.message}</h6>
-                        <small>${new Date(c.commit.author.date).toLocaleDateString()}</small>
+                        <strong class="mb-1 text-primary text-truncate" style="max-width: 80%;">${c.commit.message}</strong>
+                        <small class="text-muted">${new Date(c.commit.author.date).toLocaleDateString()}</small>
                     </div>
-                    <p class="mb-1 small text-muted"><i class="fas fa-user-circle me-1"></i>${c.commit.author.name}</p>
+                    <div class="d-flex align-items-center mt-1">
+                        ${c.author && c.author.avatar_url ? `<img src="${c.author.avatar_url}" width="20" height="20" class="rounded-circle me-2">` : '<i class="fas fa-user-circle me-2 text-secondary"></i>'}
+                        <span class="small text-muted">${c.commit.author.name}</span>
+                        <a href="${c.html_url}" target="_blank" class="ms-auto small font-monospace text-decoration-none text-secondary">#${c.sha.substring(0,7)}</a>
+                    </div>
                 </div>
             `).join('');
         } else {
-            commitsHtml = '<p class="text-muted p-3">Nenhum commit encontrado recentemente.</p>';
+            commitsHtml = '<p class="text-muted p-3">Nenhum commit recente encontrado.</p>';
         }
 
+        // 3. Linguagens
+        let languagesHtml = '';
+        let totalBytes = 0;
+        for (let lang in languages) totalBytes += languages[lang];
+        
+        if (totalBytes > 0) {
+            let pbHTML = '<div class="progress mt-2 mb-2 bg-secondary" style="height: 10px;">';
+            let legendHTML = '<div class="d-flex flex-wrap gap-2 small">';
+            const colors = ['bg-primary', 'bg-success', 'bg-warning', 'bg-danger', 'bg-info', 'bg-secondary'];
+            let i = 0;
+            for (let lang in languages) {
+                const pct = ((languages[lang] / totalBytes) * 100).toFixed(1);
+                const color = colors[i % colors.length];
+                pbHTML += `<div class="progress-bar ${color}" role="progressbar" style="width: ${pct}%" title="${lang} ${pct}%"></div>`;
+                legendHTML += `<span><span class="badge ${color} rounded-circle p-1 me-1" style="width:10px; height:10px; display:inline-block;"></span><span class="fw-semibold text-light">${lang}</span> <span class="text-muted ms-1">${pct}%</span></span>`;
+                i++;
+            }
+            pbHTML += '</div>';
+            legendHTML += '</div>';
+            languagesHtml = pbHTML + legendHTML;
+        } else {
+            languagesHtml = '<p class="small text-muted mb-0">Linguagens não detectadas.</p>';
+        }
+
+        // 4. Contribuidores
+        let contributorsHtml = '';
+        if (contributors && contributors.length > 0) {
+            contributorsHtml = `<div class="mt-4"><h6 class="text-light border-bottom border-secondary pb-2 mb-3">Colaboradores Top</h6><div class="d-flex flex-wrap gap-2">`;
+            contributors.forEach(c => {
+                contributorsHtml += `
+                    <a href="${c.html_url}" target="_blank" title="${c.login} (${c.contributions} commits)" class="position-relative">
+                        <img src="${c.avatar_url}" class="rounded-circle border border-secondary hover-scale" width="36" height="36" alt="${c.login}">
+                    </a>
+                `;
+            });
+            contributorsHtml += `</div></div>`;
+        }
+
+        // Renderização Final
         container.innerHTML = `
+            <style>
+               .hover-primary:hover { color: #0d6efd !important; }
+               .hover-scale { transition: transform 0.2s; }
+               .hover-scale:hover { transform: scale(1.1); border-color: #0d6efd !important; z-index: 10; }
+            </style>
             <div class="row">
-                <div class="col-md-5 mb-4">
-                    <div class="card h-100 bg-dark mb-3">
-                      <div class="card-header border-secondary text-primary"><i class="fas fa-cube me-2"></i>Detalhes do Repo</div>
-                      <div class="card-body">
-                          <p class="card-text mb-2"><strong>Privado:</strong> ${repo.private ? '<span class="badge bg-danger">Sim</span>' : '<span class="badge bg-success">Não</span>'}</p>
-                          <p class="card-text mb-2"><strong>Branch Padrão:</strong> <span class="badge bg-info">${repo.default_branch || 'N/A'}</span></p>
-                          <p class="card-text mb-2"><strong>Linguagem Top:</strong> ${repo.language || 'N/A'}</p>
-                          <p class="card-text mb-2"><strong>Tamanho:</strong> ${(repo.size / 1024).toFixed(2)} MB</p>
-                          <p class="card-text mb-2"><strong>Última Atividade:</strong> ${new Date(repo.updated_at).toLocaleDateString()}</p>
-                          <div class="mt-3">
-                              <a href="${repo.html_url}" target="_blank" class="btn btn-outline-light btn-sm w-100"><i class="fas fa-external-link-alt me-1"></i>Abrir no Desktop</a>
-                          </div>
-                      </div>
-                    </div>
-                </div>
-                <div class="col-md-7 mb-4">
-                    <div class="card h-100 bg-dark mb-3">
+                <div class="col-lg-8 mb-4">
+                    <!-- File Explorer Block -->
+                    ${filesHtml}
+                    
+                    <!-- Commits Block -->
+                    <div class="card bg-dark border-secondary">
                       <div class="card-header border-secondary text-success d-flex justify-content-between align-items-center">
-                          <span><i class="fas fa-code-branch me-2"></i>Últimos Commits</span>
-                          <span class="badge bg-secondary">${commits ? commits.length : 0} carregados</span>
+                          <span><i class="fas fa-history me-2"></i>Histórico do Repositório (Últimos Commits)</span>
+                          <span class="badge bg-secondary">${commits ? Math.min(commits.length, 5) : 0} carregados</span>
                       </div>
                       <div class="card-body p-0">
                           <div class="list-group list-group-flush rounded-0 rounded-bottom">
@@ -2819,8 +2951,57 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
                       </div>
                     </div>
                 </div>
+                
+                <div class="col-lg-4 mb-4">
+                    <!-- About Block -->
+                    <div class="card bg-dark border-secondary h-100">
+                      <div class="card-header border-secondary text-primary">
+                          <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Sobre</h6>
+                      </div>
+                      <div class="card-body">
+                          <p class="text-light mb-4">${repo.description || '<i class="text-muted">Sem descrição configurada neste repositório.</i>'}</p>
+                          
+                          <div class="d-flex align-items-center mb-2 text-light small">
+                              <i class="fas fa-link me-2 text-muted" style="width: 16px;"></i> 
+                              <a href="${repo.html_url}" target="_blank" class="text-info text-decoration-none text-truncate">${repo.html_url.replace('https://','')}</a>
+                          </div>
+                          
+                          <div class="d-flex align-items-center mb-4 text-light small">
+                              <i class="fas fa-star text-warning me-1"></i> <strong class="me-3">${repo.stargazers_count}</strong>
+                              <i class="fas fa-eye text-primary me-1"></i> <strong class="me-3">${repo.watchers_count}</strong>
+                              <i class="fas fa-code-branch text-success me-1"></i> <strong>${repo.forks_count}</strong>
+                          </div>
+
+                          <div class="mt-4 pt-3 border-top border-secondary">
+                              <h6 class="text-light mb-3">Detalhes do Repositório</h6>
+                              <div class="d-flex justify-content-between mb-2 small text-light">
+                                  <span class="text-muted">Visibilidade</span>
+                                  <span>${repo.private ? '<span class="badge bg-danger rounded-pill">Privado</span>' : '<span class="badge bg-success rounded-pill">Público</span>'}</span>
+                              </div>
+                              <div class="d-flex justify-content-between mb-2 small text-light">
+                                  <span class="text-muted">Tamanho</span>
+                                  <span>${(repo.size / 1024).toFixed(2)} MB</span>
+                              </div>
+                              <div class="d-flex justify-content-between mb-2 small text-light">
+                                  <span class="text-muted">Atualizado</span>
+                                  <span>${new Date(repo.updated_at).toLocaleDateString()}</span>
+                              </div>
+                          </div>
+                          
+                          <div class="mt-4 pt-3 border-top border-secondary">
+                              <h6 class="text-light mb-3">Linguagens</h6>
+                              ${languagesHtml}
+                          </div>
+                          
+                          ${contributorsHtml}
+                      </div>
+                    </div>
+                </div>
             </div>
         `;
+
+        // Inicia a busca das datas e mensagens de cada arquivo (lazy loading)
+        fetchFileCommits(projectId, contents);
     }
 
     // Initialize Github Tab load if selected

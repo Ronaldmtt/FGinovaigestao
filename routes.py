@@ -1123,29 +1123,78 @@ def get_github_data(id):
         repo_resp.raise_for_status()
         repo_data = repo_resp.json()
         
-        # 2. Obter ultimos 5 commits
-        commits_resp = requests.get(f'https://api.github.com/repos/{repo_path}/commits', params={'per_page': 5}, headers=headers, timeout=10)
-        commits_data = []
-        if commits_resp.status_code == 200:
-            commits_data = commits_resp.json()
+        def safe_get(url, params=None):
+            try:
+                resp = requests.get(url, headers=headers, params=params, timeout=10)
+                if resp.status_code == 200:
+                    return resp.json()
+            except Exception:
+                pass
+            return None
+
+        # 2. Últimos 10 Commits
+        commits_data = safe_get(f'https://api.github.com/repos/{repo_path}/commits', {'per_page': 10}) or []
+        
+        # 3. Arquivos do diretório principal (Root)
+        contents_data = safe_get(f'https://api.github.com/repos/{repo_path}/contents') or []
+        if isinstance(contents_data, dict) and 'message' in contents_data: 
+            contents_data = []
             
-        # 3. Obter metadados da hierarquia recursiva do respositório (trees limits apply)
-        default_branch = repo_data.get('default_branch', 'main')
-        tree_resp = requests.get(f'https://api.github.com/repos/{repo_path}/git/trees/{default_branch}?recursive=1', headers=headers, timeout=10)
-        tree_data = {}
-        if tree_resp.status_code == 200:
-            tree_data = tree_resp.json()
+        # 4. Branches (limitado a 100 por desempenho)
+        branches_data = safe_get(f'https://api.github.com/repos/{repo_path}/branches', {'per_page': 100}) or []
+        
+        # 5. Linguagens
+        languages_data = safe_get(f'https://api.github.com/repos/{repo_path}/languages') or {}
+        
+        # 6. Colaboradores (limite 10)
+        contributors_data = safe_get(f'https://api.github.com/repos/{repo_path}/contributors', {'per_page': 10}) or []
             
         return jsonify({
             'success': True,
             'repo': repo_data,
             'commits': commits_data,
-            'info': tree_data
+            'contents': contents_data,
+            'branches': branches_data,
+            'languages': languages_data,
+            'contributors': contributors_data
         })
         
     except requests.exceptions.RequestException as e:
         rpa_log.error(f"Erro de conexão com GitHub para projeto {id}: {e}", exc=e, regiao="github")
         return jsonify({'success': False, 'message': f'Erro de conexão com GitHub API: {str(e)}'})
+
+@app.route('/projects/<int:id>/github_file_commit', methods=['GET'])
+@login_required
+def get_github_file_commit(id):
+    project = Project.query.get_or_404(id)
+    path = request.args.get('path')
+    
+    if not project.has_github or not project.github_repo or not path:
+        return jsonify({'success': False})
+        
+    repo_path = project.github_repo.replace('https://github.com/', '').replace('http://github.com/', '').strip('/')
+    if repo_path.endswith('.git'):
+        repo_path = repo_path[:-4]
+        
+    headers = {'Accept': 'application/vnd.github.v3+json'}
+    if current_user.github_token:
+        headers['Authorization'] = f'token {current_user.github_token}'
+        
+    try:
+        import requests
+        resp = requests.get(f'https://api.github.com/repos/{repo_path}/commits', params={'path': path, 'per_page': 1}, headers=headers, timeout=5)
+        if resp.status_code == 200:
+            commits = resp.json()
+            if commits:
+                return jsonify({
+                    'success': True, 
+                    'message': commits[0]['commit']['message'], 
+                    'date': commits[0]['commit']['author']['date']
+                })
+    except Exception:
+        pass
+        
+    return jsonify({'success': False})
 
 # Rotas de Tarefas
 @app.route('/tasks')

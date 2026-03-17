@@ -91,6 +91,7 @@ class ProjectForm(FlaskForm):
     
     has_github = BooleanField('Projeto no GitHub?', default=False)
     has_drive = BooleanField('Projeto no Google Drive?', default=False)
+    github_repo = StringField('Repositório GitHub (opcional)')
     
     def __init__(self, *args, **kwargs):
         super(ProjectForm, self).__init__(*args, **kwargs)

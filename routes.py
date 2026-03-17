@@ -1102,6 +1102,8 @@ def get_github_data(id):
         
     # Limpa possíveis paths completos caso usuário cole URL do github
     repo_path = repo_path.replace('https://github.com/', '').replace('http://github.com/', '').strip('/')
+    if repo_path.endswith('.git'):
+        repo_path = repo_path[:-4]
     
     headers = {'Accept': 'application/vnd.github.v3+json'}
     if current_user.github_token:

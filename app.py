@@ -125,6 +125,22 @@ with app.app_context():
     except Exception:
         db.session.rollback()
         pass
+    try:
+        db.session.execute(text("ALTER TABLE project ADD COLUMN cliente_responsavel_nome VARCHAR(200)"))
+        db.session.execute(text("ALTER TABLE project ADD COLUMN cliente_responsavel_telefone VARCHAR(50)"))
+        db.session.execute(text("ALTER TABLE project ADD COLUMN cliente_responsavel_email VARCHAR(120)"))
+        db.session.execute(text("ALTER TABLE project ADD COLUMN github_repo VARCHAR(200)"))
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        pass
+
+    try:
+        db.session.execute(text("ALTER TABLE user ADD COLUMN github_token VARCHAR(255)"))
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        pass
     
     # Create default admin user if it doesn't exist
     from models import User

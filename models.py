@@ -29,6 +29,9 @@ class User(UserMixin, db.Model):
     acesso_kanban = db.Column(db.Boolean, default=True, nullable=False)
     acesso_crm = db.Column(db.Boolean, default=True, nullable=False)
     
+    # Integracoes Pessoais
+    github_token = db.Column(db.String(255), nullable=True)
+    
     # Notificações por email
     receber_notificacoes = db.Column(db.Boolean, default=True, nullable=False)
     
@@ -78,6 +81,12 @@ class Project(db.Model):
     # Foreign keys
     client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
     responsible_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # Contatos do Cliente e Integracoes
+    cliente_responsavel_nome = db.Column(db.String(200), nullable=True)
+    cliente_responsavel_telefone = db.Column(db.String(50), nullable=True)
+    cliente_responsavel_email = db.Column(db.String(120), nullable=True)
+    github_repo = db.Column(db.String(200), nullable=True)
     
     # Campos preenchidos pela IA
     contexto_justificativa = db.Column(db.Text)
@@ -581,6 +590,35 @@ class Lead(db.Model):
             'responsavel_nome': self.responsavel.full_name if self.responsavel else None,
             'converted_to_client_id': self.converted_to_client_id
         }
+
+
+class LeadFile(db.Model):
+    __tablename__ = 'lead_files'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    filename = db.Column(db.String(255), nullable=False)
+    original_name = db.Column(db.String(255), nullable=False)
+    mime_type = db.Column(db.String(100))
+    file_size = db.Column(db.Integer)
+    storage_path = db.Column(db.String(500), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    lead_id = db.Column(db.Integer, db.ForeignKey('leads.id'), nullable=False)
+    uploaded_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    lead = db.relationship('Lead', backref=db.backref('arquivos', lazy=True, cascade='all, delete-orphan'))
+    uploaded_by = db.relationship('User', backref='uploaded_lead_files')
+
+    @property
+    def file_size_formatted(self):
+        if not self.file_size:
+            return '0 B'
+        size = self.file_size
+        for unit in ['B', 'KB', 'MB', 'GB']:
+            if size < 1024:
+                return f'{size:.1f} {unit}'
+            size /= 1024
+        return f'{size:.1f} TB'
 
 
 class SystemApiKey(db.Model):

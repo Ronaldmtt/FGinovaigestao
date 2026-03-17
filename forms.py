@@ -62,6 +62,9 @@ class ClientForm(FlaskForm):
 class ProjectForm(FlaskForm):
     nome = StringField('Nome do Projeto', validators=[DataRequired(), Length(min=2, max=200)])
     client_id = SelectField('Cliente', coerce=int, validators=[DataRequired()])
+    cliente_responsavel_nome = StringField('Nome do Responsável (Cliente)', validators=[Optional(), Length(max=200)])
+    cliente_responsavel_telefone = StringField('Telefone do Responsável', validators=[Optional(), Length(max=50)])
+    cliente_responsavel_email = StringField('Email do Responsável', validators=[Optional(), Length(max=120)])
     responsible_id = SelectField('Usuário Responsável', coerce=int, validators=[DataRequired()])
     team_members = SelectMultipleField('Membros da Equipe', coerce=int, choices=[])
     status = SelectField('Status', choices=[
@@ -120,6 +123,9 @@ class TranscriptionTaskForm(FlaskForm):
 class ManualProjectForm(FlaskForm):
     nome = StringField('Nome do Projeto', validators=[DataRequired(), Length(min=2, max=200)])
     client_id = SelectField('Cliente', coerce=int, validators=[DataRequired()])
+    cliente_responsavel_nome = StringField('Nome do Responsável (Cliente)', validators=[Optional(), Length(max=200)])
+    cliente_responsavel_telefone = StringField('Telefone do Responsável', validators=[Optional(), Length(max=50)])
+    cliente_responsavel_email = StringField('Email do Responsável', validators=[Optional(), Length(max=120)])
     responsible_id = SelectField('Usuário Responsável', coerce=int, validators=[DataRequired()])
     team_members = SelectMultipleField('Membros da Equipe', coerce=int, choices=[])
     status = SelectField('Status', choices=[
@@ -146,6 +152,7 @@ class ManualProjectForm(FlaskForm):
     
     has_github = BooleanField('Projeto no GitHub?', default=False)
     has_drive = BooleanField('Projeto no Google Drive?', default=False)
+    github_repo = StringField('Repositório GitHub (opcional)')
     
     def __init__(self, *args, **kwargs):
         super(ManualProjectForm, self).__init__(*args, **kwargs)
@@ -187,6 +194,12 @@ class ChangePasswordForm(FlaskForm):
         DataRequired(),
         EqualTo('new_password', message="As senhas devem ser iguais.")
     ])
+
+class UserProfileForm(FlaskForm):
+    nome = StringField('Nome', validators=[DataRequired(), Length(max=100)])
+    sobrenome = StringField('Sobrenome', validators=[DataRequired(), Length(max=100)])
+    github_token = PasswordField('GitHub Access Token (Opcional)')
+    receber_notificacoes = BooleanField('Receber notificações por email')
 
 class ImportDataForm(FlaskForm):
     data_file = StringField('Arquivo JSON', validators=[DataRequired()])

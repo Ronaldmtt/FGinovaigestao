@@ -19,7 +19,7 @@ import concurrent.futures # Added for parallel processing
 from app import app, ALLOWED_EXTENSIONS
 from extensions import db, mail
 from models import User, Client, Project, Task, TodoItem, Contato, Comentario, FileCategory, ProjectFile, ProjectApiCredential, ProjectApiEndpoint, ProjectApiKey, SystemApiKey
-from forms import LoginForm, UserForm, EditUserForm, ClientForm, ProjectForm, TaskForm, TranscriptionTaskForm, ManualProjectForm, ManualTaskForm, ForgotPasswordForm, ResetPasswordForm, ChangePasswordForm, ImportDataForm
+from forms import LoginForm, UserForm, EditUserForm, ClientForm, ProjectForm, TaskForm, TranscriptionTaskForm, ManualProjectForm, ManualTaskForm, ForgotPasswordForm, ResetPasswordForm, ChangePasswordForm, UserProfileForm, ImportDataForm
 from openai_service import process_project_transcription, generate_tasks_from_transcription, generate_project_report_summary, generate_client_report_from_tasks # Added generate_client_report_from_tasks
 from email_service import send_email, send_meeting_invite, send_notification_email, send_chamado_email
 
@@ -743,6 +743,9 @@ def new_project():
             client_id=form.client_id.data,
             responsible_id=form.responsible_id.data,
             status=form.status.data,
+            cliente_responsavel_nome=form.cliente_responsavel_nome.data,
+            cliente_responsavel_telefone=form.cliente_responsavel_telefone.data,
+            cliente_responsavel_email=form.cliente_responsavel_email.data,
             transcricao=form.transcricao.data,
             progress_percent=form.progress_percent.data or 0,
             # Prazo descontinuado em favor de data_fim
@@ -807,6 +810,9 @@ def new_manual_project():
         client_id=client_id,
         responsible_id=responsible_id,
         status=status,
+        cliente_responsavel_nome=request.form.get('cliente_responsavel_nome'),
+        cliente_responsavel_telefone=request.form.get('cliente_responsavel_telefone'),
+        cliente_responsavel_email=request.form.get('cliente_responsavel_email'),
         progress_percent=int(progress_percent) if progress_percent else 0,
         prazo=prazo,
         data_inicio=data_inicio,
@@ -872,6 +878,11 @@ def edit_project(id):
     project.client_id = request.form.get('client_id')
     project.responsible_id = request.form.get('responsible_id')
     project.status = request.form.get('status')
+    
+    # Atualizar contatos do cliente
+    project.cliente_responsavel_nome = request.form.get('cliente_responsavel_nome')
+    project.cliente_responsavel_telefone = request.form.get('cliente_responsavel_telefone')
+    project.cliente_responsavel_email = request.form.get('cliente_responsavel_email')    
     
     # Novos campos de GitHub e Drive
     project.has_github = True if request.form.get('has_github') == 'on' else False
@@ -1072,6 +1083,64 @@ def delete_project(id):
         return redirect(url_for('project_detail', id=id))
     
     return redirect(url_for('projects'))
+
+@app.route('/projects/<int:id>/github_data', methods=['GET'])
+@login_required
+def get_github_data(id):
+    project = Project.query.get_or_404(id)
+    
+    # Validações Básicas
+    if not project.has_github:
+        return jsonify({'success': False, 'message': 'Este projeto não possui integração GitHub ativa.'})
+        
+    repo_path = project.github_repo
+    if not repo_path:
+        return jsonify({'success': False, 'message': 'Caminho do repositório GitHub não configurado no projeto.'})
+        
+    # Limpa possíveis paths completos caso usuário cole URL do github
+    repo_path = repo_path.replace('https://github.com/', '').replace('http://github.com/', '').strip('/')
+    
+    headers = {'Accept': 'application/vnd.github.v3+json'}
+    if current_user.github_token:
+        headers['Authorization'] = f'token {current_user.github_token}'
+        
+    try:
+        import requests
+        
+        # 1. Obter info do repositório
+        repo_resp = requests.get(f'https://api.github.com/repos/{repo_path}', headers=headers, timeout=10)
+        
+        if repo_resp.status_code == 404:
+            return jsonify({'success': False, 'message': 'Repositório não encontrado. Verifique o nome/caminho ou se você configurou o seu Personal Access Token na página de Perfil.'})
+        elif repo_resp.status_code in [401, 403]:
+             return jsonify({'success': False, 'message': 'Acesso negado (401/403). O seu Token do GitHub pode estar faltando permissões (repo) ou vencido.'})
+             
+        repo_resp.raise_for_status()
+        repo_data = repo_resp.json()
+        
+        # 2. Obter ultimos 5 commits
+        commits_resp = requests.get(f'https://api.github.com/repos/{repo_path}/commits', params={'per_page': 5}, headers=headers, timeout=10)
+        commits_data = []
+        if commits_resp.status_code == 200:
+            commits_data = commits_resp.json()
+            
+        # 3. Obter metadados da hierarquia recursiva do respositório (trees limits apply)
+        default_branch = repo_data.get('default_branch', 'main')
+        tree_resp = requests.get(f'https://api.github.com/repos/{repo_path}/git/trees/{default_branch}?recursive=1', headers=headers, timeout=10)
+        tree_data = {}
+        if tree_resp.status_code == 200:
+            tree_data = tree_resp.json()
+            
+        return jsonify({
+            'success': True,
+            'repo': repo_data,
+            'commits': commits_data,
+            'info': tree_data
+        })
+        
+    except requests.exceptions.RequestException as e:
+        rpa_log.error(f"Erro de conexão com GitHub para projeto {id}: {e}", exc=e, regiao="github")
+        return jsonify({'success': False, 'message': f'Erro de conexão com GitHub API: {str(e)}'})
 
 # Rotas de Tarefas
 @app.route('/tasks')
@@ -1677,6 +1746,9 @@ def get_project_data(id):
         'responsible_id': project.responsible_id,
         'status': project.status,
         'team_members': [member.id for member in project.team_members],
+        'cliente_responsavel_nome': project.cliente_responsavel_nome,
+        'cliente_responsavel_telefone': project.cliente_responsavel_telefone,
+        'cliente_responsavel_email': project.cliente_responsavel_email,
         'descricao_resumida': project.descricao_resumida,
         'problema_oportunidade': project.problema_oportunidade,
         'objetivos': project.objetivos,
@@ -2473,19 +2545,39 @@ def reset_password(token):
 @app.route('/change-password', methods=['GET', 'POST'])
 @login_required
 def change_password():
-    form = ChangePasswordForm()
-    if form.validate_on_submit():
-        if not check_password_hash(current_user.password_hash, form.current_password.data):
-            flash('Senha atual incorreta.', 'danger')
-            return render_template('change_password.html', form=form)
-        
-        current_user.password_hash = generate_password_hash(form.new_password.data)
-        db.session.commit()
-        
-        flash('Sua senha foi alterada com sucesso!', 'success')
-        return redirect(url_for('dashboard'))
+    password_form = ChangePasswordForm()
+    profile_form = UserProfileForm(obj=current_user)
     
-    return render_template('change_password.html', form=form)
+    if request.method == 'POST':
+        # Handlign Update Profile Form
+        if 'github_token' in request.form or 'nome' in request.form:
+            if profile_form.validate_on_submit():
+                current_user.nome = profile_form.nome.data
+                current_user.sobrenome = profile_form.sobrenome.data
+                if profile_form.github_token.data:
+                    current_user.github_token = profile_form.github_token.data
+                current_user.receber_notificacoes = profile_form.receber_notificacoes.data
+                db.session.commit()
+                flash('Perfil atualizado com sucesso!', 'success')
+                return redirect(url_for('change_password'))
+                
+        # Handling Password Form
+        elif 'current_password' in request.form:
+            if password_form.validate_on_submit():
+                if not check_password_hash(current_user.password_hash, password_form.current_password.data):
+                    flash('Senha atual incorreta.', 'danger')
+                    return render_template('change_password.html', password_form=password_form, profile_form=profile_form)
+                
+                current_user.password_hash = generate_password_hash(password_form.new_password.data)
+                db.session.commit()
+                
+                flash('Sua senha foi alterada com sucesso!', 'success')
+                return redirect(url_for('dashboard'))
+    
+    return render_template('change_password.html', 
+                         form=password_form, 
+                         password_form=password_form, 
+                         profile_form=profile_form)
 
 # Rotas para exportar/importar dados
 @app.route('/admin/export-data')

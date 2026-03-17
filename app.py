@@ -125,22 +125,30 @@ with app.app_context():
     except Exception:
         db.session.rollback()
         pass
-    try:
-        db.session.execute(text("ALTER TABLE project ADD COLUMN cliente_responsavel_nome VARCHAR(200)"))
-        db.session.execute(text("ALTER TABLE project ADD COLUMN cliente_responsavel_telefone VARCHAR(50)"))
-        db.session.execute(text("ALTER TABLE project ADD COLUMN cliente_responsavel_email VARCHAR(120)"))
-        db.session.execute(text("ALTER TABLE project ADD COLUMN github_repo VARCHAR(200)"))
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
-        pass
+    # Migracao Project
+    project_queries = [
+        "ALTER TABLE project ADD COLUMN cliente_responsavel_nome VARCHAR(200)",
+        "ALTER TABLE project ADD COLUMN cliente_responsavel_telefone VARCHAR(50)",
+        "ALTER TABLE project ADD COLUMN cliente_responsavel_email VARCHAR(120)",
+        "ALTER TABLE project ADD COLUMN github_repo VARCHAR(200)"
+    ]
+    for q in project_queries:
+        try:
+            db.session.execute(text(q))
+            db.session.commit()
+            print(f"Migracao Executada: {q}")
+        except Exception as e:
+            db.session.rollback()
+            print(f"Migracao Falhou/Ignorada ({q}): {e}")
 
+    # Migracao User
     try:
         db.session.execute(text('ALTER TABLE "user" ADD COLUMN github_token VARCHAR(255)'))
         db.session.commit()
-    except Exception:
+        print('Migracao Executada: github_token em "user".')
+    except Exception as e:
         db.session.rollback()
-        pass
+        print(f"Migracao Falhou/Ignorada (github_token): {e}")
     
     # Create default admin user if it doesn't exist
     from models import User

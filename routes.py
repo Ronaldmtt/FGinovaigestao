@@ -2422,6 +2422,113 @@ def api_delete_task(task_id):
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Erro ao deletar tarefa: {str(e)}'})
 
+@app.route('/api/tasks/<int:task_id>/generate_todos_from_commits', methods=['POST'])
+@login_required
+def api_generate_todos_from_commits(task_id):
+    task = Task.query.get_or_404(task_id)
+    project = task.project
+    
+    # Verificar permissão
+    if not current_user.is_admin and task.assigned_user_id != current_user.id:
+        if current_user.id != project.responsible_id and current_user not in project.team_members:
+            return jsonify({'success': False, 'message': 'Sem permissão.'}), 403
+
+    if not project.github_repo:
+        return jsonify({'success': False, 'message': 'Projeto não possui repositório GitHub vinculado.'})
+        
+    if not current_user.github_token:
+        return jsonify({'success': False, 'message': 'Você não possui Token do GitHub configurado no seu perfil.'})
+
+    data = request.get_json() or {}
+    period = data.get('period', 'today')
+    
+    from datetime import datetime, timedelta
+    now_utc = datetime.utcnow()
+    
+    if period == 'yesterday':
+        since_date = now_utc - timedelta(days=1)
+        since_date = since_date.replace(hour=0, minute=0, second=0, microsecond=0)
+        until_date = since_date.replace(hour=23, minute=59, second=59)
+    elif period == 'last_3_days':
+        since_date = now_utc - timedelta(days=3)
+        until_date = now_utc
+    elif period == 'last_7_days':
+        since_date = now_utc - timedelta(days=7)
+        until_date = now_utc
+    else: # today
+        since_date = now_utc.replace(hour=0, minute=0, second=0, microsecond=0)
+        until_date = now_utc
+
+    repo_path = project.github_repo.replace('https://github.com/', '').strip('/')
+    
+    headers = {
+        'Accept': 'application/vnd.github.v3+json',
+        'Authorization': f'token {current_user.github_token}'
+    }
+    
+    params = {
+        'since': since_date.isoformat() + 'Z',
+        'until': until_date.isoformat() + 'Z',
+        'per_page': 50
+    }
+    
+    try:
+        import requests
+        resp = requests.get(f'https://api.github.com/repos/{repo_path}/commits', headers=headers, params=params, timeout=10)
+        if resp.status_code != 200:
+            return jsonify({'success': False, 'message': f'Erro ao buscar commits no GitHub: Código {resp.status_code}'})
+            
+        commits_data = resp.json()
+        if not commits_data:
+            return jsonify({'success': False, 'message': 'Nenhum commit encontrado no período selecionado.'})
+            
+        # Compilar texto dos commits
+        commits_text_lines = []
+        for c in commits_data:
+            sha = c.get('sha', '')[:7]
+            commit_info = c.get('commit', {})
+            author_name = commit_info.get('author', {}).get('name', 'Desconhecido')
+            message = commit_info.get('message', '').strip()
+            date_str = commit_info.get('author', {}).get('date', '')
+            commits_text_lines.append(f"[{date_str}] Commit {sha} ({author_name}): {message}")
+            
+        commits_text = "\\n".join(commits_text_lines)
+        
+        # Chamar servico OpenAI
+        from openai_service import generate_kanban_todos_from_commits
+        generated_todos = generate_kanban_todos_from_commits(commits_text, project.nome)
+        
+        if not generated_todos:
+            return jsonify({'success': False, 'message': 'A IA não conseguiu identificar tarefas claras nestes commits.'})
+            
+        # Adicionar os To-Dos na Tarefa
+        criados = 0
+        for td in generated_todos:
+            novo_todo = TodoItem(
+                texto=td.get('texto', '')[:300],
+                comentario=td.get('comentario', ''),
+                completed=td.get('completed', False),
+                task_id=task.id
+            )
+            if novo_todo.completed:
+                novo_todo.completed_at = datetime.utcnow()
+                
+            db.session.add(novo_todo)
+            criados += 1
+            
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': f'{criados} To-Dos gerados e adicionados com sucesso!'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': f'Erro interno ao processar IA: {str(e)}'})
+
 @app.route('/api/tasks/<int:task_id>/status', methods=['POST'])
 @login_required
 def update_task_status(task_id):

@@ -304,3 +304,52 @@ def generate_client_report_from_tasks(project_name, tasks):
     except Exception as e:
         print(f"Erro ao gerar relatório de cliente: {e}")
         return None
+
+def generate_kanban_todos_from_commits(commits_text, project_name):
+    """
+    Analisa uma string contendo um histórico recente de commits e gera uma lista de To-Dos
+    (checklists) para tarefas do Kanban, formatada em JSON.
+    """
+    try:
+        prompt = f"""
+        Você é um Tech Lead especialista revisando um histórico de commits recentes do repositório do projeto "{project_name}".
+        Sua missão é extrair desses commits as tarefas/funcionalidades que foram trabalhadas e gerar itens de To-Do (checklist) para o Kanban.
+
+        HISTÓRICO DE COMMITS:
+        {commits_text}
+
+        DIRETRIZES PARA GERAÇÃO DOS TO-DOS:
+        1. Para cada commit relevante, extraia qual foi a funcionalidade, bug fix ou tarefa executada.
+        2. Avalie pelo contexto da mensagem de commit se a tarefa foi "concluída" (completed: true) ou se o commit indica "progresso parcial/em andamento" ou "ainda precisa de testes/revisão" (completed: false). Se o commit diz "fix bug" ou "implemented feature", geralmente completed = true. Se diz "wip", "starting work on", completed = false.
+        3. Formule o campo 'texto' de forma clara e profissional (ex: "Implementar rota de geração de To-Dos via GitHub").
+        4. No campo 'comentario', coloque a hash do commit e uma breve explicação, autor do commit ou o próprio sumário do commit (ex: "Commit a1b2c3d por @user: Corrigido problema no parser de JSON.").
+
+        RETORNE O RESULTADO EXATAMENTE NO FORMATO JSON ABAIXO:
+        {{
+            "todos": [
+                {{
+                    "texto": "Nome da tarefa extraída",
+                    "comentario": "Explicação breve ou detalhe do commit",
+                    "completed": true ou false
+                }}
+            ]
+        }}
+        """
+        
+        response = openai.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"},
+            temperature=0.3
+        )
+        
+        content = response.choices[0].message.content
+        if content:
+            result = json.loads(content)
+            return result.get('todos', [])
+        return []
+        
+    except Exception as e:
+        print(f"Erro ao gerar To-Dos via commits: {e}")
+        return []
+

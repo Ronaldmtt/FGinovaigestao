@@ -772,6 +772,10 @@
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <label class="task-section-label mb-0">Subtarefas</label>
                     <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-dark" onclick="openGithubTodosModal()"
+                            title="Gerar via GitHub">
+                            <i class="fab fa-github"></i>
+                        </button>
                         <button type="button" class="btn btn-sm btn-outline-info" onclick="openTodoPromptModal()"
                             title="Gerar com IA">
                             <i class="fas fa-magic"></i>
@@ -846,6 +850,42 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Gerar To-Dos via GitHub -->
+<div class="modal fade" id="githubTodosModal" tabindex="-1" aria-labelledby="githubTodosModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="githubTodosModalLabel">
+                    <i class="fab fa-github me-2"></i>Gerar To-Dos via GitHub
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>O sistema analisará os últimos commits do projeto associado e gerará uma nova lista de to-dos, marcando como concluídos os que já foram feitos.</p>
+                <div class="mb-3">
+                    <label for="githubTodosPeriod" class="form-label">Selecionar período:</label>
+                    <select class="form-select" id="githubTodosPeriod">
+                        <option value="today">Hoje</option>
+                        <option value="yesterday">Ontem e Hoje</option>
+                        <option value="last_3_days">Últimos 3 dias</option>
+                        <option value="last_7_days">Últimos 7 dias</option>
+                    </select>
+                </div>
+                <div id="githubTodosLoading" class="alert alert-info d-none">
+                    <i class="fas fa-spinner fa-spin me-2"></i>Analisando commits com IA. Aguarde, isso pode levar alguns segundos...
+                </div>
+                <div id="githubTodosMessage" class="alert d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="btnCancelGithubTodos">Cancelar</button>
+                <button type="button" class="btn btn-dark" id="btnGenerateGithubTodos" onclick="generateTodosFromGithub()">
+                    <i class="fas fa-bolt me-1"></i>Gerar To-Dos
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -3234,6 +3274,89 @@ ${periodText ? `**PERÍODO DE ANÁLISE:**\n${periodText}\n` : ''}**Regras de Exe
 8. **Criação de Documentação:** Se a tarefa for sobre documentação, crie o arquivo .md correspondente com base no contexto do projeto.`;
 
         document.getElementById('todoAiPromptText').value = prompt;
+    }
+
+    // Modal e Lógica para GitHub To-Dos
+    let githubTodosModalInstance = null;
+
+    function openGithubTodosModal() {
+        // Obter o ID da tarefa que está sendo editada no drawer
+        const taskId = document.getElementById('editTaskId').value;
+        if (!taskId) {
+            alert('Nenhuma tarefa selecionada.');
+            return;
+        }
+
+        // Resetar estado visual do modal
+        document.getElementById('githubTodosLoading').classList.add('d-none');
+        document.getElementById('githubTodosMessage').classList.add('d-none');
+        document.getElementById('btnGenerateGithubTodos').disabled = false;
+        document.getElementById('btnCancelGithubTodos').disabled = false;
+        document.getElementById('githubTodosPeriod').disabled = false;
+
+        const modalEl = document.getElementById('githubTodosModal');
+        githubTodosModalInstance = new bootstrap.Modal(modalEl);
+        githubTodosModalInstance.show();
+    }
+
+    function generateTodosFromGithub() {
+        const taskId = document.getElementById('editTaskId').value;
+        const period = document.getElementById('githubTodosPeriod').value;
+
+        // Mostrar loading
+        document.getElementById('githubTodosLoading').classList.remove('d-none');
+        const msgBox = document.getElementById('githubTodosMessage');
+        msgBox.classList.add('d-none');
+
+        // Desabilitar UI
+        document.getElementById('btnGenerateGithubTodos').disabled = true;
+        document.getElementById('btnCancelGithubTodos').disabled = true;
+        document.getElementById('githubTodosPeriod').disabled = true;
+
+        fetch(`/api/tasks/${taskId}/generate_todos_from_commits`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ period: period })
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('githubTodosLoading').classList.add('d-none');
+            
+            msgBox.classList.remove('d-none', 'alert-danger', 'alert-success');
+            if (data.success) {
+                msgBox.classList.add('alert-success');
+                msgBox.innerHTML = '<i class="fas fa-check-circle me-1"></i>' + data.message;
+                
+                // Sucesso: fecha o modal apos 1 seg e re-renderiza o taskDrawer para mostrar os novos To-Dos
+                setTimeout(() => {
+                    if (githubTodosModalInstance) {
+                        githubTodosModalInstance.hide();
+                    }
+                    editTask(taskId); // Refresh the task drawer
+                }, 1500);
+            } else {
+                msgBox.classList.add('alert-danger');
+                msgBox.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i>' + data.message;
+                
+                // Re-habilitar UI para tentar de novo
+                document.getElementById('btnGenerateGithubTodos').disabled = false;
+                document.getElementById('btnCancelGithubTodos').disabled = false;
+                document.getElementById('githubTodosPeriod').disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error(error);
+            document.getElementById('githubTodosLoading').classList.add('d-none');
+            msgBox.classList.remove('d-none', 'alert-success');
+            msgBox.classList.add('alert-danger');
+            msgBox.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i>Erro de comunicação com o servidor. Tente novamente.';
+            
+            document.getElementById('btnGenerateGithubTodos').disabled = false;
+            document.getElementById('btnCancelGithubTodos').disabled = false;
+            document.getElementById('githubTodosPeriod').disabled = false;
+        });
     }
 
     function openTodoPromptModal() {

@@ -1179,6 +1179,22 @@ def get_github_data(id):
         
         # 6. Colaboradores (limite 10)
         contributors_data = safe_get(f'https://api.github.com/repos/{repo_path}/contributors', {'per_page': 10}) or []
+        
+        # 7. README do diretório
+        readme_html = None
+        try:
+            readme_url = f'https://api.github.com/repos/{repo_path}/readme/{target_path}'.strip('/')
+            if readme_url.endswith('readme'): readme_url = f'https://api.github.com/repos/{repo_path}/readme'
+            
+            rm_headers = headers.copy()
+            rm_headers['Accept'] = 'application/vnd.github.v3.html'
+            rm_params = {'ref': target_branch} if target_branch else {}
+            
+            rm_resp = requests.get(readme_url, headers=rm_headers, params=rm_params, timeout=5)
+            if rm_resp.status_code == 200:
+                readme_html = rm_resp.text
+        except Exception:
+            pass
             
         return jsonify({
             'success': True,
@@ -1190,7 +1206,8 @@ def get_github_data(id):
             'contents': contents_data,
             'branches': branches_data,
             'languages': languages_data,
-            'contributors': contributors_data
+            'contributors': contributors_data,
+            'readme_html': readme_html
         })
         
     except requests.exceptions.RequestException as e:

@@ -2949,6 +2949,20 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
         }
         filesHtml += `</div></div>`;
 
+        // 1.5 README (Se houver)
+        if (data.readme_html) {
+            filesHtml += `
+            <div class="card bg-dark border-secondary mb-4">
+                <div class="card-header border-secondary text-light">
+                    <i class="far fa-file-alt me-2"></i><strong>README</strong>
+                </div>
+                <div class="card-body bg-dark text-light p-4 overflow-auto" style="font-size: 14px; line-height: 1.6; border-top: 1px solid #4a4a4a;">
+                    ${data.readme_html}
+                </div>
+            </div>
+            `;
+        }
+
         // 2. Últimos Commits
         let commitsHtml = '';
         if (commits && commits.length > 0) {

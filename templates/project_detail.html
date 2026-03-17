@@ -2914,7 +2914,7 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
                 <div class="list-group-item bg-dark border-secondary text-light d-flex align-items-center py-2" id="github-file-${file.sha}">
                     <div style="width: 30px;" class="text-center"><i class="fas ${icon}"></i></div>
                     <div class="text-truncate px-2" style="width: 25%;">
-                        <a href="#" data-path="${escapeHtml(file.path)}" data-type="${file.type}" onclick="handleFileClick(event, this, '${projectId}', '${escapeHtml(data.current_branch || '')}')" class="text-light text-decoration-none fw-semibold hover-primary" style="cursor:pointer;" title="${file.type === 'dir' ? 'Abrir pasta' : 'Ver arquivo'}">${escapeHtml(file.name)}</a>
+                        <a href="#" data-path="${escapeHtml(file.path)}" data-type="${file.type}" data-project="${projectId}" data-branch="${escapeHtml(data.current_branch || '')}" onclick="handleFileClick(event, this)" class="text-light text-decoration-none fw-semibold hover-primary" style="cursor:pointer;" title="${file.type === 'dir' ? 'Abrir pasta' : 'Ver arquivo'}">${escapeHtml(file.name)}</a>
                     </div>
                     <div class="flex-grow-1 text-truncate small text-muted px-2 file-commit-msg">
                         <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" style="width: 0.8rem; height: 0.8rem;"></span> <span class="fst-italic opacity-75">Buscando commit...</span>
@@ -3067,14 +3067,16 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
     }
     
     // Process directory/file clicks safely
-    function handleFileClick(e, el, projectId, branchStr) {
+    function handleFileClick(e, el) {
         e.preventDefault();
         const path = el.getAttribute('data-path');
         const type = el.getAttribute('data-type');
+        const projId = el.getAttribute('data-project');
+        const branchStr = el.getAttribute('data-branch');
         if (type === 'dir') {
-             loadGithubData(projectId, branchStr);
+             loadGithubData(projId, branchStr);
         } else {
-             viewFileContent(path, projectId, branchStr);
+             viewFileContent(path, projId, branchStr);
         }
     }
     

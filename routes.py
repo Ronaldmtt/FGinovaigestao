@@ -1243,6 +1243,38 @@ def get_github_commits_list(id):
         
     return jsonify({'success': False})
 
+@app.route('/projects/<int:id>/github_file_content', methods=['GET'])
+@login_required
+def get_github_file_content(id):
+    project = Project.query.get_or_404(id)
+    path = request.args.get('path')
+    branch = request.args.get('branch')
+    
+    if not project.has_github or not project.github_repo:
+        return jsonify({'success': False})
+        
+    repo_path = project.github_repo.replace('https://github.com/', '').replace('http://github.com/', '').strip('/')
+    if repo_path.endswith('.git'): repo_path = repo_path[:-4]
+    
+    headers = {'Accept': 'application/vnd.github.v3+json'}
+    if current_user.github_token: headers['Authorization'] = f'token {current_user.github_token}'
+    
+    try:
+        import requests
+        import base64
+        params = {'ref': branch} if branch else {}
+        resp = requests.get(f'https://api.github.com/repos/{repo_path}/contents/{path}', headers=headers, params=params, timeout=5)
+        if resp.status_code == 200:
+            data = resp.json()
+            if 'content' in data:
+               decoded_text = base64.b64decode(data['content']).decode('utf-8', errors='replace')
+               return jsonify({'success': True, 'content': decoded_text, 'name': data['name'], 'html_url': data['html_url']})
+            return jsonify({'success': False, 'message': 'Conteúdo vazio ou não é um arquivo de texto legível.'})
+        else:
+            return jsonify({'success': False, 'message': 'Não foi possível carregar o arquivo.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
 @app.route('/projects/<int:id>/github_file_commit', methods=['GET'])
 @login_required
 def get_github_file_commit(id):

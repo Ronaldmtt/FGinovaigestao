@@ -2888,8 +2888,10 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
                 <div class="d-flex justify-content-between align-items-center mb-0 pb-1">
                     <div class="d-flex align-items-center">
                        ${branchSelectorHtml}
-                       <div class="me-3" style="cursor: pointer; transition: 0.2s;" onclick="viewAllCommits('${projectId}', '${data.current_branch || ''}')" title="Ver Histórico Completo de Commits">
-                           <i class="fas fa-history me-1 text-secondary hover-primary"></i> <strong class="text-light hover-primary border-bottom border-secondary border-opacity-50 pb-1">${data.commit_count || 0}</strong> <span class="text-muted small hover-primary border-bottom border-secondary border-opacity-50 pb-1">Commits</span>
+                       <div class="me-3">
+                           <i class="fas fa-history me-1 text-secondary hover-primary"></i> 
+                           <strong class="text-light hover-primary border-bottom border-secondary border-opacity-50 pb-1" style="cursor: pointer; transition: 0.2s;" onclick="viewAllCommits('${projectId}', '${data.current_branch || ''}')" title="Ver Histórico Completo de Commits">${data.commit_count || 0}</strong> 
+                           <span class="text-muted small hover-primary border-bottom border-secondary border-opacity-50 pb-1">Commits</span>
                        </div>
                        <div>
                            <i class="fas fa-users me-1 text-primary"></i> <span class="badge bg-secondary">${contributors.length} Contribuidor(es)</span>
@@ -2917,7 +2919,7 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
                 <div class="list-group-item bg-dark border-secondary text-light d-flex align-items-center py-2" id="github-file-${file.sha}">
                     <div style="width: 30px;" class="text-center"><i class="fas ${icon}"></i></div>
                     <div class="text-truncate px-2" style="width: 25%;">
-                        <a href="${file.html_url}" target="_blank" class="text-light text-decoration-none fw-semibold" style="cursor:pointer;">${file.name}</a>
+                        <a href="#" onclick="event.preventDefault(); ${file.type === 'dir' ? `loadGithubData('${projectId}', '${data.current_branch || ''}')` : `viewFileContent('${file.path.replace(/'/g, "\\'")}', '${projectId}', '${data.current_branch || ''}')`}" class="text-light text-decoration-none fw-semibold hover-primary" style="cursor:pointer;" title="${file.type === 'dir' ? 'Abrir pasta' : 'Ver arquivo'}">${file.name}</a>
                     </div>
                     <div class="flex-grow-1 text-truncate small text-muted px-2 file-commit-msg">
                         <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" style="width: 0.8rem; height: 0.8rem;"></span> <span class="fst-italic opacity-75">Buscando commit...</span>
@@ -3067,6 +3069,38 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
 
         // Inicia a busca das datas e mensagens de cada arquivo (lazy loading)
         fetchFileCommits(projectId, contents);
+    }
+    
+    // Load remote file content
+    function viewFileContent(filePath, projectId, branch) {
+        const modalEl = document.getElementById('githubFileModal');
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        const modalBody = document.getElementById('githubFileModalBody');
+        const modalTitle = document.getElementById('githubFileModalLabel');
+        
+        modalTitle.innerHTML = `<i class="fas fa-file-code text-info me-2"></i> ${escapeHtml(filePath)}`;
+        modalBody.innerHTML = `<div class="text-center py-5"><div class="spinner-border text-info"></div><p class="mt-2 text-muted">Carregando arquivo...</p></div>`;
+        modal.show();
+        
+        let url = `/projects/${projectId}/github_file_content?path=${encodeURIComponent(filePath)}`;
+        if (branch) url += `&branch=${encodeURIComponent(branch)}`;
+        
+        fetch(url)
+            .then(r => r.json())
+            .then(data => {
+                if(data.success) {
+                    modalBody.innerHTML = `
+                         <div class="d-flex justify-content-end mb-2">
+                             <a href="${data.html_url}" target="_blank" class="btn btn-sm btn-outline-light"><i class="fas fa-external-link-alt"></i> Ver no GitHub</a>
+                         </div>
+                         <pre class="p-3 bg-dark text-light border border-secondary rounded overflow-auto" style="font-size: 13px; max-height: 65vh; white-space: pre-wrap; word-wrap: break-word;"><code class="language-plaintext">${escapeHtml(data.content)}</code></pre>
+                    `;
+                } else {
+                    modalBody.innerHTML = `<div class="p-4 text-center text-warning"><i class="fas fa-exclamation-triangle fa-2x mb-3"></i><br>${escapeHtml(data.message || 'Falha ao carregar arquivo. Pode ser um arquivo binário ou imagem.')}</div>`;
+                }
+            }).catch(e => {
+                modalBody.innerHTML = `<div class="p-4 text-center text-danger">Erro de rede.</div>`;
+            });
     }
 
     // Load all commits history

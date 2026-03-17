@@ -1142,6 +1142,24 @@ def get_github_data(id):
         if target_branch: commits_params['sha'] = target_branch
         commits_data = safe_get(f'https://api.github.com/repos/{repo_path}/commits', commits_params) or []
         
+        # 2.1 Total Commits count (Using Github API pagination link header trick)
+        total_commits = 0
+        try:
+            count_params = {'per_page': 1}
+            if target_branch: count_params['sha'] = target_branch
+            c_resp = requests.get(f'https://api.github.com/repos/{repo_path}/commits', headers=headers, params=count_params, timeout=5)
+            if c_resp.status_code == 200:
+                link_header = c_resp.headers.get('Link')
+                if link_header:
+                    import re
+                    match = re.search(r'page=(\d+)>; rel="last"', link_header)
+                    if match:
+                        total_commits = int(match.group(1))
+                else:
+                    total_commits = len(c_resp.json())
+        except Exception:
+            pass
+        
         # 3. Arquivos do diretório principal (Root) da branch
         contents_params = {'ref': target_branch} if target_branch else None
         contents_data = safe_get(f'https://api.github.com/repos/{repo_path}/contents', contents_params) or []
@@ -1161,6 +1179,7 @@ def get_github_data(id):
             'success': True,
             'repo': repo_data,
             'current_branch': target_branch,
+            'commit_count': total_commits,
             'commits': commits_data,
             'contents': contents_data,
             'branches': branches_data,
@@ -1171,6 +1190,31 @@ def get_github_data(id):
     except requests.exceptions.RequestException as e:
         rpa_log.error(f"Erro de conexão com GitHub para projeto {id}: {e}", exc=e, regiao="github")
         return jsonify({'success': False, 'message': f'Erro de conexão com GitHub API: {str(e)}'})
+
+@app.route('/projects/<int:id>/github_commit/<sha>', methods=['GET'])
+@login_required
+def get_github_commit_details(id, sha):
+    project = Project.query.get_or_404(id)
+    if not project.has_github or not project.github_repo:
+        return jsonify({'success': False})
+        
+    repo_path = project.github_repo.replace('https://github.com/', '').replace('http://github.com/', '').strip('/')
+    if repo_path.endswith('.git'):
+        repo_path = repo_path[:-4]
+        
+    headers = {'Accept': 'application/vnd.github.v3+json'}
+    if current_user.github_token:
+        headers['Authorization'] = f'token {current_user.github_token}'
+        
+    try:
+        import requests
+        resp = requests.get(f'https://api.github.com/repos/{repo_path}/commits/{sha}', headers=headers, timeout=5)
+        if resp.status_code == 200:
+            return jsonify({'success': True, 'commit': resp.json()})
+        else:
+             return jsonify({'success': False, 'message': 'Não foi possível buscar os detalhes do commit.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
 
 @app.route('/projects/<int:id>/github_file_commit', methods=['GET'])
 @login_required

@@ -888,6 +888,9 @@ def edit_project(id):
     project.has_github = True if request.form.get('has_github') == 'on' else False
     project.has_drive = True if request.form.get('has_drive') == 'on' else False
     
+    if 'github_repo' in request.form:
+        project.github_repo = request.form.get('github_repo', '')
+        
     # 3-State Logic for .ENV
     # Toggle OFF -> None (Pending/Red)
     # Toggle ON + "Não possui" OFF -> True (Green/Check)
@@ -1795,7 +1798,7 @@ def update_project_field(id):
     print(f"DEBUG ATOMIC UPDATE: Project {id}, Field {field}, Value {value} ({type(value)})")
 
     allowed_bool_fields = ['has_github', 'has_drive', 'has_env', 'has_backup_db', 'show_in_kanban']
-    allowed_text_fields = ['rpa_identifier']
+    allowed_text_fields = ['rpa_identifier', 'github_repo']
 
     try:
         if field in allowed_bool_fields:

@@ -1426,7 +1426,8 @@
                 'X-Requested-With': 'XMLHttpRequest'
             },
             body: JSON.stringify({
-                [fieldName]: value
+                field: fieldName,
+                value: value
             })
         })
         .then(response => response.json())

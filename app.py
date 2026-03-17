@@ -136,7 +136,7 @@ with app.app_context():
         pass
 
     try:
-        db.session.execute(text("ALTER TABLE user ADD COLUMN github_token VARCHAR(255)"))
+        db.session.execute(text('ALTER TABLE "user" ADD COLUMN github_token VARCHAR(255)'))
         db.session.commit()
     except Exception:
         db.session.rollback()

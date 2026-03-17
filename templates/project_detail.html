@@ -2871,12 +2871,12 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
         if (commits.length > 0) {
             const lc = commits[0];
             latestCommitHtml = `
-                <div class="list-group-item border-secondary d-flex align-items-center py-2" style="background-color: #1a1e23 !important;">
-                    ${lc.author && lc.author.avatar_url ? `<img src="${lc.author.avatar_url}" width="24" height="24" class="rounded-circle me-2">` : '<i class="fas fa-user-circle me-2 text-secondary"></i>'}
+                <div class="d-flex align-items-center py-2 px-3 border-top border-secondary mt-2 bg-dark rounded-bottom" style="margin: 0 -16px -8px -16px;">
+                    ${lc.author && lc.author.avatar_url ? `<img src="${lc.author.avatar_url}" width="24" height="24" class="rounded-circle me-2 border border-secondary">` : '<i class="fas fa-user-circle me-2 text-secondary"></i>'}
                     <span class="text-light fw-bold me-2 small">${lc.commit.author.name}</span>
                     <span class="text-muted small text-truncate flex-grow-1"><a href="#" onclick="event.preventDefault(); viewCommit('${lc.sha}', '${projectId}')" class="text-muted text-decoration-none hover-primary">${escapeHtml(lc.commit.message)}</a></span>
                     <span class="text-muted small ms-3 font-monospace">${lc.sha.substring(0,7)} &nbsp;&bull;&nbsp; ${timeAgo(lc.commit.author.date)}</span>
-                    <a href="#" onclick="event.preventDefault(); viewCommit('${lc.sha}', '${projectId}')" class="btn btn-sm btn-outline-secondary py-0 ms-2" title="Ver detalhes do commit"><i class="fas fa-history"></i></a>
+                    <a href="#" onclick="event.preventDefault(); viewCommit('${lc.sha}', '${projectId}')" class="btn btn-sm btn-outline-secondary py-0 ms-2 border-0" title="Ver detalhes do commit"><i class="fas fa-history"></i></a>
                 </div>
             `;
         }
@@ -2884,22 +2884,24 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
         // 1. Arquivos (File Explorer)
         let filesHtml = `
         <div class="card bg-dark border-secondary mb-4">
-            <div class="card-header border-secondary bg-dark text-light d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center">
-                   ${branchSelectorHtml}
-                   <div class="me-3">
-                       <i class="fas fa-history me-1 text-secondary"></i> <strong class="text-light">${data.commit_count || 0}</strong> <span class="text-muted small">Commits</span>
-                   </div>
-                   <div>
-                       <i class="fas fa-users me-1 text-primary"></i> <span class="badge bg-secondary">${contributors.length} Contribuidor(es)</span>
-                   </div>
+            <div class="card-header border-secondary bg-dark text-light">
+                <div class="d-flex justify-content-between align-items-center mb-0 pb-1">
+                    <div class="d-flex align-items-center">
+                       ${branchSelectorHtml}
+                       <div class="me-3" style="cursor: pointer; transition: 0.2s;" onclick="viewAllCommits('${projectId}', '${data.current_branch || ''}')" title="Ver Histórico Completo de Commits">
+                           <i class="fas fa-history me-1 text-secondary hover-primary"></i> <strong class="text-light hover-primary border-bottom border-secondary border-opacity-50 pb-1">${data.commit_count || 0}</strong> <span class="text-muted small hover-primary border-bottom border-secondary border-opacity-50 pb-1">Commits</span>
+                       </div>
+                       <div>
+                           <i class="fas fa-users me-1 text-primary"></i> <span class="badge bg-secondary">${contributors.length} Contribuidor(es)</span>
+                       </div>
+                    </div>
+                    <div>
+                       <a href="${repo.html_url}" target="_blank" class="btn btn-sm btn-outline-light"><i class="fas fa-external-link-alt"></i> Github</a>
+                    </div>
                 </div>
-                <div>
-                   <a href="${repo.html_url}" target="_blank" class="btn btn-sm btn-outline-light"><i class="fas fa-external-link-alt"></i> Github</a>
-                </div>
+                ${latestCommitHtml}
             </div>
             <div class="list-group list-group-flush rounded-0">
-                ${latestCommitHtml}
         `;
 
         if (contents.length > 0) {
@@ -3067,6 +3069,45 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
         fetchFileCommits(projectId, contents);
     }
 
+    // Load all commits history
+    function viewAllCommits(projectId, branch) {
+        const modalEl = document.getElementById('githubAllCommitsModal');
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        const modalBody = document.getElementById('githubAllCommitsModalBody');
+        
+        modalBody.innerHTML = `<div class="text-center py-5"><div class="spinner-border text-primary"></div><p class="mt-2 text-muted">Carregando histórico...</p></div>`;
+        modal.show();
+        
+        let url = `/projects/${projectId}/github_commits_list`;
+        if(branch) url += `?branch=${encodeURIComponent(branch)}`;
+        
+        fetch(url)
+            .then(r => r.json())
+            .then(data => {
+                if(data.success && data.commits) {
+                    modalBody.innerHTML = data.commits.map(c => `
+                        <div class="list-group-item bg-dark text-light border-secondary">
+                            <div class="d-flex w-100 justify-content-between mb-1">
+                                <strong class="text-primary text-truncate" style="max-width: 80%;">
+                                    <a href="#" onclick="event.preventDefault(); bootstrap.Modal.getInstance(document.getElementById('githubAllCommitsModal')).hide(); setTimeout(() => viewCommit('${c.sha}', '${projectId}'), 400);" class="text-primary text-decoration-none hover-secondary">${escapeHtml(c.commit.message)}</a>
+                                </strong>
+                                <small class="text-muted ms-2 text-end" style="min-width: 80px;">${timeAgo(c.commit.author.date)}</small>
+                            </div>
+                            <div class="d-flex align-items-center mt-2">
+                                ${c.author && c.author.avatar_url ? `<img src="${c.author.avatar_url}" width="20" height="20" class="rounded-circle me-2">` : '<i class="fas fa-user-circle me-2 text-secondary"></i>'}
+                                <span class="small text-muted">${c.commit.author.name}</span>
+                                <span class="ms-auto small font-monospace text-secondary">${c.sha.substring(0,7)}</span>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    modalBody.innerHTML = `<div class="p-4 text-center text-danger">Falha ao carregar commits.</div>`;
+                }
+            }).catch(e => {
+                modalBody.innerHTML = `<div class="p-4 text-center text-danger">Erro de conexão ao buscar histórico.</div>`;
+            });
+    }
+
     // Load specific commit details
     function viewCommit(sha, projectId) {
         const modalEl = document.getElementById('githubCommitModal');
@@ -3151,6 +3192,25 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
     });
 
 </script>
+
+<!-- GitHub All Commits Modal -->
+<div class="modal fade" id="githubAllCommitsModal" tabindex="-1" aria-hidden="true" style="z-index: 1055;">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content bg-dark text-light border-secondary">
+      <div class="modal-header border-secondary bg-dark text-light" data-bs-theme="dark">
+        <h5 class="modal-title">
+           <i class="fas fa-history text-secondary me-2"></i> Histórico de Commits
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-0">
+          <div id="githubAllCommitsModalBody" class="list-group list-group-flush rounded-0">
+               <!-- Content injected by JS -->
+          </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- GitHub Commit Detail Modal -->
 <div class="modal fade" id="githubCommitModal" tabindex="-1" aria-labelledby="githubCommitModalLabel" aria-hidden="true" style="z-index: 1060;">

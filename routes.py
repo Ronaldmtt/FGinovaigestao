@@ -1216,6 +1216,33 @@ def get_github_commit_details(id, sha):
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
 
+@app.route('/projects/<int:id>/github_commits_list', methods=['GET'])
+@login_required
+def get_github_commits_list(id):
+    project = Project.query.get_or_404(id)
+    target_branch = request.args.get('branch')
+    
+    if not project.has_github or not project.github_repo:
+        return jsonify({'success': False})
+        
+    repo_path = project.github_repo.replace('https://github.com/', '').replace('http://github.com/', '').strip('/')
+    if repo_path.endswith('.git'): repo_path = repo_path[:-4]
+    
+    headers = {'Accept': 'application/vnd.github.v3+json'}
+    if current_user.github_token: headers['Authorization'] = f'token {current_user.github_token}'
+    
+    try:
+        import requests
+        params = {'per_page': 50}
+        if target_branch: params['sha'] = target_branch
+        resp = requests.get(f'https://api.github.com/repos/{repo_path}/commits', headers=headers, params=params, timeout=10)
+        if resp.status_code == 200:
+            return jsonify({'success': True, 'commits': resp.json()})
+    except Exception:
+        pass
+        
+    return jsonify({'success': False})
+
 @app.route('/projects/<int:id>/github_file_commit', methods=['GET'])
 @login_required
 def get_github_file_commit(id):

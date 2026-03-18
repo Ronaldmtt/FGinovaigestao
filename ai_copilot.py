@@ -239,6 +239,21 @@ TOOLS = [
                 "required": ["action", "table_name", "record_id"]
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "generate_todos_from_github",
+            "description": "Gera Subtarefas (To-Dos) automaticamente lendo os commits recentes de um projeto do GitHub (IA gerativa).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "task_id": {"type": "integer", "description": "ID da tarefa pai onde as subtarefas serão inseridas."},
+                    "period": {"type": "string", "enum": ["today", "yesterday", "last_3_days", "last_7_days"], "description": "Período temporal para analisar os commits."}
+                },
+                "required": ["task_id", "period"]
+            }
+        }
     }
 ]
 
@@ -623,6 +638,65 @@ def execute_tool(name, arguments, user):
             except Exception as e:
                 db.session.rollback()
                 return json.dumps({"status": "error", "message": f"Erro no JSON Payload de update: {str(e)}"})
+
+    elif name == "generate_todos_from_github":
+        task_id = args.get("task_id")
+        period = args.get("period", "today")
+        task = Task.query.get(task_id)
+        if not task: return json.dumps({"status": "error", "message": "Task não encontrada."})
+        project = task.project
+        if not project.github_repo: return json.dumps({"status": "error", "message": "Projeto não possui repositório GitHub vinculado."})
+        if not user.github_token: return json.dumps({"status": "error", "message": "Você não possui Token do GitHub configurado no seu perfil."})
+
+        from datetime import datetime, timedelta
+        import re, requests
+        now_utc = datetime.utcnow()
+        if period == 'yesterday':
+            since = (now_utc - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+            until = since.replace(hour=23, minute=59, second=59)
+        elif period == 'last_3_days':
+            since, until = now_utc - timedelta(days=3), now_utc
+        elif period == 'last_7_days':
+            since, until = now_utc - timedelta(days=7), now_utc
+        else: # today
+            since, until = now_utc.replace(hour=0, minute=0, second=0, microsecond=0), now_utc
+
+        repo_match = re.search(r'(?:github\.com/)?([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(?:\.git|/)?$', project.github_repo)
+        if not repo_match: return json.dumps({"status": "error", "message": "Formato de URL do repo do GitHub inválido."})
+
+        headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {user.github_token}'}
+        params = {'since': since.isoformat() + 'Z', 'until': until.isoformat() + 'Z', 'per_page': 100}
+
+        try:
+            resp = requests.get(f'https://api.github.com/repos/{repo_match.group(1)}/{repo_match.group(2)}/commits', headers=headers, params=params, timeout=10)
+            if resp.status_code != 200: return json.dumps({"status": "error", "message": f"Erro buscar commits (Github API): {resp.status_code}"})
+            commits = resp.json()
+            if not commits: return json.dumps({"status": "success", "action": "chat_reply", "content": "Análise concluída. Nenhum commit foi encontrado no Github neste período."})
+
+            commits_text = "\\n".join([f"[{c['commit']['author']['date']}] Commit {c['sha'][:7]}: {c['commit']['message'].strip()}" for c in commits])
+            existing_todos = TodoItem.query.filter_by(task_id=task.id).all()
+            existing_todos_text = "\\n".join([f"{i+1}. {'[x]' if t.completed else '[ ]'} {t.texto}" for i, t in enumerate(existing_todos)])
+
+            from openai_service import generate_kanban_todos_from_commits
+            res_todos = generate_kanban_todos_from_commits(commits_text, project.nome, existing_todos_text)
+
+            if not res_todos: return json.dumps({"status": "error", "message": "IA falhou ao mapear checklists técnicos."})
+
+            criados = 0
+            for td in res_todos:
+                nt = TodoItem(texto=td.get('texto','')[:300], comentario=td.get('comentario',''), completed=td.get('completed',False), task_id=task.id)
+                if nt.completed: nt.completed_at = datetime.utcnow()
+                db.session.add(nt)
+                criados += 1
+            db.session.commit()
+            return json.dumps({
+                "status": "success", 
+                "action": "chat_reply", 
+                "content": f"Excelente! Processei os {len(commits)} commits do módulo e adicionei as implementações como **{criados} novos To-Dos** na tarefa '{task.titulo}'."
+            })
+        except Exception as e:
+            db.session.rollback()
+            return json.dumps({"status": "error", "message": str(e)})
 
     return json.dumps({"status": "error", "message": "Unknown tool"})
 

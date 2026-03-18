@@ -2538,6 +2538,11 @@ def api_generate_todos_from_commits(task_id):
                 )
                 if commit_resp.status_code == 200:
                     commit_detail = commit_resp.json()
+                    author_name = (
+                        ((commit_detail.get('author') or {}).get('login'))
+                        or ((commit_detail.get('committer') or {}).get('login'))
+                        or author_name
+                    )
                     for f in commit_detail.get('files', [])[:20]:
                         filename = f.get('filename', '')
                         if filename:

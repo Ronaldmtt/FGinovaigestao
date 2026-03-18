@@ -367,6 +367,7 @@ def generate_kanban_todos_from_commits(commits_text, project_name, existing_todo
            - explicação curta do que aquilo desbloqueia, corrige ou melhora
            - se houver sequência de ajustes, deixe claro no comentário que foi uma evolução incremental
            - evite comentários vagos como "melhora a experiência do usuário" sem explicar tecnicamente o ganho
+           - prefira comentários causais, no formato: "corrige X", "evita Y", "desbloqueia Z", "reduz risco de W", "garante consistência de K"
         9. O campo `completed` deve ser `true` para mudanças claramente já implementadas em commits fechados. Use `false` apenas se houver sinal explícito de WIP/incompleto.
         10. Gere também itens de camada superior quando o histórico apontar isso, por exemplo:
            - "**Análise**" para revisar consistência entre arquivos tocados várias vezes
@@ -375,6 +376,7 @@ def generate_kanban_todos_from_commits(commits_text, project_name, existing_todo
            - "**Potencial futuro**" para evolução plausível do módulo baseada no rumo recente do projeto
            Porém esses itens estratégicos NÃO devem substituir o detalhamento técnico principal; eles são complemento e devem representar no máximo 10% a 20% da saída total.
            Só gere "Sugestão" ou "Potencial futuro" se houver evidência concreta no histórico; caso contrário, prefira mais itens técnicos factuais.
+           Só gere "Verificação" quando houver risco implícito claro, mudança visual relevante, migração sensível, fluxo novo ou sequência de correções que justificaria teste direcionado.
         11. O comentário deve soar como memória técnica do projeto, não apenas como “criado a partir do commit”.
         12. Priorize dar visibilidade ao volume de trabalho real do mês. Se houve muitas melhorias relevantes em uma mesma área, represente isso com mais de um item, desde que sem redundância textual.
         13. Se houver muitas frentes ativas no período, prefira errar por excesso controlado de itens técnicos do que por resumo excessivo.

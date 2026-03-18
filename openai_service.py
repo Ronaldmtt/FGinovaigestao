@@ -305,7 +305,7 @@ def generate_client_report_from_tasks(project_name, tasks):
         print(f"Erro ao gerar relatório de cliente: {e}")
         return None
 
-def generate_kanban_todos_from_commits(commits_text, project_name, existing_todos_text="", repo_context=""):
+def generate_kanban_todos_from_commits(commits_text, project_name, existing_todos_text="", repo_context="", batch_hint=""):
     """
     Analisa um histórico recente de commits e gera To-Dos técnicos estruturados para o Kanban.
     A saída deve funcionar como memória técnica do projeto e base para relatórios humanos posteriores.
@@ -324,7 +324,10 @@ def generate_kanban_todos_from_commits(commits_text, project_name, existing_todo
         ## HISTÓRICO DE COMMITS RECENTES PARA ANÁLISE:
         {commits_text}
 
-        ## OBJETIVO DA GERAÇÃO 2.1:
+        ## LOTE / FOCO DESTA GERAÇÃO:
+        {batch_hint if batch_hint else 'Geração única sem particionamento explícito.'}
+
+        ## OBJETIVO DA GERAÇÃO 2.3:
         Gere itens que representem o que foi feito, por que foi feito, em qual camada do sistema isso impacta, e como validar. O objetivo NÃO é comprimir um mês de trabalho em poucos épicos. Você deve preservar a sensação real de volume e complexidade do período, sem voltar ao ruído mecânico de 1 commit = 1 item sempre.
 
         ## REGRAS OBRIGATÓRIAS:

@@ -2570,14 +2570,37 @@ def api_generate_todos_from_commits(task_id):
             
         existing_todos_text = "\\n".join(existing_todos_text_lines)
         
-        # Chamar servico OpenAI
+        # Chamar serviço OpenAI em lotes menores para reduzir timeout e preservar granularidade.
         from openai_service import generate_kanban_todos_from_commits
-        generated_todos = generate_kanban_todos_from_commits(
-            commits_text,
-            project.nome,
-            existing_todos_text,
-            repo_context=repo_context
-        )
+
+        def split_batches(items, size):
+            return [items[i:i + size] for i in range(0, len(items), size)]
+
+        commits_batches = split_batches(commits_text_lines, 12)
+        generated_todos = []
+        seen_pairs = set()
+
+        for idx, batch_lines in enumerate(commits_batches, start=1):
+            batch_text = "\n".join(batch_lines)
+            batch_hint = (
+                f"Lote {idx}/{len(commits_batches)}. "
+                f"Gere To-Dos técnicos suficientes para representar bem este subconjunto de commits, "
+                f"sem resumir demais e sem duplicar itens de lotes anteriores."
+            )
+            batch_todos = generate_kanban_todos_from_commits(
+                batch_text,
+                project.nome,
+                existing_todos_text,
+                repo_context=repo_context,
+                batch_hint=batch_hint
+            )
+            for td in batch_todos or []:
+                texto = (td.get('texto') or '').strip()
+                comentario = (td.get('comentario') or '').strip()
+                key = (texto.lower(), comentario.lower())
+                if texto and key not in seen_pairs:
+                    seen_pairs.add(key)
+                    generated_todos.append(td)
         
         if not generated_todos:
             return jsonify({'success': False, 'message': 'A IA não conseguiu identificar tarefas claras nestes commits.'})

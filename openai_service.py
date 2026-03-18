@@ -319,10 +319,20 @@ def generate_kanban_todos_from_commits(commits_text, project_name):
         {commits_text}
 
         DIRETRIZES PARA GERAÇÃO DOS TO-DOS:
-        1. Para cada commit relevante, extraia qual foi a funcionalidade, bug fix ou tarefa executada.
-        2. Avalie pelo contexto da mensagem de commit se a tarefa foi "concluída" (completed: true) ou se o commit indica "progresso parcial/em andamento" ou "ainda precisa de testes/revisão" (completed: false). Se o commit diz "fix bug" ou "implemented feature", geralmente completed = true. Se diz "wip", "starting work on", completed = false.
-        3. Formule o campo 'texto' de forma clara e profissional (ex: "Implementar rota de geração de To-Dos via GitHub").
-        4. No campo 'comentario', coloque a hash do commit e uma breve explicação, autor do commit ou o próprio sumário do commit (ex: "Commit a1b2c3d por @user: Corrigido problema no parser de JSON.").
+        1. ANÁLISE DE CONTEXTO: Avalie o Histórico de Commits fornecido para entender exatamente o que foi executado. Agrupe as alterações lógicas e traduza OBRIGATORIAMENTE todo o contexto técnico para Português (mantendo apenas termos insubstituíveis como "Bug", "Feature", "Refactor").
+        2. ESTRUTURA ATÔMICA: Você DEVE formatar o campo `texto` de cada To-Do usando categorias no início, entre **asteriscos**, exatamente como no formato:
+           - "**Análise**: ..."
+           - "**Backend**: ..."
+           - "**Frontend**: ..."
+           - "**Feature**: ..."
+           - "**Fix**: ..."
+           - "**Melhorias**: ..."
+           - "**Refactor**: ..."
+           - "**Infraestrutura**: ..."
+           - "**Verificação**: ..."
+        3. Exemplo de como deve ficar a string no campo 'texto': "**Fix**: Corrigir erro 404 no parser de URL" ou "**Melhorias**: Renderizar dinamicamente o README do repositório".
+        4. No campo 'comentario', coloque a hash do commit associada e uma breve explicação das alterações. (ex: "Commit a1b2c3d: Corrigido problema no parser de JSON.").
+        5. Avalie pelo contexto da mensagem de commit se a tarefa foi "concluída" (completed: true) ou se o commit indica "progresso parcial/em andamento" ou "ainda precisa de testes/revisão" (completed: false). Commits de bugfix ou feature merged geralmente indicam `completed: true`.
 
         RETORNE O RESULTADO EXATAMENTE NO FORMATO JSON ABAIXO:
         {{

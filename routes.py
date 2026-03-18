@@ -2493,17 +2493,73 @@ def api_generate_todos_from_commits(task_id):
         if not commits_data:
             return jsonify({'success': False, 'message': 'Nenhum commit encontrado no período selecionado.'})
             
-        # Compilar texto dos commits
+        # Compilar texto enriquecido dos commits, incluindo arquivos alterados e pistas de módulo.
         commits_text_lines = []
+        file_frequency = {}
+        module_frequency = {}
+
+        def infer_module_from_file(path):
+            path_lower = (path or '').lower()
+            if path_lower.startswith('templates/financeiro/') or 'routes_financeiro' in path_lower:
+                return 'financeiro'
+            if 'ai_copilot' in path_lower or 'ai_widget' in path_lower or 'ai_hub' in path_lower:
+                return 'copilot_ia'
+            if 'routes_chat' in path_lower or 'meeting' in path_lower or 'meetings' in path_lower:
+                return 'chat_reunioes'
+            if 'project_detail' in path_lower or 'projects.html' in path_lower or 'forms.py' in path_lower:
+                return 'projetos_github'
+            if 'kanban' in path_lower or 'todo' in path_lower:
+                return 'kanban_tarefas'
+            if 'gunicorn' in path_lower or 'service' in path_lower or 'nginx' in path_lower:
+                return 'infra_deploy'
+            if 'crm' in path_lower or 'lead' in path_lower:
+                return 'crm'
+            return 'core_outros'
+
         for c in commits_data:
             sha = c.get('sha', '')[:7]
             commit_info = c.get('commit', {})
             author_name = commit_info.get('author', {}).get('name', 'Desconhecido')
             message = commit_info.get('message', '').strip()
             date_str = commit_info.get('author', {}).get('date', '')
-            commits_text_lines.append(f"[{date_str}] Commit {sha} ({author_name}): {message}")
-            
+
+            changed_files = []
+            try:
+                commit_resp = requests.get(
+                    f'https://api.github.com/repos/{repo_path}/commits/{c.get("sha", "")}',
+                    headers=headers,
+                    timeout=20
+                )
+                if commit_resp.status_code == 200:
+                    commit_detail = commit_resp.json()
+                    for f in commit_detail.get('files', [])[:20]:
+                        filename = f.get('filename', '')
+                        if filename:
+                            changed_files.append(filename)
+                            file_frequency[filename] = file_frequency.get(filename, 0) + 1
+                            module_name = infer_module_from_file(filename)
+                            module_frequency[module_name] = module_frequency.get(module_name, 0) + 1
+            except Exception:
+                pass
+
+            files_preview = ', '.join(changed_files[:8]) if changed_files else 'arquivos não identificados'
+            modules_preview = ', '.join(sorted({infer_module_from_file(f) for f in changed_files})) if changed_files else 'core_outros'
+            commits_text_lines.append(
+                f"[{date_str}] Commit {sha} ({author_name}): {message} | módulos: {modules_preview} | arquivos: {files_preview}"
+            )
+
         commits_text = "\\n".join(commits_text_lines)
+
+        top_files = sorted(file_frequency.items(), key=lambda kv: kv[1], reverse=True)[:12]
+        top_modules = sorted(module_frequency.items(), key=lambda kv: kv[1], reverse=True)[:10]
+        repo_context_lines = [
+            f"Total de commits analisados: {len(commits_data)}",
+            "Arquivos mais alterados no período:",
+        ]
+        repo_context_lines.extend([f"- {path} ({count} commit(s))" for path, count in top_files])
+        repo_context_lines.append("Módulos mais alterados no período:")
+        repo_context_lines.extend([f"- {module} ({count} commit(s))" for module, count in top_modules])
+        repo_context = "\\n".join(repo_context_lines)
         
         # Obter To-Dos existentes para evitar duplicidade e dar contexto à IA
         existing_todos = TodoItem.query.filter_by(task_id=task.id).all()
@@ -2516,7 +2572,12 @@ def api_generate_todos_from_commits(task_id):
         
         # Chamar servico OpenAI
         from openai_service import generate_kanban_todos_from_commits
-        generated_todos = generate_kanban_todos_from_commits(commits_text, project.nome, existing_todos_text)
+        generated_todos = generate_kanban_todos_from_commits(
+            commits_text,
+            project.nome,
+            existing_todos_text,
+            repo_context=repo_context
+        )
         
         if not generated_todos:
             return jsonify({'success': False, 'message': 'A IA não conseguiu identificar tarefas claras nestes commits.'})

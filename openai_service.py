@@ -305,29 +305,34 @@ def generate_client_report_from_tasks(project_name, tasks):
         print(f"Erro ao gerar relatório de cliente: {e}")
         return None
 
-def generate_kanban_todos_from_commits(commits_text, project_name, existing_todos_text=""):
+def generate_kanban_todos_from_commits(commits_text, project_name, existing_todos_text="", repo_context=""):
     """
-    Analisa uma string contendo um histórico recente de commits e gera uma lista de To-Dos
-    (checklists) para tarefas do Kanban, formatada em JSON.
+    Analisa um histórico recente de commits e gera To-Dos técnicos estruturados para o Kanban.
+    A saída deve funcionar como memória técnica do projeto e base para relatórios humanos posteriores.
     """
     try:
         prompt = f"""
-        Você é um Tech Lead especialista revisando um histórico de commits recentes do repositório do projeto "{project_name}".
-        Sua missão é extrair desses commits as tarefas/funcionalidades que foram trabalhadas e gerar novos itens de To-Do (checklist) para o Kanban.
+        Você é um Principal Engineer e Arquiteto de Software revisando o histórico recente do projeto "{project_name}".
+        Sua missão NÃO é apenas reescrever commits: você deve gerar To-Dos técnicos estruturados, ricos em contexto, úteis para o time interno e preparados para servir de base a relatórios futuros para clientes.
 
         ## TAREFAS JÁ EXISTENTES NESTE KANBAN:
         {existing_todos_text if existing_todos_text else "Ainda não há subtarefas registradas."}
 
+        ## CONTEXTO DO REPOSITÓRIO / MÓDULOS MAIS QUENTES:
+        {repo_context if repo_context else "Contexto agregado do repositório não informado."}
+
         ## HISTÓRICO DE COMMITS RECENTES PARA ANÁLISE:
         {commits_text}
 
-        ## DIRETRIZES TÉCNICAS E DE NEGÓCIO:
-        1. ANÁLISE RIGOROSA E NÃO OMISSÃO (MUITO IMPORTANTE): 
-           - Leia os "Commits Recentes" e NÃO agrupe indevidamente tarefas distintas. Se houver 10 commits falando sobre funcionalidades ou fixes separados (ex: 1 rotina de importação, 1 modal de loading, 1 botão novo), você DEVE gerar tarefas separadas para cada uma dessas evoluções. A granularidade deve ser próxima de 1 para 1 para commits com significado real.
-           - Compare os "Commits Recentes" com as "Tarefas Já Existentes".
-           - NÃO crie To-Dos duplicados se já existir um To-Do cobrindo a mesma tarefa exata (se ele já existir, pule o commit).
-           - DESCREVA A TAREFA: Seu 'texto' NÃO deve ser apenas o título do commit. Você deve atuar como Arquiteto e explicar o *o quê* e *por quê* foi feito. (Ex: ao invés de "**Melhorias**: Ajustar parser", use "**Melhorias**: Refatorado parser de URL no Github Service para extrair corretamente owner/repo via regex com suporte a strings http e .git, prevenindo erro 404 de repositório não encontrado.")
-        2. ESTRUTURA ATÔMICA: Você DEVE formatar o campo `texto` de cada To-Do obrigatoriamente usando uma categoria no início, entre **asteriscos**:
+        ## OBJETIVO DA GERAÇÃO 2.0:
+        Gere itens que representem o que foi feito, por que foi feito, em qual camada do sistema isso impacta, e como validar. Os itens podem ser numerosos, desde que sejam úteis, técnicos e semanticamente corretos.
+
+        ## REGRAS OBRIGATÓRIAS:
+        1. NÃO invente funcionalidades. Baseie-se estritamente nos commits e no contexto do repositório.
+        2. NÃO produza itens genéricos vazios. Cada item deve mencionar a intenção técnica da mudança.
+        3. NÃO duplique itens já existentes no kanban se cobrirem o mesmo escopo.
+        4. Você PODE manter granularidade alta, mas deve agrupar microcommits puramente cosméticos quando fizerem parte da mesma frente técnica.
+        5. Sempre escreva o campo `texto` em linguagem técnica estruturada, começando obrigatoriamente por UMA destas categorias:
            - "**Análise**: ..."
            - "**Backend**: ..."
            - "**Frontend**: ..."
@@ -337,18 +342,42 @@ def generate_kanban_todos_from_commits(commits_text, project_name, existing_todo
            - "**Refactor**: ..."
            - "**Infraestrutura**: ..."
            - "**Verificação**: ..."
-        3. No campo 'comentario', informe a hash do commit, o autor, e mencione de onde esse insight foi extraído (ex: "Criado a partir do Commit 8feb4ab por @dev").
-        4. O campo 'completed' será `true` caso a tarefa do commit evidencie que já foi implementada/entregue (commits no passado). O campo será `false` apenas se o commit indicar algo incompleto ("WIP", "começando feature X"). Na grande maioria dos casos de commits feitos, será `true`.
+           - "**Sugestão**: ..."
+           - "**Potencial futuro**: ..."
+        6. O campo `texto` deve idealmente seguir esta lógica interna, mesmo que em uma linha só:
+           categoria + ação + módulo/arquivos + objetivo/impacto.
+           Exemplo bom:
+           "**Backend**: Ajustar parser de `github_repo` em `routes.py` e fluxo de edição de projeto para suportar URLs com `.git` e evitar erro 404 na coleta de commits."
+        7. O campo `comentario` deve ser mais rico do que antes. Inclua, quando possível:
+           - commit/hash de origem
+           - autor
+           - arquivos principais afetados
+           - explicação curta do que aquilo desbloqueia, corrige ou melhora
+        8. O campo `completed` deve ser `true` para mudanças claramente já implementadas em commits fechados. Use `false` apenas se houver sinal explícito de WIP/incompleto.
+        9. IMPORTANTE: Gere também itens de camada superior quando o histórico apontar isso, por exemplo:
+           - "**Análise**" para revisar consistência entre arquivos tocados várias vezes
+           - "**Verificação**" para testes manuais/automatizados necessários
+           - "**Sugestão**" para dívida técnica ou melhoria percebida a partir do padrão de commits
+           - "**Potencial futuro**" para evolução plausível do módulo baseada no rumo recente do projeto
+        10. O comentário deve soar como memória técnica do projeto, não apenas como “criado a partir do commit”.
 
-        ## RETORNE O RESULTADO EXATAMENTE NO FORMATO JSON ABAIXO:
+        ## CRITÉRIO DE QUALIDADE:
+        Uma saída excelente permite que alguém leia os To-Dos e entenda:
+        - o que foi mexido no sistema
+        - em que camada (backend/frontend/infra/etc.)
+        - quais arquivos/módulos foram impactados
+        - por que isso importa
+        - o que ainda vale verificar ou evoluir
+
+        ## FORMATO DE SAÍDA (JSON PURO):
         {{
-            "todos": [
-                {{
-                    "texto": "Nome da tarefa extraída",
-                    "comentario": "Explicação breve ou detalhe do commit",
-                    "completed": true ou false
-                }}
-            ]
+          "todos": [
+            {{
+              "texto": "**Backend**: ...",
+              "comentario": "Commits abc1234/def5678 por Fulano. Arquivos: routes.py, templates/kanban.html. Impacto: ...",
+              "completed": true
+            }}
+          ]
         }}
         """
         

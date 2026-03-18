@@ -324,15 +324,22 @@ def generate_kanban_todos_from_commits(commits_text, project_name, existing_todo
         ## HISTÓRICO DE COMMITS RECENTES PARA ANÁLISE:
         {commits_text}
 
-        ## OBJETIVO DA GERAÇÃO 2.0:
-        Gere itens que representem o que foi feito, por que foi feito, em qual camada do sistema isso impacta, e como validar. Os itens podem ser numerosos, desde que sejam úteis, técnicos e semanticamente corretos.
+        ## OBJETIVO DA GERAÇÃO 2.1:
+        Gere itens que representem o que foi feito, por que foi feito, em qual camada do sistema isso impacta, e como validar. O objetivo NÃO é comprimir um mês de trabalho em poucos épicos. Você deve preservar a sensação real de volume e complexidade do período, sem voltar ao ruído mecânico de 1 commit = 1 item sempre.
 
         ## REGRAS OBRIGATÓRIAS:
         1. NÃO invente funcionalidades. Baseie-se estritamente nos commits e no contexto do repositório.
         2. NÃO produza itens genéricos vazios. Cada item deve mencionar a intenção técnica da mudança.
         3. NÃO duplique itens já existentes no kanban se cobrirem o mesmo escopo.
-        4. Você PODE manter granularidade alta, mas deve agrupar microcommits puramente cosméticos quando fizerem parte da mesma frente técnica.
-        5. Sempre escreva o campo `texto` em linguagem técnica estruturada, começando obrigatoriamente por UMA destas categorias:
+        4. GRANULARIDADE OBRIGATÓRIA:
+           - Para períodos grandes (ex.: 15 ou 30 dias), gere um volume robusto de itens. Como regra prática, você deve tender a produzir algo entre 35% e 75% do número de commits relevantes, nunca resumindo um mês inteiro em meia dúzia de tópicos amplos.
+           - AGRUPE apenas commits muito próximos e claramente da mesma microfrente técnica.
+           - NÃO agrupe commits de naturezas diferentes (ex.: infra + frontend, parser + UI, backend + testes) num mesmo item.
+           - Se houver uma sequência de refinamentos reais no mesmo módulo, você pode gerar múltiplos itens da mesma frente, desde que cada um represente uma mudança com valor próprio.
+        5. REGRA DE ESTADO FINAL (CRÍTICA):
+           - Quando houver commits conflitantes ou evolutivos na mesma área, o item deve refletir o ESTADO FINAL mais recente, e não uma média confusa do histórico.
+           - Exemplo: se um commit adiciona Unix Socket e outro posterior desfaz isso para usar porta interna 5000, o To-Do deve descrever a decisão final adotada, mencionando no comentário que houve iteração/ajuste de abordagem.
+        6. Sempre escreva o campo `texto` em linguagem técnica estruturada, começando obrigatoriamente por UMA destas categorias:
            - "**Análise**: ..."
            - "**Backend**: ..."
            - "**Frontend**: ..."
@@ -344,22 +351,25 @@ def generate_kanban_todos_from_commits(commits_text, project_name, existing_todo
            - "**Verificação**: ..."
            - "**Sugestão**: ..."
            - "**Potencial futuro**: ..."
-        6. O campo `texto` deve idealmente seguir esta lógica interna, mesmo que em uma linha só:
+        7. O campo `texto` deve idealmente seguir esta lógica interna, mesmo que em uma linha só:
            categoria + ação + módulo/arquivos + objetivo/impacto.
            Exemplo bom:
            "**Backend**: Ajustar parser de `github_repo` em `routes.py` e fluxo de edição de projeto para suportar URLs com `.git` e evitar erro 404 na coleta de commits."
-        7. O campo `comentario` deve ser mais rico do que antes. Inclua, quando possível:
-           - commit/hash de origem
+        8. O campo `comentario` deve ser mais rico do que antes. Inclua, quando possível:
+           - commit/hash de origem (um ou mais)
            - autor
            - arquivos principais afetados
            - explicação curta do que aquilo desbloqueia, corrige ou melhora
-        8. O campo `completed` deve ser `true` para mudanças claramente já implementadas em commits fechados. Use `false` apenas se houver sinal explícito de WIP/incompleto.
-        9. IMPORTANTE: Gere também itens de camada superior quando o histórico apontar isso, por exemplo:
+           - se houver sequência de ajustes, deixe claro no comentário que foi uma evolução incremental
+        9. O campo `completed` deve ser `true` para mudanças claramente já implementadas em commits fechados. Use `false` apenas se houver sinal explícito de WIP/incompleto.
+        10. Gere também itens de camada superior quando o histórico apontar isso, por exemplo:
            - "**Análise**" para revisar consistência entre arquivos tocados várias vezes
            - "**Verificação**" para testes manuais/automatizados necessários
            - "**Sugestão**" para dívida técnica ou melhoria percebida a partir do padrão de commits
            - "**Potencial futuro**" para evolução plausível do módulo baseada no rumo recente do projeto
-        10. O comentário deve soar como memória técnica do projeto, não apenas como “criado a partir do commit”.
+           Porém esses itens estratégicos NÃO devem substituir o detalhamento técnico principal; eles são complemento.
+        11. O comentário deve soar como memória técnica do projeto, não apenas como “criado a partir do commit”.
+        12. Priorize dar visibilidade ao volume de trabalho real do mês. Se houve muitas melhorias relevantes em uma mesma área, represente isso com mais de um item, desde que sem redundância textual.
 
         ## CRITÉRIO DE QUALIDADE:
         Uma saída excelente permite que alguém leia os To-Dos e entenda:
@@ -367,6 +377,7 @@ def generate_kanban_todos_from_commits(commits_text, project_name, existing_todo
         - em que camada (backend/frontend/infra/etc.)
         - quais arquivos/módulos foram impactados
         - por que isso importa
+        - o volume real do trabalho executado no período
         - o que ainda vale verificar ou evoluir
 
         ## FORMATO DE SAÍDA (JSON PURO):

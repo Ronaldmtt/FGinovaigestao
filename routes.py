@@ -2455,6 +2455,12 @@ def api_generate_todos_from_commits(task_id):
     elif period == 'last_7_days':
         since_date = now_utc - timedelta(days=7)
         until_date = now_utc
+    elif period == 'last_15_days':
+        since_date = now_utc - timedelta(days=15)
+        until_date = now_utc
+    elif period == 'last_30_days':
+        since_date = now_utc - timedelta(days=30)
+        until_date = now_utc
     else: # today
         since_date = now_utc.replace(hour=0, minute=0, second=0, microsecond=0)
         until_date = now_utc

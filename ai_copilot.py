@@ -249,7 +249,7 @@ TOOLS = [
                 "type": "object",
                 "properties": {
                     "task_id": {"type": "integer", "description": "ID da tarefa pai onde as subtarefas serão inseridas."},
-                    "period": {"type": "string", "enum": ["today", "yesterday", "last_3_days", "last_7_days"], "description": "Período temporal para analisar os commits."}
+                    "period": {"type": "string", "enum": ["today", "yesterday", "last_3_days", "last_7_days", "last_15_days", "last_30_days"], "description": "Período temporal para analisar os commits."}
                 },
                 "required": ["task_id", "period"]
             }
@@ -464,7 +464,7 @@ def execute_tool(name, arguments, user):
         # Adiciona criador à equipe
         p.team_members.append(user)
         db.session.commit()
-        return json.dumps({"status": "success", "action": "ui_update", "message": f"Projeto '{nome}' criado com sucesso e adicionado aos seus projetos."})
+        return json.dumps({"status": "success", "action": "ui_update", "project_id": p.id, "message": f"Projeto '{nome}' criado com sucesso e adicionado aos seus projetos."})
 
     elif name == "create_task":
         titulo = args.get("titulo")
@@ -477,7 +477,7 @@ def execute_tool(name, arguments, user):
         t = Task(titulo=titulo, project_id=p.id, assigned_user_id=user.id)
         db.session.add(t)
         db.session.commit()
-        return json.dumps({"status": "success", "action": "ui_update", "message": f"Tarefa '{titulo}' salva no projeto {p.nome}."})
+        return json.dumps({"status": "success", "action": "ui_update", "task_id": t.id, "message": f"Tarefa '{titulo}' salva no projeto {p.nome}."})
 
     elif name == "create_subtask":
         texto = args.get("texto")
@@ -658,6 +658,10 @@ def execute_tool(name, arguments, user):
             since, until = now_utc - timedelta(days=3), now_utc
         elif period == 'last_7_days':
             since, until = now_utc - timedelta(days=7), now_utc
+        elif period == 'last_15_days':
+            since, until = now_utc - timedelta(days=15), now_utc
+        elif period == 'last_30_days':
+            since, until = now_utc - timedelta(days=30), now_utc
         else: # today
             since, until = now_utc.replace(hour=0, minute=0, second=0, microsecond=0), now_utc
 

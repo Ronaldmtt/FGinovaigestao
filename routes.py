@@ -2519,7 +2519,13 @@ def api_generate_todos_from_commits(task_id):
         for c in commits_data:
             sha = c.get('sha', '')[:7]
             commit_info = c.get('commit', {})
-            author_name = commit_info.get('author', {}).get('name', 'Desconhecido')
+            author_name = (
+                commit_info.get('author', {}).get('name')
+                or (c.get('author') or {}).get('login')
+                or (c.get('committer') or {}).get('login')
+                or commit_info.get('committer', {}).get('name')
+                or 'Autor não identificado'
+            )
             message = commit_info.get('message', '').strip()
             date_str = commit_info.get('author', {}).get('date', '')
 

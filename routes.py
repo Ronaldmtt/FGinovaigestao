@@ -2474,7 +2474,7 @@ def api_generate_todos_from_commits(task_id):
     params = {
         'since': since_date.isoformat() + 'Z',
         'until': until_date.isoformat() + 'Z',
-        'per_page': 50
+        'per_page': 100
     }
     
     try:

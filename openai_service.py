@@ -322,8 +322,9 @@ def generate_kanban_todos_from_commits(commits_text, project_name, existing_todo
         {commits_text}
 
         ## DIRETRIZES TÉCNICAS E DE NEGÓCIO:
-        1. ANÁLISE PROFUNDA E DIFERENCIAÇÃO: 
-           - Leia os "Commits Recentes" e compare-os com as "Tarefas Já Existentes".
+        1. ANÁLISE RIGOROSA E NÃO OMISSÃO (MUITO IMPORTANTE): 
+           - Leia os "Commits Recentes" e NÃO agrupe indevidamente tarefas distintas. Se houver 10 commits falando sobre funcionalidades ou fixes separados (ex: 1 rotina de importação, 1 modal de loading, 1 botão novo), você DEVE gerar tarefas separadas para cada uma dessas evoluções. A granularidade deve ser próxima de 1 para 1 para commits com significado real.
+           - Compare os "Commits Recentes" com as "Tarefas Já Existentes".
            - NÃO crie To-Dos duplicados se já existir um To-Do cobrindo a mesma tarefa exata (se ele já existir, pule o commit).
            - DESCREVA A TAREFA: Seu 'texto' NÃO deve ser apenas o título do commit. Você deve atuar como Arquiteto e explicar o *o quê* e *por quê* foi feito. (Ex: ao invés de "**Melhorias**: Ajustar parser", use "**Melhorias**: Refatorado parser de URL no Github Service para extrair corretamente owner/repo via regex com suporte a strings http e .git, prevenindo erro 404 de repositório não encontrado.")
         2. ESTRUTURA ATÔMICA: Você DEVE formatar o campo `texto` de cada To-Do obrigatoriamente usando uma categoria no início, entre **asteriscos**:

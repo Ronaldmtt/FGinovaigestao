@@ -305,7 +305,7 @@ def generate_client_report_from_tasks(project_name, tasks):
         print(f"Erro ao gerar relatório de cliente: {e}")
         return None
 
-def generate_kanban_todos_from_commits(commits_text, project_name):
+def generate_kanban_todos_from_commits(commits_text, project_name, existing_todos_text=""):
     """
     Analisa uma string contendo um histórico recente de commits e gera uma lista de To-Dos
     (checklists) para tarefas do Kanban, formatada em JSON.
@@ -313,14 +313,20 @@ def generate_kanban_todos_from_commits(commits_text, project_name):
     try:
         prompt = f"""
         Você é um Tech Lead especialista revisando um histórico de commits recentes do repositório do projeto "{project_name}".
-        Sua missão é extrair desses commits as tarefas/funcionalidades que foram trabalhadas e gerar itens de To-Do (checklist) para o Kanban.
+        Sua missão é extrair desses commits as tarefas/funcionalidades que foram trabalhadas e gerar novos itens de To-Do (checklist) para o Kanban.
 
-        HISTÓRICO DE COMMITS:
+        ## TAREFAS JÁ EXISTENTES NESTE KANBAN:
+        {existing_todos_text if existing_todos_text else "Ainda não há subtarefas registradas."}
+
+        ## HISTÓRICO DE COMMITS RECENTES PARA ANÁLISE:
         {commits_text}
 
-        DIRETRIZES PARA GERAÇÃO DOS TO-DOS:
-        1. ANÁLISE DE CONTEXTO: Avalie o Histórico de Commits fornecido para entender exatamente o que foi executado. Agrupe as alterações lógicas e traduza OBRIGATORIAMENTE todo o contexto técnico para Português (mantendo apenas termos insubstituíveis como "Bug", "Feature", "Refactor").
-        2. ESTRUTURA ATÔMICA: Você DEVE formatar o campo `texto` de cada To-Do usando categorias no início, entre **asteriscos**, exatamente como no formato:
+        ## DIRETRIZES TÉCNICAS E DE NEGÓCIO:
+        1. ANÁLISE PROFUNDA E DIFERENCIAÇÃO: 
+           - Leia os "Commits Recentes" e compare-os com as "Tarefas Já Existentes".
+           - NÃO crie To-Dos duplicados se já existir um To-Do cobrindo a mesma tarefa exata (se ele já existir, pule o commit).
+           - DESCREVA A TAREFA: Seu 'texto' NÃO deve ser apenas o título do commit. Você deve atuar como Arquiteto e explicar o *o quê* e *por quê* foi feito. (Ex: ao invés de "**Melhorias**: Ajustar parser", use "**Melhorias**: Refatorado parser de URL no Github Service para extrair corretamente owner/repo via regex com suporte a strings http e .git, prevenindo erro 404 de repositório não encontrado.")
+        2. ESTRUTURA ATÔMICA: Você DEVE formatar o campo `texto` de cada To-Do obrigatoriamente usando uma categoria no início, entre **asteriscos**:
            - "**Análise**: ..."
            - "**Backend**: ..."
            - "**Frontend**: ..."
@@ -330,11 +336,10 @@ def generate_kanban_todos_from_commits(commits_text, project_name):
            - "**Refactor**: ..."
            - "**Infraestrutura**: ..."
            - "**Verificação**: ..."
-        3. Exemplo de como deve ficar a string no campo 'texto': "**Fix**: Corrigir erro 404 no parser de URL" ou "**Melhorias**: Renderizar dinamicamente o README do repositório".
-        4. No campo 'comentario', coloque a hash do commit associada e uma breve explicação das alterações. (ex: "Commit a1b2c3d: Corrigido problema no parser de JSON.").
-        5. Avalie pelo contexto da mensagem de commit se a tarefa foi "concluída" (completed: true) ou se o commit indica "progresso parcial/em andamento" ou "ainda precisa de testes/revisão" (completed: false). Commits de bugfix ou feature merged geralmente indicam `completed: true`.
+        3. No campo 'comentario', informe a hash do commit, o autor, e mencione de onde esse insight foi extraído (ex: "Criado a partir do Commit 8feb4ab por @dev").
+        4. O campo 'completed' será `true` caso a tarefa do commit evidencie que já foi implementada/entregue (commits no passado). O campo será `false` apenas se o commit indicar algo incompleto ("WIP", "começando feature X"). Na grande maioria dos casos de commits feitos, será `true`.
 
-        RETORNE O RESULTADO EXATAMENTE NO FORMATO JSON ABAIXO:
+        ## RETORNE O RESULTADO EXATAMENTE NO FORMATO JSON ABAIXO:
         {{
             "todos": [
                 {{

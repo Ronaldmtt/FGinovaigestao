@@ -2499,9 +2499,18 @@ def api_generate_todos_from_commits(task_id):
             
         commits_text = "\\n".join(commits_text_lines)
         
+        # Obter To-Dos existentes para evitar duplicidade e dar contexto à IA
+        existing_todos = TodoItem.query.filter_by(task_id=task.id).all()
+        existing_todos_text_lines = []
+        for index, td in enumerate(existing_todos):
+            status = "[x]" if td.completed else "[ ]"
+            existing_todos_text_lines.append(f"{index+1}. {status} {td.texto} (comentário: {td.comentario or 'nenhum'})")
+            
+        existing_todos_text = "\\n".join(existing_todos_text_lines)
+        
         # Chamar servico OpenAI
         from openai_service import generate_kanban_todos_from_commits
-        generated_todos = generate_kanban_todos_from_commits(commits_text, project.nome)
+        generated_todos = generate_kanban_todos_from_commits(commits_text, project.nome, existing_todos_text)
         
         if not generated_todos:
             return jsonify({'success': False, 'message': 'A IA não conseguiu identificar tarefas claras nestes commits.'})

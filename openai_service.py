@@ -332,10 +332,12 @@ def generate_kanban_todos_from_commits(commits_text, project_name, existing_todo
         2. NÃO produza itens genéricos vazios. Cada item deve mencionar a intenção técnica da mudança.
         3. NÃO duplique itens já existentes no kanban se cobrirem o mesmo escopo.
         4. GRANULARIDADE OBRIGATÓRIA:
-           - Para períodos grandes (ex.: 15 ou 30 dias), gere um volume robusto de itens. Como regra prática, você deve tender a produzir algo entre 35% e 75% do número de commits relevantes, nunca resumindo um mês inteiro em meia dúzia de tópicos amplos.
+           - Para períodos grandes (ex.: 15 ou 30 dias), gere um volume robusto de itens. Como regra prática, você deve tender a produzir algo entre 60% e 95% do número de commits relevantes.
+           - Para 30 dias, evite sair com menos de ~25 itens salvo se o histórico for realmente pequeno ou repetitivo demais.
            - AGRUPE apenas commits muito próximos e claramente da mesma microfrente técnica.
            - NÃO agrupe commits de naturezas diferentes (ex.: infra + frontend, parser + UI, backend + testes) num mesmo item.
-           - Se houver uma sequência de refinamentos reais no mesmo módulo, você pode gerar múltiplos itens da mesma frente, desde que cada um represente uma mudança com valor próprio.
+           - Se houver uma sequência de refinamentos reais no mesmo módulo, gere múltiplos itens da mesma frente quando isso ajudar a refletir o volume real de trabalho.
+           - Commits do mesmo tema, mas com objetivos diferentes (ex.: corrigir runtime, melhorar UX, refatorar onclick, carregar README, abrir modal, ajustar branch selector) DEVEM preferencialmente virar itens separados.
         5. REGRA DE ESTADO FINAL (CRÍTICA):
            - Quando houver commits conflitantes ou evolutivos na mesma área, o item deve refletir o ESTADO FINAL mais recente, e não uma média confusa do histórico.
            - Exemplo: se um commit adiciona Unix Socket e outro posterior desfaz isso para usar porta interna 5000, o To-Do deve descrever a decisão final adotada, mencionando no comentário que houve iteração/ajuste de abordagem.
@@ -367,9 +369,11 @@ def generate_kanban_todos_from_commits(commits_text, project_name, existing_todo
            - "**Verificação**" para testes manuais/automatizados necessários
            - "**Sugestão**" para dívida técnica ou melhoria percebida a partir do padrão de commits
            - "**Potencial futuro**" para evolução plausível do módulo baseada no rumo recente do projeto
-           Porém esses itens estratégicos NÃO devem substituir o detalhamento técnico principal; eles são complemento.
+           Porém esses itens estratégicos NÃO devem substituir o detalhamento técnico principal; eles são complemento e devem representar no máximo 10% a 20% da saída total.
         11. O comentário deve soar como memória técnica do projeto, não apenas como “criado a partir do commit”.
         12. Priorize dar visibilidade ao volume de trabalho real do mês. Se houve muitas melhorias relevantes em uma mesma área, represente isso com mais de um item, desde que sem redundância textual.
+        13. Se houver muitas frentes ativas no período, prefira errar por excesso controlado de itens técnicos do que por resumo excessivo.
+        14. Não transforme a maior parte da saída em macro-resumos. A maior parte dos itens deve continuar sendo técnica, concreta e ancorada em commits/arquivos específicos.
 
         ## CRITÉRIO DE QUALIDADE:
         Uma saída excelente permite que alguém leia os To-Dos e entenda:

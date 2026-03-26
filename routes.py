@@ -18,7 +18,7 @@ import io # Added io for BytesIO
 import concurrent.futures # Added for parallel processing
 from app import app, ALLOWED_EXTENSIONS
 from extensions import db, mail
-from models import User, Client, Project, Task, TodoItem, Contato, Comentario, FileCategory, ProjectFile, ProjectApiCredential, ProjectApiEndpoint, ProjectApiKey, SystemApiKey
+from models import User, Client, Project, ProjectStatusHistory, Task, TodoItem, Contato, Comentario, FileCategory, ProjectFile, ProjectApiCredential, ProjectApiEndpoint, ProjectApiKey, SystemApiKey
 from forms import LoginForm, UserForm, EditUserForm, ClientForm, ProjectForm, TaskForm, TranscriptionTaskForm, ManualProjectForm, ManualTaskForm, ForgotPasswordForm, ResetPasswordForm, ChangePasswordForm, UserProfileForm, ImportDataForm
 from openai_service import process_project_transcription, generate_tasks_from_transcription, generate_project_report_summary, generate_client_report_from_tasks # Added generate_client_report_from_tasks
 from email_service import send_email, send_meeting_invite, send_notification_email, send_chamado_email
@@ -51,6 +51,74 @@ def requires_permission(permission_field):
             return f(*args, **kwargs)
         return decorated_function
     return decorator
+
+PROJECT_STATUS_LABELS = {
+    'em_andamento': 'Em Andamento',
+    'em_teste': 'Em Teste',
+    'concluido': 'Concluído',
+    'pausado': 'Em Espera',
+    'cancelado': 'Cancelado'
+}
+
+
+def get_project_status_label(status):
+    return PROJECT_STATUS_LABELS.get(status, status or '-')
+
+
+def register_project_status_history(project, new_status, old_status=None, note=None, changed_by_id=None):
+    history = ProjectStatusHistory(
+        project_id=project.id,
+        old_status=old_status,
+        new_status=new_status,
+        changed_by_id=changed_by_id,
+        note=note
+    )
+    db.session.add(history)
+    return history
+
+
+def project_allows_kanban_demands(project):
+    return bool(project) and project.status == 'em_andamento'
+
+
+def get_kanban_project_block_message(project):
+    status_label = get_project_status_label(project.status) if project else 'desconhecido'
+    return (
+        f"O projeto '{project.nome}' está com status '{status_label}'. "
+        "Só é possível abrir tarefas/demandas no Kanban quando o projeto estiver Em Andamento."
+    )
+
+
+def serialize_project_status_history(project):
+    history_items = ProjectStatusHistory.query.filter_by(project_id=project.id).order_by(ProjectStatusHistory.changed_at.desc()).all()
+    items = []
+    for item in history_items:
+        items.append({
+            'id': item.id,
+            'old_status': item.old_status,
+            'old_status_label': get_project_status_label(item.old_status),
+            'new_status': item.new_status,
+            'new_status_label': get_project_status_label(item.new_status),
+            'changed_at': item.changed_at.isoformat() if item.changed_at else None,
+            'changed_at_label': item.changed_at.strftime('%d/%m/%Y %H:%M') if item.changed_at else '-',
+            'changed_by': item.changed_by.full_name if item.changed_by else 'Sistema',
+            'note': item.note,
+        })
+
+    if not items:
+        items.append({
+            'id': None,
+            'old_status': None,
+            'old_status_label': '-',
+            'new_status': project.status,
+            'new_status_label': get_project_status_label(project.status),
+            'changed_at': project.created_at.isoformat() if project.created_at else None,
+            'changed_at_label': project.created_at.strftime('%d/%m/%Y %H:%M') if project.created_at else '-',
+            'changed_by': 'Sistema',
+            'note': 'Status atual inferido a partir da criação do projeto (sem histórico anterior salvo).',
+        })
+    return items
+
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -561,6 +629,8 @@ def projects():
             'cancelado': {'label': 'Cancelado', 'class': 'status-delayed'}
         }
         status_info = status_map.get(project.status, {'label': project.status, 'class': 'status-paused'})
+        latest_status_entry = project.status_history[0] if project.status_history else None
+        status_changed_at = latest_status_entry.changed_at if latest_status_entry else project.created_at
         
         # Cor da barra de progresso
         if computed_progress <= 25:
@@ -611,6 +681,9 @@ def projects():
             'client': project.client.nome if project.client else '-',
             'status_label': status_info['label'],
             'status_class': status_info['class'],
+            'status_changed_at': status_changed_at,
+            'status_changed_at_label': status_changed_at.strftime('%d/%m/%Y') if status_changed_at else '-',
+            'status_history_count': len(project.status_history),
             'prazo': project.prazo,
             'progress': computed_progress,
             'progress_color': progress_color,
@@ -641,6 +714,8 @@ def projects():
                 'cancelado':    {'label': 'Cancelado',    'class': 'status-delayed'},
             }
             c_si = c_status_map.get(c.status, {'label': c.status, 'class': 'status-paused'})
+            c_latest_status_entry = c.status_history[0] if c.status_history else None
+            c_status_changed_at = c_latest_status_entry.changed_at if c_latest_status_entry else c.created_at
             if c_prog <= 25:   c_pc = 'progress-danger'
             elif c_prog <= 75: c_pc = 'progress-warning'
             else:              c_pc = 'progress-success'
@@ -672,6 +747,9 @@ def projects():
                 'status':         c.status,
                 'status_label':   c_si['label'],
                 'status_class':   c_si['class'],
+                'status_changed_at': c_status_changed_at,
+                'status_changed_at_label': c_status_changed_at.strftime('%d/%m/%Y') if c_status_changed_at else '-',
+                'status_history_count': len(c.status_history),
                 'progress':       c_prog,
                 'progress_color': c_pc,
                 'glow_class':     c_glow,
@@ -772,6 +850,14 @@ def new_project():
                 team_member = User.query.get(member_id)
                 if team_member:
                     project.team_members.append(team_member)
+
+        register_project_status_history(
+            project,
+            project.status,
+            old_status=None,
+            note='Status inicial do projeto',
+            changed_by_id=current_user.id
+        )
         
         # Commit inicial para salvar o projeto
         db.session.commit()
@@ -840,6 +926,14 @@ def new_manual_project():
             user = User.query.get(int(member_id))
             if user:
                 project.team_members.append(user)
+
+    register_project_status_history(
+        project,
+        project.status,
+        old_status=None,
+        note='Status inicial do projeto',
+        changed_by_id=current_user.id
+    )
     
     db.session.commit()
     rpa_log.info(f"{current_user.nome} criou manualmente o projeto '{project.nome}'", regiao="projetos")
@@ -859,6 +953,25 @@ def project_detail(id):
     clients = Client.query.order_by(Client.nome).all()
     users = User.query.all()
     return render_template('project_detail.html', project=project, clients=clients, users=users)
+
+@app.route('/projects/<int:id>/status-history', methods=['GET'])
+@login_required
+def project_status_history(id):
+    project = Project.query.get_or_404(id)
+
+    if not current_user.is_admin and current_user.id != project.responsible_id and current_user not in project.team_members:
+        return jsonify({'success': False, 'message': 'Acesso negado'}), 403
+
+    return jsonify({
+        'success': True,
+        'project': {
+            'id': project.id,
+            'nome': project.nome,
+            'status': project.status,
+            'status_label': get_project_status_label(project.status)
+        },
+        'history': serialize_project_status_history(project)
+    })
 
 @app.route('/projects/<int:id>/edit', methods=['POST'])
 @login_required
@@ -962,6 +1075,15 @@ def edit_project(id):
     # Lógica de auto-reativação no Kanban
     if old_status == 'concluido' and project.status != 'concluido':
         project.show_in_kanban = True
+
+    if old_status != project.status:
+        register_project_status_history(
+            project,
+            project.status,
+            old_status=old_status,
+            note='Status alterado via edição de projeto',
+            changed_by_id=current_user.id
+        )
     
     # Atualizar membros da equipe (limpar e adicionar novos)
     team_member_ids = request.form.getlist('team_member_ids')  # Múltiplos membros
@@ -1030,7 +1152,7 @@ def process_project_ai(id):
             project.restricoes = ai_result.get('restricoes')
             
             # Gerar tarefas automáticas se ainda não existem
-            if not project.tasks:
+            if not project.tasks and project_allows_kanban_demands(project):
                 auto_tasks = generate_tasks_from_transcription(project.transcricao, project.nome)
                 for task_data in auto_tasks:
                     task = Task(
@@ -1538,6 +1660,11 @@ def new_manual_task():
     if data_conclusao:
         from datetime import datetime
         data_conclusao_obj = datetime.strptime(data_conclusao, '%Y-%m-%d').date()
+
+    project = Project.query.get_or_404(project_id)
+    if not project_allows_kanban_demands(project):
+        flash(get_kanban_project_block_message(project), 'warning')
+        return redirect(url_for('tasks'))
     
     # Criar tarefa
     task = Task(
@@ -1837,6 +1964,9 @@ def public_create_task(project_id, code):
         if not data.get('titulo', '').strip():
             return jsonify({'success': False, 'message': 'Título é obrigatório'}), 400
         
+        if not project_allows_kanban_demands(project):
+            return jsonify({'success': False, 'message': get_kanban_project_block_message(project)}), 400
+
         # Criar nova tarefa
         task = Task(
             titulo=data['titulo'].strip(),
@@ -2022,6 +2152,11 @@ def new_task_kanban():
     if data_conclusao:
         from datetime import datetime
         data_conclusao_obj = datetime.strptime(data_conclusao, '%Y-%m-%d').date()
+
+    project = Project.query.get_or_404(project_id)
+    if not project_allows_kanban_demands(project):
+        flash(get_kanban_project_block_message(project), 'warning')
+        return redirect(url_for('kanban', project_id=project_id))
     
     # Criar tarefa
     task = Task(
@@ -2053,6 +2188,10 @@ def transcription_task():
         project = Project.query.get(form.project_id.data)
         if project:
             try:
+                if not project_allows_kanban_demands(project):
+                    flash(get_kanban_project_block_message(project), 'warning')
+                    return redirect(url_for('kanban', project_id=project.id))
+
                 # Gerar tarefas com IA
                 auto_tasks = generate_tasks_from_transcription(form.transcricao.data, project.nome)
                 
@@ -2229,12 +2368,15 @@ def kanban():
             'responsibleId': p.responsible_id  # ID do responsável para filtro estrito
         })
     
+    writable_project_ids = [p.id for p in projects if project_allows_kanban_demands(p)]
+
     return render_template('kanban.html', 
                          task_columns=task_columns, 
                          projects=projects, 
                          clients=clients,
                          all_users=all_users,
                          relations_data=relations_data,
+                         writable_project_ids=writable_project_ids,
                          current_filters={
                              'project_id': project_filter,
                              'client_id': client_filter,
@@ -2619,10 +2761,13 @@ def api_generate_todos_from_commits(task_id):
         # Adicionar os To-Dos na Tarefa
         criados = 0
         for td in generated_todos:
+            created_now = datetime.utcnow()
             novo_todo = TodoItem(
                 texto=td.get('texto', '')[:300],
                 comentario=td.get('comentario', ''),
                 completed=td.get('completed', False),
+                due_date=created_now.date(),
+                created_at=created_now,
                 task_id=task.id
             )
             if novo_todo.completed:

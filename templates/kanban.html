@@ -18,7 +18,7 @@
                     <i class="fas fa-arrow-down me-1"></i>Incluir Transcrição
                 </button>
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal"
-                    data-bs-target="#newTaskKanbanModal">
+                    data-bs-target="#newTaskKanbanModal" {% if not writable_project_ids %}disabled title="Nenhum projeto em andamento disponível para abrir demandas no Kanban."{% endif %}>
                     <i class="fas fa-plus me-1"></i>Nova Tarefa
                 </button>
             </div>
@@ -2395,12 +2395,15 @@
                             <select class="form-select modern-input" name="project_id" required>
                                 <option value="">Selecione um projeto</option>
                                 {% for project in projects %}
-                                <option value="{{ project.id }}" data-responsible-id="{{ project.responsible_id }}" {%
-                                    if current_filters.project_id==project.id %}selected{% endif %}>
-                                    {{ project.client.nome }} - {{ project.nome }}
+                                <option value="{{ project.id }}" data-responsible-id="{{ project.responsible_id }}"
+                                    data-project-status="{{ project.status }}"
+                                    {% if project.id not in writable_project_ids %}disabled{% endif %}
+                                    {% if current_filters.project_id==project.id %}selected{% endif %}>
+                                    {{ project.client.nome }} - {{ project.nome }}{% if project.id not in writable_project_ids %} — bloqueado ({{ project.status.replace('_', ' ') }}){% endif %}
                                 </option>
                                 {% endfor %}
                             </select>
+                            <div class="form-text text-muted small mt-1">Somente projetos em andamento podem receber novas demandas no Kanban.</div>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label fw-normal" style="color: #4a5568; font-size: 14px;">Usuário

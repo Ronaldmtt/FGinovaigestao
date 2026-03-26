@@ -119,9 +119,32 @@ class Project(db.Model):
     # Relacionamentos many-to-many com usuários (equipe)
     team_members = db.relationship('User', secondary=project_users, backref=db.backref('team_projects', lazy='dynamic'))
     tasks = db.relationship('Task', backref='project', lazy=True)
+    status_history = db.relationship(
+        'ProjectStatusHistory',
+        backref='project',
+        lazy=True,
+        cascade='all, delete-orphan',
+        order_by='ProjectStatusHistory.changed_at.desc()'
+    )
     
     def __repr__(self):
         return f'<Project {self.nome}>'
+
+
+class ProjectStatusHistory(db.Model):
+    __tablename__ = 'project_status_history'
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=False, index=True)
+    old_status = db.Column(db.String(20), nullable=True)
+    new_status = db.Column(db.String(20), nullable=False)
+    changed_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    changed_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    note = db.Column(db.String(255), nullable=True)
+
+    changed_by = db.relationship('User', foreign_keys=[changed_by_id])
+
+    def __repr__(self):
+        return f'<ProjectStatusHistory project={self.project_id} {self.old_status}->{self.new_status}>'
 
 class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)

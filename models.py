@@ -768,6 +768,9 @@ class FinTransaction(db.Model):
     data = db.Column(db.Date, nullable=False, default=datetime.utcnow)
     descricao = db.Column(db.String(255), nullable=False)
     is_realized = db.Column(db.Boolean, nullable=False, default=False) # Pago/Recebido
+    installment_group = db.Column(db.String(36), nullable=True, index=True)
+    installment_number = db.Column(db.Integer, nullable=True)
+    installment_total = db.Column(db.Integer, nullable=True)
     
     # Foreign Keys
     account_id = db.Column(db.Integer, db.ForeignKey('fin_accounts.id'), nullable=False)

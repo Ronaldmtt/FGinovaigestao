@@ -2,12 +2,21 @@ from flask import render_template, request, jsonify
 from flask_login import login_required, current_user
 import datetime as dt
 import os
+import uuid
+from calendar import monthrange
 from werkzeug.utils import secure_filename
 from sqlalchemy import func
 from models import db, FinCostCenter, FinAccount, FinTransaction, FinGoal, FinSupplier, Client
 
 def register_finance_routes(app):
     
+    def add_months(base_date, months_to_add):
+        month_index = base_date.month - 1 + months_to_add
+        year = base_date.year + month_index // 12
+        month = month_index % 12 + 1
+        day = min(base_date.day, monthrange(year, month)[1])
+        return dt.date(year, month, day)
+
     # ==========================
     # VIEWS (HTML)
     # ==========================
@@ -225,7 +234,22 @@ def register_finance_routes(app):
         if not current_user.is_admin: return jsonify({'error': 'Acesso negado'}), 403
         
         if request.method == 'GET':
-            transacoes = FinTransaction.query.order_by(FinTransaction.data.desc(), FinTransaction.created_at.desc()).limit(100).all()
+            status_filter = request.args.get('status')
+            tipo_filter = request.args.get('tipo')
+            account_filter = request.args.get('account_id', type=int)
+
+            query = FinTransaction.query
+            if status_filter == 'realized':
+                query = query.filter(FinTransaction.is_realized.is_(True))
+            elif status_filter == 'pending':
+                query = query.filter(FinTransaction.is_realized.is_(False))
+
+            if tipo_filter in ['income', 'expense']:
+                query = query.filter(FinTransaction.tipo == tipo_filter)
+            if account_filter:
+                query = query.filter(FinTransaction.account_id == account_filter)
+
+            transacoes = query.order_by(FinTransaction.data.desc(), FinTransaction.created_at.desc()).limit(300).all()
             return jsonify([{
                 'id': t.id,
                 'tipo': t.tipo,
@@ -238,7 +262,10 @@ def register_finance_routes(app):
                 'comprovante_url': t.comprovante_url,
                 'cliente': t.client.nome if t.client else None,
                 'fornecedor': t.supplier.nome if t.supplier else None,
-                'is_realized': bool(t.is_realized)
+                'is_realized': bool(t.is_realized),
+                'installment_group': t.installment_group,
+                'installment_number': t.installment_number,
+                'installment_total': t.installment_total
             } for t in transacoes])
             
         if request.method == 'POST':
@@ -269,29 +296,59 @@ def register_finance_routes(app):
                 
             is_realized_raw = str(data.get('is_realized', '')).strip().lower()
             is_realized = is_realized_raw in ['1', 'true', 'on', 'yes', 'sim']
+            installments = max(int(data.get('installments', 1) or 1), 1)
+            installment_group = str(uuid.uuid4()) if installments > 1 else None
+            total_value = float(data.get('valor', 0.0))
+            base_value = round(total_value / installments, 2)
+            generated = []
 
-            trans = FinTransaction(
-                tipo=data.get('tipo'),
-                valor=float(data.get('valor', 0.0)),
-                data=parsed_date,
-                descricao=data.get('descricao'),
-                is_realized=is_realized,
-                account_id=data.get('account_id'),
-                cost_center_id=data.get('cost_center_id') or None,
-                user_id=current_user.id,
-                comprovante_url=comprovante_filename,
-                client_id=int(data.get('client_id')) if data.get('client_id') else None,
-                supplier_id=int(data.get('supplier_id')) if data.get('supplier_id') else None
-            )
-            db.session.add(trans)
+            for idx in range(installments):
+                parcela_valor = base_value
+                if idx == installments - 1:
+                    parcela_valor = round(total_value - (base_value * (installments - 1)), 2)
+
+                trans = FinTransaction(
+                    tipo=data.get('tipo'),
+                    valor=parcela_valor,
+                    data=add_months(parsed_date, idx),
+                    descricao=data.get('descricao') if installments == 1 else f"{data.get('descricao')} ({idx + 1}/{installments})",
+                    is_realized=is_realized if idx == 0 else False,
+                    installment_group=installment_group,
+                    installment_number=(idx + 1) if installments > 1 else None,
+                    installment_total=installments if installments > 1 else None,
+                    account_id=data.get('account_id'),
+                    cost_center_id=data.get('cost_center_id') or None,
+                    user_id=current_user.id,
+                    comprovante_url=comprovante_filename if idx == 0 else None,
+                    client_id=int(data.get('client_id')) if data.get('client_id') else None,
+                    supplier_id=int(data.get('supplier_id')) if data.get('supplier_id') else None
+                )
+                db.session.add(trans)
+                generated.append(trans)
+
             db.session.commit()
+            if installments > 1:
+                return jsonify({'success': True, 'message': f'{installments} parcelas registradas com sucesso'})
             return jsonify({'success': True, 'message': 'Lançamento registrado'})
 
-    @app.route('/api/financeiro/transactions/<int:t_id>', methods=['DELETE'])
+    @app.route('/api/financeiro/transactions/<int:t_id>', methods=['PUT', 'DELETE'])
     @login_required
     def api_transaction_detail(t_id):
         if not current_user.is_admin: return jsonify({'error': 'Acesso negado'}), 403
         trans = FinTransaction.query.get_or_404(t_id)
+
+        if request.method == 'PUT':
+            data = request.get_json() or {}
+            if 'is_realized' in data:
+                trans.is_realized = bool(data.get('is_realized'))
+            if 'data' in data and data.get('data'):
+                try:
+                    trans.data = dt.datetime.strptime(data.get('data'), '%Y-%m-%d').date()
+                except Exception:
+                    pass
+            db.session.commit()
+            return jsonify({'success': True, 'message': 'Lançamento atualizado'})
+
         db.session.delete(trans)
         db.session.commit()
         return jsonify({'success': True, 'message': 'Lançamento deletado (Hard delete)'})
@@ -330,14 +387,20 @@ def register_finance_routes(app):
             'valor': t.valor,
             'tipo': t.tipo,
             'conta': t.account.nome if t.account else '-',
-            'centro_custo': t.cost_center.nome if t.cost_center else '-'
+            'centro_custo': t.cost_center.nome if t.cost_center else '-',
+            'is_realized': bool(t.is_realized)
         } for t in ultimos_5]
+
+        pending_income = sum(t.valor for t in todos_lanc_mes if t.tipo == 'income' and not t.is_realized)
+        pending_expense = sum(t.valor for t in todos_lanc_mes if t.tipo == 'expense' and not t.is_realized)
 
         return jsonify({
             'saldo_wallets': saldo_caixa,
             'receitas_mes': receitas_mes,
             'despesas_mes': despesas_mes,
             'balanco_mes': balanco,
+            'pending_income': pending_income,
+            'pending_expense': pending_expense,
             'recent_transactions': ultimos_5_serializados
         })
 
@@ -357,7 +420,7 @@ def register_finance_routes(app):
             FinCostCenter.cor,
             func.sum(FinTransaction.valor).label('total')
         ).join(FinTransaction, FinTransaction.cost_center_id == FinCostCenter.id)\
-         .filter(FinTransaction.tipo == 'expense', FinTransaction.data >= primeiro_dia_mes)\
+         .filter(FinTransaction.tipo == 'expense', FinTransaction.is_realized.is_(True), FinTransaction.data >= primeiro_dia_mes)\
          .group_by(FinCostCenter.id).all()
          
         grafico_centros = {
@@ -378,7 +441,7 @@ def register_finance_routes(app):
             inicio = dt.date(y, m, 1)
             fim = dt.date(y+1, 1, 1) if m == 12 else dt.date(y, m+1, 1)
                 
-            trans = FinTransaction.query.filter(FinTransaction.data >= inicio, FinTransaction.data < fim).all()
+            trans = FinTransaction.query.filter(FinTransaction.data >= inicio, FinTransaction.data < fim, FinTransaction.is_realized.is_(True)).all()
             rec = sum(t.valor for t in trans if t.tipo == 'income')
             desp = sum(t.valor for t in trans if t.tipo == 'expense')
             

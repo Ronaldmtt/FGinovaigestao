@@ -143,6 +143,30 @@ with app.app_context():
         pass
 
     try:
+        db.session.execute(text("ALTER TABLE fin_transactions ADD COLUMN installment_group VARCHAR(36)"))
+        db.session.commit()
+        print("Migração Executada: installment_group em fin_transactions.")
+    except Exception:
+        db.session.rollback()
+        pass
+
+    try:
+        db.session.execute(text("ALTER TABLE fin_transactions ADD COLUMN installment_number INTEGER"))
+        db.session.commit()
+        print("Migração Executada: installment_number em fin_transactions.")
+    except Exception:
+        db.session.rollback()
+        pass
+
+    try:
+        db.session.execute(text("ALTER TABLE fin_transactions ADD COLUMN installment_total INTEGER"))
+        db.session.commit()
+        print("Migração Executada: installment_total em fin_transactions.")
+    except Exception:
+        db.session.rollback()
+        pass
+
+    try:
         db.session.execute(text("ALTER TABLE fin_transactions ADD COLUMN supplier_id INTEGER"))
         db.session.commit()
         print("Migração Executada: supplier_id em fin_transactions.")

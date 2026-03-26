@@ -127,6 +127,14 @@ with app.app_context():
         pass
 
     try:
+        db.session.execute(text("ALTER TABLE project ADD COLUMN ssh_server VARCHAR(255)"))
+        db.session.commit()
+        print("Migração Executada: ssh_server em project.")
+    except Exception:
+        db.session.rollback()
+        pass
+
+    try:
         db.session.execute(text("ALTER TABLE fin_transactions ADD COLUMN supplier_id INTEGER"))
         db.session.commit()
         print("Migração Executada: supplier_id em fin_transactions.")

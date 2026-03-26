@@ -838,7 +838,8 @@ def new_project():
             premissas=form.premissas.data,
             restricoes=form.restricoes.data,
             has_github=form.has_github.data,
-            has_drive=form.has_drive.data
+            has_drive=form.has_drive.data,
+            ssh_server=form.ssh_server.data
         )
         
         db.session.add(project)
@@ -914,7 +915,8 @@ def new_manual_project():
 
         restricoes=request.form.get('restricoes'),
         has_github=True if request.form.get('has_github') == 'y' else False,
-        has_drive=True if request.form.get('has_drive') == 'y' else False
+        has_drive=True if request.form.get('has_drive') == 'y' else False,
+        ssh_server=request.form.get('ssh_server')
     )
     
     db.session.add(project)
@@ -1003,6 +1005,8 @@ def edit_project(id):
     
     if 'github_repo' in request.form:
         project.github_repo = request.form.get('github_repo', '')
+    if 'ssh_server' in request.form:
+        project.ssh_server = request.form.get('ssh_server', '')
         
     # 3-State Logic for .ENV
     # Toggle OFF -> None (Pending/Red)
@@ -2082,6 +2086,7 @@ def get_project_data(id):
         'has_env': project.has_env,
         'has_backup_db': project.has_backup_db,
         'rpa_identifier': project.rpa_identifier,
+        'ssh_server': project.ssh_server,
         'data_inicio': project.data_inicio.isoformat() if project.data_inicio else None,
         'data_fim': project.data_fim.isoformat() if project.data_fim else None
     }
@@ -2114,7 +2119,7 @@ def update_project_field(id):
     print(f"DEBUG ATOMIC UPDATE: Project {id}, Field {field}, Value {value} ({type(value)})")
 
     allowed_bool_fields = ['has_github', 'has_drive', 'has_env', 'has_backup_db', 'show_in_kanban']
-    allowed_text_fields = ['rpa_identifier', 'github_repo']
+    allowed_text_fields = ['rpa_identifier', 'github_repo', 'ssh_server']
 
     try:
         if field in allowed_bool_fields:

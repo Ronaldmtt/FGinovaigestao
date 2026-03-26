@@ -92,6 +92,7 @@ class ProjectForm(FlaskForm):
     has_github = BooleanField('Projeto no GitHub?', default=False)
     has_drive = BooleanField('Projeto no Google Drive?', default=False)
     github_repo = StringField('Repositório GitHub (opcional)')
+    ssh_server = StringField('Servidor SSH / VPS (opcional)', validators=[Optional(), Length(max=255)])
     
     def __init__(self, *args, **kwargs):
         super(ProjectForm, self).__init__(*args, **kwargs)
@@ -154,6 +155,7 @@ class ManualProjectForm(FlaskForm):
     has_github = BooleanField('Projeto no GitHub?', default=False)
     has_drive = BooleanField('Projeto no Google Drive?', default=False)
     github_repo = StringField('Repositório GitHub (opcional)')
+    ssh_server = StringField('Servidor SSH / VPS (opcional)', validators=[Optional(), Length(max=255)])
     
     def __init__(self, *args, **kwargs):
         super(ManualProjectForm, self).__init__(*args, **kwargs)

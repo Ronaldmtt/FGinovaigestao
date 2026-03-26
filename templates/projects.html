@@ -644,6 +644,12 @@
                     </div>
 
                     <div class="mb-3">
+                        {{ form.ssh_server.label(class="form-label") }}
+                        {{ form.ssh_server(class="form-control bg-dark text-light border-secondary", placeholder="Ex: ubuntu@meuservidor.com ou IP/host da VPS") }}
+                        <small class="text-muted d-block mt-1">Servidor SSH/VPS onde o projeto está hospedado.</small>
+                    </div>
+
+                    <div class="mb-3">
                         {{ form.transcricao.label(class="form-label") }}
                         <small class="form-text text-muted d-block mb-2">
                             <i class="fas fa-magic me-1"></i>
@@ -1469,6 +1475,13 @@
                             name="has_backup_db_none" ${project.has_backup_db === false ? 'checked' : ''}>
                         <label class="form-check-label" for="edit_has_backup_db_none">Não possui</label>
                     </div>
+                </div>
+
+                <div class="mt-3">
+                    <label class="form-label" for="editSshServer">Servidor SSH / VPS</label>
+                    <input class="form-control bg-dark text-light border-secondary" type="text" id="editSshServer" name="ssh_server" 
+                        onblur="updateProjectField(this, 'ssh_server', true)" value="${escapeHtml(project.ssh_server || '')}" placeholder="Ex: ubuntu@meuservidor.com ou IP/host da VPS">
+                    <small class="text-muted d-block mt-1">Servidor onde este projeto está hospedado.</small>
                 </div>
 
                 <div class="mt-3">

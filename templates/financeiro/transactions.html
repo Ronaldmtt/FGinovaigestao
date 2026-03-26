@@ -118,7 +118,14 @@
                     </div>
 
                     <div class="row">
-                        <div class="col-12 mb-3">
+                        <div class="col-md-6 mb-3 d-flex align-items-center">
+                            <div class="form-check form-switch mt-4">
+                                <input class="form-check-input" type="checkbox" id="transRealizado">
+                                <label class="form-check-label" for="transRealizado">Pago / Recebido</label>
+                                <div class="form-text">Só movimenta saldo/fatura quando este campo estiver marcado.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
                             <label class="form-label">Anexo (Opcional - Boleto/Comprovante)</label>
                             <input type="file" class="form-control bg-dark text-white border-secondary" id="transAnexo"
                                 accept=".pdf,.png,.jpg,.jpeg">
@@ -196,6 +203,10 @@
                         fileLink = `<a href="/uploads/financeiro/${t.comprovante_url}" target="_blank" class="btn btn-sm btn-outline-info me-1" title="Ver Comprovante"><i class="fas fa-paperclip"></i></a>`;
                     }
 
+                    const statusBadge = t.is_realized
+                        ? `<span class="badge bg-success-subtle text-success border border-success-subtle mt-2">${isIncome ? 'Recebido' : 'Pago'}</span>`
+                        : `<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle mt-2">${isIncome ? 'Previsto' : 'Pendente'}</span>`;
+
                     tbody.innerHTML += `
                         <tr>
                             <td>${trData}</td>
@@ -203,6 +214,7 @@
                                 <strong>${t.descricao}</strong>
                                 ${t.cliente ? `<br><small class="text-success"><i class="fas fa-user-tag me-1"></i>${t.cliente}</small>` : ''}
                                 ${t.fornecedor ? `<br><small class="text-danger"><i class="fas fa-truck-loading me-1"></i>${t.fornecedor}</small>` : ''}
+                                <br>${statusBadge}
                             </td>
                             <td>
                                 <span class="badge" style="background-color: ${t.cor_cc}">${t.centro_custo}</span>
@@ -293,6 +305,7 @@
         formData.append('valor', limparMoeda(document.getElementById('transValor').value));
         formData.append('cost_center_id', document.getElementById('transCategoria').value);
         formData.append('account_id', document.getElementById('transConta').value);
+        formData.append('is_realized', document.getElementById('transRealizado').checked ? 'true' : 'false');
 
         const cid = document.getElementById('transCliente').value;
         if (cid) formData.append('client_id', cid);
@@ -313,6 +326,7 @@
                 bootstrap.Modal.getInstance(document.getElementById('newTransactionModal')).hide();
                 loadTransactions();
                 document.getElementById('formTransaction').reset();
+                document.getElementById('transRealizado').checked = false;
                 document.getElementById('transData').valueAsDate = new Date();
             } else {
                 alert(res.message);

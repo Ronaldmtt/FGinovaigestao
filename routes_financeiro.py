@@ -149,8 +149,11 @@ def register_finance_routes(app):
             for a in contas:
                 if a.tipo == 'credit_card':
                     hoje = dt.date.today()
-                    # Calculate current invoice (sum of expenses for this card in current month)
-                    fatura_atual = sum(t.valor for t in a.transactions if t.tipo == 'expense' and t.data.month == hoje.month and t.data.year == hoje.year)
+                    # Calculate current invoice only for realized expenses in current month
+                    fatura_atual = sum(
+                        t.valor for t in a.transactions
+                        if t.tipo == 'expense' and t.is_realized and t.data.month == hoje.month and t.data.year == hoje.year
+                    )
                 else:
                     fatura_atual = 0.0
                 
@@ -234,7 +237,8 @@ def register_finance_routes(app):
                 'cor_cc': t.cost_center.cor if t.cost_center else '#ccc',
                 'comprovante_url': t.comprovante_url,
                 'cliente': t.client.nome if t.client else None,
-                'fornecedor': t.supplier.nome if t.supplier else None
+                'fornecedor': t.supplier.nome if t.supplier else None,
+                'is_realized': bool(t.is_realized)
             } for t in transacoes])
             
         if request.method == 'POST':
@@ -263,11 +267,15 @@ def register_finance_routes(app):
                     file.save(filepath)
                     comprovante_filename = filename
                 
+            is_realized_raw = str(data.get('is_realized', '')).strip().lower()
+            is_realized = is_realized_raw in ['1', 'true', 'on', 'yes', 'sim']
+
             trans = FinTransaction(
                 tipo=data.get('tipo'),
                 valor=float(data.get('valor', 0.0)),
                 data=parsed_date,
                 descricao=data.get('descricao'),
+                is_realized=is_realized,
                 account_id=data.get('account_id'),
                 cost_center_id=data.get('cost_center_id') or None,
                 user_id=current_user.id,
@@ -310,8 +318,9 @@ def register_finance_routes(app):
         saldo_caixa = sum(w.saldo_atual for w in wallets)
         
         todos_lanc_mes = FinTransaction.query.filter(FinTransaction.data >= primeiro_dia_mes).all()
-        receitas_mes = sum(t.valor for t in todos_lanc_mes if t.tipo == 'income')
-        despesas_mes = sum(t.valor for t in todos_lanc_mes if t.tipo == 'expense')
+        lanc_realizados_mes = [t for t in todos_lanc_mes if t.is_realized]
+        receitas_mes = sum(t.valor for t in lanc_realizados_mes if t.tipo == 'income')
+        despesas_mes = sum(t.valor for t in lanc_realizados_mes if t.tipo == 'expense')
         balanco = receitas_mes - despesas_mes
         
         ultimos_5 = FinTransaction.query.order_by(FinTransaction.data.desc(), FinTransaction.created_at.desc()).limit(5).all()

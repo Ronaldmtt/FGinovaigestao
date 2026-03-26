@@ -740,12 +740,12 @@ class FinAccount(db.Model):
 
     @property
     def saldo_atual(self):
-        """Calcula o saldo real na wallet somando receitas e tirando despesas baseada nas transações."""
+        """Calcula o saldo real na wallet considerando apenas lançamentos efetivamente pagos/recebidos."""
         if self.tipo != 'wallet':
             return 0.0
             
-        receitas = sum(t.valor for t in self.transactions if t.tipo == 'income')
-        despesas = sum(t.valor for t in self.transactions if t.tipo == 'expense')
+        receitas = sum(t.valor for t in self.transactions if t.tipo == 'income' and t.is_realized)
+        despesas = sum(t.valor for t in self.transactions if t.tipo == 'expense' and t.is_realized)
         return self.saldo_inicial + receitas - despesas
         
     def fatura_mensal(self, month, year):
@@ -753,8 +753,11 @@ class FinAccount(db.Model):
         if self.tipo != 'credit_card':
             return 0.0
         
-        # Simples: Tudo que for expense daquele mes no cartão vira fatura
-        total = sum(t.valor for t in self.transactions if t.tipo == 'expense' and t.data.month == month and t.data.year == year)
+        # Considera apenas despesas efetivamente pagas/lançadas como realizadas no mês
+        total = sum(
+            t.valor for t in self.transactions
+            if t.tipo == 'expense' and t.is_realized and t.data.month == month and t.data.year == year
+        )
         return total
 
 class FinTransaction(db.Model):
@@ -764,6 +767,7 @@ class FinTransaction(db.Model):
     valor = db.Column(db.Float, nullable=False) # Valor absoluto p/ facilitar
     data = db.Column(db.Date, nullable=False, default=datetime.utcnow)
     descricao = db.Column(db.String(255), nullable=False)
+    is_realized = db.Column(db.Boolean, nullable=False, default=False) # Pago/Recebido
     
     # Foreign Keys
     account_id = db.Column(db.Integer, db.ForeignKey('fin_accounts.id'), nullable=False)

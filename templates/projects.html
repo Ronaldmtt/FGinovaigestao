@@ -424,6 +424,9 @@
                             <span class="status-badge {{ p.status_class }}">{{ p.status_label }}</span>
                             <span class="status-date-meta"><i class="fas fa-calendar-day me-1"></i>{{ p.status_changed_at_label }}</span>
                         </div>
+                        {% if p.status_note %}
+                        <div class="w-100 small text-secondary mt-1"><i class="fas fa-comment-dots me-1"></i>{{ p.status_note }}</div>
+                        {% endif %}
                         <button type="button" class="btn btn-link btn-sm p-0 status-history-link"
                             onclick="event.stopPropagation(); openProjectStatusHistory({{ p.id }}, '{{ p.nome|e }}')">
                             <i class="fas fa-history me-1"></i>Histórico
@@ -797,7 +800,7 @@
 
             listEl.innerHTML = data.history.map(item => {
                 const origem = item.old_status_label && item.old_status ? `${item.old_status_label} → ` : '';
-                const note = item.note ? `<div class="small text-secondary mt-1">${item.note}</div>` : '';
+                const note = item.note ? `<div class="small text-secondary mt-1"><i class="fas fa-comment-dots me-1"></i><strong>Motivo:</strong> ${item.note}</div>` : '';
                 return `
                     <div class="border border-secondary rounded p-3 bg-black bg-opacity-25">
                         <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
@@ -1304,19 +1307,27 @@
                     const kanbanToggle = content.querySelector('input[name="show_in_kanban"]');
 
                     if (statusSelect && kanbanToggle) {
+                        const statusReasonRow = content.querySelector('#statusReasonRow');
+                        const statusReasonInput = content.querySelector('#statusChangeReason');
+                        const toggleStatusReason = () => {
+                            const originalStatus = statusSelect.dataset.originalStatus || data.project.status || '';
+                            const changed = statusSelect.value !== originalStatus;
+                            if (statusReasonRow) statusReasonRow.classList.toggle('d-none', !changed);
+                            if (!changed && statusReasonInput) statusReasonInput.value = '';
+                        };
+
                         statusSelect.addEventListener('change', function () {
                             if (this.value === 'concluido') {
                                 kanbanToggle.checked = false;
                             } else {
-                                // Opcional: Reativar se mudar de concluído para outro?
-                                // Por enquanto, mantemos a decisão do usuário ou o estado anterior, 
-                                // mas se ele estava concluído e o usuário mudou, talvez queira ver no kanban.
-                                // Vamos deixar manual para ativar, mas auto para desativar.
                                 if (!kanbanToggle.checked && this.value !== 'concluido' && data.project.status === 'concluido') {
                                     kanbanToggle.checked = true;
                                 }
                             }
+                            toggleStatusReason();
                         });
+
+                        toggleStatusReason();
                     }
                 } else {
                     content.innerHTML = `
@@ -1386,7 +1397,7 @@
             </div>
             <div class="col-md-4">
                 <label class="form-label">Status</label>
-                <select class="form-select bg-dark text-light border-secondary" name="status" required>
+                <select class="form-select bg-dark text-light border-secondary" name="status" required data-original-status="${project.status || ''}">
                     <option value="em_andamento" ${project.status === 'em_andamento' ? 'selected' : ''}>Em Andamento</option>
                     <option value="em_teste" ${project.status === 'em_teste' ? 'selected' : ''}>Em Teste</option>
                     <option value="pausado" ${project.status === 'pausado' ? 'selected' : ''}>Pausado</option>
@@ -1433,6 +1444,14 @@
             <div class="col-md-6">
                 <label class="form-label">Data de Entrega</label>
                 <input type="date" class="form-control bg-dark text-light border-secondary" name="data_fim" value="${project.data_fim || ''}">
+            </div>
+        </div>
+
+        <div class="row mb-3 d-none" id="statusReasonRow">
+            <div class="col-12">
+                <label class="form-label">Motivo da mudança de status</label>
+                <textarea class="form-control bg-dark text-light border-secondary" name="status_change_reason" id="statusChangeReason" rows="2" placeholder="Ex: projeto aguardando retorno do cliente, entrou em teste, foi concluído após validação final..."></textarea>
+                <div class="form-text text-white-50">Esse motivo será salvo no histórico e exibido no card do projeto.</div>
             </div>
         </div>
         
@@ -1789,6 +1808,22 @@
     .csg-dot.active {
         background: #3b82f6;
         transform: scale(1.5);
+    }
+</style>
+{% endblock %}(1.5);
+    }
+</style>
+{% endblock %}
+        transition: background .2s, transform .2s;
+        display: inline-block;
+    }
+
+    .csg-dot.active {
+        background: #3b82f6;
+        transform: scale(1.5);
+    }
+</style>
+{% endblock %}(1.5);
     }
 </style>
 {% endblock %}

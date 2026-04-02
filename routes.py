@@ -716,6 +716,7 @@ def projects():
             c_si = c_status_map.get(c.status, {'label': c.status, 'class': 'status-paused'})
             c_latest_status_entry = c.status_history[0] if c.status_history else None
             c_status_changed_at = c_latest_status_entry.changed_at if c_latest_status_entry else c.created_at
+            c_latest_status_note = (c_latest_status_entry.note or '').strip() if c_latest_status_entry and c_latest_status_entry.note else ''
             if c_prog <= 25:   c_pc = 'progress-danger'
             elif c_prog <= 75: c_pc = 'progress-warning'
             else:              c_pc = 'progress-success'
@@ -1098,7 +1099,7 @@ def edit_project(id):
             project,
             project.status,
             old_status=old_status,
-            note='Status alterado via edição de projeto',
+            note=status_change_reason or None,
             changed_by_id=current_user.id
         )
     

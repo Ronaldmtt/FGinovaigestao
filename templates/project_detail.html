@@ -792,7 +792,7 @@
                         </div>
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Status</label>
-                            <select class="form-select" name="status" required>
+                            <select class="form-select" name="status" required data-original-status="{{ project.status }}">
                                 <option value="em_andamento" {% if project.status=='em_andamento' %}selected{% endif %}>
                                     Em Andamento</option>
                                 <option value="em_teste" {% if project.status=='em_teste' %}selected{% endif %}>
@@ -2500,6 +2500,30 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
         }
     }
 
+    function toggleDetailStatusReason() {
+        const modal = document.getElementById('editProjectModal');
+        if (!modal) return;
+        const statusSelect = modal.querySelector('select[name="status"]');
+        const reasonRow = modal.querySelector('#detailStatusReasonRow');
+        const reasonInput = modal.querySelector('#detailStatusChangeReason');
+        if (!statusSelect || !reasonRow) return;
+
+        const originalStatus = statusSelect.dataset.originalStatus || '';
+        const changed = statusSelect.value !== originalStatus;
+        reasonRow.classList.toggle('d-none', !changed);
+        if (!changed && reasonInput) reasonInput.value = '';
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const modal = document.getElementById('editProjectModal');
+        if (!modal) return;
+        const statusSelect = modal.querySelector('select[name="status"]');
+        if (statusSelect) {
+            statusSelect.addEventListener('change', toggleDetailStatusReason);
+            toggleDetailStatusReason();
+        }
+    });
+
     function updateTeamMembersLabel(labelId, checkboxClass) {
         const checkboxes = document.querySelectorAll(`.${checkboxClass}:checked`);
         const label = document.getElementById(labelId);
@@ -3326,6 +3350,21 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
 <!-- GitHub Commit Detail Modal -->
 <div class="modal fade" id="githubCommitModal" tabindex="-1" aria-labelledby="githubCommitModalLabel" aria-hidden="true" style="z-index: 1060;">
   <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content bg-dark text-light border-secondary">
+      <div class="modal-header border-secondary bg-dark text-light" data-bs-theme="dark">
+        <h5 class="modal-title" id="githubCommitModalLabel">
+           <i class="fas fa-code-commit text-primary me-2"></i> Inspeção de Commit
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="githubCommitModalBody">
+           <!-- Content injected by JS -->
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}g-centered modal-dialog-scrollable">
     <div class="modal-content bg-dark text-light border-secondary">
       <div class="modal-header border-secondary bg-dark text-light" data-bs-theme="dark">
         <h5 class="modal-title" id="githubCommitModalLabel">

@@ -839,7 +839,9 @@ def new_project():
             restricoes=form.restricoes.data,
             has_github=form.has_github.data,
             has_drive=form.has_drive.data,
-            ssh_server=form.ssh_server.data
+            dominio=form.dominio.data,
+            ssh_server=form.ssh_server.data,
+            ssh_path=form.ssh_path.data
         )
         
         db.session.add(project)
@@ -916,7 +918,9 @@ def new_manual_project():
         restricoes=request.form.get('restricoes'),
         has_github=True if request.form.get('has_github') == 'y' else False,
         has_drive=True if request.form.get('has_drive') == 'y' else False,
-        ssh_server=request.form.get('ssh_server')
+        dominio=request.form.get('dominio'),
+        ssh_server=request.form.get('ssh_server'),
+        ssh_path=request.form.get('ssh_path')
     )
     
     db.session.add(project)
@@ -1005,8 +1009,12 @@ def edit_project(id):
     
     if 'github_repo' in request.form:
         project.github_repo = request.form.get('github_repo', '')
+    if 'dominio' in request.form:
+        project.dominio = request.form.get('dominio', '')
     if 'ssh_server' in request.form:
         project.ssh_server = request.form.get('ssh_server', '')
+    if 'ssh_path' in request.form:
+        project.ssh_path = request.form.get('ssh_path', '')
         
     # 3-State Logic for .ENV
     # Toggle OFF -> None (Pending/Red)
@@ -2083,10 +2091,13 @@ def get_project_data(id):
         'show_in_kanban': project.show_in_kanban,
         'has_github': project.has_github,
         'has_drive': project.has_drive,
+        'github_repo': project.github_repo,
+        'dominio': project.dominio,
         'has_env': project.has_env,
         'has_backup_db': project.has_backup_db,
         'rpa_identifier': project.rpa_identifier,
         'ssh_server': project.ssh_server,
+        'ssh_path': project.ssh_path,
         'data_inicio': project.data_inicio.isoformat() if project.data_inicio else None,
         'data_fim': project.data_fim.isoformat() if project.data_fim else None
     }
@@ -2119,7 +2130,7 @@ def update_project_field(id):
     print(f"DEBUG ATOMIC UPDATE: Project {id}, Field {field}, Value {value} ({type(value)})")
 
     allowed_bool_fields = ['has_github', 'has_drive', 'has_env', 'has_backup_db', 'show_in_kanban']
-    allowed_text_fields = ['rpa_identifier', 'github_repo', 'ssh_server']
+    allowed_text_fields = ['rpa_identifier', 'github_repo', 'dominio', 'ssh_server', 'ssh_path']
 
     try:
         if field in allowed_bool_fields:

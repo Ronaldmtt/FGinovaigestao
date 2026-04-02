@@ -922,9 +922,21 @@
                             </div>
 
                             <div class="mt-3 bg-dark border border-secondary rounded p-3">
+                                <label class="form-label text-light mb-1"><i class="fas fa-globe"></i> Domínio</label>
+                                <input type="text" class="form-control border-secondary bg-black text-light" id="dominio" name="dominio" placeholder="Ex: https://app.seuprojeto.com" value="{{ project.dominio or '' }}">
+                                <small class="text-muted d-block mt-1">URL/domínio de acesso do projeto.</small>
+                            </div>
+
+                            <div class="mt-3 bg-dark border border-secondary rounded p-3">
                                 <label class="form-label text-light mb-1"><i class="fas fa-server"></i> Servidor SSH / VPS</label>
                                 <input type="text" class="form-control border-secondary bg-black text-light" id="ssh_server" name="ssh_server" placeholder="Ex: ubuntu@meuservidor.com ou IP/host da VPS" value="{{ project.ssh_server or '' }}">
                                 <small class="text-muted d-block mt-1">Servidor onde o projeto está hospedado.</small>
+                            </div>
+
+                            <div class="mt-3 bg-dark border border-secondary rounded p-3">
+                                <label class="form-label text-light mb-1"><i class="fas fa-folder-open"></i> Pasta no SSH</label>
+                                <input type="text" class="form-control border-secondary bg-black text-light" id="ssh_path" name="ssh_path" placeholder="Ex: /var/www/meu-projeto ou /opt/app" value="{{ project.ssh_path or '' }}">
+                                <small class="text-muted d-block mt-1">Caminho da pasta do projeto no servidor.</small>
                             </div>
                         </div>
                     </div>

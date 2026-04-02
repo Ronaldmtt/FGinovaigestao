@@ -87,7 +87,9 @@ class Project(db.Model):
     cliente_responsavel_telefone = db.Column(db.String(50), nullable=True)
     cliente_responsavel_email = db.Column(db.String(120), nullable=True)
     github_repo = db.Column(db.String(200), nullable=True)
+    dominio = db.Column(db.String(255), nullable=True)
     ssh_server = db.Column(db.String(255), nullable=True)
+    ssh_path = db.Column(db.String(500), nullable=True)
     
     # Campos preenchidos pela IA
     contexto_justificativa = db.Column(db.Text)

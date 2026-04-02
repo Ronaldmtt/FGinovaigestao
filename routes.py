@@ -1004,8 +1004,10 @@ def edit_project(id):
     project.cliente_responsavel_email = request.form.get('cliente_responsavel_email')    
     
     # Novos campos de GitHub e Drive
-    project.has_github = True if request.form.get('has_github') == 'on' else False
-    project.has_drive = True if request.form.get('has_drive') == 'on' else False
+    if 'has_github' in request.form:
+        project.has_github = True if request.form.get('has_github') == 'on' else False
+    if 'has_drive' in request.form:
+        project.has_drive = True if request.form.get('has_drive') == 'on' else False
     
     if 'github_repo' in request.form:
         project.github_repo = request.form.get('github_repo', '')
@@ -1037,16 +1039,19 @@ def edit_project(id):
     else:
         project.has_backup_db = None
     
-    # Atualizar progresso e prazo
-    progress_percent = request.form.get('progress_percent', 0)
-    project.progress_percent = int(progress_percent) if progress_percent else 0
-    
+    # Atualizar progresso e prazo apenas se vierem no form
     from datetime import datetime as dt
-    prazo_str = request.form.get('prazo')
-    if prazo_str:
-        project.prazo = dt.strptime(prazo_str, '%Y-%m-%d').date()
-    else:
-        project.prazo = None
+
+    if 'progress_percent' in request.form:
+        progress_percent = request.form.get('progress_percent', 0)
+        project.progress_percent = int(progress_percent) if progress_percent else 0
+
+    if 'prazo' in request.form:
+        prazo_str = request.form.get('prazo')
+        if prazo_str:
+            project.prazo = dt.strptime(prazo_str, '%Y-%m-%d').date()
+        else:
+            project.prazo = None
         
     data_inicio_str = request.form.get('data_inicio')
     if data_inicio_str:
@@ -2076,6 +2081,8 @@ def get_project_data(id):
         'client_id': project.client_id,
         'responsible_id': project.responsible_id,
         'status': project.status,
+        'progress_percent': project.progress_percent,
+        'prazo': project.prazo.isoformat() if project.prazo else None,
         'team_members': [member.id for member in project.team_members],
         'cliente_responsavel_nome': project.cliente_responsavel_nome,
         'cliente_responsavel_telefone': project.cliente_responsavel_telefone,

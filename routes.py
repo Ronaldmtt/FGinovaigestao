@@ -5310,15 +5310,14 @@ def generate_pdf():
         processed_counter = 0
 
         for client_name, client_projects in projects_by_client.items():
-            elements.append(Paragraph(f"Cliente: {client_name}", client_title_style))
-            elements.append(Spacer(1, 6))
-
             for project_data in client_projects:
                 p_id = project_data['id']
                 result = results_map.get(p_id)
                 if not result:
                     continue
 
+                elements.append(Spacer(1, 80))
+                elements.append(Paragraph(f"Cliente: {client_name}", client_title_style))
                 elements.append(Paragraph(f"{project_data['nome']}", title_style))
                 
                 readable_status = (project_data.get('status') or 'não informado').replace('_', ' ')

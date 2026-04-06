@@ -3,121 +3,338 @@
 {% block title %}Detalhes da Reunião - {{ meeting.title }}{% endblock %}
 
 {% block content %}
+{% set alignment = results.get('alignment_score', meeting.alignment_score or 0) %}
+{% set agenda_items = results.get('agenda_items', []) %}
+{% set unaddressed_items = results.get('unaddressed_items', []) %}
+{% set additional_topics = results.get('additional_topics', []) %}
+{% set insights = results.get('insights', []) %}
+{% set next_steps = results.get('next_steps', []) %}
+{% set action_items = results.get('action_items', []) %}
+{% set directions = results.get('directions', []) %}
+{% set meeting_summary = results.get('meeting_summary') or meeting.analysis_summary %}
+{% set language = results.get('language') or meeting.language %}
+{% set addressed_count = agenda_items|selectattr('addressed', 'eq', true)|list|length %}
+{% set total_count = agenda_items|length %}
+{% set coverage_percent = (addressed_count / total_count * 100)|int if total_count > 0 else 0 %}
+
 <div class="mb-4">
-    <a href="{{ url_for('meetings_bp.meetings_hub') }}" class="btn btn-sm btn-outline-secondary mb-3">
+    <a href="{{ url_for('meetings_bp.meetings_hub', tab='list') }}" class="btn btn-sm btn-outline-secondary mb-3">
         <i class="fas fa-arrow-left me-1"></i> Voltar para reuniões
     </a>
-    <div class="d-flex justify-content-between align-items-center">
-        <h2><i class="fas fa-video me-2 text-primary"></i> {{ meeting.title }}</h2>
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
         <div>
-            {% if meeting.status == 'concluida' %}
-            <span class="badge bg-success fs-6 px-3 py-2">Concluída</span>
-            {% elif meeting.status == 'cancelada' %}
-            <span class="badge bg-danger fs-6 px-3 py-2">Cancelada</span>
-            {% else %}
-            <span class="badge bg-warning text-dark fs-6 px-3 py-2">Agendada</span>
+            <h2 class="mb-1"><i class="fas fa-video me-2 text-primary"></i>{{ meeting.title }}</h2>
+            <div class="text-muted small">
+                <i class="far fa-calendar-alt me-1"></i> {{ meeting.date_time.strftime('%d/%m/%Y às %H:%M') }}
+                <span class="mx-2">|</span>
+                <i class="fas fa-user-tie me-1"></i> Criador: {{ meeting.creator.full_name }}
+                {% if meeting.project %}
+                <span class="mx-2">|</span>
+                <i class="fas fa-project-diagram me-1"></i> Projeto:
+                <a href="{{ url_for('project_details', id=meeting.project.id) }}" class="text-decoration-none">{{ meeting.project.nome }}</a>
+                {% endif %}
+                {% if meeting.meeting_source %}
+                <span class="mx-2">|</span>
+                <i class="fas fa-layer-group me-1"></i> Origem: {{ meeting.meeting_source }}
+                {% endif %}
+            </div>
+        </div>
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+            <span class="badge {% if meeting.status == 'concluida' %}bg-success{% elif meeting.status == 'cancelada' %}bg-danger{% else %}bg-warning text-dark{% endif %} fs-6 px-3 py-2">
+                {{ meeting.status|replace('_', ' ')|title }}
+            </span>
+            {% if language %}
+            <span class="badge bg-info text-dark fs-6 px-3 py-2">{{ language|upper }}</span>
+            {% endif %}
+            {% if meeting.external_meeting_link %}
+            <a href="{{ meeting.external_meeting_link }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-arrow-up-right-from-square me-1"></i> Abrir link
+            </a>
             {% endif %}
         </div>
     </div>
-    <div class="text-muted mt-2">
-        <i class="far fa-calendar-alt me-1"></i> {{ meeting.date_time.strftime('%d/%m/%Y às %H:%M') }}
-        {% if meeting.project %}
-        <span class="mx-2">|</span>
-        <i class="fas fa-project-diagram me-1"></i> Projeto: <a
-            href="{{ url_for('project_details', id=meeting.project.id) }}" class="text-decoration-none">{{
-            meeting.project.nome }}</a>
-        {% endif %}
-        <span class="mx-2">|</span>
-        <i class="fas fa-user-tie me-1"></i> Criador: {{ meeting.creator.full_name }}
-    </div>
 </div>
 
-<div class="row">
-    <!-- Coluna Principal (Resumo/Analise IA) -->
-    <div class="col-md-8">
-        <div class="card mb-4 shadow-sm">
-            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="fas fa-robot text-primary me-2"></i> Análise de IA (Ata / Resumo)</h5>
-                {% if not meeting.analysis_summary %}
-                <button class="btn btn-sm btn-outline-primary" id="btn-process-ai" {% if not
-                    meeting.transcription_content %}disabled title="Requer transcrição" {% endif %}>
-                    <i class="fas fa-cog me-1"></i> Gerar Resumo
-                </button>
-                {% endif %}
-            </div>
-            <div class="card-body">
-                {% if meeting.analysis_summary %}
-                <div class="markdown-content">
-                    {{ meeting.analysis_summary | safe }}
-                </div>
-                {% else %}
-                <div class="text-center py-5 text-muted">
-                    <i class="fas fa-magic fa-3x mb-3 opacity-50"></i>
-                    <p>Nenhuma análise gerada ainda. Adicione uma transcrição ou texto base para a IA processar a ata.
-                    </p>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <div class="card mb-4 shadow-sm">
-            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="fas fa-align-left text-secondary me-2"></i> Transcrição</h5>
-            </div>
-            <div class="card-body">
-                {% if meeting.transcription_content %}
-                <div class="bg-light p-3 rounded"
-                    style="max-height: 400px; overflow-y: auto; white-space: pre-wrap; font-family: monospace; font-size: 0.9rem;">
-                    {{ meeting.transcription_content }}
-                </div>
-                {% else %}
-                <div class="text-center py-4 text-muted">
-                    <p>Nenhuma transcrição associada a esta reunião.</p>
-                    <button class="btn btn-outline-secondary btn-sm"><i class="fas fa-upload me-1"></i> Fazer upload
-                        manual</button>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    <!-- Coluna Lateral (Participantes) -->
+<div class="row g-4 mb-4">
     <div class="col-md-4">
-        <div class="card shadow-sm">
-            <div class="card-header bg-transparent">
-                <h5 class="mb-0"><i class="fas fa-users text-info me-2"></i> Participantes ({{
-                    meeting.participants|length }})</h5>
+        <div class="card h-100 border-primary shadow-sm">
+            <div class="card-body">
+                <div class="text-muted small mb-2">Score de alinhamento</div>
+                <div class="d-flex align-items-end gap-2 mb-2">
+                    <div class="display-5 fw-bold text-primary">{{ '%.1f'|format(alignment|float) }}</div>
+                    <div class="text-muted mb-2">/10</div>
+                </div>
+                <div class="progress" style="height: 12px;">
+                    <div class="progress-bar bg-primary" style="width: {{ (alignment|float * 10)|round(0, 'floor') }}%"></div>
+                </div>
             </div>
-            <ul class="list-group list-group-flush">
-                {% for p in meeting.participants %}
-                <li class="list-group-item d-flex align-items-center">
-                    <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-3"
-                        style="width: 32px; height: 32px; font-size: 0.8rem;">
-                        {{ p.nome[0] }}{{ p.sobrenome[0] if p.sobrenome else '' }}
-                    </div>
-                    <div>
-                        <h6 class="mb-0">{{ p.full_name }}</h6>
-                        <small class="text-muted">{{ p.email }}</small>
-                    </div>
-                </li>
-                {% endfor %}
-            </ul>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body">
+                <div class="text-muted small mb-2">Cobertura da pauta</div>
+                <div class="display-6 fw-bold">{{ addressed_count }}/{{ total_count }}</div>
+                <div class="progress mt-2" style="height: 12px;">
+                    <div class="progress-bar bg-info" style="width: {{ coverage_percent }}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body">
+                <div class="text-muted small mb-2">Status da análise</div>
+                <div class="fs-4 fw-bold {% if meeting.analysis_status == 'completed' %}text-success{% else %}text-warning{% endif %}">
+                    {{ meeting.analysis_status|replace('_', ' ')|title }}
+                </div>
+                {% if meeting.analysis_generated_at %}
+                <div class="small text-muted mt-2">Gerada em {{ meeting.analysis_generated_at.strftime('%d/%m/%Y às %H:%M') }}</div>
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        // Formatar markdown do resumo se existir e for texto puro
-        const mdContainers = document.querySelectorAll('.markdown-content');
-        mdContainers.forEach(container => {
-            // Verifica se o texto precisa de parse ou ja e html
-            const raw = container.innerHTML.trim();
-            if (!raw.startsWith('<') && raw.length > 0) {
-                container.innerHTML = marked.parse(raw);
-            }
-        });
-    });
-</script>
+<ul class="nav nav-tabs mb-4" id="meetingDetailTabs" role="tablist">
+    <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#analysis-tab-pane" type="button">Análise</button></li>
+    <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#transcription-tab-pane" type="button">Transcrição</button></li>
+    <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#meta-tab-pane" type="button">Dados brutos</button></li>
+</ul>
+
+<div class="tab-content">
+    <div class="tab-pane fade show active" id="analysis-tab-pane">
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="card shadow-sm border-primary mb-4">
+                    <div class="card-header bg-dark text-primary"><strong>Resumo executivo da reunião</strong></div>
+                    <div class="card-body">
+                        {% if meeting_summary %}
+                            <p class="lead mb-0">{{ meeting_summary }}</p>
+                        {% else %}
+                            <p class="text-muted mb-0">Ainda não existe resumo executivo gerado para esta reunião.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header"><strong>Itens da pauta</strong></div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 80px;">Status</th>
+                                        <th>Item</th>
+                                        <th>Contexto / recomendação</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in agenda_items %}
+                                    <tr>
+                                        <td>
+                                            {% if item.addressed %}
+                                            <span class="badge bg-success">OK</span>
+                                            {% else %}
+                                            <span class="badge bg-danger">Pendente</span>
+                                            {% endif %}
+                                        </td>
+                                        <td><strong>{{ item.item }}</strong></td>
+                                        <td>{{ item.context or item.recommendation or '-' }}</td>
+                                    </tr>
+                                    {% else %}
+                                    <tr><td colspan="3" class="text-center text-muted py-4">Nenhum item estruturado de pauta disponível.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header"><strong>Insights</strong></div>
+                            <div class="card-body">
+                                {% if insights %}
+                                <ul class="mb-0">
+                                    {% for item in insights %}<li class="mb-2">{{ item }}</li>{% endfor %}
+                                </ul>
+                                {% else %}
+                                <p class="text-muted mb-0">Nenhum insight estruturado.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header"><strong>Próximos passos</strong></div>
+                            <div class="card-body">
+                                {% if next_steps %}
+                                <ul class="mb-0">
+                                    {% for item in next_steps %}<li class="mb-2">{{ item }}</li>{% endfor %}
+                                </ul>
+                                {% else %}
+                                <p class="text-muted mb-0">Nenhum próximo passo estruturado.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header"><strong>Ações / responsáveis</strong></div>
+                            <div class="card-body">
+                                {% if action_items %}
+                                <ul class="mb-0">
+                                    {% for item in action_items %}<li class="mb-2">{{ item }}</li>{% endfor %}
+                                </ul>
+                                {% else %}
+                                <p class="text-muted mb-0">Nenhuma ação registrada.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header"><strong>Direções estratégicas</strong></div>
+                            <div class="card-body">
+                                {% if directions %}
+                                <ul class="mb-0">
+                                    {% for item in directions %}<li class="mb-2">{{ item }}</li>{% endfor %}
+                                </ul>
+                                {% else %}
+                                <p class="text-muted mb-0">Nenhuma direção estratégica estruturada.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header"><strong>Participantes</strong></div>
+                    <ul class="list-group list-group-flush">
+                        {% for p in meeting.participants %}
+                        <li class="list-group-item d-flex align-items-center">
+                            <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                                {{ p.nome[0] }}{{ p.sobrenome[0] if p.sobrenome else '' }}
+                            </div>
+                            <div>
+                                <div class="fw-semibold">{{ p.full_name }}</div>
+                                <small class="text-muted">{{ p.email }}</small>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header"><strong>Tópicos adicionais</strong></div>
+                    <div class="card-body">
+                        {% if additional_topics %}
+                        <ul class="mb-0">
+                            {% for item in additional_topics %}<li class="mb-2">{{ item }}</li>{% endfor %}
+                        </ul>
+                        {% else %}
+                        <p class="text-muted mb-0">Nenhum tópico adicional registrado.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="card shadow-sm">
+                    <div class="card-header"><strong>Itens não abordados</strong></div>
+                    <div class="card-body">
+                        {% if unaddressed_items %}
+                        <ul class="mb-0">
+                            {% for item in unaddressed_items %}
+                            <li class="mb-3">
+                                <div class="fw-semibold">{{ item.item }}</div>
+                                <div class="small text-muted">{{ item.recommendation }}</div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <p class="text-muted mb-0">Nenhum item pendente de pauta.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="transcription-tab-pane">
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="card shadow-sm">
+                    <div class="card-header"><strong>Transcrição textual</strong></div>
+                    <div class="card-body">
+                        {% if meeting.transcription_content %}
+                        <div class="border rounded p-3 bg-light text-dark" style="max-height: 520px; overflow-y: auto; white-space: pre-wrap; font-family: monospace; font-size: 0.92rem;">{{ meeting.transcription_content }}</div>
+                        {% else %}
+                        <p class="text-muted mb-0">Nenhuma transcrição textual armazenada.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header"><strong>Mídias</strong></div>
+                    <div class="card-body">
+                        {% if meeting.audio_url %}<div class="mb-2"><a href="{{ meeting.audio_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm w-100">Abrir áudio</a></div>{% endif %}
+                        {% if meeting.video_url %}<div class="mb-2"><a href="{{ meeting.video_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm w-100">Abrir vídeo</a></div>{% endif %}
+                        {% if not meeting.audio_url and not meeting.video_url %}<p class="text-muted mb-0">Nenhum link de mídia disponível.</p>{% endif %}
+                    </div>
+                </div>
+
+                <div class="card shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>Fireflies</strong>
+                        {% if meeting.fireflies_transcript_id %}<span class="badge bg-info text-dark">Vinculado</span>{% endif %}
+                    </div>
+                    <div class="card-body">
+                        {% if fireflies_error %}
+                        <div class="alert alert-warning py-2">{{ fireflies_error }}</div>
+                        {% endif %}
+                        {% if fireflies_transcript %}
+                            <div class="fw-semibold mb-2">{{ fireflies_transcript.title or 'Transcript' }}</div>
+                            {% if fireflies_transcript.transcript_url %}<div class="mb-2"><a href="{{ fireflies_transcript.transcript_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-info btn-sm w-100">Abrir transcript</a></div>{% endif %}
+                            {% if fireflies_transcript.meeting_link %}<div class="mb-2"><a href="{{ fireflies_transcript.meeting_link }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm w-100">Abrir meeting link</a></div>{% endif %}
+                            {% if fireflies_transcript.summary and fireflies_transcript.summary.overview %}
+                            <hr>
+                            <div class="small text-muted mb-1">Overview</div>
+                            <div>{{ fireflies_transcript.summary.overview }}</div>
+                            {% endif %}
+                        {% else %}
+                            <p class="text-muted mb-0">Nenhum transcript Fireflies carregado para esta reunião.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="meta-tab-pane">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header"><strong>Pauta original</strong></div>
+            <div class="card-body">
+                {% if meeting.agenda %}
+                <div class="border rounded p-3 bg-light text-dark" style="white-space: pre-wrap;">{{ meeting.agenda }}</div>
+                {% else %}
+                <p class="text-muted mb-0">Sem pauta registrada.</p>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card shadow-sm">
+            <div class="card-header"><strong>Payload bruto do provedor</strong></div>
+            <div class="card-body">
+                {% if meeting.raw_provider_payload %}
+                <pre class="mb-0" style="white-space: pre-wrap; max-height: 500px; overflow-y: auto;">{{ meeting.raw_provider_payload }}</pre>
+                {% else %}
+                <p class="text-muted mb-0">Sem payload bruto armazenado.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

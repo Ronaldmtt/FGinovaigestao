@@ -20,6 +20,7 @@ from services.meetings_calendar_service import (
     list_google_calendar_events,
     save_google_credentials_for_user,
 )
+from services.meetings_fireflies_service import get_transcript
 
 meetings_bp = Blueprint('meetings_bp', __name__)
 
@@ -90,7 +91,29 @@ def meetings_hub():
 @login_required
 def meeting_detail(meeting_id):
     meeting = Meeting.query.get_or_404(meeting_id)
-    return render_template('meeting_detail.html', meeting=meeting)
+
+    results = {}
+    if meeting.results_json:
+        try:
+            results = json.loads(meeting.results_json)
+        except Exception:
+            results = {}
+
+    fireflies_transcript = None
+    fireflies_error = None
+    if meeting.fireflies_transcript_id:
+        try:
+            fireflies_transcript = get_transcript(meeting.fireflies_transcript_id)
+        except Exception as e:
+            fireflies_error = str(e)
+
+    return render_template(
+        'meeting_detail.html',
+        meeting=meeting,
+        results=results,
+        fireflies_transcript=fireflies_transcript,
+        fireflies_error=fireflies_error,
+    )
 
 
 @meetings_bp.route('/api/meetings/create', methods=['POST'])

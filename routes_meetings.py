@@ -27,12 +27,7 @@ meetings_bp = Blueprint('meetings_bp', __name__)
 
 @meetings_bp.route('/meetings', methods=['GET'])
 @login_required
-def meetings_hub():
-    tab = request.args.get('tab', 'overview')
-    project_filter = request.args.get('project_id')
-    user_filter = request.args.get('user_id')
-    status_filter = request.args.get('status')
-
+def _render_meetings_hub(tab='overview', project_filter=None, user_filter=None, status_filter=None, generated_agenda=None):
     query = Meeting.query
     if project_filter:
         query = query.filter_by(project_id=project_filter)
@@ -57,7 +52,7 @@ def meetings_hub():
     google_events = []
     google_events_error = None
 
-    if google_connected and tab in {'overview', 'calendar', 'integrations'}:
+    if google_connected and tab in {'overview', 'calendar', 'integrations', 'agendas'}:
         try:
             credentials = get_google_credentials_for_user(current_user.id)
             if credentials:
@@ -84,7 +79,18 @@ def meetings_hub():
         google_connected=google_connected,
         google_events=google_events,
         google_events_error=google_events_error,
+        generated_agenda=generated_agenda,
     )
+
+
+@meetings_bp.route('/meetings', methods=['GET'])
+@login_required
+def meetings_hub():
+    tab = request.args.get('tab', 'overview')
+    project_filter = request.args.get('project_id')
+    user_filter = request.args.get('user_id')
+    status_filter = request.args.get('status')
+    return _render_meetings_hub(tab=tab, project_filter=project_filter, user_filter=user_filter, status_filter=status_filter)
 
 
 @meetings_bp.route('/meetings/<int:meeting_id>', methods=['GET'])
@@ -217,27 +223,9 @@ def generate_agenda_for_meeting():
         return redirect(url_for('meetings_bp.meetings_hub', tab='agendas'))
 
     generated = generate_meeting_agenda(topic, description, language)
+    generated['description'] = description
     flash('Pauta gerada com sucesso. Revise o texto abaixo e use na criação da reunião.', 'success')
-    return render_template(
-        'meetings.html',
-        tab='agendas',
-        meetings=Meeting.query.order_by(Meeting.date_time.desc()).all(),
-        projects=Project.query.order_by(Project.nome.asc()).all(),
-        users=User.query.filter_by(ativo=True).order_by(User.nome.asc(), User.sobrenome.asc()).all(),
-        selected_project=None,
-        selected_user=None,
-        selected_status=None,
-        total_meetings=Meeting.query.count(),
-        scheduled_count=Meeting.query.filter_by(status='agendada').count(),
-        completed_count=Meeting.query.filter_by(status='concluida').count(),
-        analyzed_count=Meeting.query.filter(Meeting.analysis_summary.isnot(None)).count(),
-        next_meeting=Meeting.query.filter(Meeting.date_time >= datetime.utcnow()).order_by(Meeting.date_time.asc()).first(),
-        recent_meetings=Meeting.query.order_by(Meeting.date_time.desc()).limit(5).all(),
-        google_connected=bool(get_user_integration(current_user.id, GOOGLE_CALENDAR_PROVIDER)),
-        google_events=[],
-        google_events_error=None,
-        generated_agenda=generated,
-    )
+    return _render_meetings_hub(tab='agendas', generated_agenda=generated)
 
 
 @meetings_bp.route('/meetings/integrations/google/connect')
@@ -274,6 +262,7 @@ def disconnect_google_calendar():
 def create_calendar_meeting():
     title = (request.form.get('title') or '').strip()
     description = (request.form.get('description') or '').strip()
+    agenda = (request.form.get('agenda') or '').strip()
     start_date = request.form.get('start_date')
     start_time = request.form.get('start_time')
     end_date = request.form.get('end_date') or start_date
@@ -294,7 +283,10 @@ def create_calendar_meeting():
     attendees = [email.strip() for email in attendees_raw.split(',') if email.strip()]
 
     service = build_google_calendar_service(credentials)
-    event = create_google_calendar_event(service, title, description, start_dt, end_dt, attendees=attendees)
+    full_description = description.strip()
+    if agenda:
+        full_description = f"{full_description}\n\n--- AGENDA ---\n{agenda}".strip()
+    event = create_google_calendar_event(service, title, full_description, start_dt, end_dt, attendees=attendees)
 
     meeting = Meeting(
         title=title,
@@ -306,6 +298,7 @@ def create_calendar_meeting():
         raw_provider_payload=json.dumps(event),
         status='agendada',
         meeting_owner_email=current_user.email,
+        agenda=agenda or None,
     )
     meeting.participants.append(current_user)
     db.session.add(meeting)

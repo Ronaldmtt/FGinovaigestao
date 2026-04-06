@@ -178,66 +178,40 @@ def generate_tasks_from_transcription(transcription, project_name):
         print(f"Erro ao gerar tarefas da transcrição: {e}")
         return []
 
-def generate_project_report_summary(project_name, description, problem, objectives):
+def generate_project_report_summary(project_name, description, problem, objectives, scope=None, current_status=None, status_reason=None):
     """
-    Gera um parágrafo de síntese profissional para relatório com base nos campos do projeto.
+    Gera uma síntese executiva humana com base nos campos estruturados do projeto.
     """
     try:
         prompt = f"""
-        Atue como um Arquiteto de Software e Gerente de Projetos Especialista com acesso total ao código fonte deste projeto.
+        Você é um redator executivo especializado em relatórios de projetos digitais.
 
-        Sua tarefa é analisar profundamente a estrutura de arquivos, o código backend (Python/Flask), o frontend (HTML/JS/Templates) e o banco de dados.
-        Entenda a funcionalidade do sistema atual, os fluxos de usuário e as regras de negócio implementadas.
+        Sua tarefa é produzir UM ÚNICO TEXTO em português do Brasil, em linguagem humana, clara e acessível para pessoas leigas.
+        Não explique o código-fonte, não descreva a arquitetura técnica, não faça documentação técnica.
+        Você deve apenas condensar as informações estruturadas do projeto abaixo em um resumo executivo coerente.
 
-        Com base NESSA análise automática que você fará agora, gere um documento de documentação técnica em Markdown seguindo EXATAMENTE o modelo abaixo.
-        Você não precisa inventar dados, use os dados reais extraídos do código e da estrutura do projeto.
-        O resultado será salvo em um arquivo .md dentro da pasta raiz do projeto. Siga estritamente o que é pedido neste prompt.
+        DADOS DO PROJETO:
+        - Nome: {project_name}
+        - Descrição: {description}
+        - Problema/Oportunidade: {problem}
+        - Objetivos: {objectives}
+        - Escopo: {scope or 'Não informado'}
+        - Status atual: {current_status or 'Não informado'}
+        - Motivo/observação do status: {status_reason or 'Não informado'}
 
-        REGRAS OBRIGATÓRIAS DE FORMATAÇÃO (SIGA ESTRITAMENTE):
-        - Você PODE e DEVE usar títulos com ### (três cerquilhas) para identificar as seções, pois o parser do sistema depende deles para encontrar o conteúdo.
-        - NÃO crie subtítulos (####, #####) abaixo dos títulos ###. O conteúdo abaixo de cada ### deve ser apenas texto corrido.
-        - NÃO use headers de nível 1 (#) ou nível 2 (##). Use APENAS ### para títulos de seção.
-        - Se você criar subtítulos (#### ou mais), o sistema não conseguirá processar o conteúdo.
-
-        Informações Base do Projeto "{project_name}":
-        1. Descrição: {description}
-        2. Problema/Oportunidade: {problem}
-        3. Objetivos: {objectives}
-
-        Os tópicos obrigatórios são:
-
-        ### Descrição Resumida
-        (Um resumo conciso do projeto baseado no que o código faz)
-
-        ### Problema/Oportunidade
-        (O problema que estamos resolvendo ou a oportunidade de negócio que o software ataca)
-
-        ### Objetivos
-        (Objetivos técnicos e funcionais do sistema)
-
-        ### Alinhamento Estratégico
-        (Como a arquitetura e tecnologias escolhidas suportam o crescimento do projeto)
-
-        ### Escopo do Projeto
-        (O que está implementado atualmente no código: Módulos, Funcionalidades, Integrações)
-
-        ### Fora do Escopo
-        (O que claramente não está implementado no código atual)
-
-        ### Premissas
-        (Premissas técnicas adotadas: Stack, Bibliotecas, Padrões)
-
-        ### Restrições
-        (Limitações técnicas ou de arquitetura encontradas na análise)
-
-        ---
-        Gere o conteúdo em Português do Brasil com base na sua análise do código.
+        INSTRUÇÕES:
+        - Escreva 1 a 2 parágrafos.
+        - Explique o contexto do projeto, o problema que ele ataca, o objetivo principal e o momento atual.
+        - Se houver status e motivo do status, incorpore isso naturalmente no texto.
+        - Se houver informações repetidas, consolide.
+        - Não faça lista, não use markdown, não repita os nomes dos campos.
+        - Não invente dados.
         """
         
         response = openai.chat.completions.create(
             model="gpt-4o",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.7
+            temperature=0.4
         )
         
         content = response.choices[0].message.content
@@ -245,46 +219,79 @@ def generate_project_report_summary(project_name, description, problem, objectiv
         
     except Exception as e:
         print(f"Erro ao gerar resumo do projeto para relatório: {e}")
-        # Fallback se a IA falhar: concatenação simples
-        return f"{description}. O projeto visa resolver: {problem}. Principais objetivos: {objectives}."
+        parts = []
+        if description:
+            parts.append(str(description).strip())
+        if problem:
+            parts.append(f"O projeto busca responder ao seguinte cenário: {str(problem).strip()}.")
+        if objectives:
+            parts.append(f"O objetivo principal é {str(objectives).strip()}.")
+        if scope:
+            parts.append(f"No escopo atual, destacam-se: {str(scope).strip()}.")
+        if current_status:
+            status_text = f"Atualmente, o projeto está com status {str(current_status).replace('_', ' ')}"
+            if status_reason:
+                status_text += f", com a seguinte observação: {str(status_reason).strip()}"
+            parts.append(status_text + ".")
+        return " ".join(parts) if parts else f"Projeto {project_name} sem informações suficientes para gerar síntese executiva."
 
-def generate_client_report_from_tasks(project_name, tasks):
+def generate_client_report_from_tasks(project_name, tasks, completed_todos=None, current_status=None, status_reason=None):
     """
-    Gera um relatório executivo para clientes com base nas tarefas técnicas.
-    Traduz 'tech-speak' para 'business-value'.
-    
-    tasks: lista de dicts {'titulo': str, 'descricao': str, 'status': str}
+    Gera um relatório executivo para clientes com base em tarefas e to-dos concluídos.
+    Traduz o conteúdo operacional/técnico para valor percebido por pessoas leigas.
     """
     try:
-        # Preparar lista de tarefas para o prompt
         tasks_text = ""
-        for t in tasks:
+        for t in tasks or []:
             status_symbol = "✓" if t.get('status') == 'concluida' else "○"
-            tasks_text += f"{status_symbol} [Status: {t.get('status')}] {t.get('titulo')}: {t.get('descricao')}\n"
+            titulo = t.get('titulo') or 'Sem título'
+            descricao = t.get('descricao') or 'Sem descrição complementar'
+            tasks_text += f"{status_symbol} [Status: {t.get('status')}] {titulo}: {descricao}\n"
+
+        todos_text = ""
+        for td in completed_todos or []:
+            parent_task = td.get('task_title') or 'Sem tarefa vinculada'
+            texto = td.get('texto') or 'Sem título'
+            comentario = td.get('comentario') or ''
+            if comentario:
+                todos_text += f"✓ [{parent_task}] {texto} — detalhe/resultado: {comentario}\n"
+            else:
+                todos_text += f"✓ [{parent_task}] {texto}\n"
             
         prompt = f"""
-        Você é um Gerente de Contas Sênior reportando o progresso do projeto "{project_name}" para um cliente NÃO-TÉCNICO (CEO/Diretor de empresa).
-        
-        Sua missão: Traduzir a lista de tarefas técnicas abaixo em um relatório de progresso focado em VALOR DE NEGÓCIO.
-        
-        TAREFAS TÉCNICAS EXECUTADAS/EM ANDAMENTO:
-        {tasks_text}
-        
+        Você é um gerente de contas sênior preparando um relatório executivo para um cliente leigo sobre o projeto "{project_name}".
+
+        CONTEXTO EXECUTIVO:
+        - Status atual do projeto: {current_status or 'Não informado'}
+        - Motivo/observação do status: {status_reason or 'Não informado'}
+
+        TAREFAS DO PROJETO:
+        {tasks_text or 'Nenhuma tarefa informada.'}
+
+        TO-DOS CONCLUÍDOS / AJUSTES FINALIZADOS:
+        {todos_text or 'Nenhum to-do concluído informado.'}
+
+        OBJETIVO:
+        Transforme esse material em um resumo claro do que foi feito no sistema, quais ajustes e melhorias foram implementados, o impacto prático dessas entregas e em que estágio o projeto se encontra.
+
         DIRETRIZES:
-        1. Ignore jargões técnicos (ex: "refatorar rota", "ajustar query SQL", "blueprints"). Substitua por termos de negócio (ex: "melhoria na estrutura do sistema", "otimização de banco de dados").
-        2. Agrupe tarefas pequenas e relacionadas em um único ponto de progresso robusto.
-        3. Enfatize o que já foi entregue (✓) e o que está em andamento (○).
-        4. O tom deve ser profissional, confiante e transparente.
-        
-        Retorne APENAS um JSON no seguinte formato:
+        1. Não listar cruamente os campos técnicos; sintetize e agrupe por tema.
+        2. Explique alterações e ajustes feitos no sistema em linguagem de negócio e linguagem humana.
+        3. Dê bastante peso aos TO-DOS concluídos, pois eles representam entregas efetivas.
+        4. Se houver status e motivo, incorpore isso no resumo executivo.
+        5. Não invente funcionalidades que não estejam no material.
+        6. Se perceber inconsistências, seja conservador e descreva apenas o que é suportado pelo contexto.
+
+        Retorne APENAS um JSON no formato:
         {{
-            "resumo_executivo": "Um parágrafo de 3-4 linhas resumindo o estado geral do projeto e as principais conquistas recentes.",
+            "resumo_executivo": "Um texto de 1 a 2 parágrafos, fluido e humano, explicando o que foi feito no sistema e o momento atual do projeto.",
             "entregas_recentes": [
-                "Ponto 1 (focado em valor)",
-                "Ponto 2 (focado em valor)"
+                "Entrega/ajuste 1 em linguagem leiga",
+                "Entrega/ajuste 2 em linguagem leiga"
             ],
             "proximos_passos": [
-                "O que será focado a seguir (traduzido para linguagem de negócio)"
+                "Próximo passo 1 em linguagem humana",
+                "Próximo passo 2 em linguagem humana"
             ]
         }}
         """
@@ -293,7 +300,7 @@ def generate_client_report_from_tasks(project_name, tasks):
             model="gpt-4o",
             messages=[{"role": "user", "content": prompt}],
             response_format={"type": "json_object"},
-            temperature=0.7
+            temperature=0.4
         )
         
         content = response.choices[0].message.content
@@ -303,7 +310,25 @@ def generate_client_report_from_tasks(project_name, tasks):
         
     except Exception as e:
         print(f"Erro ao gerar relatório de cliente: {e}")
-        return None
+        completed_count = len(completed_todos or [])
+        task_count = len(tasks or [])
+        resumo = f"O projeto {project_name} possui {task_count} tarefa(s) mapeada(s)"
+        if completed_count:
+            resumo += f" e {completed_count} entrega(s) concluída(s) registradas nos to-dos"
+        if current_status:
+            resumo += f". No momento, o status do projeto é {str(current_status).replace('_', ' ')}"
+            if status_reason:
+                resumo += f", com a observação: {status_reason}"
+        resumo += "."
+        return {
+            "resumo_executivo": resumo,
+            "entregas_recentes": [
+                f"Foram consolidadas {completed_count} entrega(s) concluída(s) e {task_count} frente(s) de trabalho relacionadas ao projeto."
+            ],
+            "proximos_passos": [
+                "Validar com o cliente os pontos concluídos e alinhar as próximas prioridades do projeto."
+            ]
+        }
 
 def generate_kanban_todos_from_commits(commits_text, project_name, existing_todos_text="", repo_context="", batch_hint=""):
     """

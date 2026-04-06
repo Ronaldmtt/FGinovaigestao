@@ -5063,15 +5063,19 @@ def process_single_project_report(project_data):
     """
     Helper function to process AI summaries for a single project.
     Designed for parallel execution.
-    project_data: dict containing project fields and tasks list
+    project_data: dict containing project fields, status context, tasks and completed todos.
     """
     project_id = project_data['id']
     project_name = project_data['nome']
     contexto = project_data['descricao_resumida']
     problema = project_data['problema_oportunidade']
     objetivos = project_data['objetivos']
+    escopo = project_data.get('escopo_projeto')
     transcricao = project_data.get('transcricao')
     tasks_data = project_data.get('tasks_data', [])
+    completed_todos = project_data.get('completed_todos', [])
+    current_status = project_data.get('status')
+    status_reason = project_data.get('status_reason')
     
     # Imports inside function to ensure availability in thread
     from openai_service import process_project_transcription, generate_project_report_summary, generate_client_report_from_tasks
@@ -5096,7 +5100,10 @@ def process_single_project_report(project_data):
             project_name,
             contexto or "Não informado",
             problema or "Não informado",
-            objetivos or "Não informado"
+            objetivos or "Não informado",
+            scope=escopo or "Não informado",
+            current_status=current_status or "Não informado",
+            status_reason=status_reason or "Não informado"
         )
         if summary_text:
             summary_text = summary_text.replace('\n', '<br/>')
@@ -5111,11 +5118,17 @@ def process_single_project_report(project_data):
                         f"<b>Problema/Oportunidade:</b><br/>{safe_text(problema)}<br/><br/>" \
                         f"<b>Objetivos:</b><br/>{safe_text(objetivos)}"
 
-    # 3. Generate Client Report (Tasks)
+    # 3. Generate Client Report (Tasks + Completed To-Dos + Status Context)
     client_report = None
-    if tasks_data:
+    if tasks_data or completed_todos:
         try:
-            client_report = generate_client_report_from_tasks(project_name, tasks_data)
+            client_report = generate_client_report_from_tasks(
+                project_name,
+                tasks_data,
+                completed_todos=completed_todos,
+                current_status=current_status,
+                status_reason=status_reason
+            )
         except Exception as e:
              print(f"DEBUG: Erro no relatório de tarefas (Thread {project_id}): {e}", flush=True)
 
@@ -5218,8 +5231,30 @@ def generate_pdf():
         # --- Prepare Data for Parallel Processing ---
         projects_data_list = []
         for project in projects:
-            tasks = Task.query.filter_by(project_id=project.id).order_by(Task.status.desc()).all()
-            tasks_data = [{'titulo': t.titulo, 'descricao': t.descricao, 'status': t.status} for t in tasks]
+            tasks = Task.query.filter_by(project_id=project.id).order_by(Task.status.desc(), Task.created_at.desc()).all()
+            tasks_data = [
+                {
+                    'titulo': t.titulo,
+                    'descricao': t.descricao,
+                    'status': t.status,
+                    'completed_at': t.completed_at.isoformat() if t.completed_at else None
+                }
+                for t in tasks
+            ]
+
+            completed_todos = []
+            for task in tasks:
+                for todo in (task.todos or []):
+                    if todo.completed:
+                        completed_todos.append({
+                            'task_title': task.titulo,
+                            'texto': todo.texto,
+                            'comentario': todo.comentario,
+                            'completed_at': todo.completed_at.isoformat() if todo.completed_at else None
+                        })
+
+            latest_status_entry = project.status_history[0] if project.status_history else None
+            status_reason = latest_status_entry.note if latest_status_entry and latest_status_entry.note else None
             
             projects_data_list.append({
                 'id': project.id,
@@ -5227,10 +5262,14 @@ def generate_pdf():
                 'descricao_resumida': project.descricao_resumida,
                 'problema_oportunidade': project.problema_oportunidade,
                 'objetivos': project.objetivos,
+                'escopo_projeto': project.escopo_projeto,
                 'transcricao': project.transcricao,
+                'status': project.status,
+                'status_reason': status_reason,
                 'client': project.client.nome if project.client else "Cliente não identificado",
                 'responsible_name': project.responsible.full_name if project.responsible else None,
-                'tasks_data': tasks_data
+                'tasks_data': tasks_data,
+                'completed_todos': completed_todos
             })
 
         # --- Execute OpenAI Calls in Parallel ---
@@ -5263,29 +5302,40 @@ def generate_pdf():
             
             elements.append(Paragraph(f"{client_name}", subtitle_style))
             elements.append(Paragraph(f"{project_data['nome']}", title_style))
-            
+
+            readable_status = (project_data.get('status') or 'não informado').replace('_', ' ')
+            status_reason = project_data.get('status_reason')
+            elements.append(Paragraph(f"<b>Status atual:</b> {readable_status}", body_style))
+            if status_reason:
+                elements.append(Paragraph(f"<b>Motivo / observação do status:</b> {status_reason}", body_style))
+
             elements.append(Paragraph(result['summary_text'], body_style))
             
-            # Client Report Section (Tasks)
+            # Client Report Section (Tasks + To-Dos)
             client_report = result.get('client_report')
             if client_report:
                 elements.append(Spacer(1, 15))
-                elements.append(Paragraph("Status Executivo & Entregas", subtitle_style))
+                elements.append(Paragraph("Síntese de Entregas, Ajustes e Evolução do Sistema", subtitle_style))
                 
                 if client_report.get('resumo_executivo'):
                     elements.append(Paragraph(client_report['resumo_executivo'], body_style))
                     elements.append(Spacer(1, 8))
                 
                 if client_report.get('entregas_recentes'):
-                    elements.append(Paragraph("<b>Destaques e Valor Entregue:</b>", body_style))
+                    elements.append(Paragraph("<b>Principais entregas e ajustes realizados:</b>", body_style))
                     for item in client_report['entregas_recentes']:
                         elements.append(Paragraph(f"• {item}", body_style))
                     elements.append(Spacer(1, 8))
                     
                 if client_report.get('proximos_passos'):
-                    elements.append(Paragraph("<b>Próximos Passos Estratégicos:</b>", body_style))
+                    elements.append(Paragraph("<b>Próximos passos recomendados:</b>", body_style))
                     for item in client_report['proximos_passos']:
                         elements.append(Paragraph(f"• {item}", body_style))
+
+            completed_todos_count = len(project_data.get('completed_todos', []))
+            tasks_count = len(project_data.get('tasks_data', []))
+            elements.append(Paragraph(f"<b>Total de tarefas mapeadas:</b> {tasks_count}", body_style))
+            elements.append(Paragraph(f"<b>Total de to-dos concluídos considerados no relatório:</b> {completed_todos_count}", body_style))
 
             if project_data['responsible_name']:
                 elements.append(Paragraph(f"<b>Responsável:</b> {project_data['responsible_name']}", body_style))

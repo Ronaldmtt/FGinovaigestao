@@ -1094,6 +1094,8 @@ def edit_project(id):
     if old_status == 'concluido' and project.status != 'concluido':
         project.show_in_kanban = True
 
+    status_change_reason = (request.form.get('status_change_reason') or '').strip()
+
     if old_status != project.status:
         register_project_status_history(
             project,

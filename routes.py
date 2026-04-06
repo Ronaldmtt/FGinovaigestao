@@ -5371,9 +5371,38 @@ def generate_pdf():
 
         doc.build(elements)
         buffer.seek(0)
+
+        final_stream = buffer
+        template_path = os.path.join(app.root_path, 'static', 'report_template.pdf')
+        if os.path.exists(template_path):
+            try:
+                from PyPDF2 import PdfReader, PdfWriter
+                import copy
+
+                content_reader = PdfReader(buffer)
+                template_reader = PdfReader(template_path)
+                template_page = template_reader.pages[0]
+                writer = PdfWriter()
+
+                for page in content_reader.pages:
+                    background = copy.deepcopy(template_page)
+                    background.merge_page(page)
+                    writer.add_page(background)
+
+                final_stream = io.BytesIO()
+                writer.write(final_stream)
+                final_stream.seek(0)
+                print("DEBUG: Template de relatório aplicado com sucesso", flush=True)
+            except Exception as tpl_err:
+                print(f"DEBUG: Falha ao aplicar template PDF: {tpl_err}", flush=True)
+                buffer.seek(0)
+                final_stream = buffer
+        else:
+            print("DEBUG: Template PDF não encontrado, enviando relatório sem fundo personalizado", flush=True)
+
         filename = f"relatorio_projetos_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
         print("DEBUG: PDF gerado, enviando arquivo...", flush=True)
-        return send_file(buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
+        return send_file(final_stream, as_attachment=True, download_name=filename, mimetype='application/pdf')
 
     except Exception as e:
         print(f"DEBUG: Erro fatal em generate_pdf: {e}", flush=True)

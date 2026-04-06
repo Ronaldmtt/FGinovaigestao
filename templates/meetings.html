@@ -1,50 +1,146 @@
 {% extends "base.html" %}
 
-{% block title %}Hub de Reuniões{% endblock %}
+{% block title %}Reuniões{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="fas fa-video me-2 text-primary"></i> Hub de Reuniões</h2>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newMeetingModal">
-        <i class="fas fa-plus me-1"></i> Nova Reunião
-    </button>
+    <div>
+        <h2 class="mb-1"><i class="fas fa-video me-2 text-primary"></i>Reuniões</h2>
+        <p class="text-muted mb-0">Hub evolutivo de reuniões, análises, pautas e calendário.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('meetings_bp.meetings_hub', tab='new-analysis') }}" class="btn btn-outline-primary">
+            <i class="fas fa-wand-magic-sparkles me-1"></i> Nova análise
+        </a>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newMeetingModal">
+            <i class="fas fa-plus me-1"></i> Nova reunião
+        </button>
+    </div>
 </div>
 
-<!-- Filtros -->
+<div class="card mb-4">
+    <div class="card-body py-2">
+        <ul class="nav nav-pills gap-2 flex-wrap">
+            <li class="nav-item"><a class="nav-link {% if tab == 'overview' %}active{% endif %}" href="{{ url_for('meetings_bp.meetings_hub', tab='overview') }}">Visão Geral</a></li>
+            <li class="nav-item"><a class="nav-link {% if tab == 'list' %}active{% endif %}" href="{{ url_for('meetings_bp.meetings_hub', tab='list') }}">Todas as reuniões</a></li>
+            <li class="nav-item"><a class="nav-link {% if tab == 'new-analysis' %}active{% endif %}" href="{{ url_for('meetings_bp.meetings_hub', tab='new-analysis') }}">Nova análise</a></li>
+            <li class="nav-item"><a class="nav-link {% if tab == 'agendas' %}active{% endif %}" href="{{ url_for('meetings_bp.meetings_hub', tab='agendas') }}">Pautas</a></li>
+            <li class="nav-item"><a class="nav-link {% if tab == 'calendar' %}active{% endif %}" href="{{ url_for('meetings_bp.meetings_hub', tab='calendar') }}">Calendário</a></li>
+            <li class="nav-item"><a class="nav-link {% if tab == 'integrations' %}active{% endif %}" href="{{ url_for('meetings_bp.meetings_hub', tab='integrations') }}">Integrações</a></li>
+        </ul>
+    </div>
+</div>
+
+{% if tab == 'overview' %}
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="card h-100"><div class="card-body"><div class="text-muted small">Total</div><div class="fs-3 fw-bold">{{ total_meetings }}</div></div></div></div>
+    <div class="col-md-3"><div class="card h-100"><div class="card-body"><div class="text-muted small">Agendadas</div><div class="fs-3 fw-bold text-warning">{{ scheduled_count }}</div></div></div></div>
+    <div class="col-md-3"><div class="card h-100"><div class="card-body"><div class="text-muted small">Concluídas</div><div class="fs-3 fw-bold text-success">{{ completed_count }}</div></div></div></div>
+    <div class="col-md-3"><div class="card h-100"><div class="card-body"><div class="text-muted small">Com análise</div><div class="fs-3 fw-bold text-info">{{ analyzed_count }}</div></div></div></div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header"><strong>Próxima reunião</strong></div>
+            <div class="card-body">
+                {% if next_meeting %}
+                    <h5>{{ next_meeting.title }}</h5>
+                    <p class="text-muted mb-2">{{ next_meeting.date_time.strftime('%d/%m/%Y às %H:%M') }}</p>
+                    {% if next_meeting.project %}<p class="mb-2">Projeto: <strong>{{ next_meeting.project.nome }}</strong></p>{% endif %}
+                    <a href="{{ url_for('meetings_bp.meeting_detail', meeting_id=next_meeting.id) }}" class="btn btn-outline-primary btn-sm">Abrir reunião</a>
+                {% else %}
+                    <p class="text-muted mb-0">Nenhuma próxima reunião encontrada.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>Google Calendar</strong>
+                {% if google_connected %}<span class="badge bg-success">Conectado</span>{% else %}<span class="badge bg-secondary">Desconectado</span>{% endif %}
+            </div>
+            <div class="card-body">
+                {% if google_connected %}
+                    {% if google_events %}
+                        <ul class="list-group list-group-flush">
+                            {% for event in google_events[:4] %}
+                            <li class="list-group-item px-0">
+                                <div class="fw-semibold">{{ event.summary or 'Sem título' }}</div>
+                                <div class="small text-muted">{{ event.start.dateTime or event.start.date or '-' }}</div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted mb-0">Sem eventos carregados.</p>
+                    {% endif %}
+                {% else %}
+                    <p class="text-muted">Conecte sua conta Google para puxar agenda e criar reuniões com Meet.</p>
+                    <a href="{{ url_for('meetings_bp.connect_google_calendar') }}" class="btn btn-primary btn-sm">Conectar Google</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header"><strong>Reuniões recentes</strong></div>
+    <div class="card-body">
+        <div class="row g-3">
+            {% for m in recent_meetings %}
+            <div class="col-md-6 col-xl-4">
+                <div class="border rounded p-3 h-100">
+                    <div class="fw-semibold">{{ m.title }}</div>
+                    <div class="small text-muted mb-2">{{ m.date_time.strftime('%d/%m/%Y às %H:%M') }}</div>
+                    <div class="small mb-2">Origem: <span class="badge bg-secondary">{{ m.meeting_source or 'internal' }}</span></div>
+                    <a href="{{ url_for('meetings_bp.meeting_detail', meeting_id=m.id) }}" class="btn btn-outline-primary btn-sm">Ver detalhes</a>
+                </div>
+            </div>
+            {% else %}
+            <div class="col-12"><p class="text-muted mb-0">Nenhuma reunião recente.</p></div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if tab == 'list' %}
 <div class="card mb-4">
     <div class="card-body">
         <form method="GET" action="{{ url_for('meetings_bp.meetings_hub') }}" class="row g-3 align-items-end">
-            <div class="col-md-4">
-                <label class="form-label">Filtrar por Projeto</label>
+            <input type="hidden" name="tab" value="list">
+            <div class="col-md-3">
+                <label class="form-label">Projeto</label>
                 <select name="project_id" class="form-select">
-                    <option value="">Todos os Projetos</option>
-                    {% for p in projects %}
-                    <option value="{{ p.id }}" {% if selected_project|string==p.id|string %}selected{% endif %}>
-                        {{ p.nome }}
-                    </option>
-                    {% endfor %}
+                    <option value="">Todos</option>
+                    {% for p in projects %}<option value="{{ p.id }}" {% if selected_project|string == p.id|string %}selected{% endif %}>{{ p.nome }}</option>{% endfor %}
                 </select>
             </div>
-            <div class="col-md-4">
-                <label class="form-label">Filtrar por Participante</label>
+            <div class="col-md-3">
+                <label class="form-label">Participante</label>
                 <select name="user_id" class="form-select">
-                    <option value="">Todos os Usuários</option>
-                    {% for u in users %}
-                    <option value="{{ u.id }}" {% if selected_user|string==u.id|string %}selected{% endif %}>
-                        {{ u.full_name }}
-                    </option>
-                    {% endfor %}
+                    <option value="">Todos</option>
+                    {% for u in users %}<option value="{{ u.id }}" {% if selected_user|string == u.id|string %}selected{% endif %}>{{ u.full_name }}</option>{% endfor %}
                 </select>
             </div>
-            <div class="col-md-4">
-                <button type="submit" class="btn btn-secondary me-2"><i class="fas fa-filter"></i> Filtrar</button>
-                <a href="{{ url_for('meetings_bp.meetings_hub') }}" class="btn btn-outline-secondary">Limpar</a>
+            <div class="col-md-3">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">Todos</option>
+                    <option value="agendada" {% if selected_status == 'agendada' %}selected{% endif %}>Agendada</option>
+                    <option value="concluida" {% if selected_status == 'concluida' %}selected{% endif %}>Concluída</option>
+                    <option value="cancelada" {% if selected_status == 'cancelada' %}selected{% endif %}>Cancelada</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button class="btn btn-secondary me-2">Filtrar</button>
+                <a href="{{ url_for('meetings_bp.meetings_hub', tab='list') }}" class="btn btn-outline-secondary">Limpar</a>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Lista de Reuniões -->
 <div class="row">
     {% for m in meetings %}
     <div class="col-md-6 col-lg-4 mb-4">
@@ -52,122 +148,231 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start mb-2">
                     <h5 class="card-title text-truncate" title="{{ m.title }}">{{ m.title }}</h5>
-                    {% if m.status == 'concluida' %}
-                    <span class="badge bg-success">Concluída</span>
-                    {% elif m.status == 'cancelada' %}
-                    <span class="badge bg-danger">Cancelada</span>
-                    {% else %}
-                    <span class="badge bg-warning text-dark">Agendada</span>
-                    {% endif %}
+                    <span class="badge {% if m.status == 'concluida' %}bg-success{% elif m.status == 'cancelada' %}bg-danger{% else %}bg-warning text-dark{% endif %}">{{ m.status|replace('_', ' ')|title }}</span>
                 </div>
-
-                <h6 class="card-subtitle mb-3 text-muted">
-                    <i class="far fa-calendar-alt me-1"></i>
-                    {{ m.date_time.strftime('%d/%m/%Y às %H:%M') }}
-                </h6>
-
-                {% if m.project %}
-                <p class="mb-2" style="font-size: 0.9rem;">
-                    <i class="fas fa-project-diagram text-secondary me-1"></i>
-                    Projeto: <strong>{{ m.project.nome }}</strong>
-                </p>
-                {% endif %}
-
-                <div class="mb-3">
-                    <small class="text-muted d-block mb-1">Participantes:</small>
-                    <div class="d-flex flex-wrap gap-1">
-                        {% for p in m.participants %}
-                        <span class="badge bg-secondary" title="{{ p.full_name }}">{{ p.nome }}</span>
-                        {% endfor %}
-                    </div>
-                </div>
+                <h6 class="card-subtitle mb-2 text-muted">{{ m.date_time.strftime('%d/%m/%Y às %H:%M') }}</h6>
+                <p class="small mb-2">Origem: <strong>{{ m.meeting_source or 'internal' }}</strong></p>
+                {% if m.project %}<p class="mb-2 small">Projeto: <strong>{{ m.project.nome }}</strong></p>{% endif %}
+                {% if m.analysis_summary %}<p class="small text-muted">{{ m.analysis_summary[:160] }}{% if m.analysis_summary|length > 160 %}...{% endif %}</p>{% endif %}
             </div>
-            <div class="card-footer bg-transparent border-top-0 pt-0 pb-3 mt-auto text-end">
-                <a href="{{ url_for('meetings_bp.meeting_detail', meeting_id=m.id) }}"
-                    class="btn btn-sm btn-outline-primary">
-                    Visualizar Análise <i class="fas fa-arrow-right ms-1"></i>
-                </a>
+            <div class="card-footer bg-transparent border-top-0 text-end">
+                <a href="{{ url_for('meetings_bp.meeting_detail', meeting_id=m.id) }}" class="btn btn-sm btn-outline-primary">Visualizar</a>
             </div>
         </div>
     </div>
     {% else %}
-    <div class="col-12 text-center py-5">
-        <div class="text-muted mb-3"><i class="fas fa-calendar-times fa-3x"></i></div>
-        <h5>Nenhuma reunião encontrada.</h5>
-        <p class="text-muted">Ajuste os filtros ou crie uma nova reunião.</p>
-    </div>
+    <div class="col-12 text-center py-5"><p class="text-muted mb-0">Nenhuma reunião encontrada.</p></div>
     {% endfor %}
 </div>
+{% endif %}
 
-<!-- Modal Nova Reunião -->
+{% if tab == 'new-analysis' %}
+<div class="card shadow-sm">
+    <div class="card-header"><strong>Nova análise manual de reunião</strong></div>
+    <div class="card-body">
+        <form action="{{ url_for('meetings_bp.analyze_manual_meeting') }}" method="post">
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label class="form-label">Título</label>
+                    <input type="text" class="form-control" name="title" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Data da reunião</label>
+                    <input type="date" class="form-control" name="meeting_date">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Projeto</label>
+                    <select name="project_id" class="form-select">
+                        <option value="">Sem vínculo</option>
+                        {% for p in projects %}<option value="{{ p.id }}">{{ p.nome }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Pauta</label>
+                    <textarea class="form-control" name="agenda" rows="5" required></textarea>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Transcrição</label>
+                    <textarea class="form-control" name="transcription" rows="12" required></textarea>
+                </div>
+            </div>
+            <div class="mt-3">
+                <button class="btn btn-primary"><i class="fas fa-wand-magic-sparkles me-1"></i>Gerar análise</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{% if tab == 'agendas' %}
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header"><strong>Gerar pauta com IA</strong></div>
+            <div class="card-body">
+                <form action="{{ url_for('meetings_bp.generate_agenda_for_meeting') }}" method="post">
+                    <div class="mb-3">
+                        <label class="form-label">Tópico</label>
+                        <input type="text" name="topic" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descrição / contexto</label>
+                        <textarea name="description" class="form-control" rows="6" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Idioma</label>
+                        <select name="language" class="form-select">
+                            <option value="pt">Português</option>
+                            <option value="en">English</option>
+                            <option value="es">Español</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary">Gerar pauta</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header"><strong>Pauta gerada</strong></div>
+            <div class="card-body">
+                {% if generated_agenda %}
+                    <div class="mb-2"><strong>Título sugerido:</strong> {{ generated_agenda.title }}</div>
+                    <label class="form-label">Texto da pauta</label>
+                    <textarea class="form-control" rows="14">{{ generated_agenda.agenda }}</textarea>
+                {% else %}
+                    <p class="text-muted mb-0">Gere uma pauta na coluna ao lado para visualizar aqui.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if tab == 'calendar' %}
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>Eventos do Google Calendar</strong>
+                {% if google_connected %}<span class="badge bg-success">Conectado</span>{% else %}<span class="badge bg-secondary">Desconectado</span>{% endif %}
+            </div>
+            <div class="card-body">
+                {% if google_connected %}
+                    {% if google_events_error %}<div class="alert alert-warning">{{ google_events_error }}</div>{% endif %}
+                    <div class="list-group">
+                        {% for event in google_events %}
+                        <div class="list-group-item">
+                            <div class="fw-semibold">{{ event.summary or 'Sem título' }}</div>
+                            <div class="small text-muted mb-2">{{ event.start.dateTime or event.start.date or '-' }}</div>
+                            <a href="{{ url_for('meetings_bp.import_calendar_event', event_id=event.id) }}" class="btn btn-outline-primary btn-sm">Importar para reuniões</a>
+                        </div>
+                        {% else %}
+                        <p class="text-muted mb-0">Nenhum evento retornado.</p>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">Você precisa conectar sua conta Google primeiro.</p>
+                    <a href="{{ url_for('meetings_bp.connect_google_calendar') }}" class="btn btn-primary">Conectar Google</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header"><strong>Criar evento no Google Calendar</strong></div>
+            <div class="card-body">
+                <form action="{{ url_for('meetings_bp.create_calendar_meeting') }}" method="post">
+                    <div class="mb-3"><label class="form-label">Título</label><input name="title" class="form-control" required></div>
+                    <div class="mb-3"><label class="form-label">Descrição</label><textarea name="description" class="form-control" rows="4"></textarea></div>
+                    <div class="row g-3">
+                        <div class="col-md-6"><label class="form-label">Data início</label><input type="date" name="start_date" class="form-control" required></div>
+                        <div class="col-md-6"><label class="form-label">Hora início</label><input type="time" name="start_time" class="form-control" required></div>
+                        <div class="col-md-6"><label class="form-label">Data fim</label><input type="date" name="end_date" class="form-control" required></div>
+                        <div class="col-md-6"><label class="form-label">Hora fim</label><input type="time" name="end_time" class="form-control" required></div>
+                    </div>
+                    <div class="mt-3"><label class="form-label">Participantes (emails separados por vírgula)</label><textarea name="attendees" class="form-control" rows="3"></textarea></div>
+                    <div class="mt-3"><button class="btn btn-primary">Criar evento</button></div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if tab == 'integrations' %}
+<div class="card">
+    <div class="card-header"><strong>Integrações</strong></div>
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center border rounded p-3 mb-3">
+            <div>
+                <div class="fw-semibold">Google Calendar</div>
+                <div class="small text-muted">Conecte sua conta para puxar eventos e criar reuniões com Meet.</div>
+            </div>
+            <div>
+                {% if google_connected %}
+                    <span class="badge bg-success me-2">Conectado</span>
+                    <a href="{{ url_for('meetings_bp.disconnect_google_calendar') }}" class="btn btn-outline-danger btn-sm">Desconectar</a>
+                {% else %}
+                    <a href="{{ url_for('meetings_bp.connect_google_calendar') }}" class="btn btn-primary btn-sm">Conectar</a>
+                {% endif %}
+            </div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center border rounded p-3 mb-3">
+            <div>
+                <div class="fw-semibold">Fireflies</div>
+                <div class="small text-muted">A integração backend já está preparada via token de ambiente para busca de transcrições.</div>
+            </div>
+            <span class="badge bg-info">Infra pronta</span>
+        </div>
+        <div class="d-flex justify-content-between align-items-center border rounded p-3">
+            <div>
+                <div class="fw-semibold">Gmail / convites</div>
+                <div class="small text-muted">Camada de serviços preparada para o módulo evoluir comunicação automática.</div>
+            </div>
+            <span class="badge bg-secondary">Próxima etapa</span>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <div class="modal fade" id="newMeetingModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <form action="{{ url_for('meetings_bp.create_meeting') }}" method="POST">
                 <div class="modal-header">
-                    <h5 class="modal-title">Agendar Nova Reunião</h5>
+                    <h5 class="modal-title">Agendar nova reunião</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label">Título da Reunião *</label>
-                        <input type="text" name="title" class="form-control" required
-                            placeholder="Ex: Kickoff do Projeto Alfa">
+                        <label class="form-label">Título *</label>
+                        <input type="text" name="title" class="form-control" required>
                     </div>
-
                     <div class="mb-3">
-                        <label class="form-label">Data e Hora *</label>
+                        <label class="form-label">Data e hora *</label>
                         <input type="datetime-local" name="date_time" class="form-control" required>
                     </div>
-
                     <div class="mb-3">
-                        <label class="form-label">Vincular a um Projeto</label>
+                        <label class="form-label">Projeto</label>
                         <select name="project_id" class="form-select">
                             <option value="">Sem vínculo</option>
-                            {% for p in projects %}
-                            <option value="{{ p.id }}">{{ p.nome }}</option>
-                            {% endfor %}
+                            {% for p in projects %}<option value="{{ p.id }}">{{ p.nome }}</option>{% endfor %}
                         </select>
                     </div>
-
                     <div class="mb-3">
-                        <label class="form-label">Convidados / Participantes</label>
-                        <select name="participants" class="form-select" multiple size="4">
-                            {% for u in users %}
-                            {% if u.id != current_user.id %}
-                            <option value="{{ u.id }}">{{ u.full_name }}</option>
-                            {% endif %}
-                            {% endfor %}
+                        <label class="form-label">Participantes</label>
+                        <select name="participants" class="form-select" multiple size="5">
+                            {% for u in users %}{% if u.id != current_user.id %}<option value="{{ u.id }}">{{ u.full_name }}</option>{% endif %}{% endfor %}
                         </select>
-                        <small class="text-muted">Você será incluído automaticamente. Use Ctrl/Cmd para selecionar
-                            vários.</small>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Criar Reunião</button>
+                    <button type="submit" class="btn btn-primary">Criar reunião</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('action') === 'new_meeting') {
-            const modalEl = document.getElementById('newMeetingModal');
-            const modal = new bootstrap.Modal(modalEl);
-
-            // Pre-select project if passed
-            const pid = urlParams.get('project_id');
-            if (pid) {
-                const select = modalEl.querySelector('select[name="project_id"]');
-                if (select) select.value = pid;
-            }
-
-            modal.show();
-        }
-    });
-</script>
 {% endblock %}

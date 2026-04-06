@@ -18,6 +18,7 @@ import argparse
 import json
 from collections import Counter
 from datetime import datetime
+from pathlib import Path
 
 from sqlalchemy import create_engine, text
 
@@ -32,6 +33,7 @@ def parse_args():
     parser.add_argument('--source-url', required=True, help='SQLALCHEMY URL do banco do Transcritor')
     parser.add_argument('--dry-run', action='store_true', help='Somente simular, sem gravar no banco do Gestão')
     parser.add_argument('--limit', type=int, default=0, help='Limite opcional de reuniões para teste')
+    parser.add_argument('--report-json', default='transcritor_import_report.json', help='Caminho do relatório JSON de auditoria')
     return parser.parse_args()
 
 
@@ -73,17 +75,20 @@ def normalize_dt(value):
 
 def migrate_google_integrations(source_users, dry_run=False):
     report = Counter()
+    issues = []
     email_to_target = {u.email.strip().lower(): u for u in User.query.filter(User.email.isnot(None)).all()}
 
     for source_user in source_users:
         email = (source_user.get('email') or '').strip().lower()
         if not email:
             report['users_without_email'] += 1
+            issues.append({'type': 'user_without_email', 'source_user_id': source_user.get('id')})
             continue
 
         target_user = email_to_target.get(email)
         if not target_user:
             report['users_not_found_in_target'] += 1
+            issues.append({'type': 'user_not_found_in_target', 'source_user_id': source_user.get('id'), 'email': email})
             continue
 
         credentials_raw = source_user.get('google_credentials')
@@ -96,6 +101,7 @@ def migrate_google_integrations(source_users, dry_run=False):
             credentials = json.loads(credentials_raw) if credentials_raw else None
         except Exception:
             credentials = None
+            issues.append({'type': 'invalid_google_credentials_json', 'source_user_id': source_user.get('id'), 'email': email})
 
         if dry_run:
             report['google_integrations_would_upsert'] += 1
@@ -116,11 +122,12 @@ def migrate_google_integrations(source_users, dry_run=False):
         )
         report['google_integrations_imported'] += 1
 
-    return report
+    return report, issues
 
 
 def migrate_meetings(source_meetings, source_users, dry_run=False):
     report = Counter()
+    issues = []
     source_user_by_id = {row['id']: row for row in source_users}
     email_to_target = {u.email.strip().lower(): u for u in User.query.filter(User.email.isnot(None)).all()}
 
@@ -128,12 +135,14 @@ def migrate_meetings(source_meetings, source_users, dry_run=False):
         source_user = source_user_by_id.get(source_meeting.get('user_id'))
         if not source_user:
             report['meetings_missing_source_user'] += 1
+            issues.append({'type': 'meeting_missing_source_user', 'source_meeting_id': source_meeting.get('id')})
             continue
 
         email = (source_user.get('email') or '').strip().lower()
         target_user = email_to_target.get(email)
         if not target_user:
             report['meetings_user_not_found_in_target'] += 1
+            issues.append({'type': 'meeting_user_not_found_in_target', 'source_meeting_id': source_meeting.get('id'), 'email': email})
             continue
 
         title = (source_meeting.get('title') or '').strip() or f"Reunião importada {source_meeting.get('id')}"
@@ -152,6 +161,7 @@ def migrate_meetings(source_meetings, source_users, dry_run=False):
 
         if duplicate:
             report['meetings_already_present'] += 1
+            issues.append({'type': 'meeting_duplicate_detected', 'source_meeting_id': source_meeting.get('id'), 'duplicate_target_meeting_id': duplicate.id, 'title': title})
             continue
 
         payload = {
@@ -185,6 +195,7 @@ def migrate_meetings(source_meetings, source_users, dry_run=False):
             results = json.loads(source_meeting.get('results_json')) if source_meeting.get('results_json') else {}
         except Exception:
             results = {}
+            issues.append({'type': 'meeting_invalid_results_json', 'source_meeting_id': source_meeting.get('id'), 'title': title})
         meeting.analysis_summary = (results or {}).get('meeting_summary')
 
         if dry_run:
@@ -200,7 +211,7 @@ def migrate_meetings(source_meetings, source_users, dry_run=False):
     if not dry_run:
         db.session.commit()
 
-    return report
+    return report, issues
 
 
 def print_report(title, report):
@@ -210,6 +221,23 @@ def print_report(title, report):
         return
     for key in sorted(report.keys()):
         print(f"- {key}: {report[key]}")
+
+
+def write_audit_report(path, args, source_users, source_meetings, integrations_report, integrations_issues, meetings_report, meetings_issues):
+    payload = {
+        'generated_at': datetime.utcnow().isoformat() + 'Z',
+        'dry_run': args.dry_run,
+        'source_user_count': len(source_users),
+        'source_meeting_count': len(source_meetings),
+        'integrations_report': dict(integrations_report),
+        'integrations_issues': integrations_issues,
+        'meetings_report': dict(meetings_report),
+        'meetings_issues': meetings_issues,
+    }
+    report_path = Path(path)
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding='utf-8')
+    print(f"\nRelatório JSON salvo em: {report_path}")
 
 
 def main():
@@ -226,11 +254,24 @@ def main():
         if args.dry_run:
             print('Modo dry-run ativado: nada será gravado no banco do Gestão.')
 
-        integrations_report = migrate_google_integrations(source_users, dry_run=args.dry_run)
-        meetings_report = migrate_meetings(source_meetings, source_users, dry_run=args.dry_run)
+        integrations_report, integrations_issues = migrate_google_integrations(source_users, dry_run=args.dry_run)
+        meetings_report, meetings_issues = migrate_meetings(source_meetings, source_users, dry_run=args.dry_run)
 
         print_report('Integrações Google', integrations_report)
         print_report('Reuniões', meetings_report)
+        print(f"\nPendências de integrações: {len(integrations_issues)}")
+        print(f"Pendências de reuniões: {len(meetings_issues)}")
+
+        write_audit_report(
+            args.report_json,
+            args,
+            source_users,
+            source_meetings,
+            integrations_report,
+            integrations_issues,
+            meetings_report,
+            meetings_issues,
+        )
 
 
 if __name__ == '__main__':

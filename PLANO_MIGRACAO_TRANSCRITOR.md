@@ -534,6 +534,8 @@ Escopo inicial do script:
 - preservar IDs externos (`google_calendar_event_id`, `fireflies_transcript_id`)
 - suportar `--dry-run`
 - suportar `--limit`
+- gerar relatório JSON de auditoria (`--report-json`)
+- registrar pendências e inconsistências (usuários ausentes, duplicidades, JSON inválido)
 
 ---
 

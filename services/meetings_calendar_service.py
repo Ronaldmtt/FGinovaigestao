@@ -10,6 +10,8 @@ from googleapiclient.discovery import build
 
 from services.meeting_integrations_service import (
     GOOGLE_CALENDAR_PROVIDER,
+    get_shared_integration,
+    get_shared_integration_credentials,
     get_user_integration_credentials,
     upsert_user_integration,
     disable_user_integration,
@@ -122,6 +124,14 @@ def disconnect_google_credentials_for_user(user_id):
 
 def get_google_credentials_for_user(user_id):
     return get_user_integration_credentials(user_id, GOOGLE_CALENDAR_PROVIDER)
+
+
+def get_shared_google_calendar_integration():
+    return get_shared_integration(GOOGLE_CALENDAR_PROVIDER)
+
+
+def get_shared_google_credentials():
+    return get_shared_integration_credentials(GOOGLE_CALENDAR_PROVIDER)
 
 
 def build_google_calendar_service(credentials_data):

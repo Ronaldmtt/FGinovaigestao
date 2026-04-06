@@ -14,6 +14,20 @@ def get_user_integration(user_id, provider):
     return UserIntegrationCredential.query.filter_by(user_id=user_id, provider=provider).first()
 
 
+def get_shared_integration(provider):
+    return UserIntegrationCredential.query.filter_by(provider=provider, is_enabled=True).order_by(UserIntegrationCredential.updated_at.desc(), UserIntegrationCredential.id.asc()).first()
+
+
+def get_shared_integration_credentials(provider, default=None):
+    record = get_shared_integration(provider)
+    if not record or not record.credentials_json:
+        return default
+    try:
+        return json.loads(record.credentials_json)
+    except Exception:
+        return default
+
+
 def list_user_integrations(user_id):
     return UserIntegrationCredential.query.filter_by(user_id=user_id).order_by(UserIntegrationCredential.provider.asc()).all()
 

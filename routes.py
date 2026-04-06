@@ -5192,7 +5192,7 @@ def generate_pdf():
             pagesize=A4,
             rightMargin=40,
             leftMargin=40,
-            topMargin=40,
+            topMargin=120,
             bottomMargin=40
         )
 
@@ -5316,7 +5316,6 @@ def generate_pdf():
                 if not result:
                     continue
 
-                elements.append(Spacer(1, 80))
                 elements.append(Paragraph(f"Cliente: {client_name}", client_title_style))
                 elements.append(Paragraph(f"{project_data['nome']}", title_style))
                 

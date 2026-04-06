@@ -133,7 +133,7 @@ def index():
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
-    
+
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
@@ -145,7 +145,7 @@ def login():
             return redirect(url_for('dashboard'))
         rpa_log.warn(f"Tentativa de login falhou: {form.email.data}", regiao="autenticacao")
         flash('Email ou senha inválidos.', 'danger')
-    
+
     return render_template('login.html', form=form)
 
 @app.route('/logout')
@@ -167,7 +167,7 @@ def dashboard():
             'total_clients': Client.query.count(),
             'total_projects': Project.query.count(),
             'total_tasks': Task.query.count(),
-            
+
             # Status Counts for Dashboard Cards (Global)
             'projects_in_progress': Project.query.filter_by(status='em_andamento').count(),
             'projects_completed': Project.query.filter_by(status='concluido').count(),
@@ -177,7 +177,7 @@ def dashboard():
         }
         # Atividades recentes (últimas 10)
         recent_activities = []
-        
+
         # Tarefas recentes completadas
         recent_completed = Task.query.filter_by(status='concluida').order_by(Task.completed_at.desc()).limit(5).all()
         for task in recent_completed:
@@ -190,7 +190,7 @@ def dashboard():
                     'description': f'No projeto "{task.project.nome}"' if task.project else '',
                     'time': task.completed_at
                 })
-        
+
         # Clientes criados recentemente
         recent_clients = Client.query.order_by(Client.created_at.desc()).limit(5).all()
         for client in recent_clients:
@@ -210,16 +210,16 @@ def dashboard():
             (Project.responsible_id == current_user.id) |
             (Project.team_members.contains(current_user))
         )
-        
+
         my_projects = my_projects_query.distinct().count()
         today = datetime.utcnow().date()
-        
+
         stats = {
             'my_projects': my_projects,
             'my_tasks': Task.query.filter_by(assigned_user_id=current_user.id).count(),
             'clients_created': Client.query.filter_by(creator_id=current_user.id).count(),
             'pending_tasks': Task.query.filter_by(assigned_user_id=current_user.id, status='pendente').count(),
-            
+
             # Status Counts for Dashboard Cards (User Specific)
             'projects_in_progress': my_projects_query.filter(Project.status == 'em_andamento').distinct().count(),
             'projects_completed': my_projects_query.filter(Project.status == 'concluido').distinct().count(),
@@ -227,10 +227,10 @@ def dashboard():
             'projects_in_testing': my_projects_query.filter(Project.status == 'em_teste').distinct().count(),
             'projects_delayed': my_projects_query.filter(Project.status != 'concluido', Project.data_fim < today).distinct().count()
         }
-        
+
         # Atividades recentes do usuário
         recent_activities = []
-        
+
         # Minhas tarefas completadas recentemente
         my_completed = Task.query.filter_by(assigned_user_id=current_user.id, status='concluida').order_by(Task.completed_at.desc()).limit(3).all()
         for task in my_completed:
@@ -243,7 +243,7 @@ def dashboard():
                     'description': f'No projeto "{task.project.nome}"' if task.project else '',
                     'time': task.completed_at
                 })
-        
+
         # Minhas tarefas criadas recentemente
         my_created_tasks = Task.query.filter_by(assigned_user_id=current_user.id).order_by(Task.created_at.desc()).limit(3).all()
         for task in my_created_tasks:
@@ -256,7 +256,7 @@ def dashboard():
                     'description': f'No projeto "{task.project.nome}"' if task.project else '',
                     'time': task.created_at
                 })
-        
+
         # Clientes que criei
         my_clients = Client.query.filter_by(creator_id=current_user.id).order_by(Client.created_at.desc()).limit(3).all()
         for client in my_clients:
@@ -269,10 +269,10 @@ def dashboard():
                     'description': 'Adicionado por você',
                     'time': client.created_at
                 })
-    
+
     # Ordenar atividades por data e calcular tempo relativo
     recent_activities = sorted(recent_activities, key=lambda x: x['time'], reverse=True)[:10]
-    
+
     # Calcular tempo relativo para cada atividade
     now = datetime.utcnow()
     for activity in recent_activities:
@@ -288,7 +288,7 @@ def dashboard():
                 activity['time_ago'] = f'{int(delta / 86400)} dias atrás'
         else:
             activity['time_ago'] = ''
-    
+
     return render_template('dashboard.html', stats=stats, recent_activities=recent_activities)
 
 # Rotas de Administração
@@ -298,7 +298,7 @@ def admin_users():
     if not current_user.is_admin:
         flash('Acesso negado. Apenas administradores podem acessar esta área.', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     users = User.query.order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
     form = UserForm()
     return render_template('admin/users.html', users=users, form=form)
@@ -309,7 +309,7 @@ def admin_new_user():
     if not current_user.is_admin:
         flash('Acesso negado.', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     form = UserForm()
     if form.validate_on_submit():
         # Debug: Log dos valores recebidos
@@ -320,7 +320,7 @@ def admin_new_user():
         app.logger.debug(f"acesso_tarefas: {form.acesso_tarefas.data}")
         app.logger.debug(f"acesso_kanban: {form.acesso_kanban.data}")
         app.logger.debug(f"acesso_crm: {form.acesso_crm.data}")
-        
+
         user = User(
             nome=form.nome.data,
             sobrenome=form.sobrenome.data,
@@ -335,14 +335,14 @@ def admin_new_user():
         )
         db.session.add(user)
         db.session.commit()
-        
+
         # Debug: Confirmar o que foi salvo
         app.logger.debug(f"Usuário salvo - is_admin: {user.is_admin}, acesso_tarefas: {user.acesso_tarefas}, acesso_kanban: {user.acesso_kanban}")
-        
+
         rpa_log.info(f"{current_user.nome} criou um novo usuário: {user.nome} {user.sobrenome}", regiao="usuarios")
         flash('Usuário criado com sucesso!', 'success')
         return redirect(url_for('admin_users'))
-    
+
     return render_template('admin/users.html', form=form)
 
 @app.route('/admin/users/edit/<int:user_id>', methods=['GET', 'POST'])
@@ -351,10 +351,10 @@ def admin_edit_user(user_id):
     if not current_user.is_admin:
         flash('Acesso negado.', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     user = User.query.get_or_404(user_id)
     form = EditUserForm(original_email=user.email, obj=user)
-    
+
     if form.validate_on_submit():
         user.nome = form.nome.data
         user.sobrenome = form.sobrenome.data
@@ -367,16 +367,16 @@ def admin_edit_user(user_id):
         user.acesso_crm = form.acesso_crm.data
         user.receber_notificacoes = form.receber_notificacoes.data
         user.ativo = form.ativo.data
-        
+
         # Só atualiza a senha se uma nova foi fornecida
         if form.password.data:
             user.password_hash = generate_password_hash(form.password.data)
-        
+
         db.session.commit()
         rpa_log.info(f"{current_user.nome} atualizou os dados do usuário {user.nome} {user.sobrenome}", regiao="usuarios")
         flash('Usuário atualizado com sucesso!', 'success')
         return redirect(url_for('admin_users'))
-    
+
     return render_template('admin/edit_user.html', form=form, user=user)
 
 @app.route('/admin/users/delete/<int:user_id>', methods=['POST'])
@@ -385,19 +385,19 @@ def admin_delete_user(user_id):
     if not current_user.is_admin:
         flash('Acesso negado.', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     user = User.query.get_or_404(user_id)
-    
+
     # Não permitir que o admin delete a si mesmo
     if user.id == current_user.id:
         flash('Você não pode deletar sua própria conta.', 'danger')
         return redirect(url_for('admin_users'))
-    
+
     # Verificar se o usuário tem projetos ou tarefas associadas
     if user.projects_responsible.count() > 0 or user.assigned_tasks.count() > 0:
         flash('Não é possível deletar este usuário pois ele tem projetos ou tarefas associadas.', 'danger')
         return redirect(url_for('admin_users'))
-    
+
     user_email = user.email
     user_id_log = user.id
     db.session.delete(user)
@@ -414,27 +414,27 @@ def clients():
     # Filtros
     search_term = request.args.get('search', '')
     creator_filter = request.args.get('creator_id', type=int)
-    
+
     # Query base
     query = Client.query
-    
+
     # Aplicar filtros
     if search_term:
         query = query.filter(
             (Client.nome.ilike(f'%{search_term}%')) |
             (Client.email.ilike(f'%{search_term}%'))
         )
-    
+
     if creator_filter:
         query = query.filter_by(created_by=creator_filter)
-    
+
     clients = query.order_by(Client.nome).all()
-    
+
     form = ClientForm()
     all_users = User.query.filter_by(is_admin=False, ativo=True).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
-    
-    return render_template('clients.html', 
-                         clients=clients, 
+
+    return render_template('clients.html',
+                         clients=clients,
                          form=form,
                          all_users=all_users,
                          current_search=search_term,
@@ -459,7 +459,7 @@ def new_client():
         rpa_log.info(f"{current_user.nome} cadastrou um novo cliente: {client.nome}", regiao="clientes")
         flash('Cliente cadastrado com sucesso!', 'success')
         return redirect(url_for('clients'))
-    
+
     return render_template('clients.html', form=form)
 
 @app.route('/clients/<int:id>/generate-public-link', methods=['POST'])
@@ -467,21 +467,21 @@ def new_client():
 @requires_permission('acesso_clientes')
 def generate_public_link(id):
     client = Client.query.get_or_404(id)
-    
+
     # Verificar se usuário tem acesso
     if not current_user.is_admin and client.creator_id != current_user.id:
         return jsonify({
             'success': False,
             'message': 'Você não tem permissão para gerar link para este cliente.'
         }), 403
-    
+
     # Gerar código único
     if not client.public_code:
         # Gerar código de 8 caracteres alfanuméricos
         alphabet = string.ascii_uppercase + string.digits
         client.public_code = ''.join(secrets.choice(alphabet) for _ in range(8))
         db.session.commit()
-    
+
     # Retornar dados do link com URL direta para a timeline do cliente
     return jsonify({
         'success': True,
@@ -494,9 +494,9 @@ def generate_public_link(id):
 @requires_permission('acesso_clientes')
 def edit_client(client_id):
     client = Client.query.get_or_404(client_id)
-    
+
     form = ClientForm(obj=client)
-    
+
     if form.validate_on_submit():
         try:
             client.nome = form.nome.data
@@ -504,7 +504,7 @@ def edit_client(client_id):
             client.telefone = form.telefone.data
             client.endereco = form.endereco.data
             client.observacoes = form.observacoes.data
-            
+
             db.session.commit()
             rpa_log.info(f"{current_user.nome} atualizou os dados do cliente {client.nome}", regiao="clientes")
             flash('Cliente atualizado com sucesso!', 'success')
@@ -515,7 +515,7 @@ def edit_client(client_id):
             rpa_log.error(f"Erro ao atualizar cliente {client_id}: {str(e)}", exc=e, regiao="clientes")
             flash('Erro ao atualizar cliente. Tente novamente.', 'danger')
             return redirect(f'/clients/edit/{client_id}')
-    
+
     return render_template('edit_client.html', form=form, client=client)
 
 @app.route('/clients/<int:id>/data', methods=['GET'])
@@ -523,7 +523,7 @@ def edit_client(client_id):
 @requires_permission('acesso_clientes')
 def client_data(id):
     client = Client.query.get_or_404(id)
-    
+
     return jsonify({
         'success': True,
         'client': {
@@ -541,12 +541,12 @@ def client_data(id):
 @requires_permission('acesso_clientes')
 def delete_client(client_id):
     client = Client.query.get_or_404(client_id)
-    
+
     # Verificar se o cliente tem projetos associados
     if client.projects:
         flash('Não é possível excluir este cliente pois ele tem projetos associados.', 'danger')
         return redirect(url_for('clients'))
-    
+
     client_nome = client.nome
     client_id_log = client.id
     db.session.delete(client)
@@ -564,9 +564,9 @@ def projects():
     client_filter = request.args.get('client_id', type=int)
     responsible_filter = request.args.get('responsible_id', type=int)
     status_filter = request.args.get('status')
-    
+
     # Query base para contar todos os projetos (independente de filtros)
-    # Filtra projetos filhos (parent_id IS NOT NULL) — eles só aparecem no carrossel do pai
+    # Filtra projetos filhos (parent_id IS NOT NULL) - eles só aparecem no carrossel do pai
     if current_user.is_admin:
         base_query = Project.query.filter(Project.parent_id == None)  # noqa
     else:
@@ -575,7 +575,7 @@ def projects():
             (Project.responsible_id == current_user.id) |
             (Project.team_members.contains(current_user))
         ).distinct()
-    
+
     # Contadores de status para os pills
     status_counts = {
         'todos': base_query.count(),
@@ -584,23 +584,23 @@ def projects():
         'concluido': base_query.filter_by(status='concluido').count(),
         'pausado': base_query.filter_by(status='pausado').count(),
     }
-    
+
     # Query para a listagem (com filtros aplicados)
     query = base_query
-    
+
     # Aplicar filtros
     if client_filter:
         query = query.filter_by(client_id=client_filter)
-    
+
     if responsible_filter:
         query = query.filter_by(responsible_id=responsible_filter)
-    
+
     if status_filter:
         if status_filter == 'atrasados':
             query = query.filter(Project.status != 'concluido', Project.data_fim < datetime.utcnow().date())
         else:
             query = query.filter_by(status=status_filter)
-    
+
     # Ordenar por data de entrega (mais próximo primeiro) e depois por nome
     # Usar eager loading para evitar N+1 queries
     projects = query.options(
@@ -608,7 +608,7 @@ def projects():
         joinedload(Project.client),
         selectinload(Project.tasks)
     ).order_by(Project.data_fim.asc().nullslast(), Project.nome).all()
-    
+
     # Preparar dados dos projetos para o template
     projects_data = []
     for project in projects:
@@ -619,7 +619,7 @@ def projects():
             computed_progress = int((completed_tasks / total_tasks) * 100) if total_tasks > 0 else 0
         else:
             computed_progress = project.progress_percent or 0
-        
+
         # Status para label e classe CSS
         status_map = {
             'em_andamento': {'label': 'Em Andamento', 'class': 'status-active'},
@@ -631,7 +631,7 @@ def projects():
         status_info = status_map.get(project.status, {'label': project.status, 'class': 'status-paused'})
         latest_status_entry = project.status_history[0] if project.status_history else None
         status_changed_at = latest_status_entry.changed_at if latest_status_entry else project.created_at
-        
+
         # Cor da barra de progresso
         if computed_progress <= 25:
             progress_color = 'progress-danger'
@@ -639,7 +639,7 @@ def projects():
             progress_color = 'progress-warning'
         else:
             progress_color = 'progress-success'
-            
+
         # Lógica de Brilho (Glow) baseada no tempo
         glow_class = ''
         if project.status == 'concluido':
@@ -651,7 +651,7 @@ def projects():
         elif project.data_inicio and project.data_fim:
             from datetime import date
             today = date.today()
-            
+
             # Se data inicio for futura, não brilha ou verde? Assumindo verde (inicio do ciclo)
             if today < project.data_inicio:
                 percent_time = 0.0
@@ -664,7 +664,7 @@ def projects():
                     percent_time = elapsed_days / total_days
                 else:
                     percent_time = 1.0 # Inicio e fim iguais
-            
+
             if percent_time < 0.6:
                 glow_class = 'glow-green'
             elif percent_time < 0.9:
@@ -673,7 +673,7 @@ def projects():
                 glow_class = 'glow-red'
             else:
                 glow_class = 'glow-purple' # Atrasado
-        
+
         projects_data.append({
             'id': project.id,
             'nome': project.nome,
@@ -768,7 +768,7 @@ def projects():
             })
 
         projects_data[-1]['children'] = children_list
-        
+
         # Buscar status RPA se existir identificador
         if project.rpa_identifier:
             try:
@@ -776,7 +776,7 @@ def projects():
                 headers = {'X-API-Key': 'bizart-integration-secret-key-2025'}
                 # URL dinâmica via .env (Default: localhost para dev)
                 base_url = os.environ.get('RPA_MONITOR_URL', 'http://localhost:2000').rstrip('/')
-                
+
                 # Timeout curto para não travar
                 resp = requests.get(
                     f'{base_url}/integration/status/{project.rpa_identifier}',
@@ -792,15 +792,15 @@ def projects():
                 # print(f"DEBUG RPA ERROR: {e}")
                 # Se falhar a conexão, assume offline (vermelho)
                 projects_data[-1]['rpa_status'] = 'offline'
-    
+
     form = ProjectForm()
     clients = Client.query.order_by(Client.nome).all()
     users = User.query.filter_by(is_admin=False, ativo=True).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
-    
-    return render_template('projects.html', 
+
+    return render_template('projects.html',
                          projects=projects,  # Manter para modals
                          projects_data=projects_data,  # Novos dados estruturados
-                         form=form, 
+                         form=form,
                          clients=clients,
                          users=users,
                          status_counts=status_counts,
@@ -844,10 +844,10 @@ def new_project():
             ssh_server=form.ssh_server.data,
             ssh_path=form.ssh_path.data
         )
-        
+
         db.session.add(project)
         db.session.flush()  # Para obter o ID do projeto
-        
+
         # Adicionar membros da equipe
         if form.team_members.data:
             for member_id in form.team_members.data:
@@ -862,14 +862,14 @@ def new_project():
             note='Status inicial do projeto',
             changed_by_id=current_user.id
         )
-        
+
         # Commit inicial para salvar o projeto
         db.session.commit()
-        
+
         rpa_log.info(f"{current_user.nome} criou o projeto '{project.nome}' vinculado ao cliente {project.client.nome if project.client else 'Sem cliente'}", regiao="projetos")
         flash('Projeto criado com sucesso! Use o botão "Processar com IA" para analisar a transcrição.', 'success')
         return redirect(url_for('projects'))
-    
+
     clients = Client.query.order_by(Client.nome).all()
     users = User.query.filter_by(is_admin=False, ativo=True).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
     return render_template('projects.html', form=form, clients=clients, users=users, current_filters={'client_id': None, 'responsible_id': None, 'status': None})
@@ -882,19 +882,19 @@ def new_manual_project():
     responsible_id = request.form.get('responsible_id')
     status = request.form.get('status')
     team_member_ids = request.form.getlist('team_member_ids')  # Múltiplos membros
-    
+
     # Criar o projeto
     progress_percent = request.form.get('progress_percent', 0)
     prazo_str = request.form.get('prazo')
     from datetime import datetime as dt
     prazo = dt.strptime(prazo_str, '%Y-%m-%d').date() if prazo_str else None
-    
+
     data_inicio_str = request.form.get('data_inicio')
     data_inicio = dt.strptime(data_inicio_str, '%Y-%m-%d').date() if data_inicio_str else None
-    
+
     data_fim_str = request.form.get('data_fim')
     data_fim = dt.strptime(data_fim_str, '%Y-%m-%d').date() if data_fim_str else None
-    
+
     project = Project(
         nome=nome,
         client_id=client_id,
@@ -923,10 +923,10 @@ def new_manual_project():
         ssh_server=request.form.get('ssh_server'),
         ssh_path=request.form.get('ssh_path')
     )
-    
+
     db.session.add(project)
     db.session.flush()  # Para obter o ID do projeto
-    
+
     # Adicionar múltiplos membros da equipe
     if team_member_ids:
         for member_id in team_member_ids:
@@ -941,7 +941,7 @@ def new_manual_project():
         note='Status inicial do projeto',
         changed_by_id=current_user.id
     )
-    
+
     db.session.commit()
     rpa_log.info(f"{current_user.nome} criou manualmente o projeto '{project.nome}'", regiao="projetos")
     flash('Projeto criado manualmente com sucesso!', 'success')
@@ -951,12 +951,12 @@ def new_manual_project():
 @login_required
 def project_detail(id):
     project = Project.query.get_or_404(id)
-    
+
     # Verificar se o usuário tem acesso ao projeto
     if not current_user.is_admin and current_user.id != project.responsible_id and current_user not in project.team_members:
         flash('Você não tem acesso a este projeto.', 'danger')
         return redirect(url_for('projects'))
-    
+
     clients = Client.query.order_by(Client.nome).all()
     users = User.query.all()
     return render_template('project_detail.html', project=project, clients=clients, users=users)
@@ -984,32 +984,32 @@ def project_status_history(id):
 @login_required
 def edit_project(id):
     project = Project.query.get_or_404(id)
-    
+
     # Capturar status anterior
     old_status = project.status
-    
+
     # Verificar se o usuário tem permissão para editar
     if not current_user.is_admin and current_user.id != project.responsible_id:
         flash('Você não tem permissão para editar este projeto.', 'danger')
         return redirect(url_for('project_detail', id=id))
-    
+
     # Atualizar dados do projeto
     project.nome = request.form.get('nome')
     project.client_id = request.form.get('client_id')
     project.responsible_id = request.form.get('responsible_id')
     project.status = request.form.get('status')
-    
+
     # Atualizar contatos do cliente
     project.cliente_responsavel_nome = request.form.get('cliente_responsavel_nome')
     project.cliente_responsavel_telefone = request.form.get('cliente_responsavel_telefone')
-    project.cliente_responsavel_email = request.form.get('cliente_responsavel_email')    
-    
+    project.cliente_responsavel_email = request.form.get('cliente_responsavel_email')
+
     # Novos campos de GitHub e Drive
     if 'has_github' in request.form:
         project.has_github = True if request.form.get('has_github') == 'on' else False
     if 'has_drive' in request.form:
         project.has_drive = True if request.form.get('has_drive') == 'on' else False
-    
+
     if 'github_repo' in request.form:
         project.github_repo = request.form.get('github_repo', '')
     if 'dominio' in request.form:
@@ -1018,7 +1018,7 @@ def edit_project(id):
         project.ssh_server = request.form.get('ssh_server', '')
     if 'ssh_path' in request.form:
         project.ssh_path = request.form.get('ssh_path', '')
-        
+
     # 3-State Logic for .ENV
     # Toggle OFF -> None (Pending/Red)
     # Toggle ON + "Não possui" OFF -> True (Green/Check)
@@ -1039,7 +1039,7 @@ def edit_project(id):
             project.has_backup_db = True
     else:
         project.has_backup_db = None
-    
+
     # Atualizar progresso e prazo apenas se vierem no form
     from datetime import datetime as dt
 
@@ -1053,19 +1053,19 @@ def edit_project(id):
             project.prazo = dt.strptime(prazo_str, '%Y-%m-%d').date()
         else:
             project.prazo = None
-        
+
     data_inicio_str = request.form.get('data_inicio')
     if data_inicio_str:
         project.data_inicio = dt.strptime(data_inicio_str, '%Y-%m-%d').date()
     else:
         project.data_inicio = None
-         
+
     data_fim_str = request.form.get('data_fim')
     if data_fim_str:
         project.data_fim = dt.strptime(data_fim_str, '%Y-%m-%d').date()
     else:
         project.data_fim = None
-    
+
     # Atualizar campos de Contexto e Justificativa (Somente se presentes no form para evitar overwrite)
     if 'descricao_resumida' in request.form:
         project.descricao_resumida = request.form.get('descricao_resumida', '')
@@ -1075,7 +1075,7 @@ def edit_project(id):
         project.objetivos = request.form.get('objetivos', '')
     if 'alinhamento_estrategico' in request.form:
         project.alinhamento_estrategico = request.form.get('alinhamento_estrategico', '')
-    
+
     # Atualizar campos de Escopo
     if 'escopo_projeto' in request.form:
         project.escopo_projeto = request.form.get('escopo_projeto', '')
@@ -1086,10 +1086,10 @@ def edit_project(id):
 
     if 'restricoes' in request.form:
         project.restricoes = request.form.get('restricoes', '')
-    
+
     # Atualizar visibilidade no Kanban
     project.show_in_kanban = True if request.form.get('show_in_kanban') else False
-    
+
     # Lógica de auto-reativação no Kanban
     if old_status == 'concluido' and project.status != 'concluido':
         project.show_in_kanban = True
@@ -1104,7 +1104,7 @@ def edit_project(id):
             note=status_change_reason or None,
             changed_by_id=current_user.id
         )
-    
+
     # Atualizar membros da equipe (limpar e adicionar novos)
     team_member_ids = request.form.getlist('team_member_ids')  # Múltiplos membros
     project.team_members.clear()  # Limpar membros atuais
@@ -1113,7 +1113,7 @@ def edit_project(id):
             user = User.query.get(int(member_id))
             if user:
                 project.team_members.append(user)
-    
+
     try:
         db.session.commit()
         rpa_log.info(f"{current_user.nome} atualizou o projeto '{project.nome}'", regiao="projetos")
@@ -1123,11 +1123,11 @@ def edit_project(id):
         rpa_log.error(f"Erro ao atualizar projeto {id}: {str(e)}", exc=e, regiao="projetos")
         flash('Erro ao atualizar o projeto. Tente novamente.', 'danger')
         print(f"Erro ao editar projeto: {e}")
-    
+
     return_status = request.args.get('return_status')
     return_client = request.args.get('return_client')
     return_responsible = request.args.get('return_responsible')
-    
+
     redirect_kwargs = {}
     if return_status:
         redirect_kwargs['status'] = return_status
@@ -1135,29 +1135,29 @@ def edit_project(id):
         redirect_kwargs['client_id'] = return_client
     if return_responsible:
         redirect_kwargs['responsible_id'] = return_responsible
-        
+
     if redirect_kwargs:
         return redirect(url_for('projects', **redirect_kwargs))
-        
+
     return redirect(url_for('project_detail', id=project.id))
 
 @app.route('/projects/<int:id>/process-ai', methods=['POST'])
 @login_required
 def process_project_ai(id):
     project = Project.query.get_or_404(id)
-    
+
     # Verificar se o usuário tem acesso ao projeto
     if not current_user.is_admin and current_user.id != project.responsible_id and current_user not in project.team_members:
         flash('Você não tem acesso a este projeto.', 'danger')
         return redirect(url_for('projects'))
-    
+
     if not project.transcricao:
         flash('Este projeto não possui transcrição para processar.', 'warning')
         return redirect(url_for('project_detail', id=id))
-    
+
     try:
         rpa_log.info(f"{current_user.nome} solicitou processamento de IA para o projeto '{project.nome}'", regiao="ia")
-        
+
         # Processar transcrição com IA
         ai_result = process_project_transcription(project.transcricao)
         if ai_result:
@@ -1170,7 +1170,7 @@ def process_project_ai(id):
             project.fora_escopo = ai_result.get('fora_escopo')
             project.premissas = ai_result.get('premissas')
             project.restricoes = ai_result.get('restricoes')
-            
+
             # Gerar tarefas automáticas se ainda não existem
             if not project.tasks and project_allows_kanban_demands(project):
                 auto_tasks = generate_tasks_from_transcription(project.transcricao, project.nome)
@@ -1182,51 +1182,51 @@ def process_project_ai(id):
                         status='pendente'
                     )
                     db.session.add(task)
-            
+
             db.session.commit()
             rpa_log.info(f"IA concluiu a análise do projeto '{project.nome}'", regiao="ia")
             flash('Projeto processado com IA com sucesso!', 'success')
         else:
             rpa_log.warn(f"Processamento IA sem resultado: {project.nome} (ID: {project.id})", regiao="ia")
             flash('Houve problema no processamento da IA. Tente novamente mais tarde.', 'warning')
-            
+
     except Exception as e:
         print(f"Erro no processamento da IA: {e}")
         rpa_log.error(f"Erro no processamento IA do projeto {project.id}: {str(e)}", exc=e, regiao="ia")
         flash('Erro ao processar com IA. Tente novamente mais tarde.', 'warning')
-    
+
     return redirect(url_for('project_detail', id=id))
 
 @app.route('/projects/<int:id>/delete', methods=['POST'])
 @login_required
 def delete_project(id):
     project = Project.query.get_or_404(id)
-    
+
     # Verificar se o usuário tem permissão para deletar (admin ou responsável)
     if not current_user.is_admin and current_user.id != project.responsible_id:
         flash('Você não tem permissão para deletar este projeto.', 'danger')
         return redirect(url_for('project_detail', id=id))
-    
+
     try:
         # Deletar todas as tarefas relacionadas ao projeto
         Task.query.filter_by(project_id=id).delete()
-        
+
         # Deletar o projeto
         project_name = project.nome
         project_id_log = project.id
         db.session.delete(project)
         db.session.commit()
-        
+
         rpa_log.info(f"{current_user.nome} excluiu o projeto '{project_name}'", regiao="projetos")
         flash(f'Projeto "{project_name}" foi deletado com sucesso!', 'success')
-        
+
     except Exception as e:
         db.session.rollback()
         rpa_log.error(f"Erro ao deletar projeto {id}: {str(e)}", exc=e, regiao="projetos")
         flash('Erro ao deletar o projeto. Tente novamente.', 'danger')
         print(f"Erro ao deletar projeto: {e}")
         return redirect(url_for('project_detail', id=id))
-    
+
     return redirect(url_for('projects'))
 
 @app.route('/projects/<int:id>/github_data', methods=['GET'])
@@ -1234,44 +1234,44 @@ def delete_project(id):
 def get_github_data(id):
     project = Project.query.get_or_404(id)
     target_branch = request.args.get('branch')
-    
+
     # Validações Básicas
     if not project.has_github:
         return jsonify({'success': False, 'message': 'Este projeto não possui integração GitHub ativa.'})
-        
+
     repo_path = project.github_repo
     if not repo_path:
         return jsonify({'success': False, 'message': 'Caminho do repositório GitHub não configurado no projeto.'})
-        
+
     # Limpa possíveis paths completos caso usuário cole URL do github
     repo_path = repo_path.replace('https://github.com/', '').replace('http://github.com/', '').strip('/')
     if repo_path.endswith('.git'):
         repo_path = repo_path[:-4]
-    
+
     headers = {'Accept': 'application/vnd.github.v3+json'}
     if current_user.github_token:
         headers['Authorization'] = f'token {current_user.github_token}'
-        
+
     try:
         import requests
-        
+
         # 1. Obter info do repositório
         repo_resp = requests.get(f'https://api.github.com/repos/{repo_path}', headers=headers, timeout=10)
-        
+
         if repo_resp.status_code == 404:
             return jsonify({'success': False, 'message': 'Repositório não encontrado. Verifique o nome/caminho ou se você configurou o seu Personal Access Token na página de Perfil.'})
         elif repo_resp.status_code in [401, 403]:
              return jsonify({'success': False, 'message': 'Acesso negado (401/403). O seu Token do GitHub pode estar faltando permissões (repo) ou vencido.'})
-             
+
         repo_resp.raise_for_status()
         repo_data = repo_resp.json()
-        
+
         # Usa o default da api se não tiver target
         if not target_branch:
             target_branch = repo_data.get('default_branch', 'main')
-            
+
         target_path = request.args.get('path', '')
-        
+
         def safe_get(url, params=None):
             try:
                 resp = requests.get(url, headers=headers, params=params, timeout=10)
@@ -1285,7 +1285,7 @@ def get_github_data(id):
         commits_params = {'per_page': 10}
         if target_branch: commits_params['sha'] = target_branch
         commits_data = safe_get(f'https://api.github.com/repos/{repo_path}/commits', commits_params) or []
-        
+
         # 2.1 Total Commits count (Using Github API pagination link header trick)
         total_commits = 0
         try:
@@ -1303,41 +1303,41 @@ def get_github_data(id):
                     total_commits = len(c_resp.json())
         except Exception:
             pass
-        
+
         # 3. Arquivos do diretório solicitado da branch
         contents_params = {'ref': target_branch} if target_branch else {}
         contents_endpoint = f'https://api.github.com/repos/{repo_path}/contents/{target_path}'.strip('/')
         if contents_endpoint.endswith('contents'): contents_endpoint = f'https://api.github.com/repos/{repo_path}/contents'
-        
+
         contents_data = safe_get(contents_endpoint, contents_params) or []
-        if isinstance(contents_data, dict) and 'message' in contents_data: 
+        if isinstance(contents_data, dict) and 'message' in contents_data:
             contents_data = []
-            
+
         # 4. Branches (limitado a 100 por desempenho)
         branches_data = safe_get(f'https://api.github.com/repos/{repo_path}/branches', {'per_page': 100}) or []
-        
+
         # 5. Linguagens
         languages_data = safe_get(f'https://api.github.com/repos/{repo_path}/languages') or {}
-        
+
         # 6. Colaboradores (limite 10)
         contributors_data = safe_get(f'https://api.github.com/repos/{repo_path}/contributors', {'per_page': 10}) or []
-        
+
         # 7. README do diretório
         readme_html = None
         try:
             readme_url = f'https://api.github.com/repos/{repo_path}/readme/{target_path}'.strip('/')
             if readme_url.endswith('readme'): readme_url = f'https://api.github.com/repos/{repo_path}/readme'
-            
+
             rm_headers = headers.copy()
             rm_headers['Accept'] = 'application/vnd.github.v3.html'
             rm_params = {'ref': target_branch} if target_branch else {}
-            
+
             rm_resp = requests.get(readme_url, headers=rm_headers, params=rm_params, timeout=5)
             if rm_resp.status_code == 200:
                 readme_html = rm_resp.text
         except Exception:
             pass
-            
+
         return jsonify({
             'success': True,
             'repo': repo_data,
@@ -1351,7 +1351,7 @@ def get_github_data(id):
             'contributors': contributors_data,
             'readme_html': readme_html
         })
-        
+
     except requests.exceptions.RequestException as e:
         rpa_log.error(f"Erro de conexão com GitHub para projeto {id}: {e}", exc=e, regiao="github")
         return jsonify({'success': False, 'message': f'Erro de conexão com GitHub API: {str(e)}'})
@@ -1362,15 +1362,15 @@ def get_github_commit_details(id, sha):
     project = Project.query.get_or_404(id)
     if not project.has_github or not project.github_repo:
         return jsonify({'success': False})
-        
+
     repo_path = project.github_repo.replace('https://github.com/', '').replace('http://github.com/', '').strip('/')
     if repo_path.endswith('.git'):
         repo_path = repo_path[:-4]
-        
+
     headers = {'Accept': 'application/vnd.github.v3+json'}
     if current_user.github_token:
         headers['Authorization'] = f'token {current_user.github_token}'
-        
+
     try:
         import requests
         resp = requests.get(f'https://api.github.com/repos/{repo_path}/commits/{sha}', headers=headers, timeout=5)
@@ -1386,16 +1386,16 @@ def get_github_commit_details(id, sha):
 def get_github_commits_list(id):
     project = Project.query.get_or_404(id)
     target_branch = request.args.get('branch')
-    
+
     if not project.has_github or not project.github_repo:
         return jsonify({'success': False})
-        
+
     repo_path = project.github_repo.replace('https://github.com/', '').replace('http://github.com/', '').strip('/')
     if repo_path.endswith('.git'): repo_path = repo_path[:-4]
-    
+
     headers = {'Accept': 'application/vnd.github.v3+json'}
     if current_user.github_token: headers['Authorization'] = f'token {current_user.github_token}'
-    
+
     try:
         import requests
         params = {'per_page': 50}
@@ -1405,7 +1405,7 @@ def get_github_commits_list(id):
             return jsonify({'success': True, 'commits': resp.json()})
     except Exception:
         pass
-        
+
     return jsonify({'success': False})
 
 @app.route('/projects/<int:id>/github_file_content', methods=['GET'])
@@ -1414,16 +1414,16 @@ def get_github_file_content(id):
     project = Project.query.get_or_404(id)
     path = request.args.get('path')
     branch = request.args.get('branch')
-    
+
     if not project.has_github or not project.github_repo:
         return jsonify({'success': False})
-        
+
     repo_path = project.github_repo.replace('https://github.com/', '').replace('http://github.com/', '').strip('/')
     if repo_path.endswith('.git'): repo_path = repo_path[:-4]
-    
+
     headers = {'Accept': 'application/vnd.github.v3+json'}
     if current_user.github_token: headers['Authorization'] = f'token {current_user.github_token}'
-    
+
     try:
         import requests
         import base64
@@ -1445,18 +1445,18 @@ def get_github_file_content(id):
 def get_github_file_commit(id):
     project = Project.query.get_or_404(id)
     path = request.args.get('path')
-    
+
     if not project.has_github or not project.github_repo or not path:
         return jsonify({'success': False})
-        
+
     repo_path = project.github_repo.replace('https://github.com/', '').replace('http://github.com/', '').strip('/')
     if repo_path.endswith('.git'):
         repo_path = repo_path[:-4]
-        
+
     headers = {'Accept': 'application/vnd.github.v3+json'}
     if current_user.github_token:
         headers['Authorization'] = f'token {current_user.github_token}'
-        
+
     try:
         import requests
         resp = requests.get(f'https://api.github.com/repos/{repo_path}/commits', params={'path': path, 'per_page': 1}, headers=headers, timeout=5)
@@ -1464,13 +1464,13 @@ def get_github_file_commit(id):
             commits = resp.json()
             if commits:
                 return jsonify({
-                    'success': True, 
-                    'message': commits[0]['commit']['message'], 
+                    'success': True,
+                    'message': commits[0]['commit']['message'],
                     'date': commits[0]['commit']['author']['date']
                 })
     except Exception:
         pass
-        
+
     return jsonify({'success': False})
 
 # Rotas de Tarefas
@@ -1483,33 +1483,33 @@ def tasks():
     client_filter = request.args.get('client_id', type=int)
     user_filter = request.args.get('user_id', type=int)
     status_filter = request.args.get('status')
-    
+
     # Query base
     query = Task.query
-    
+
     # Filtro de permissões
     if not current_user.is_admin:
         query = query.filter_by(assigned_user_id=current_user.id)
-    
+
     # Aplicar filtros
     if project_filter:
         query = query.filter_by(project_id=project_filter)
-    
+
     if client_filter:
         query = query.join(Project).filter(Project.client_id == client_filter)
-    
+
     if user_filter:
         query = query.filter(Task.assigned_user_id == user_filter)
-    
+
     if status_filter:
         query = query.filter_by(status=status_filter)
-    
+
     tasks = query.all()
-    
+
     simple_form = TaskForm()
     manual_form = ManualTaskForm()
     transcription_form = TranscriptionTaskForm()
-    
+
     # Filtrar projetos para usuários não-admin
     if current_user.is_admin:
         all_projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
@@ -1521,14 +1521,14 @@ def tasks():
         ).order_by(Client.nome, Project.nome).all()
         client_ids = list(set([p.client_id for p in all_projects]))
         all_clients = Client.query.filter(Client.id.in_(client_ids)).order_by(Client.nome).all() if client_ids else []
-    
+
     all_users = User.query.filter_by(is_admin=False, ativo=True).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
-    
-    return render_template('tasks.html', 
-                         tasks=tasks, 
+
+    return render_template('tasks.html',
+                         tasks=tasks,
                          simple_form=simple_form,
                          manual_form=manual_form,
-                         transcription_form=transcription_form, 
+                         transcription_form=transcription_form,
                          all_projects=all_projects,
                          all_clients=all_clients,
                          all_users=all_users,
@@ -1556,12 +1556,12 @@ def new_task():
         rpa_log.info(f"{current_user.nome} criou a tarefa '{task.titulo}'", regiao="tarefas")
         flash('Tarefa criada com sucesso!', 'success')
         return redirect(url_for('tasks'))
-    
+
     # Se houver erro, retornar com todas as variáveis
     manual_form = ManualTaskForm()
     transcription_form = TranscriptionTaskForm()
     tasks = Task.query.all()
-    
+
     # Filtrar projetos para usuários não-admin
     if current_user.is_admin:
         all_projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
@@ -1573,9 +1573,9 @@ def new_task():
         ).order_by(Client.nome, Project.nome).all()
         client_ids = list(set([p.client_id for p in all_projects]))
         all_clients = Client.query.filter(Client.id.in_(client_ids)).order_by(Client.nome).all() if client_ids else []
-    
+
     all_users = User.query.filter_by(is_admin=False, ativo=True).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
-    
+
     return render_template('tasks.html',
                          tasks=tasks,
                          simple_form=form,
@@ -1595,27 +1595,27 @@ def new_task():
 @login_required
 def edit_task(task_id):
     task = Task.query.get_or_404(task_id)
-    
+
     # Verificar permissão
     if not current_user.is_admin and task.assigned_user_id != current_user.id:
         project = task.project
         if current_user.id != project.responsible_id and current_user not in project.team_members:
             flash('Sem permissão para editar esta tarefa.', 'danger')
             return redirect(url_for('tasks'))
-    
+
     return redirect(url_for('kanban') + f'#task-{task_id}')
 
 @app.route('/tasks/<int:task_id>/data', methods=['GET'])
 @login_required
 def get_task_data(task_id):
     task = Task.query.get_or_404(task_id)
-    
+
     # Verificar permissão
     if not current_user.is_admin and task.assigned_user_id != current_user.id:
         project = task.project
         if current_user.id != project.responsible_id and current_user not in project.team_members:
             return jsonify({'success': False, 'message': 'Sem permissão'}), 403
-    
+
     # Buscar projetos filtrados para usuários não-admin
     if current_user.is_admin:
         projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
@@ -1624,20 +1624,20 @@ def get_task_data(task_id):
             (Project.responsible_id == current_user.id) |
             (Project.team_members.contains(current_user))
         ).order_by(Client.nome, Project.nome).all()
-    
+
     users = User.query.filter_by(is_admin=False, ativo=True).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
-    
+
     projects_list = [{
         'id': p.id,
         'nome': p.nome,
         'client_nome': p.client.nome
     } for p in projects]
-    
+
     users_list = [{
         'id': u.id,
         'nome': u.full_name
     } for u in users]
-    
+
     # Buscar to-dos da tarefa
     todos_list = [{
         'id': todo.id,
@@ -1646,7 +1646,7 @@ def get_task_data(task_id):
         'due_date': todo.due_date.isoformat() if todo.due_date else None,
         'comentario': todo.comentario
     } for todo in task.todos]
-    
+
     task_data = {
         'id': task.id,
         'titulo': task.titulo,
@@ -1657,7 +1657,7 @@ def get_task_data(task_id):
         'status': task.status,
         'todos': todos_list
     }
-    
+
     return jsonify({
         'success': True,
         'task': task_data,
@@ -1666,7 +1666,7 @@ def get_task_data(task_id):
     })
 
 @app.route('/tasks/new-manual', methods=['POST'])
-@login_required 
+@login_required
 def new_manual_task():
     titulo = request.form.get('titulo')
     descricao = request.form.get('descricao')
@@ -1674,7 +1674,7 @@ def new_manual_task():
     assigned_user_id = request.form.get('assigned_user_id')
     data_conclusao = request.form.get('data_conclusao')
     status = request.form.get('status')
-    
+
     # Converter data se fornecida
     data_conclusao_obj = None
     if data_conclusao:
@@ -1685,7 +1685,7 @@ def new_manual_task():
     if not project_allows_kanban_demands(project):
         flash(get_kanban_project_block_message(project), 'warning')
         return redirect(url_for('tasks'))
-    
+
     # Criar tarefa
     task = Task(
         titulo=titulo,
@@ -1695,12 +1695,12 @@ def new_manual_task():
         data_conclusao=data_conclusao_obj,
         status=status
     )
-    
+
     db.session.add(task)
     db.session.commit()
-    
+
     rpa_log.info(f"{current_user.nome} criou manualmente a tarefa '{task.titulo}'", regiao="tarefas")
-    
+
     # Enviar notificação por email se houver usuário atribuído
     if task.assigned_user_id:
         usuario = User.query.get(task.assigned_user_id)
@@ -1710,7 +1710,7 @@ def new_manual_task():
                 enviar_email_nova_tarefa(usuario, task, projeto)
             except Exception as e:
                 app.logger.error(f"Erro ao enviar email de nova tarefa: {e}")
-    
+
     flash('Tarefa criada manualmente com sucesso!', 'success')
     return redirect(url_for('tasks'))
 
@@ -1722,27 +1722,27 @@ def public_access():
 @app.route('/public/verify', methods=['POST'])
 def verify_public_code():
     code = request.form.get('code', '').strip().upper()
-    
+
     if not code:
         flash('Por favor, insira o código de acesso.', 'danger')
         return redirect(url_for('public_access'))
-    
+
     client = Client.query.filter_by(public_code=code).first()
-    
+
     if not client:
         flash('Código de acesso inválido.', 'danger')
         return redirect(url_for('public_access'))
-    
+
     # Redirecionar para timeline do cliente
     return redirect(url_for('client_timeline', code=code))
 
 @app.route('/public/timeline/<code>')
 def client_timeline(code):
     client = Client.query.filter_by(public_code=code).first_or_404()
-    
+
     # Buscar todos os projetos do cliente
     projects = Project.query.filter_by(client_id=client.id).order_by(Project.created_at.desc()).all()
-    
+
     # Buscar todas as tarefas dos projetos do cliente
     all_tasks = []
     for project in projects:
@@ -1751,23 +1751,23 @@ def client_timeline(code):
                 'task': task,
                 'project': project
             })
-    
+
     # Ordenar tarefas por data de criação
     all_tasks.sort(key=lambda x: x['task'].created_at, reverse=True)
-    
-    return render_template('client_timeline.html', 
-                         client=client, 
-                         projects=projects, 
+
+    return render_template('client_timeline.html',
+                         client=client,
+                         projects=projects,
                          all_tasks=all_tasks)
 
 @app.route('/public/project-details/<int:project_id>/<code>')
 def public_project_details(project_id, code):
     # Verificar se o código é válido
     client = Client.query.filter_by(public_code=code).first_or_404()
-    
+
     # Verificar se o projeto pertence ao cliente
     project = Project.query.filter_by(id=project_id, client_id=client.id).first_or_404()
-    
+
     # Preparar dados completos do projeto
     project_data = {
         'id': project.id,
@@ -1787,7 +1787,7 @@ def public_project_details(project_id, code):
         'premissas': project.premissas,
         'restricoes': project.restricoes
     }
-    
+
     return jsonify({
         'success': True,
         'project': project_data
@@ -1797,13 +1797,13 @@ def public_project_details(project_id, code):
 def public_project_tasks(project_id, code):
     # Verificar se o código é válido
     client = Client.query.filter_by(public_code=code).first_or_404()
-    
+
     # Verificar se o projeto pertence ao cliente
     project = Project.query.filter_by(id=project_id, client_id=client.id).first_or_404()
-    
+
     # Buscar apenas as tarefas deste projeto
     tasks = Task.query.filter_by(project_id=project.id).order_by(Task.created_at.desc()).all()
-    
+
     # Preparar dados das tarefas
     tasks_data = []
     for task in tasks:
@@ -1818,7 +1818,7 @@ def public_project_tasks(project_id, code):
             'todos': [{'text': todo.texto, 'completed': todo.completed} for todo in task.todos]
         }
         tasks_data.append(task_info)
-    
+
     return jsonify({
         'success': True,
         'project_name': project.nome,
@@ -1831,20 +1831,20 @@ def public_project_stats(project_id, code):
     try:
         # Verificar se o código é válido
         client = Client.query.filter_by(public_code=code).first_or_404()
-        
+
         # Verificar se o projeto pertence ao cliente
         project = Project.query.filter_by(id=project_id, client_id=client.id).first_or_404()
-        
+
         # Calcular estatísticas
         tasks = Task.query.filter_by(project_id=project.id).all()
         total_tasks = len(tasks)
-        
+
         pending_tasks = len([t for t in tasks if t.status == 'pendente'])
         in_progress_tasks = len([t for t in tasks if t.status == 'em_andamento'])
         completed_tasks = len([t for t in tasks if t.status == 'concluida'])
-        
+
         progress_percent = round((completed_tasks / total_tasks * 100)) if total_tasks > 0 else 0
-        
+
         stats_data = {
             'total_tasks': total_tasks,
             'pending': pending_tasks,
@@ -1854,7 +1854,7 @@ def public_project_stats(project_id, code):
             'start_date': project.data_inicio.strftime('%d/%m/%Y') if project.data_inicio else None,
             'end_date': project.data_fim.strftime('%d/%m/%Y') if project.data_fim else None
         }
-        
+
         return jsonify({
             'success': True,
             'stats': stats_data
@@ -1872,13 +1872,13 @@ def public_get_task(task_id, code):
     try:
         client = Client.query.filter_by(public_code=code).first_or_404()
         task = Task.query.get_or_404(task_id)
-        
+
         # Verificar se a tarefa pertence a um projeto do cliente
         if task.project.client_id != client.id:
             return jsonify({'success': False, 'message': 'Acesso negado'}), 403
-        
+
         todos = [{'id': todo.id, 'texto': todo.texto, 'completed': todo.completed, 'due_date': todo.due_date.isoformat() if todo.due_date else None} for todo in task.todos]
-        
+
         return jsonify({
             'success': True,
             'task': {
@@ -1903,13 +1903,13 @@ def public_update_task(task_id, code):
     try:
         client = Client.query.filter_by(public_code=code).first_or_404()
         task = Task.query.get_or_404(task_id)
-        
+
         # Verificar se a tarefa pertence a um projeto do cliente
         if task.project.client_id != client.id:
             return jsonify({'success': False, 'message': 'Acesso negado'}), 403
-        
+
         data = request.get_json()
-        
+
         # Atualizar campos permitidos
         if 'titulo' in data:
             task.titulo = data['titulo']
@@ -1926,7 +1926,7 @@ def public_update_task(task_id, code):
                 task.data_conclusao = datetime.strptime(data['data_conclusao'], '%Y-%m-%d').date()
             else:
                 task.data_conclusao = None
-        
+
         # Atualizar to-do's
         if 'todos' in data:
             TodoItem.query.filter_by(task_id=task.id).delete()
@@ -1946,12 +1946,12 @@ def public_update_task(task_id, code):
                     if todo_data.get('comentario'):
                         todo.comentario = todo_data['comentario']
                     db.session.add(todo)
-        
+
         db.session.commit()
-        
+
         # Contar to-dos pendentes
         pending_todos_count = sum(1 for todo in task.todos if not todo.completed)
-        
+
         return jsonify({
             'success': True,
             'message': 'Tarefa atualizada com sucesso!',
@@ -1973,17 +1973,17 @@ def public_create_task(project_id, code):
     try:
         client = Client.query.filter_by(public_code=code).first_or_404()
         project = Project.query.get_or_404(project_id)
-        
+
         # Verificar se o projeto pertence ao cliente
         if project.client_id != client.id:
             return jsonify({'success': False, 'message': 'Acesso negado'}), 403
-        
+
         data = request.get_json()
-        
+
         # Validar dados obrigatórios
         if not data.get('titulo', '').strip():
             return jsonify({'success': False, 'message': 'Título é obrigatório'}), 400
-        
+
         if not project_allows_kanban_demands(project):
             return jsonify({'success': False, 'message': get_kanban_project_block_message(project)}), 400
 
@@ -1995,14 +1995,14 @@ def public_create_task(project_id, code):
             project_id=project.id,
             created_at=datetime.utcnow()
         )
-        
+
         # Data de conclusão
         if data.get('data_conclusao'):
             task.data_conclusao = datetime.strptime(data['data_conclusao'], '%Y-%m-%d').date()
-        
+
         db.session.add(task)
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Tarefa criada com sucesso!',
@@ -2023,13 +2023,13 @@ def public_update_todo(todo_id, code):
     try:
         client = Client.query.filter_by(public_code=code).first_or_404()
         todo = TodoItem.query.get_or_404(todo_id)
-        
+
         # Verificar se o to-do pertence a uma tarefa de um projeto do cliente
         if todo.task.project.client_id != client.id:
             return jsonify({'success': False, 'message': 'Acesso negado'}), 403
-        
+
         data = request.get_json()
-        
+
         # Atualizar status de completed se fornecido
         if 'completed' in data:
             todo.completed = data.get('completed', not todo.completed)
@@ -2037,7 +2037,7 @@ def public_update_todo(todo_id, code):
                 todo.completed_at = datetime.utcnow()
             else:
                 todo.completed_at = None
-        
+
         # Atualizar data de vencimento se fornecida
         if 'due_date' in data:
             due_date_str = data.get('due_date')
@@ -2045,12 +2045,12 @@ def public_update_todo(todo_id, code):
                 todo.due_date = datetime.strptime(due_date_str, '%Y-%m-%d').date()
             else:
                 todo.due_date = None
-        
+
         db.session.commit()
-        
+
         # Contar to-dos pendentes da tarefa
         pending_todos_count = sum(1 for t in todo.task.todos if not t.completed)
-        
+
         return jsonify({
             'success': True,
             'todo': {
@@ -2068,15 +2068,15 @@ def public_update_todo(todo_id, code):
 @login_required
 def get_project_data(id):
     project = Project.query.get_or_404(id)
-    
+
     # Verificar se o usuário tem acesso ao projeto
     if not current_user.is_admin and current_user.id != project.responsible_id:
         return jsonify({'success': False, 'message': 'Acesso negado'}), 403
-    
+
     # Buscar dados necessários para o formulário
     clients = Client.query.order_by(Client.nome).all()
     users = User.query.filter_by(is_admin=False, ativo=True).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
-    
+
     # Preparar dados do projeto
     project_data = {
         'id': project.id,
@@ -2111,10 +2111,10 @@ def get_project_data(id):
         'data_inicio': project.data_inicio.isoformat() if project.data_inicio else None,
         'data_fim': project.data_fim.isoformat() if project.data_fim else None
     }
-    
+
     clients_data = [{'id': c.id, 'nome': c.nome} for c in clients]
     users_data = [{'id': u.id, 'full_name': u.full_name} for u in users]
-    
+
     return jsonify({
         'success': True,
         'project': project_data,
@@ -2128,7 +2128,7 @@ def get_project_data(id):
 @login_required
 def update_project_field(id):
     project = Project.query.get_or_404(id)
-    
+
     # Permission check
     if not current_user.is_admin and current_user.id != project.responsible_id:
         return jsonify({'success': False, 'message': 'Permission denied'}), 403
@@ -2136,7 +2136,7 @@ def update_project_field(id):
     data = request.get_json()
     field = data.get('field')
     value = data.get('value')
-    
+
     print(f"DEBUG ATOMIC UPDATE: Project {id}, Field {field}, Value {value} ({type(value)})")
 
     allowed_bool_fields = ['has_github', 'has_drive', 'has_env', 'has_backup_db', 'show_in_kanban']
@@ -2149,15 +2149,15 @@ def update_project_field(id):
             setattr(project, field, bool_value)
             db.session.commit()
             return jsonify({'success': True, 'new_value': bool_value})
-            
+
         elif field in allowed_text_fields:
             setattr(project, field, str(value).strip() if value else None)
             db.session.commit()
             return jsonify({'success': True, 'new_value': getattr(project, field)})
-            
+
         else:
             return jsonify({'success': False, 'message': 'Invalid field'}), 400
-            
+
     except Exception as e:
         db.session.rollback()
         print(f"ERROR ATOMIC UPDATE: {str(e)}")
@@ -2172,7 +2172,7 @@ def new_task_kanban():
     assigned_user_id = request.form.get('assigned_user_id')
     data_conclusao = request.form.get('data_conclusao')
     status = request.form.get('status')
-    
+
     # Converter data se fornecida
     data_conclusao_obj = None
     if data_conclusao:
@@ -2183,7 +2183,7 @@ def new_task_kanban():
     if not project_allows_kanban_demands(project):
         flash(get_kanban_project_block_message(project), 'warning')
         return redirect(url_for('kanban', project_id=project_id))
-    
+
     # Criar tarefa
     task = Task(
         titulo=titulo,
@@ -2193,14 +2193,14 @@ def new_task_kanban():
         data_conclusao=data_conclusao_obj,
         status=status
     )
-    
+
     db.session.add(task)
     db.session.commit()
-    
+
     rpa_log.info(f"{current_user.nome} criou a tarefa '{task.titulo}' diretamente no Kanban", regiao="tarefas")
     rpa_log.info(f"{current_user.nome} criou a tarefa '{task.titulo}' diretamente no Kanban", regiao="tarefas")
     flash('Tarefa criada com sucesso!', 'success')
-    
+
     # Redirecionar mantendo o filtro do projeto se houver
     if project_id:
         return redirect(url_for('kanban', project_id=project_id))
@@ -2220,7 +2220,7 @@ def transcription_task():
 
                 # Gerar tarefas com IA
                 auto_tasks = generate_tasks_from_transcription(form.transcricao.data, project.nome)
-                
+
                 tasks_created = 0
                 for task_data in auto_tasks:
                     task = Task(
@@ -2231,18 +2231,18 @@ def transcription_task():
                     )
                     db.session.add(task)
                     tasks_created += 1
-                
+
                 db.session.commit()
                 rpa_log.info(f"IA gerou {tasks_created} tarefas automaticamente para o projeto '{project.nome}'", regiao="ia")
                 flash(f'{tasks_created} tarefas foram geradas automaticamente!', 'success')
-                
+
             except Exception as e:
                 print(f"Erro ao gerar tarefas: {e}")
                 rpa_log.error(f"Erro ao gerar tarefas por IA: {str(e)}", exc=e, regiao="ia")
                 flash('Erro ao processar a transcrição. Tente novamente mais tarde.', 'warning')
-            
+
             return redirect(url_for('kanban'))
-    
+
     # Se houver erro de validação, retornar para a página de tarefas com todas as variáveis
     simple_form = TaskForm()
     manual_form = ManualTaskForm()
@@ -2250,7 +2250,7 @@ def transcription_task():
     all_projects = Project.query.join(Client).order_by(Client.nome, Project.nome).all()
     all_clients = Client.query.order_by(Client.nome).all()
     all_users = User.query.filter_by(is_admin=False, ativo=True).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
-    
+
     return render_template('tasks.html',
                          tasks=tasks,
                          simple_form=simple_form,
@@ -2275,7 +2275,7 @@ def kanban():
     project_filter = request.args.getlist('project_id')
     client_filter = request.args.getlist('client_id')
     user_filter = request.args.getlist('user_id')
-    
+
     # Converter para inteiros
     project_filter = [int(x) for x in project_filter if x.isdigit()]
     client_filter = [int(x) for x in client_filter if x.isdigit()]
@@ -2286,9 +2286,9 @@ def kanban():
         child_projects = Project.query.filter(Project.parent_id.in_(project_filter)).all()
         child_ids = [cp.id for cp in child_projects]
         project_filter.extend(child_ids)
-    
+
     selected_project_name = None
-    
+
     # Se houver apenas um projeto selecionado, buscar detalhes para autofill e header
     if len(project_filter) == 1:
         project_id = project_filter[0]
@@ -2301,9 +2301,9 @@ def kanban():
             # REMOVIDO: Se não houver filtro de usuário, adicionar o responsável
             # if not user_filter and project.responsible_id:
             #     user_filter = [project.responsible_id]
-    
+
     query = Task.query
-    
+
     if not current_user.is_admin:
         # Mostrar tarefas dos projetos onde o usuário participa OU tarefas atribuídas a ele
         user_projects = Project.query.filter(
@@ -2311,7 +2311,7 @@ def kanban():
             (Project.team_members.contains(current_user))
         ).distinct().all()
         project_ids = [p.id for p in user_projects]
-        
+
         # Incluir tarefas dos projetos do usuário OU tarefas diretamente atribuídas a ele
         if project_ids:
             query = query.filter(
@@ -2321,28 +2321,28 @@ def kanban():
         else:
             # Se usuário não participa de nenhum projeto, mostrar apenas tarefas atribuídas a ele
             query = query.filter(Task.assigned_user_id == current_user.id)
-    
+
     if project_filter:
         query = query.filter(Task.project_id.in_(project_filter))
-    
+
     if client_filter:
         query = query.join(Project).filter(Project.client_id.in_(client_filter))
-    
+
     if user_filter:
         query = query.filter(Task.assigned_user_id.in_(user_filter))
-    
+
     tasks = query.order_by(Task.ordem).all()
-    
+
     # Organizar tarefas por status, mantendo a ordem
     task_columns = {
         'pendente': [],
         'em_andamento': [],
         'concluida': []
     }
-    
+
     for task in tasks:
         task_columns[task.status].append(task)
-    
+
     # Para os filtros - mostrar apenas projetos que o usuário participa (exceto admin)
     if current_user.is_admin:
         query_proj = Project.query.outerjoin(Client)
@@ -2350,7 +2350,7 @@ def kanban():
             query_proj = query_proj.filter((Project.show_in_kanban == True) | (Project.id.in_(project_filter)))
         else:
             query_proj = query_proj.filter(Project.show_in_kanban == True)
-            
+
         projects = query_proj.order_by(Client.nome, Project.nome).all()
         clients = Client.query.order_by(Client.nome).all()
     else:
@@ -2363,16 +2363,16 @@ def kanban():
             query_proj = query_proj.filter((Project.show_in_kanban == True) | (Project.id.in_(project_filter)))
         else:
             query_proj = query_proj.filter(Project.show_in_kanban == True)
-            
+
         projects = query_proj.order_by(Client.nome, Project.nome).all()
-        
+
         # Filtrar apenas clientes dos projetos do usuário
         client_ids = list(set([p.client_id for p in projects]))
         clients = Client.query.filter(Client.id.in_(client_ids)).order_by(Client.nome).all() if client_ids else []
-    
+
     # Todos os usuários para o modal de edição e filtros
     all_users = User.query.filter_by(is_admin=False, ativo=True).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
-    
+
     # Preparar dados de relacionamento para o front-end (filtros dependentes)
     relations_data = {
         'projects': []
@@ -2382,23 +2382,23 @@ def kanban():
         p_user_ids = []
         if p.responsible_id:
             p_user_ids.append(p.responsible_id)
-        
+
         # Team members (M:N)
         for member in p.team_members:
             p_user_ids.append(member.id)
-            
+
         relations_data['projects'].append({
             'id': p.id,
             'clientId': p.client_id,
             'userIds': list(set(p_user_ids)), # Unique IDs
             'responsibleId': p.responsible_id  # ID do responsável para filtro estrito
         })
-    
+
     writable_project_ids = [p.id for p in projects if project_allows_kanban_demands(p)]
 
-    return render_template('kanban.html', 
-                         task_columns=task_columns, 
-                         projects=projects, 
+    return render_template('kanban.html',
+                         task_columns=task_columns,
+                         projects=projects,
                          clients=clients,
                          all_users=all_users,
                          relations_data=relations_data,
@@ -2416,9 +2416,9 @@ def kanban():
 @login_required
 def api_get_task(task_id):
     task = Task.query.get_or_404(task_id)
-    
+
     todos = [{'id': todo.id, 'texto': todo.texto, 'completed': todo.completed, 'due_date': todo.due_date.isoformat() if todo.due_date else None, 'comentario': todo.comentario} for todo in task.todos]
-    
+
     return jsonify({
         'id': task.id,
         'titulo': task.titulo,
@@ -2434,22 +2434,22 @@ def api_get_task(task_id):
 def api_update_task(task_id):
     task = Task.query.get_or_404(task_id)
     data = request.get_json()
-    
+
     # Guardar valores antigos para comparação
     status_antigo = task.status
     data_antigo = task.data_conclusao
     titulo_antigo = task.titulo
     descricao_antiga = task.descricao
-    
+
     import traceback
-    
+
     try:
         # Atualizar campos
         titulo_mudou = False
         descricao_mudou = False
         status_mudou = False
         data_mudou = False
-        
+
         if 'titulo' in data:
             if task.titulo != data['titulo']:
                 titulo_mudou = True
@@ -2473,18 +2473,18 @@ def api_update_task(task_id):
             nova_data = None
             if data['data_conclusao']:
                 nova_data = datetime.strptime(data['data_conclusao'], '%Y-%m-%d').date()
-            
+
             if task.data_conclusao != nova_data:
                 data_mudou = True
             task.data_conclusao = nova_data
-        
+
         # Atualizar to-do's
         if 'todos' in data:
             print(f"DEBUG: Recebendo {len(data['todos'])} to-dos para a tarefa {task_id}")
             # Primeiro, remover todos os to-do's existentes
             # synchronize_session=False evita conflito quando os todos já foram carregados na sessão
             TodoItem.query.filter_by(task_id=task.id).delete(synchronize_session=False)
-            
+
             # Adicionar os novos to-do's
             for idx, todo_data in enumerate(data['todos']):
                 try:
@@ -2514,36 +2514,36 @@ def api_update_task(task_id):
                 except Exception as e_todo:
                     print(f"ERROR: Falha ao processar o to-do {idx} ({todo_data}): {str(e_todo)}")
                     raise e_todo # Repassar para o bloco superior logar e dar rollback
-        
+
         db.session.commit()
-        
+
         rpa_log.info(f"{current_user.nome} atualizou a tarefa '{task.titulo}'", regiao="tarefas")
-        
+
         # Enviar notificações por email conforme apropriado
         if task.assigned_user_id:
             usuario = User.query.get(task.assigned_user_id)
             projeto = task.project
-            
+
             if usuario and projeto:
                 try:
                     # Notificar sobre mudança de status
                     if status_mudou:
                         enviar_email_mudanca_status(usuario, task, projeto, status_antigo, task.status)
-                    
+
                     # Notificar sobre mudança de data
                     elif data_mudou:
                         enviar_email_alteracao_data(usuario, task, projeto, data_antigo, task.data_conclusao)
-                    
+
                     # Notificar sobre edição geral (título ou descrição)
                     elif titulo_mudou or descricao_mudou:
                         enviar_email_tarefa_editada(usuario, task, projeto)
-                        
+
                 except Exception as e:
                     app.logger.error(f"Erro ao enviar email de atualização: {e}")
-        
+
         # Contar to-dos pendentes
         pending_todos_count = sum(1 for todo in task.todos if not todo.completed)
-        
+
         # Retornar dados completos da tarefa atualizada para atualizar o card
         response_data = {
             'success': True,
@@ -2563,7 +2563,7 @@ def api_update_task(task_id):
             }
         }
         return jsonify(response_data)
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Erro ao atualizar tarefa: {str(e)}'})
@@ -2572,20 +2572,20 @@ def api_update_task(task_id):
 @login_required
 def api_delete_task(task_id):
     task = Task.query.get_or_404(task_id)
-    
+
     try:
         # Deletar todos os to-do's relacionados primeiro
         TodoItem.query.filter_by(task_id=task.id).delete()
-        
+
         # Deletar a tarefa
         task_titulo = task.titulo
         task_id_log = task.id
         db.session.delete(task)
         db.session.commit()
-        
+
         rpa_log.info(f"{current_user.nome} excluiu a tarefa '{task_titulo}'", regiao="tarefas")
         return jsonify({'success': True, 'message': 'Tarefa deletada com sucesso!'})
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Erro ao deletar tarefa: {str(e)}'})
@@ -2595,7 +2595,7 @@ def api_delete_task(task_id):
 def api_generate_todos_from_commits(task_id):
     task = Task.query.get_or_404(task_id)
     project = task.project
-    
+
     # Verificar permissão
     if not current_user.is_admin and task.assigned_user_id != current_user.id:
         if current_user.id != project.responsible_id and current_user not in project.team_members:
@@ -2603,16 +2603,16 @@ def api_generate_todos_from_commits(task_id):
 
     if not project.github_repo:
         return jsonify({'success': False, 'message': 'Projeto não possui repositório GitHub vinculado.'})
-        
+
     if not current_user.github_token:
         return jsonify({'success': False, 'message': 'Você não possui Token do GitHub configurado no seu perfil.'})
 
     data = request.get_json() or {}
     period = data.get('period', 'today')
-    
+
     from datetime import datetime, timedelta
     now_utc = datetime.utcnow()
-    
+
     if period == 'yesterday':
         since_date = now_utc - timedelta(days=1)
         since_date = since_date.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -2637,30 +2637,30 @@ def api_generate_todos_from_commits(task_id):
     repo_match = re.search(r'(?:github\.com/)?([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(?:\.git|/)?$', project.github_repo)
     if not repo_match:
         return jsonify({'success': False, 'message': 'Formato de URL do repositório GitHub inválido.'})
-    
+
     repo_path = f"{repo_match.group(1)}/{repo_match.group(2)}"
-    
+
     headers = {
         'Accept': 'application/vnd.github.v3+json',
         'Authorization': f'token {current_user.github_token}'
     }
-    
+
     params = {
         'since': since_date.isoformat() + 'Z',
         'until': until_date.isoformat() + 'Z',
         'per_page': 100
     }
-    
+
     try:
         import requests
         resp = requests.get(f'https://api.github.com/repos/{repo_path}/commits', headers=headers, params=params, timeout=10)
         if resp.status_code != 200:
             return jsonify({'success': False, 'message': f'Erro ao buscar commits no GitHub: Código {resp.status_code}'})
-            
+
         commits_data = resp.json()
         if not commits_data:
             return jsonify({'success': False, 'message': 'Nenhum commit encontrado no período selecionado.'})
-            
+
         # Compilar texto enriquecido dos commits, incluindo arquivos alterados e pistas de módulo.
         commits_text_lines = []
         file_frequency = {}
@@ -2739,16 +2739,16 @@ def api_generate_todos_from_commits(task_id):
         repo_context_lines.append("Módulos mais alterados no período:")
         repo_context_lines.extend([f"- {module} ({count} commit(s))" for module, count in top_modules])
         repo_context = "\\n".join(repo_context_lines)
-        
+
         # Obter To-Dos existentes para evitar duplicidade e dar contexto à IA
         existing_todos = TodoItem.query.filter_by(task_id=task.id).all()
         existing_todos_text_lines = []
         for index, td in enumerate(existing_todos):
             status = "[x]" if td.completed else "[ ]"
             existing_todos_text_lines.append(f"{index+1}. {status} {td.texto} (comentário: {td.comentario or 'nenhum'})")
-            
+
         existing_todos_text = "\\n".join(existing_todos_text_lines)
-        
+
         # Chamar serviço OpenAI em lotes menores para reduzir timeout e preservar granularidade.
         from openai_service import generate_kanban_todos_from_commits
 
@@ -2780,10 +2780,10 @@ def api_generate_todos_from_commits(task_id):
                 if texto and key not in seen_pairs:
                     seen_pairs.add(key)
                     generated_todos.append(td)
-        
+
         if not generated_todos:
             return jsonify({'success': False, 'message': 'A IA não conseguiu identificar tarefas claras nestes commits.'})
-            
+
         # Adicionar os To-Dos na Tarefa
         criados = 0
         for td in generated_todos:
@@ -2798,17 +2798,17 @@ def api_generate_todos_from_commits(task_id):
             )
             if novo_todo.completed:
                 novo_todo.completed_at = datetime.utcnow()
-                
+
             db.session.add(novo_todo)
             criados += 1
-            
+
         db.session.commit()
-        
+
         return jsonify({
-            'success': True, 
+            'success': True,
             'message': f'{criados} To-Dos gerados e adicionados com sucesso!'
         })
-        
+
     except Exception as e:
         db.session.rollback()
         import traceback
@@ -2819,43 +2819,43 @@ def api_generate_todos_from_commits(task_id):
 @login_required
 def update_task_status(task_id):
     task = Task.query.get_or_404(task_id)
-    
+
     # Verificar permissão
     if not current_user.is_admin and task.assigned_user_id != current_user.id:
         project = task.project
         if current_user.id != project.responsible_id and current_user not in project.team_members:
             return jsonify({'error': 'Sem permissão'}), 403
-    
+
     data = request.get_json()
     new_status = data.get('status')
-    
+
     if new_status in ['pendente', 'em_andamento', 'concluida']:
         status_antigo = task.status
         task.status = new_status
-        
+
         if new_status == 'concluida':
             task.completed_at = datetime.utcnow()
         else:
             task.completed_at = None
-            
+
         db.session.commit()
-        
+
         rpa_log.info(f"{current_user.nome} moveu a tarefa '{task.titulo}' de {status_antigo} para {new_status}", regiao="tarefas")
-        
+
         # Enviar notificação de mudança de status
         if task.assigned_user_id and status_antigo != new_status:
             usuario = User.query.get(task.assigned_user_id)
             projeto = task.project
-            
+
             if usuario and projeto:
                 try:
                     enviar_email_mudanca_status(usuario, task, projeto, status_antigo, new_status)
                 except Exception as e:
                     app.logger.error(f"Erro ao enviar email de mudança de status: {e}")
                     rpa_log.error(f"Erro ao enviar email de mudança de status: {str(e)}", exc=e, regiao="email")
-        
+
         return jsonify({'success': True})
-    
+
     return jsonify({'error': 'Status inválido'}), 400
 
 @app.route('/api/todos/<int:todo_id>', methods=['PUT'])
@@ -2863,16 +2863,16 @@ def update_task_status(task_id):
 def api_update_todo(todo_id):
     """Atualizar o texto e/ou data de vencimento de um to-do específico"""
     todo = TodoItem.query.get_or_404(todo_id)
-    
+
     # Verificar permissão (usuário deve ter acesso à tarefa)
     task = todo.task
     if not current_user.is_admin and task.assigned_user_id != current_user.id:
         project = task.project
         if current_user.id != project.responsible_id and current_user not in project.team_members:
             return jsonify({'error': 'Sem permissão'}), 403
-    
+
     data = request.get_json()
-    
+
     try:
         # Atualizar texto se fornecido
         if 'texto' in data:
@@ -2880,7 +2880,7 @@ def api_update_todo(todo_id):
             if not novo_texto:
                 return jsonify({'success': False, 'message': 'Texto não pode ser vazio'}), 400
             todo.texto = novo_texto[:300]
-        
+
         # Atualizar data de vencimento se fornecida
         if 'due_date' in data:
             due_date_str = data.get('due_date')
@@ -2891,16 +2891,16 @@ def api_update_todo(todo_id):
                     pass # Evitar falha se o front enviar data inválida
             else:
                 todo.due_date = None
-        
+
         # Atualizar comentário se fornecido
         if 'comentario' in data:
             comentario = data.get('comentario')
             todo.comentario = comentario.strip() if comentario else None
-        
+
         db.session.commit()
         rpa_log.info(f"{current_user.nome} atualizou o to-do '{todo.texto}' da tarefa '{todo.task.titulo}'", regiao="tarefas")
         return jsonify({
-            'success': True, 
+            'success': True,
             'message': 'To-do atualizado com sucesso!',
             'todo': {
                 'id': todo.id,
@@ -2921,21 +2921,21 @@ def dispatch_task(task_id):
     # Apenas admin pode disparar tarefas
     if not current_user.is_admin:
         return jsonify({'error': 'Sem permissão'}), 403
-    
+
     task = Task.query.get_or_404(task_id)
-    
+
     # Alternar estado de disparada
     task.disparada = not task.disparada
     if task.disparada:
         task.disparada_at = datetime.utcnow()
     else:
         task.disparada_at = None
-    
+
     db.session.commit()
-    
+
     action_msg = "disparou" if task.disparada else "cancelou o disparo de"
     rpa_log.info(f"{current_user.nome} {action_msg} a tarefa '{task.titulo}'", regiao="tarefas")
-    
+
     return jsonify({
         'success': True,
         'disparada': task.disparada,
@@ -2948,28 +2948,28 @@ def disparar_tarefas_filtradas():
     """Dispara emails de resumo de tarefas baseado nos filtros"""
     if not current_user.is_admin:
         return jsonify({'success': False, 'message': 'Sem permissão'}), 403
-    
+
     try:
         data = request.get_json()
         project_id = data.get('project_id')
         client_id = data.get('client_id')
         user_id = data.get('user_id')
         my_tasks = data.get('my_tasks', False)
-        
+
         # Aplicar os mesmos filtros do Kanban
         query = Task.query
-        
+
         if project_id:
             query = query.filter_by(project_id=project_id)
-        
+
         if client_id:
             query = query.join(Project).filter(Project.client_id == client_id)
-        
+
         if user_id:
             query = query.filter_by(assigned_user_id=user_id)
-        
+
         tasks = query.all()
-        
+
         # Agrupar tarefas por usuário
         tarefas_por_usuario = {}
         for task in tasks:
@@ -2977,7 +2977,7 @@ def disparar_tarefas_filtradas():
                 if task.assigned_user_id not in tarefas_por_usuario:
                     tarefas_por_usuario[task.assigned_user_id] = []
                 tarefas_por_usuario[task.assigned_user_id].append(task)
-        
+
         # Construir informação sobre filtros aplicados
         filtro_info = ""
         if project_id:
@@ -2986,30 +2986,30 @@ def disparar_tarefas_filtradas():
         elif client_id:
             cliente = Client.query.get(client_id)
             filtro_info = f" do cliente '{cliente.nome}'"
-        
+
         # Enviar emails
         emails_enviados = 0
         usuarios_notificados = []
-        
+
         for usuario_id, tarefas in tarefas_por_usuario.items():
             usuario = User.query.get(usuario_id)
             if usuario and enviar_email_resumo_tarefas(usuario, tarefas, filtro_info):
                 emails_enviados += 1
                 usuarios_notificados.append(usuario.full_name)
-        
+
         if emails_enviados == 0:
             return jsonify({
                 'success': False,
                 'message': 'Nenhum email foi enviado. Verifique se os usuários têm notificações ativadas.'
             })
-        
+
         return jsonify({
             'success': True,
             'message': f'{emails_enviados} email(s) enviado(s) com sucesso!',
             'emails_enviados': emails_enviados,
             'usuarios': usuarios_notificados
         })
-        
+
     except Exception as e:
         return jsonify({
             'success': False,
@@ -3027,19 +3027,19 @@ def get_projects_by_client(client_id):
 @login_required
 def kanban_transcription():
     data = request.get_json()
-    
+
     try:
         project_id = data.get('project_id')
         transcription = data.get('transcription')
-        
+
         if not project_id or not transcription:
             return jsonify({'success': False, 'message': 'Dados incompletos'})
-        
+
         project = Project.query.get_or_404(project_id)
-        
+
         # Gerar tarefas com IA usando a transcrição
         auto_tasks = generate_tasks_from_transcription(transcription, project.nome)
-        
+
         tasks_created = 0
         for task_data in auto_tasks:
             task = Task(
@@ -3050,23 +3050,23 @@ def kanban_transcription():
             )
             db.session.add(task)
             tasks_created += 1
-        
+
         db.session.commit()
-        
+
         rpa_log.info(f"IA gerou {tasks_created} tarefas automaticamente para o projeto '{project.nome}' via Kanban", regiao="ia")
-        
+
         return jsonify({
-            'success': True, 
+            'success': True,
             'message': f'{tasks_created} tarefas foram geradas com sucesso!',
             'tasks_created': tasks_created
         })
-        
+
     except Exception as e:
         db.session.rollback()
         print(f"Erro ao processar transcrição: {e}")
         rpa_log.error(f"Erro ao gerar tarefas por IA via Kanban: {str(e)}", exc=e, regiao="ia")
         return jsonify({
-            'success': False, 
+            'success': False,
             'message': 'Erro ao processar a transcrição. Tente novamente mais tarde.'
         })
 
@@ -3075,7 +3075,7 @@ def kanban_transcription():
 def forgot_password():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
-    
+
     form = ForgotPasswordForm()
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
@@ -3085,43 +3085,43 @@ def forgot_password():
             user.reset_token = token
             user.reset_token_expires = datetime.utcnow() + timedelta(hours=1)  # Token expira em 1 hora
             db.session.commit()
-            
+
             # Por enquanto vamos apenas mostrar uma mensagem de confirmação
             # Em uma implementação real, aqui seria enviado um email
             flash(f'Um link de redefinição de senha foi gerado. Use este link para redefinir sua senha: /reset-password/{token}', 'info')
         else:
             # Por segurança, não revelamos se o email existe ou não
             flash('Se o email estiver cadastrado, você receberá instruções para redefinir sua senha.', 'info')
-        
+
         return redirect(url_for('login'))
-    
+
     return render_template('forgot_password.html', form=form)
 
 @app.route('/reset-password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
-    
+
     # Encontrar usuário pelo token
     user = User.query.filter(
         User.reset_token == token,
         User.reset_token_expires > datetime.utcnow()
     ).first()
-    
+
     if not user:
         flash('Token de redefinição inválido ou expirado.', 'danger')
         return redirect(url_for('forgot_password'))
-    
+
     form = ResetPasswordForm()
     if form.validate_on_submit():
         user.password_hash = generate_password_hash(form.password.data)
         user.reset_token = None
         user.reset_token_expires = None
         db.session.commit()
-        
+
         flash('Sua senha foi redefinida com sucesso! Faça login com sua nova senha.', 'success')
         return redirect(url_for('login'))
-    
+
     return render_template('reset_password.html', form=form)
 
 @app.route('/change-password', methods=['GET', 'POST'])
@@ -3129,7 +3129,7 @@ def reset_password(token):
 def change_password():
     password_form = ChangePasswordForm()
     profile_form = UserProfileForm(obj=current_user)
-    
+
     if request.method == 'POST':
         # Handlign Update Profile Form
         if 'github_token' in request.form or 'nome' in request.form:
@@ -3142,23 +3142,23 @@ def change_password():
                 db.session.commit()
                 flash('Perfil atualizado com sucesso!', 'success')
                 return redirect(url_for('change_password'))
-                
+
         # Handling Password Form
         elif 'current_password' in request.form:
             if password_form.validate_on_submit():
                 if not check_password_hash(current_user.password_hash, password_form.current_password.data):
                     flash('Senha atual incorreta.', 'danger')
                     return render_template('change_password.html', password_form=password_form, profile_form=profile_form)
-                
+
                 current_user.password_hash = generate_password_hash(password_form.new_password.data)
                 db.session.commit()
-                
+
                 flash('Sua senha foi alterada com sucesso!', 'success')
                 return redirect(url_for('dashboard'))
-    
-    return render_template('change_password.html', 
-                         form=password_form, 
-                         password_form=password_form, 
+
+    return render_template('change_password.html',
+                         form=password_form,
+                         password_form=password_form,
                          profile_form=profile_form)
 
 # Rotas para exportar/importar dados
@@ -3169,7 +3169,7 @@ def export_database():
     if not current_user.is_admin:
         flash('Acesso negado. Apenas administradores podem exportar dados.', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     try:
         export_data = {
             'export_date': datetime.now().isoformat(),
@@ -3180,7 +3180,7 @@ def export_database():
             'tasks': [],
             'todos': []
         }
-        
+
         # Exportar usuários
         users = User.query.all()
         for user in users:
@@ -3193,7 +3193,7 @@ def export_database():
                 'is_admin': user.is_admin,
                 'created_at': user.created_at.isoformat() if user.created_at else None
             })
-        
+
         # Exportar clientes
         clients = Client.query.order_by(Client.nome).all()
         for client in clients:
@@ -3207,7 +3207,7 @@ def export_database():
                 'creator_id': client.creator_id,
                 'created_at': client.created_at.isoformat() if client.created_at else None
             })
-        
+
         # Exportar projetos
         projects = Project.query.order_by(Project.nome).all()
         for project in projects:
@@ -3231,7 +3231,7 @@ def export_database():
                 'restricoes': project.restricoes,
                 'created_at': project.created_at.isoformat() if project.created_at else None
             })
-        
+
         # Exportar tarefas
         tasks = Task.query.all()
         for task in tasks:
@@ -3246,7 +3246,7 @@ def export_database():
                 'created_at': task.created_at.isoformat() if task.created_at else None,
                 'completed_at': task.completed_at.isoformat() if task.completed_at else None
             })
-        
+
         # Exportar todos
         todos = TodoItem.query.all()
         for todo in todos:
@@ -3258,16 +3258,16 @@ def export_database():
                 'created_at': todo.created_at.isoformat() if todo.created_at else None,
                 'completed_at': todo.completed_at.isoformat() if todo.completed_at else None
             })
-        
+
         # Criar resposta JSON para download
         response = jsonify(export_data)
         response.headers['Content-Disposition'] = f'attachment; filename=database_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json'
         response.headers['Content-Type'] = 'application/json'
-        
+
         flash(f'Dados exportados com sucesso! {len(export_data["users"])} usuários, {len(export_data["clients"])} clientes, {len(export_data["projects"])} projetos, {len(export_data["tasks"])} tarefas e {len(export_data["todos"])} todos.', 'success')
-        
+
         return response
-        
+
     except Exception as e:
         flash(f'Erro ao exportar dados: {str(e)}', 'danger')
         return redirect(url_for('dashboard'))
@@ -3279,37 +3279,37 @@ def import_database():
     if not current_user.is_admin:
         flash('Acesso negado. Apenas administradores podem importar dados.', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     if request.method == 'POST':
         if 'data_file' not in request.files:
             flash('Nenhum arquivo foi selecionado.', 'danger')
             return render_template('import_data.html')
-        
+
         file = request.files['data_file']
         if file.filename == '':
             flash('Nenhum arquivo foi selecionado.', 'danger')
             return render_template('import_data.html')
-        
+
         if file and file.filename.endswith('.json'):
             try:
                 # Ler conteúdo do arquivo
                 content = file.read().decode('utf-8')
                 data = json.loads(content)
-                
+
                 # Validar estrutura básica
                 required_keys = ['users', 'clients', 'projects', 'tasks', 'todos']
                 if not all(key in data for key in required_keys):
                     flash('Arquivo JSON inválido. Estrutura incorreta.', 'danger')
                     return render_template('import_data.html')
-                
+
                 # Importar dados
                 user_id_map = {}
                 client_id_map = {}
                 project_id_map = {}
                 task_id_map = {}
-                
+
                 stats = {'users': 0, 'clients': 0, 'projects': 0, 'tasks': 0, 'todos': 0}
-                
+
                 # Importar usuários
                 for user_data in data['users']:
                     existing_user = User.query.filter_by(email=user_data['email']).first()
@@ -3328,7 +3328,7 @@ def import_database():
                         user_id_map[user_data['id']] = user.id
                     else:
                         user_id_map[user_data['id']] = existing_user.id
-                
+
                 # Importar clientes
                 for client_data in data['clients']:
                     existing_client = Client.query.filter_by(nome=client_data['nome']).first()
@@ -3348,7 +3348,7 @@ def import_database():
                         client_id_map[client_data['id']] = client.id
                     else:
                         client_id_map[client_data['id']] = existing_client.id
-                
+
                 # Importar projetos
                 for project_data in data['projects']:
                     existing_project = Project.query.filter_by(nome=project_data['nome']).first()
@@ -3372,7 +3372,7 @@ def import_database():
                         )
                         db.session.add(project)
                         db.session.flush()
-                        
+
                         # Adicionar membros da equipe
                         for old_member_id in project_data.get('team_member_ids', []):
                             new_member_id = user_id_map.get(old_member_id)
@@ -3380,22 +3380,22 @@ def import_database():
                                 member = User.query.get(new_member_id)
                                 if member:
                                     project.team_members.append(member)
-                        
+
                         stats['projects'] += 1
                         project_id_map[project_data['id']] = project.id
                     elif existing_project:
                         project_id_map[project_data['id']] = existing_project.id
-                
+
                 # Importar tarefas
                 for task_data in data['tasks']:
                     project_id = project_id_map.get(task_data['project_id'])
                     if project_id:
                         # Verificar se tarefa já existe
                         existing_task = Task.query.filter_by(
-                            titulo=task_data['titulo'], 
+                            titulo=task_data['titulo'],
                             project_id=project_id
                         ).first()
-                        
+
                         if not existing_task:
                             task = Task(
                                 titulo=task_data['titulo'],
@@ -3413,17 +3413,17 @@ def import_database():
                             task_id_map[task_data['id']] = task.id
                         else:
                             task_id_map[task_data['id']] = existing_task.id
-                
+
                 # Importar todos (to-do items)
                 for todo_data in data['todos']:
                     task_id = task_id_map.get(todo_data['task_id'])
                     if task_id:
                         # Verificar se todo já existe
                         existing_todo = TodoItem.query.filter_by(
-                            texto=todo_data['texto'], 
+                            texto=todo_data['texto'],
                             task_id=task_id
                         ).first()
-                        
+
                         if not existing_todo:
                             todo = TodoItem(
                                 texto=todo_data['texto'],
@@ -3434,12 +3434,12 @@ def import_database():
                             )
                             db.session.add(todo)
                             stats['todos'] += 1
-                
+
                 db.session.commit()
-                
+
                 flash(f'Importação concluída! {stats["users"]} usuários, {stats["clients"]} clientes, {stats["projects"]} projetos, {stats["tasks"]} tarefas e {stats["todos"]} todos importados.', 'success')
                 return redirect(url_for('dashboard'))
-                
+
             except json.JSONDecodeError:
                 flash('Erro: arquivo JSON inválido.', 'danger')
             except Exception as e:
@@ -3447,7 +3447,7 @@ def import_database():
                 flash(f'Erro ao importar dados: {str(e)}', 'danger')
         else:
             flash('Por favor, selecione um arquivo JSON válido.', 'danger')
-    
+
     return render_template('import_data.html')
 
 # Rotas específicas para tarefas
@@ -3458,7 +3458,7 @@ def export_tasks():
     if not current_user.is_admin:
         flash('Acesso negado. Apenas administradores podem exportar tarefas.', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     try:
         export_data = {
             'export_date': datetime.now().isoformat(),
@@ -3469,7 +3469,7 @@ def export_tasks():
             'projects_reference': [],
             'users_reference': []
         }
-        
+
         # Exportar tarefas
         tasks = Task.query.all()
         for task in tasks:
@@ -3487,7 +3487,7 @@ def export_tasks():
                 'created_at': task.created_at.isoformat() if task.created_at else None,
                 'completed_at': task.completed_at.isoformat() if task.completed_at else None
             })
-        
+
         # Exportar todos
         todos = TodoItem.query.all()
         for todo in todos:
@@ -3500,7 +3500,7 @@ def export_tasks():
                 'created_at': todo.created_at.isoformat() if todo.created_at else None,
                 'completed_at': todo.completed_at.isoformat() if todo.completed_at else None
             })
-        
+
         # Adicionar projetos e usuários como referência para importação
         projects = Project.query.order_by(Project.nome).all()
         for project in projects:
@@ -3509,7 +3509,7 @@ def export_tasks():
                 'nome': project.nome,
                 'client_name': project.client.nome if project.client else None
             })
-        
+
         users = User.query.filter_by(is_admin=False, ativo=True).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
         for user in users:
             export_data['users_reference'].append({
@@ -3517,16 +3517,16 @@ def export_tasks():
                 'nome': user.full_name,
                 'email': user.email
             })
-        
+
         # Criar resposta JSON para download
         response = jsonify(export_data)
         response.headers['Content-Disposition'] = f'attachment; filename=tasks_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json'
         response.headers['Content-Type'] = 'application/json'
-        
+
         flash(f'Tarefas exportadas com sucesso! {len(export_data["tasks"])} tarefas e {len(export_data["todos"])} todos.', 'success')
-        
+
         return response
-        
+
     except Exception as e:
         flash(f'Erro ao exportar tarefas: {str(e)}', 'danger')
         return redirect(url_for('dashboard'))
@@ -3538,59 +3538,59 @@ def import_tasks():
     if not current_user.is_admin:
         flash('Acesso negado. Apenas administradores podem importar tarefas.', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     if request.method == 'POST':
         if 'data_file' not in request.files:
             flash('Nenhum arquivo foi selecionado.', 'danger')
             return render_template('import_tasks.html')
-        
+
         file = request.files['data_file']
         if file.filename == '':
             flash('Nenhum arquivo foi selecionado.', 'danger')
             return render_template('import_tasks.html')
-        
+
         if file and file.filename.endswith('.json'):
             try:
                 # Ler conteúdo do arquivo
                 content = file.read().decode('utf-8')
                 data = json.loads(content)
-                
+
                 # Validar se é arquivo de tarefas
                 if data.get('export_type') != 'tasks_only':
                     flash('Este arquivo não é um export específico de tarefas. Use a importação completa de dados.', 'warning')
                     return render_template('import_tasks.html')
-                
+
                 # Validar estrutura básica
                 required_keys = ['tasks', 'todos']
                 if not all(key in data for key in required_keys):
                     flash('Arquivo JSON inválido. Estrutura incorreta para importação de tarefas.', 'danger')
                     return render_template('import_tasks.html')
-                
+
                 # Mapear IDs para importação
                 task_id_map = {}
                 stats = {'tasks': 0, 'todos': 0, 'skipped_tasks': 0}
-                
+
                 # Importar tarefas
                 for task_data in data['tasks']:
                     # Verificar se o projeto existe
                     project = None
                     if task_data.get('project_id'):
                         project = Project.query.get(task_data['project_id'])
-                    
+
                     # Se projeto não existe, tentar encontrar por nome
                     if not project and task_data.get('project_name'):
                         project = Project.query.filter_by(nome=task_data['project_name']).first()
-                    
+
                     if not project:
                         stats['skipped_tasks'] += 1
                         continue
-                    
+
                     # Verificar se tarefa já existe
                     existing_task = Task.query.filter_by(
-                        titulo=task_data['titulo'], 
+                        titulo=task_data['titulo'],
                         project_id=project.id
                     ).first()
-                    
+
                     if not existing_task:
                         # Encontrar usuário responsável
                         assigned_user = None
@@ -3602,7 +3602,7 @@ def import_tasks():
                                 if user.full_name == task_data['assigned_user_name']:
                                     assigned_user = user
                                     break
-                        
+
                         task = Task(
                             titulo=task_data['titulo'],
                             descricao=task_data['descricao'],
@@ -3619,17 +3619,17 @@ def import_tasks():
                         task_id_map[task_data['id']] = task.id
                     else:
                         task_id_map[task_data['id']] = existing_task.id
-                
+
                 # Importar todos (to-do items)
                 for todo_data in data['todos']:
                     task_id = task_id_map.get(todo_data['task_id'])
                     if task_id:
                         # Verificar se todo já existe
                         existing_todo = TodoItem.query.filter_by(
-                            texto=todo_data['texto'], 
+                            texto=todo_data['texto'],
                             task_id=task_id
                         ).first()
-                        
+
                         if not existing_todo:
                             todo = TodoItem(
                                 texto=todo_data['texto'],
@@ -3640,16 +3640,16 @@ def import_tasks():
                             )
                             db.session.add(todo)
                             stats['todos'] += 1
-                
+
                 db.session.commit()
-                
+
                 message = f'Importação de tarefas concluída! {stats["tasks"]} tarefas e {stats["todos"]} todos importados.'
                 if stats['skipped_tasks'] > 0:
                     message += f' {stats["skipped_tasks"]} tarefas foram ignoradas (projeto não encontrado).'
-                
+
                 flash(message, 'success')
                 return redirect(url_for('dashboard'))
-                
+
             except json.JSONDecodeError:
                 flash('Erro: arquivo JSON inválido.', 'danger')
             except Exception as e:
@@ -3657,7 +3657,7 @@ def import_tasks():
                 flash(f'Erro ao importar tarefas: {str(e)}', 'danger')
         else:
             flash('Por favor, selecione um arquivo JSON válido.', 'danger')
-    
+
     return render_template('import_tasks.html')
 
 # ==================== CRM ROUTES ====================
@@ -3665,18 +3665,18 @@ def import_tasks():
 def init_crm_stages():
     """Inicializar estágios fixos do CRM se não existirem"""
     from models import CrmStage
-    
+
     if CrmStage.query.count() == 0:
         default_stages = [
             {'nome': 'Captação', 'ordem': 1, 'is_fixed': True},
             {'nome': 'Qualificação Automática', 'ordem': 2, 'is_fixed': True},
             {'nome': 'Contato Inicial', 'ordem': 3, 'is_fixed': True},
         ]
-        
+
         for stage_data in default_stages:
             stage = CrmStage(**stage_data)
             db.session.add(stage)
-        
+
         db.session.commit()
 
 @app.route('/crm')
@@ -3685,21 +3685,21 @@ def crm():
     if not current_user.is_admin and not current_user.acesso_crm:
         flash('Você não tem permissão para acessar o CRM.', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     # Inicializar estágios se necessário
     init_crm_stages()
-    
+
     # Buscar estágios do banco
     from models import CrmStage
     estagios = CrmStage.query.order_by(CrmStage.ordem).all()
-    
+
     contatos_por_estagio = {}
     for estagio in estagios:
         contatos_por_estagio[estagio.nome] = Contato.query.filter_by(estagio=estagio.nome).all()
-    
+
     total_contatos = Contato.query.count()
-    
-    return render_template('crm.html', 
+
+    return render_template('crm.html',
                          contatos_por_estagio=contatos_por_estagio,
                          estagios=estagios,
                          total_contatos=total_contatos)
@@ -3710,7 +3710,7 @@ def novo_contato():
     if not current_user.is_admin and not current_user.acesso_crm:
         flash('Você não tem permissão para acessar o CRM.', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     if request.method == 'POST':
         contato = Contato(
             nome_empresa=request.form['nome_empresa'],
@@ -3725,7 +3725,7 @@ def novo_contato():
         rpa_log.info(f"Contato CRM criado: {contato.nome_empresa} (ID: {contato.id}) por {current_user.email}", regiao="crm")
         flash('Contato cadastrado com sucesso!', 'success')
         return redirect(url_for('crm'))
-    
+
     from models import CrmStage
     estagios = CrmStage.query.order_by(CrmStage.ordem).all()
     return render_template('novo_contato.html', estagios=estagios)
@@ -3736,7 +3736,7 @@ def ver_contato(id):
     if not current_user.is_admin and not current_user.acesso_crm:
         flash('Você não tem permissão para acessar o CRM.', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     from models import CrmStage
     estagios = CrmStage.query.order_by(CrmStage.ordem).all()
     contato = Contato.query.get_or_404(id)
@@ -3748,9 +3748,9 @@ def editar_contato(id):
     if not current_user.is_admin and not current_user.acesso_crm:
         flash('Você não tem permissão para acessar o CRM.', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     contato = Contato.query.get_or_404(id)
-    
+
     if request.method == 'POST':
         contato.nome_empresa = request.form['nome_empresa']
         contato.nome_contato = request.form['nome_contato']
@@ -3759,12 +3759,12 @@ def editar_contato(id):
         contato.observacoes = request.form.get('observacoes', '')
         contato.estagio = request.form['estagio']
         contato.data_atualizacao = datetime.utcnow()
-        
+
         db.session.commit()
         rpa_log.info(f"Contato CRM atualizado: {contato.nome_empresa} (ID: {contato.id}) por {current_user.email}", regiao="crm")
         flash('Contato atualizado com sucesso!', 'success')
         return redirect(url_for('ver_contato', id=id))
-    
+
     from models import CrmStage
     estagios = CrmStage.query.order_by(CrmStage.ordem).all()
     return render_template('editar_contato.html', contato=contato, estagios=estagios)
@@ -3775,7 +3775,7 @@ def deletar_contato(id):
     if not current_user.is_admin and not current_user.acesso_crm:
         flash('Você não tem permissão para acessar o CRM.', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     contato = Contato.query.get_or_404(id)
     contato_nome = contato.nome_empresa
     contato_id_log = contato.id
@@ -3790,11 +3790,11 @@ def deletar_contato(id):
 def mudar_estagio(id):
     if not current_user.is_admin and not current_user.acesso_crm:
         return jsonify({'success': False, 'error': 'Sem permissão'}), 403
-    
+
     from models import CrmStage
     contato = Contato.query.get_or_404(id)
     novo_estagio = request.json.get('estagio')
-    
+
     # Verificar se o estágio existe
     estagio_existe = CrmStage.query.filter_by(nome=novo_estagio).first()
     if estagio_existe:
@@ -3803,7 +3803,7 @@ def mudar_estagio(id):
         db.session.commit()
         rpa_log.info(f"Estágio CRM alterado: {contato.nome_empresa} (ID: {contato.id}) para {novo_estagio} por {current_user.email}", regiao="crm")
         return jsonify({'success': True})
-    
+
     return jsonify({'success': False, 'error': 'Estágio inválido'}), 400
 
 @app.route('/crm/contato/<int:id>/comentario', methods=['POST'])
@@ -3812,17 +3812,17 @@ def adicionar_comentario(id):
     if not current_user.is_admin and not current_user.acesso_crm:
         flash('Você não tem permissão para acessar o CRM.', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     contato = Contato.query.get_or_404(id)
     texto = request.form.get('texto')
-    
+
     if texto:
         comentario = Comentario(contato_id=id, texto=texto)
         db.session.add(comentario)
         db.session.commit()
         rpa_log.info(f"Comentário CRM adicionado ao contato: {contato.nome_empresa} (ID: {id}) por {current_user.email}", regiao="crm")
         flash('Comentário adicionado com sucesso!', 'success')
-    
+
     return redirect(url_for('ver_contato', id=id))
 
 # ==================== CRM STAGE API ROUTES ====================
@@ -3833,22 +3833,22 @@ def api_add_crm_stage():
     """Adicionar novo estágio do CRM"""
     if not current_user.is_admin and not current_user.acesso_crm:
         return jsonify({'success': False, 'error': 'Sem permissão'}), 403
-    
+
     from models import CrmStage
     data = request.get_json()
     nome = data.get('nome', '').strip()
-    
+
     if not nome:
         return jsonify({'success': False, 'message': 'Nome não pode ser vazio'}), 400
-    
+
     # Verificar se já existe
     if CrmStage.query.filter_by(nome=nome).first():
         return jsonify({'success': False, 'message': 'Já existe um estágio com este nome'}), 400
-    
+
     try:
         # Pegar a maior ordem atual
         max_ordem = db.session.query(db.func.max(CrmStage.ordem)).scalar() or 0
-        
+
         stage = CrmStage(
             nome=nome,
             ordem=max_ordem + 1,
@@ -3856,7 +3856,7 @@ def api_add_crm_stage():
         )
         db.session.add(stage)
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Estágio adicionado com sucesso!',
@@ -3877,29 +3877,29 @@ def api_update_crm_stage(stage_id):
     """Atualizar nome do estágio"""
     if not current_user.is_admin and not current_user.acesso_crm:
         return jsonify({'success': False, 'error': 'Sem permissão'}), 403
-    
+
     from models import CrmStage
     stage = CrmStage.query.get_or_404(stage_id)
     data = request.get_json()
     novo_nome = data.get('nome', '').strip()
-    
+
     if not novo_nome:
         return jsonify({'success': False, 'message': 'Nome não pode ser vazio'}), 400
-    
+
     # Verificar se já existe outro estágio com este nome
     existing = CrmStage.query.filter(CrmStage.nome == novo_nome, CrmStage.id != stage_id).first()
     if existing:
         return jsonify({'success': False, 'message': 'Já existe um estágio com este nome'}), 400
-    
+
     try:
         nome_antigo = stage.nome
         stage.nome = novo_nome
-        
+
         # Atualizar todos os contatos que usam o nome antigo
         Contato.query.filter_by(estagio=nome_antigo).update({'estagio': novo_nome})
-        
+
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Estágio atualizado com sucesso!',
@@ -3920,14 +3920,14 @@ def api_delete_crm_stage(stage_id):
     """Deletar estágio não-fixo"""
     if not current_user.is_admin and not current_user.acesso_crm:
         return jsonify({'success': False, 'error': 'Sem permissão'}), 403
-    
+
     from models import CrmStage
     stage = CrmStage.query.get_or_404(stage_id)
-    
+
     # Revalidar is_fixed do banco (não confiar em payload)
     if stage.is_fixed:
         return jsonify({'success': False, 'message': 'Não é possível deletar estágios fixos'}), 400
-    
+
     # Verificar se há contatos neste estágio
     contatos_count = Contato.query.filter_by(estagio=stage.nome).count()
     if contatos_count > 0:
@@ -3935,11 +3935,11 @@ def api_delete_crm_stage(stage_id):
             'success': False,
             'message': f'Não é possível deletar este estágio pois há {contatos_count} contato(s) nele. Mova os contatos para outro estágio primeiro.'
         }), 400
-    
+
     try:
         db.session.delete(stage)
         db.session.commit()
-        
+
         return jsonify({'success': True, 'message': 'Estágio deletado com sucesso!'})
     except Exception as e:
         db.session.rollback()
@@ -3956,12 +3956,12 @@ def get_contato_files(contato_id):
     """Listar arquivos do contato"""
     if not current_user.is_admin and not current_user.acesso_crm:
         return jsonify({'success': False, 'error': 'Sem permissão'}), 403
-    
+
     from models import ContatoFile
     contato = Contato.query.get_or_404(contato_id)
-    
+
     files = ContatoFile.query.filter_by(contato_id=contato_id).order_by(ContatoFile.created_at.desc()).all()
-    
+
     return jsonify({
         'success': True,
         'files': [{
@@ -3986,38 +3986,38 @@ def upload_contato_file(contato_id):
     """Upload de arquivo para contato do CRM"""
     if not current_user.is_admin and not current_user.acesso_crm:
         return jsonify({'success': False, 'error': 'Sem permissão'}), 403
-    
+
     from models import ContatoFile
     contato = Contato.query.get_or_404(contato_id)
-    
+
     if 'file' not in request.files:
         return jsonify({'success': False, 'message': 'Nenhum arquivo enviado'}), 400
-    
+
     file = request.files['file']
-    
+
     if file.filename == '':
         return jsonify({'success': False, 'message': 'Nenhum arquivo selecionado'}), 400
-    
+
     if not allowed_file(file.filename):
         return jsonify({'success': False, 'message': 'Tipo de arquivo não permitido'}), 400
-    
+
     try:
         original_filename = secure_filename(file.filename)
         extension = original_filename.rsplit('.', 1)[1].lower() if '.' in original_filename else ''
         unique_filename = f"{uuid.uuid4().hex}.{extension}"
-        
+
         crm_folder = os.path.join(app.config['UPLOAD_FOLDER'], 'crm', f'contato_{contato_id}')
         if not os.path.exists(crm_folder):
             os.makedirs(crm_folder)
-        
+
         file_path = os.path.join(crm_folder, unique_filename)
         file.save(file_path)
-        
+
         file_size = os.path.getsize(file_path)
         mime_type = mimetypes.guess_type(original_filename)[0] or 'application/octet-stream'
-        
+
         descricao = request.form.get('descricao', '')
-        
+
         contato_file = ContatoFile(
             filename=unique_filename,
             original_name=file.filename,
@@ -4028,12 +4028,12 @@ def upload_contato_file(contato_id):
             contato_id=contato_id,
             uploaded_by_id=current_user.id
         )
-        
+
         db.session.add(contato_file)
         db.session.commit()
-        
+
         rpa_log.info(f"Arquivo enviado no CRM: {contato_file.original_name} para contato {contato.nome_empresa} por {current_user.email}", regiao="crm")
-        
+
         return jsonify({
             'success': True,
             'message': 'Arquivo enviado com sucesso!',
@@ -4047,7 +4047,7 @@ def upload_contato_file(contato_id):
                 'is_image': contato_file.is_image
             }
         })
-        
+
     except Exception as e:
         db.session.rollback()
         rpa_log.error(f"Erro ao enviar arquivo no CRM contato {contato_id}: {str(e)}", exc=e, regiao="crm")
@@ -4061,10 +4061,10 @@ def download_contato_file(contato_id, file_id):
     if not current_user.is_admin and not current_user.acesso_crm:
         flash('Sem permissão para acessar arquivos do CRM.', 'danger')
         return redirect(url_for('crm'))
-    
+
     from models import ContatoFile
     contato_file = ContatoFile.query.filter_by(id=file_id, contato_id=contato_id).first_or_404()
-    
+
     return send_file(
         contato_file.storage_path,
         as_attachment=True,
@@ -4078,22 +4078,22 @@ def delete_contato_file(contato_id, file_id):
     """Deletar arquivo do contato"""
     if not current_user.is_admin and not current_user.acesso_crm:
         return jsonify({'success': False, 'error': 'Sem permissão'}), 403
-    
+
     from models import ContatoFile
     contato_file = ContatoFile.query.filter_by(id=file_id, contato_id=contato_id).first_or_404()
-    
+
     try:
         if os.path.exists(contato_file.storage_path):
             os.remove(contato_file.storage_path)
-        
+
         filename = contato_file.original_name
         db.session.delete(contato_file)
         db.session.commit()
-        
+
         rpa_log.info(f"Arquivo deletado no CRM: {filename} do contato {contato_id} por {current_user.email}", regiao="crm")
-        
+
         return jsonify({'success': True, 'message': 'Arquivo deletado com sucesso!'})
-        
+
     except Exception as e:
         db.session.rollback()
         rpa_log.error(f"Erro ao deletar arquivo do CRM {file_id}: {str(e)}", exc=e, regiao="crm")
@@ -4105,20 +4105,20 @@ def delete_contato_file(contato_id, file_id):
 def reorder_tasks():
     if not current_user.is_admin and not current_user.acesso_kanban:
         return jsonify({'success': False, 'message': 'Sem permissão'}), 403
-    
+
     data = request.get_json()
     task_ids = data.get('task_ids', [])
-    
+
     try:
         # Atualizar a ordem de cada tarefa
         for index, task_id in enumerate(task_ids):
             task = Task.query.get(task_id)
             if task:
                 task.ordem = index
-        
+
         db.session.commit()
         return jsonify({'success': True, 'message': 'Ordem atualizada com sucesso!'})
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Erro ao reordenar tarefas: {str(e)}'})
@@ -4134,10 +4134,10 @@ def reorder_tasks():
 def get_project_files(project_id):
     """Listar arquivos do projeto"""
     project = Project.query.get_or_404(project_id)
-    
+
     files = ProjectFile.query.filter_by(project_id=project_id).order_by(ProjectFile.created_at.desc()).all()
     categories = FileCategory.query.order_by(FileCategory.ordem).all()
-    
+
     return jsonify({
         'success': True,
         'files': [{
@@ -4173,48 +4173,48 @@ def get_project_files(project_id):
 def upload_project_file(project_id):
     """Upload de arquivo para o projeto"""
     project = Project.query.get_or_404(project_id)
-    
+
     if 'file' not in request.files:
         return jsonify({'success': False, 'message': 'Nenhum arquivo enviado'}), 400
-    
+
     file = request.files['file']
-    
+
     if file.filename == '':
         return jsonify({'success': False, 'message': 'Nenhum arquivo selecionado'}), 400
-    
+
     # REMOVIDO: allow_file check para permitir todos os tipos
     # if not allowed_file(file.filename):
     #     return jsonify({'success': False, 'message': 'Tipo de arquivo não permitido'}), 400
-    
+
     try:
         # Gerar nome único para o arquivo
         original_filename = secure_filename(file.filename)
         extension = original_filename.rsplit('.', 1)[1].lower() if '.' in original_filename else ''
         unique_filename = f"{uuid.uuid4().hex}.{extension}"
-        
+
         # Criar pasta do projeto se não existir
         project_folder = os.path.join(app.config['UPLOAD_FOLDER'], f'project_{project_id}')
         if not os.path.exists(project_folder):
             os.makedirs(project_folder)
-        
+
         # Salvar arquivo
         file_path = os.path.join(project_folder, unique_filename)
         file.save(file_path)
-        
+
         # Obter tamanho e tipo
         file_size = os.path.getsize(file_path)
         mime_type = mimetypes.guess_type(original_filename)[0] or 'application/octet-stream'
-        
+
         # Obter categoria
         category_id = request.form.get('category_id')
         if category_id:
             category_id = int(category_id)
         else:
             category_id = None
-        
+
         # Obter descrição
         descricao = request.form.get('descricao', '')
-        
+
         # Criar registro no banco
         project_file = ProjectFile(
             filename=unique_filename,
@@ -4227,12 +4227,12 @@ def upload_project_file(project_id):
             category_id=category_id,
             uploaded_by_id=current_user.id
         )
-        
+
         db.session.add(project_file)
         db.session.commit()
-        
+
         rpa_log.info(f"Arquivo enviado: {project_file.original_name} no projeto {project_id} por {current_user.email}", regiao="arquivos")
-        
+
         return jsonify({
             'success': True,
             'message': 'Arquivo enviado com sucesso!',
@@ -4247,7 +4247,7 @@ def upload_project_file(project_id):
                 'is_image': project_file.is_image
             }
         })
-        
+
     except Exception as e:
         db.session.rollback()
         rpa_log.error(f"Erro ao enviar arquivo no projeto {project_id}: {str(e)}", exc=e, regiao="arquivos")
@@ -4260,15 +4260,15 @@ def upload_project_file(project_id):
 def update_project_file(project_id, file_id):
     """Atualizar informações do arquivo"""
     project_file = ProjectFile.query.filter_by(id=file_id, project_id=project_id).first_or_404()
-    
+
     data = request.get_json()
-    
+
     if 'category_id' in data:
         project_file.category_id = data['category_id'] if data['category_id'] else None
-    
+
     if 'descricao' in data:
         project_file.descricao = data['descricao']
-    
+
     try:
         db.session.commit()
         rpa_log.info(f"Arquivo atualizado: {project_file.original_name} (ID: {file_id}) no projeto {project_id} por {current_user.email}", regiao="arquivos")
@@ -4288,16 +4288,16 @@ def update_project_file(project_id, file_id):
 def delete_project_file(project_id, file_id):
     """Deletar arquivo do projeto"""
     project_file = ProjectFile.query.filter_by(id=file_id, project_id=project_id).first_or_404()
-    
+
     try:
         # Remover arquivo físico
         file_name = project_file.original_name
         if os.path.exists(project_file.storage_path):
             os.remove(project_file.storage_path)
-        
+
         db.session.delete(project_file)
         db.session.commit()
-        
+
         rpa_log.info(f"Arquivo deletado: {file_name} (ID: {file_id}) no projeto {project_id} por {current_user.email}", regiao="arquivos")
         return jsonify({'success': True, 'message': 'Arquivo removido com sucesso!'})
     except Exception as e:
@@ -4312,10 +4312,10 @@ def delete_project_file(project_id, file_id):
 def download_project_file(project_id, file_id):
     """Download de arquivo do projeto"""
     project_file = ProjectFile.query.filter_by(id=file_id, project_id=project_id).first_or_404()
-    
+
     directory = os.path.dirname(project_file.storage_path)
     filename = os.path.basename(project_file.storage_path)
-    
+
     return send_from_directory(
         directory,
         filename,
@@ -4330,10 +4330,10 @@ def download_project_file(project_id, file_id):
 def preview_project_file(project_id, file_id):
     """Preview de arquivo (imagens e PDFs)"""
     project_file = ProjectFile.query.filter_by(id=file_id, project_id=project_id).first_or_404()
-    
+
     directory = os.path.dirname(project_file.storage_path)
     filename = os.path.basename(project_file.storage_path)
-    
+
     return send_from_directory(directory, filename)
 
 
@@ -4347,9 +4347,9 @@ def preview_project_file(project_id, file_id):
 def get_project_credentials(project_id):
     """Listar credenciais de API do projeto"""
     project = Project.query.get_or_404(project_id)
-    
+
     credentials = ProjectApiCredential.query.filter_by(project_id=project_id).order_by(ProjectApiCredential.created_at.desc()).all()
-    
+
     return jsonify({
         'success': True,
         'credentials': [{
@@ -4372,12 +4372,12 @@ def get_project_credentials(project_id):
 def create_project_credential(project_id):
     """Criar nova credencial de API"""
     project = Project.query.get_or_404(project_id)
-    
+
     data = request.get_json()
-    
+
     if not data.get('nome') or not data.get('provedor'):
         return jsonify({'success': False, 'message': 'Nome e provedor são obrigatórios'}), 400
-    
+
     api_key = data.get('api_key', '')
     api_key_masked = ''
     if api_key:
@@ -4385,7 +4385,7 @@ def create_project_credential(project_id):
             api_key_masked = api_key[:4] + '****...****' + api_key[-4:]
         else:
             api_key_masked = '*' * len(api_key)
-    
+
     try:
         credential = ProjectApiCredential(
             nome=data['nome'],
@@ -4397,12 +4397,12 @@ def create_project_credential(project_id):
             project_id=project_id,
             created_by_id=current_user.id
         )
-        
+
         db.session.add(credential)
         db.session.commit()
-        
+
         rpa_log.info(f"Credencial API criada: {credential.nome} no projeto {project_id} por {current_user.email}", regiao="api")
-        
+
         return jsonify({
             'success': True,
             'message': 'Credencial criada com sucesso!',
@@ -4425,9 +4425,9 @@ def create_project_credential(project_id):
 def update_project_credential(project_id, credential_id):
     """Atualizar credencial de API"""
     credential = ProjectApiCredential.query.filter_by(id=credential_id, project_id=project_id).first_or_404()
-    
+
     data = request.get_json()
-    
+
     if 'nome' in data:
         credential.nome = data['nome']
     if 'provedor' in data:
@@ -4436,7 +4436,7 @@ def update_project_credential(project_id, credential_id):
         credential.descricao = data['descricao']
     if 'ambiente' in data:
         credential.ambiente = data['ambiente']
-    
+
     if 'api_key' in data and data['api_key']:
         api_key = data['api_key']
         if len(api_key) > 8:
@@ -4444,7 +4444,7 @@ def update_project_credential(project_id, credential_id):
         else:
             credential.api_key_masked = '*' * len(api_key)
         credential.api_key_encrypted = api_key
-    
+
     try:
         db.session.commit()
         rpa_log.info(f"Credencial API atualizada: {credential.nome} (ID: {credential_id}) no projeto {project_id} por {current_user.email}", regiao="api")
@@ -4474,7 +4474,7 @@ def reveal_project_credential(project_id, credential_id):
 def delete_project_credential(project_id, credential_id):
     """Deletar credencial de API"""
     credential = ProjectApiCredential.query.filter_by(id=credential_id, project_id=project_id).first_or_404()
-    
+
     try:
         cred_nome = credential.nome
         db.session.delete(credential)
@@ -4508,7 +4508,7 @@ def get_project_children(project_id):
             'progress_percent': p.progress_percent or 0,
             'data_inicio': p.data_inicio.strftime('%d/%m/%Y') if p.data_inicio else None,
             'data_fim': p.data_fim.strftime('%d/%m/%Y') if p.data_fim else None,
-            'responsible_name': responsible.full_name if responsible else '—',
+            'responsible_name': responsible.full_name if responsible else '-',
             'parent_id': p.parent_id,
             'children_count': p.children.count(),
         }
@@ -4589,7 +4589,7 @@ def attach_child_project(project_id, child_id):
         return jsonify({'success': False, 'message': 'Um projeto não pode ser filho de si mesmo'}), 400
     # Evitar ciclos
     if child.children.count() > 0:
-        return jsonify({'success': False, 'message': 'Este projeto já tem filhos — não pode ser vinculado como filho'}), 400
+        return jsonify({'success': False, 'message': 'Este projeto já tem filhos - não pode ser vinculado como filho'}), 400
 
     try:
         child.parent_id = project_id
@@ -4644,10 +4644,10 @@ def get_linkable_projects(project_id):
 def get_project_endpoints(project_id):
     """Listar endpoints de API do projeto"""
     project = Project.query.get_or_404(project_id)
-    
+
     endpoints = ProjectApiEndpoint.query.filter_by(project_id=project_id).order_by(ProjectApiEndpoint.created_at.desc()).all()
     credentials = ProjectApiCredential.query.filter_by(project_id=project_id).all()
-    
+
     return jsonify({
         'success': True,
         'endpoints': [{
@@ -4678,12 +4678,12 @@ def get_project_endpoints(project_id):
 def create_project_endpoint(project_id):
     """Criar novo endpoint de API"""
     project = Project.query.get_or_404(project_id)
-    
+
     data = request.get_json()
-    
+
     if not data.get('nome') or not data.get('url'):
         return jsonify({'success': False, 'message': 'Nome e URL são obrigatórios'}), 400
-    
+
     try:
         endpoint = ProjectApiEndpoint(
             nome=data['nome'],
@@ -4697,12 +4697,12 @@ def create_project_endpoint(project_id):
             project_id=project_id,
             created_by_id=current_user.id
         )
-        
+
         db.session.add(endpoint)
         db.session.commit()
-        
+
         rpa_log.info(f"Endpoint API criado: {endpoint.nome} no projeto {project_id} por {current_user.email}", regiao="api")
-        
+
         return jsonify({
             'success': True,
             'message': 'Endpoint criado com sucesso!',
@@ -4725,9 +4725,9 @@ def create_project_endpoint(project_id):
 def update_project_endpoint(project_id, endpoint_id):
     """Atualizar endpoint de API"""
     endpoint = ProjectApiEndpoint.query.filter_by(id=endpoint_id, project_id=project_id).first_or_404()
-    
+
     data = request.get_json()
-    
+
     if 'nome' in data:
         endpoint.nome = data['nome']
     if 'url' in data:
@@ -4744,7 +4744,7 @@ def update_project_endpoint(project_id, endpoint_id):
         endpoint.documentacao_link = data['documentacao_link']
     if 'credential_id' in data:
         endpoint.credential_id = data['credential_id'] if data['credential_id'] else None
-    
+
     try:
         db.session.commit()
         rpa_log.info(f"Endpoint API atualizado: {endpoint.nome} (ID: {endpoint_id}) no projeto {project_id} por {current_user.email}", regiao="api")
@@ -4761,7 +4761,7 @@ def update_project_endpoint(project_id, endpoint_id):
 def delete_project_endpoint(project_id, endpoint_id):
     """Deletar endpoint de API"""
     endpoint = ProjectApiEndpoint.query.filter_by(id=endpoint_id, project_id=project_id).first_or_404()
-    
+
     try:
         endpoint_nome = endpoint.nome
         db.session.delete(endpoint)
@@ -4800,12 +4800,12 @@ def get_file_categories():
 def list_project_api_keys(project_id):
     """Lista chaves de API do projeto (masked)"""
     project = Project.query.get_or_404(project_id)
-    
+
     if not current_user.is_admin and current_user.id != project.responsible_id and current_user not in project.team_members:
         return jsonify({'success': False, 'message': 'Sem permissão para este projeto'}), 403
-    
+
     api_keys = ProjectApiKey.query.filter_by(project_id=project_id).order_by(ProjectApiKey.created_at.desc()).all()
-    
+
     return jsonify({
         'success': True,
         'api_keys': [key.to_dict() for key in api_keys]
@@ -4818,21 +4818,21 @@ def list_project_api_keys(project_id):
 def create_project_api_key(project_id):
     """Gera nova API Key para o projeto. Retorna o token UMA única vez."""
     project = Project.query.get_or_404(project_id)
-    
+
     if not current_user.is_admin and current_user.id != project.responsible_id and current_user not in project.team_members:
         return jsonify({'success': False, 'message': 'Sem permissão para este projeto'}), 403
-    
+
     data = request.get_json()
     if not data:
         return jsonify({'success': False, 'message': 'Dados inválidos'}), 400
-    
+
     name = data.get('name', '').strip()
     if not name:
         return jsonify({'success': False, 'message': 'Nome da chave é obrigatório'}), 400
-    
+
     scopes = data.get('scopes', ['projects:read', 'tasks:read', 'tasks:write'])
     expires_days = data.get('expires_days', 30)
-    
+
     from api_v1 import generate_api_key
     api_key, token = generate_api_key(
         project_id=project_id,
@@ -4841,9 +4841,9 @@ def create_project_api_key(project_id):
         scopes=scopes,
         expires_days=expires_days
     )
-    
+
     rpa_log.info(f"API Key criada: {name} (prefix: {api_key.prefix}) para projeto {project_id} por {current_user.email}", regiao="api")
-    
+
     return jsonify({
         'success': True,
         'message': 'API Key gerada com sucesso! Copie o token abaixo - ele não será exibido novamente.',
@@ -4858,20 +4858,20 @@ def create_project_api_key(project_id):
 def revoke_project_api_key(project_id, key_id):
     """Revoga uma API Key"""
     project = Project.query.get_or_404(project_id)
-    
+
     if not current_user.is_admin and current_user.id != project.responsible_id:
         return jsonify({'success': False, 'message': 'Apenas o responsável ou admin pode revogar chaves'}), 403
-    
+
     api_key = ProjectApiKey.query.filter_by(id=key_id, project_id=project_id).first_or_404()
-    
+
     if api_key.revoked_at:
         return jsonify({'success': False, 'message': 'Esta chave já foi revogada'}), 400
-    
+
     api_key.revoked_at = datetime.utcnow()
     db.session.commit()
-    
+
     rpa_log.info(f"API Key revogada: {api_key.name} (prefix: {api_key.prefix}) por {current_user.email}", regiao="api")
-    
+
     return jsonify({
         'success': True,
         'message': 'API Key revogada com sucesso!'
@@ -4884,18 +4884,18 @@ def revoke_project_api_key(project_id, key_id):
 def delete_project_api_key(project_id, key_id):
     """Deleta uma API Key permanentemente"""
     project = Project.query.get_or_404(project_id)
-    
+
     if not current_user.is_admin and current_user.id != project.responsible_id:
         return jsonify({'success': False, 'message': 'Apenas o responsável ou admin pode deletar chaves'}), 403
-    
+
     api_key = ProjectApiKey.query.filter_by(id=key_id, project_id=project_id).first_or_404()
-    
+
     key_name = api_key.name
     db.session.delete(api_key)
     db.session.commit()
-    
+
     rpa_log.info(f"API Key deletada: {key_name} por {current_user.email}", regiao="api")
-    
+
     return jsonify({
         'success': True,
         'message': 'API Key deletada com sucesso!'
@@ -4913,7 +4913,7 @@ def system_api_keys_page():
     if not current_user.is_admin:
         flash('Apenas administradores podem acessar esta página.', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     api_keys = SystemApiKey.query.order_by(SystemApiKey.created_at.desc()).all()
     return render_template('admin_system_api_keys.html', api_keys=api_keys, now=datetime.utcnow())
 
@@ -4924,9 +4924,9 @@ def list_system_api_keys():
     """Lista chaves de API do sistema (apenas admin)"""
     if not current_user.is_admin:
         return jsonify({'success': False, 'message': 'Acesso negado'}), 403
-    
+
     api_keys = SystemApiKey.query.order_by(SystemApiKey.created_at.desc()).all()
-    
+
     return jsonify({
         'success': True,
         'api_keys': [key.to_dict() for key in api_keys]
@@ -4939,18 +4939,18 @@ def create_system_api_key():
     """Gera nova System API Key. Retorna o token UMA única vez."""
     if not current_user.is_admin:
         return jsonify({'success': False, 'message': 'Apenas administradores podem criar chaves de sistema'}), 403
-    
+
     data = request.get_json()
     if not data:
         return jsonify({'success': False, 'message': 'Dados inválidos'}), 400
-    
+
     name = data.get('name', '').strip()
     if not name:
         return jsonify({'success': False, 'message': 'Nome da chave é obrigatório'}), 400
-    
+
     scopes = data.get('scopes', ['clients:read', 'projects:read', 'tasks:read', 'users:read'])
     expires_days = data.get('expires_days', 90)
-    
+
     from api_v1 import generate_system_api_key
     api_key, token = generate_system_api_key(
         user_id=current_user.id,
@@ -4958,9 +4958,9 @@ def create_system_api_key():
         scopes=scopes,
         expires_days=expires_days
     )
-    
+
     rpa_log.info(f"System API Key criada: {name} (prefix: {api_key.prefix}) por {current_user.email}", regiao="api")
-    
+
     return jsonify({
         'success': True,
         'message': 'System API Key gerada com sucesso! Copie o token abaixo - ele não será exibido novamente.',
@@ -4975,17 +4975,17 @@ def revoke_system_api_key(key_id):
     """Revoga uma System API Key"""
     if not current_user.is_admin:
         return jsonify({'success': False, 'message': 'Acesso negado'}), 403
-    
+
     api_key = SystemApiKey.query.get_or_404(key_id)
-    
+
     if api_key.revoked_at:
         return jsonify({'success': False, 'message': 'Esta chave já foi revogada'}), 400
-    
+
     api_key.revoked_at = datetime.utcnow()
     db.session.commit()
-    
+
     rpa_log.info(f"System API Key revogada: {api_key.name} (prefix: {api_key.prefix}) por {current_user.email}", regiao="api")
-    
+
     return jsonify({
         'success': True,
         'message': 'System API Key revogada com sucesso!'
@@ -4998,15 +4998,15 @@ def delete_system_api_key(key_id):
     """Deleta uma System API Key permanentemente"""
     if not current_user.is_admin:
         return jsonify({'success': False, 'message': 'Acesso negado'}), 403
-    
+
     api_key = SystemApiKey.query.get_or_404(key_id)
-    
+
     key_name = api_key.name
     db.session.delete(api_key)
     db.session.commit()
-    
+
     rpa_log.info(f"System API Key deletada: {key_name} por {current_user.email}", regiao="api")
-    
+
     return jsonify({
         'success': True,
         'message': 'System API Key deletada com sucesso!'
@@ -5024,7 +5024,7 @@ def internal_error(error):
 def not_found_error(error):
     ignored_extensions = ('.php', '.asp', '.aspx', '.jsp', '.env', '.git', '.txt', '.yml', '.yaml')
     ignored_prefixes = ('/admin', '/wp-', '/api/', '/SDK/', '/bitrix/', '/aws/')
-    
+
     if not request.path.endswith(ignored_extensions) and not any(request.path.startswith(p) for p in ignored_prefixes):
         rpa_log.warn(f"Erro 404: {request.url}", regiao="erro_sistema")
     return render_template('error.html', error_code=404, error_message="Página não encontrada"), 404
@@ -5049,12 +5049,12 @@ def reports():
             (Project.responsible_id == current_user.id) |
             (Project.team_members.contains(current_user))
         ).order_by(Client.nome, Project.nome).all()
-        
+
         # Filtrar clientes e usuários relacionados
         client_ids = list(set([p.client_id for p in projects]))
         clients = Client.query.filter(Client.id.in_(client_ids)).order_by(Client.nome).all() if client_ids else []
         users = [current_user] # Simplificação: ver apenas a si mesmo ou expandir se for gerente
-        
+
     return render_template('reports.html', projects=projects, clients=clients, users=users)
 
     return render_template('reports.html', projects=projects, clients=clients, users=users)
@@ -5076,10 +5076,10 @@ def process_single_project_report(project_data):
     completed_todos = project_data.get('completed_todos', [])
     current_status = project_data.get('status')
     status_reason = project_data.get('status_reason')
-    
+
     # Imports inside function to ensure availability in thread
     from openai_service import process_project_transcription, generate_project_report_summary, generate_client_report_from_tasks
-    
+
     # 1. Fill missing data from transcription if needed
     if not (contexto and problema and objetivos):
         if transcricao:
@@ -5113,7 +5113,7 @@ def process_single_project_report(project_data):
         def safe_text(text):
             if not text: return "<i>(Informação não disponível)</i>"
             return str(text).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('\n', '<br/>')
-        
+
         summary_text = f"<b>Descrição Resumida:</b><br/>{safe_text(contexto)}<br/><br/>" \
                         f"<b>Problema/Oportunidade:</b><br/>{safe_text(problema)}<br/><br/>" \
                         f"<b>Objetivos:</b><br/>{safe_text(objetivos)}"
@@ -5143,28 +5143,28 @@ def process_single_project_report(project_data):
 def generate_pdf():
     print("DEBUG: generate_pdf requested", flush=True)
     import concurrent.futures
-    
+
     # Inicializa variáveis
     projects = []
-    
+
     try:
         if request.method == 'POST':
             print(f"DEBUG: Processing POST request. Content-Type: {request.content_type}", flush=True)
-            
+
             data = request.get_json()
             if not data:
                 print("DEBUG: Sem dados JSON", flush=True)
                 flash('Nenhum dado recebido.', 'warning')
                 return redirect(url_for('reports'))
-                
+
             project_ids = data.get('project_ids', [])
             print(f"DEBUG: project_ids recebidos: {project_ids}", flush=True)
-            
+
             if not project_ids:
                 print("DEBUG: Lista de projetos vazia", flush=True)
                 flash('Nenhum projeto selecionado.', 'warning')
                 return redirect(url_for('reports'))
-            
+
             # Filtro de segurança
             query = Project.query.filter(Project.id.in_(project_ids))
             if not current_user.is_admin:
@@ -5172,7 +5172,7 @@ def generate_pdf():
                     (Project.responsible_id == current_user.id) |
                     (Project.team_members.contains(current_user))
                 )
-            
+
             projects = query.join(Client).order_by(Client.nome, Project.nome).all()
             print(f"DEBUG: Projetos encontrados para PDF: {len(projects)}", flush=True)
 
@@ -5195,10 +5195,10 @@ def generate_pdf():
             topMargin=40,
             bottomMargin=40
         )
-        
+
         elements = []
         styles = getSampleStyleSheet()
-        
+
         # Estilos Customizados
         title_style = ParagraphStyle(
             'CustomTitle',
@@ -5208,7 +5208,7 @@ def generate_pdf():
             textColor=colors.HexColor('#2c3e50'), # Azul escuro
             alignment=1 # Center
         )
-        
+
         subtitle_style = ParagraphStyle(
             'CustomSubtitle',
             parent=styles['Heading2'],
@@ -5216,7 +5216,7 @@ def generate_pdf():
             spaceAfter=20,
             textColor=colors.HexColor('#7f8c8d')
         )
-        
+
         body_style = ParagraphStyle(
             'CustomBody',
             parent=styles['Normal'],
@@ -5226,8 +5226,17 @@ def generate_pdf():
             alignment=4 # Justified
         )
 
+        client_title_style = ParagraphStyle(
+            'ClientTitle',
+            parent=styles['Heading2'],
+            fontSize=14,
+            spaceBefore=12,
+            spaceAfter=12,
+            textColor=colors.HexColor('#34495e')
+        )
+
         projects_processed = 0
-        
+
         # --- Prepare Data for Parallel Processing ---
         projects_data_list = []
         for project in projects:
@@ -5255,7 +5264,7 @@ def generate_pdf():
 
             latest_status_entry = project.status_history[0] if project.status_history else None
             status_reason = latest_status_entry.note if latest_status_entry and latest_status_entry.note else None
-            
+
             projects_data_list.append({
                 'id': project.id,
                 'nome': project.nome,
@@ -5276,7 +5285,7 @@ def generate_pdf():
         print(f"DEBUG: Iniciando processamento paralelo para {len(projects_data_list)} projetos...", flush=True)
         start_time = datetime.now()
         results_map = {}
-        
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             future_to_project = {executor.submit(process_single_project_report, p_data): p_data['id'] for p_data in projects_data_list}
             for future in concurrent.futures.as_completed(future_to_project):
@@ -5287,61 +5296,73 @@ def generate_pdf():
                 except Exception as e:
                     print(f"DEBUG: Exception in thread for project {p_id}: {e}", flush=True)
                     results_map[p_id] = {'summary_text': "Erro ao gerar relatório (Timeout ou Falha na IA).", 'client_report': None}
-        
+
         end_time = datetime.now()
         print(f"DEBUG: Tempo total de processamento paralelo: {(end_time - start_time).total_seconds()}s", flush=True)
 
-        # Build PDF Elements
-        for i, project_data in enumerate(projects_data_list):
-            p_id = project_data['id']
-            result = results_map.get(p_id)
-            
-            if not result: continue # Should not happen
+        # Build PDF Elements (agrupados por cliente)
+        projects_by_client = {}
+        for project_data in projects_data_list:
+            client_key = project_data['client']
+            projects_by_client.setdefault(client_key, []).append(project_data)
 
-            client_name = project_data['client']
-            
-            elements.append(Paragraph(f"{client_name}", subtitle_style))
-            elements.append(Paragraph(f"{project_data['nome']}", title_style))
+        total_projects = len(projects_data_list)
+        processed_counter = 0
 
-            readable_status = (project_data.get('status') or 'não informado').replace('_', ' ')
-            status_reason = project_data.get('status_reason')
-            elements.append(Paragraph(f"<b>Status atual:</b> {readable_status}", body_style))
-            if status_reason:
-                elements.append(Paragraph(f"<b>Motivo / observação do status:</b> {status_reason}", body_style))
+        for client_name, client_projects in projects_by_client.items():
+            elements.append(Paragraph(f"Cliente: {client_name}", client_title_style))
+            elements.append(Spacer(1, 6))
 
-            elements.append(Paragraph(result['summary_text'], body_style))
-            
-            # Client Report Section (Tasks + To-Dos)
-            client_report = result.get('client_report')
-            if client_report:
-                elements.append(Spacer(1, 15))
-                elements.append(Paragraph("Síntese de Entregas, Ajustes e Evolução do Sistema", subtitle_style))
+            for project_data in client_projects:
+                p_id = project_data['id']
+                result = results_map.get(p_id)
+                if not result:
+                    continue
+
+                elements.append(Paragraph(f"{project_data['nome']}", title_style))
                 
-                if client_report.get('resumo_executivo'):
-                    elements.append(Paragraph(client_report['resumo_executivo'], body_style))
-                    elements.append(Spacer(1, 8))
+                readable_status = (project_data.get('status') or 'não informado').replace('_', ' ')
+                status_reason = project_data.get('status_reason')
+                elements.append(Paragraph(f"<b>Status atual:</b> {readable_status}", body_style))
+                if status_reason:
+                    elements.append(Paragraph(f"<b>Motivo / observação do status:</b> {status_reason}", body_style))
+
+                elements.append(Paragraph(result['summary_text'], body_style))
                 
-                if client_report.get('entregas_recentes'):
-                    elements.append(Paragraph("<b>Principais entregas e ajustes realizados:</b>", body_style))
-                    for item in client_report['entregas_recentes']:
-                        elements.append(Paragraph(f"• {item}", body_style))
-                    elements.append(Spacer(1, 8))
+                # Client Report Section (Tasks + To-Dos)
+                client_report = result.get('client_report')
+                if client_report:
+                    elements.append(Spacer(1, 15))
+                    elements.append(Paragraph("Síntese de Entregas, Ajustes e Evolução do Sistema", subtitle_style))
                     
-                if client_report.get('proximos_passos'):
-                    elements.append(Paragraph("<b>Próximos passos recomendados:</b>", body_style))
-                    for item in client_report['proximos_passos']:
-                        elements.append(Paragraph(f"• {item}", body_style))
+                    if client_report.get('resumo_executivo'):
+                        elements.append(Paragraph(client_report['resumo_executivo'], body_style))
+                        elements.append(Spacer(1, 8))
+                    
+                    if client_report.get('entregas_recentes'):
+                        elements.append(Paragraph("<b>Principais entregas e ajustes realizados:</b>", body_style))
+                        for item in client_report['entregas_recentes']:
+                            elements.append(Paragraph(f"• {item}", body_style))
+                        elements.append(Spacer(1, 8))
+                        
+                    if client_report.get('proximos_passos'):
+                        elements.append(Paragraph("<b>Próximos passos recomendados:</b>", body_style))
+                        for item in client_report['proximos_passos']:
+                            elements.append(Paragraph(f"• {item}", body_style))
 
-            completed_todos_count = len(project_data.get('completed_todos', []))
-            tasks_count = len(project_data.get('tasks_data', []))
-            elements.append(Paragraph(f"<b>Total de tarefas mapeadas:</b> {tasks_count}", body_style))
-            elements.append(Paragraph(f"<b>Total de to-dos concluídos considerados no relatório:</b> {completed_todos_count}", body_style))
+                completed_todos_count = len(project_data.get('completed_todos', []))
+                tasks_count = len(project_data.get('tasks_data', []))
+                elements.append(Paragraph(f"<b>Total de tarefas mapeadas:</b> {tasks_count}", body_style))
+                elements.append(Paragraph(f"<b>Total de to-dos concluídos considerados no relatório:</b> {completed_todos_count}", body_style))
 
-            if project_data['responsible_name']:
-                elements.append(Paragraph(f"<b>Responsável:</b> {project_data['responsible_name']}", body_style))
+                if project_data['responsible_name']:
+                    elements.append(Paragraph(f"<b>Responsável:</b> {project_data['responsible_name']}", body_style))
                 
-            elements.append(PageBreak())
-            projects_processed += 1
+                processed_counter += 1
+                if processed_counter < total_projects:
+                    elements.append(PageBreak())
+
+        projects_processed = processed_counter
         
         if projects_processed == 0:
             print("DEBUG: Nenhum projeto processado com sucesso", flush=True)
@@ -5376,7 +5397,7 @@ def crm2_leads():
     if not current_user.is_admin and not current_user.acesso_crm:
         flash('Você não tem permissão para acessar o CRM.', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     if request.method == 'POST':
         lead = Crm2Lead(
             nome_empresa=request.form['nome_empresa'],
@@ -5390,7 +5411,7 @@ def crm2_leads():
         db.session.commit()
         flash('Lead cadastrado com sucesso!', 'success')
         return redirect(url_for('crm2_leads'))
-    
+
     # Buscar todos os leads para a listagem
     leads = Crm2Lead.query.filter_by(estagio='Lead').order_by(Crm2Lead.data_criacao.desc()).all()
     return render_template('crm2/leads.html', leads=leads)
@@ -5403,14 +5424,14 @@ def crm2_pipeline():
     if not current_user.is_admin and not current_user.acesso_crm:
         flash('Você não tem permissão para acessar o CRM.', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     contatos_por_estagio = {}
     for stage in CRM2_STAGES:
         contatos_por_estagio[stage] = Crm2Lead.query.filter_by(estagio=stage).order_by(Crm2Lead.data_criacao.desc()).all()
-    
+
     # Leads disponíveis para adicionar ao pipeline (estagio='Lead')
     leads_disponiveis = Crm2Lead.query.filter_by(estagio='Lead').order_by(Crm2Lead.nome_empresa).all()
-    
+
     return render_template('crm2/pipeline.html',
                          contatos_por_estagio=contatos_por_estagio,
                          estagios=CRM2_STAGES,
@@ -5423,23 +5444,23 @@ def crm2_add_lead_to_pipeline():
     from models import Crm2Lead
     if not current_user.is_admin and not current_user.acesso_crm:
         return jsonify({'success': False, 'message': 'Sem permissão'}), 403
-    
+
     data = request.get_json()
     lead_id = data.get('lead_id')
-    
+
     if not lead_id:
         return jsonify({'success': False, 'message': 'Lead não informado'})
-    
+
     lead = Crm2Lead.query.get(lead_id)
     if not lead:
         return jsonify({'success': False, 'message': 'Lead não encontrado'})
-    
+
     lead.estagio = 'Captação'
     lead.data_atualizacao = datetime.utcnow()
     db.session.commit()
-    
+
     return jsonify({
-        'success': True, 
+        'success': True,
         'message': f'Lead "{lead.nome_empresa}" adicionado à Captação',
         'lead': {
             'id': lead.id,
@@ -5457,50 +5478,50 @@ def crm2_move_lead():
     from models import Crm2Lead
     if not current_user.is_admin and not current_user.acesso_crm:
         return jsonify({'success': False, 'message': 'Sem permissão'}), 403
-    
+
     data = request.get_json()
     lead_id = data.get('lead_id')
     new_stage = data.get('new_stage')
-    
+
     if not lead_id or not new_stage:
         return jsonify({'success': False, 'message': 'Dados incompletos'})
-    
+
     if new_stage not in CRM2_STAGES:
         return jsonify({'success': False, 'message': f'Estágio inválido: {new_stage}'})
-    
+
     lead = Crm2Lead.query.get(lead_id)
     if not lead:
         return jsonify({'success': False, 'message': 'Lead não encontrado'})
-    
+
     lead.estagio = new_stage
     lead.data_atualizacao = datetime.utcnow()
     db.session.commit()
-    
+
     return jsonify({'success': True, 'message': f'Lead movido para {new_stage}'})
 
 
 @app.route('/api/crm2/archive', methods=['PUT'])
 @login_required
 def crm2_archive_lead():
-    """Archive a lead – removes from pipeline but keeps in database."""
+    """Archive a lead - removes from pipeline but keeps in database."""
     from models import Crm2Lead
     if not current_user.is_admin and not current_user.acesso_crm:
         return jsonify({'success': False, 'message': 'Sem permissão'}), 403
-    
+
     data = request.get_json()
     lead_id = data.get('lead_id')
-    
+
     if not lead_id:
         return jsonify({'success': False, 'message': 'ID do lead não informado'})
-    
+
     lead = Crm2Lead.query.get(lead_id)
     if not lead:
         return jsonify({'success': False, 'message': 'Lead não encontrado'})
-    
+
     lead.estagio = 'Arquivado'
     lead.data_atualizacao = datetime.utcnow()
     db.session.commit()
-    
+
     return jsonify({'success': True, 'message': f'Lead "{lead.nome_empresa}" removido do pipeline'})
 
 
@@ -5531,18 +5552,18 @@ def crm2_generate_pauta():
     """Use OpenAI to generate a meeting agenda from the description."""
     if not current_user.is_admin and not current_user.acesso_crm:
         return jsonify({'success': False, 'message': 'Sem permissão'}), 403
-    
+
     data = request.get_json()
     descricao = data.get('descricao', '').strip()
-    
+
     if not descricao:
         return jsonify({'success': False, 'message': 'Descrição vazia'})
-    
+
     try:
         from openai import OpenAI
         import os
         client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
-        
+
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
@@ -5552,7 +5573,7 @@ def crm2_generate_pauta():
             max_tokens=800,
             temperature=0.7
         )
-        
+
         pauta = response.choices[0].message.content.strip()
         return jsonify({'success': True, 'pauta': pauta})
     except Exception as e:
@@ -5566,14 +5587,14 @@ def crm2_delete_lead(lead_id):
     from models import Crm2Lead
     if not current_user.is_admin and not current_user.acesso_crm:
         return jsonify({'success': False, 'message': 'Sem permissão'}), 403
-    
+
     lead = Crm2Lead.query.get(lead_id)
     if not lead:
         return jsonify({'success': False, 'message': 'Lead não encontrado'})
-    
+
     db.session.delete(lead)
     db.session.commit()
-    
+
     return jsonify({'success': True, 'message': 'Lead removido com sucesso'})
 
 
@@ -5584,7 +5605,7 @@ def crm2_api_leads():
     from models import Crm2Lead
     if not current_user.is_admin and not current_user.acesso_crm:
         return jsonify({'success': False, 'message': 'Sem permissão'}), 403
-    
+
     leads = Crm2Lead.query.filter_by(estagio='Lead').order_by(Crm2Lead.nome_empresa).all()
     return jsonify({
         'success': True,
@@ -5606,11 +5627,11 @@ def crm2_edit_lead(lead_id):
     from models import Crm2Lead
     if not current_user.is_admin and not current_user.acesso_crm:
         return jsonify({'success': False, 'message': 'Sem permissão'}), 403
-    
+
     lead = Crm2Lead.query.get(lead_id)
     if not lead:
         return jsonify({'success': False, 'message': 'Lead não encontrado'})
-    
+
     data = request.get_json()
     lead.nome_empresa = data.get('nome_empresa', lead.nome_empresa)
     lead.nome_contato = data.get('nome_contato', lead.nome_contato)
@@ -5619,7 +5640,7 @@ def crm2_edit_lead(lead_id):
     lead.telefone = data.get('telefone', lead.telefone)
     lead.data_atualizacao = datetime.utcnow()
     db.session.commit()
-    
+
     return jsonify({'success': True, 'message': 'Lead atualizado com sucesso'})
 
 
@@ -5635,13 +5656,13 @@ def crm2_lead_detail(lead_id):
     if not current_user.is_admin and not current_user.acesso_crm:
         flash('Você não tem permissão para acessar o CRM.', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     lead = Crm2Lead.query.get_or_404(lead_id)
     reunioes = Crm2Meeting.query.filter_by(lead_id=lead_id).order_by(Crm2Meeting.numero_reuniao).all()
     propostas = Crm2Proposal.query.filter_by(lead_id=lead_id).order_by(Crm2Proposal.created_at.desc()).all()
     contratos = Crm2Contract.query.filter_by(lead_id=lead_id).order_by(Crm2Contract.created_at.desc()).all()
     users = User.query.order_by(User.nome).all()
-    
+
     return render_template('crm2/lead_detail.html', lead=lead, reunioes=reunioes, propostas=propostas, contratos=contratos, users=users, stages=CRM2_STAGES)
 
 
@@ -5652,16 +5673,16 @@ def crm2_save_observacoes(lead_id):
     from models import Crm2Lead
     if not current_user.is_admin and not current_user.acesso_crm:
         return jsonify({'success': False, 'message': 'Sem permissão'}), 403
-    
+
     lead = Crm2Lead.query.get(lead_id)
     if not lead:
         return jsonify({'success': False, 'message': 'Lead não encontrado'})
-    
+
     data = request.get_json()
     lead.observacoes = data.get('observacoes', '')
     lead.data_atualizacao = datetime.utcnow()
     db.session.commit()
-    
+
     return jsonify({'success': True, 'message': 'Observações salvas'})
 
 
@@ -5676,11 +5697,11 @@ def crm2_create_meeting(lead_id):
     from models import Crm2Lead, Crm2Meeting
     if not current_user.is_admin and not current_user.acesso_crm:
         return jsonify({'success': False, 'message': 'Sem permissão'}), 403
-    
+
     lead = Crm2Lead.query.get(lead_id)
     if not lead:
         return jsonify({'success': False, 'message': 'Lead não encontrado'})
-    
+
     data = request.get_json()
     titulo = data.get('titulo', '')
     descricao = data.get('descricao', '')
@@ -5689,50 +5710,50 @@ def crm2_create_meeting(lead_id):
     horario_inicio = data.get('horario_inicio', '')
     horario_fim = data.get('horario_fim', '')
     guests_str = data.get('guests', '')
-    
+
     if not titulo or not meeting_date or not horario_inicio or not horario_fim:
         return jsonify({'success': False, 'message': 'Preencha todos os campos obrigatórios'})
-    
+
     # Parse guests (comma-separated or space-separated emails)
     import re
-    
+
     # Try splitting by comma, if not, try splitting by space
     raw_guests = [g.strip() for g in guests_str.replace(';', ',').replace(' ', ',').split(',') if g.strip()]
-    
+
     # Basic email regex validation
     email_pattern = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
-    
+
     guests = []
     invalid_guests = []
-    
+
     for g in raw_guests:
         if email_pattern.match(g):
             if g not in guests:  # avoid duplicates
                 guests.append(g)
         else:
             invalid_guests.append(g)
-            
+
     if invalid_guests:
         return jsonify({
-            'success': False, 
+            'success': False,
             'message': f'Os seguintes e-mails são inválidos ou estão mal digitados: {", ".join(invalid_guests)}. Verifique se não esqueceu a vírgula separando-os.'
         })
-    
+
     # Always include hub email for transcription
     HUB_EMAIL = 'hub@inovailab.com'
     if HUB_EMAIL not in guests:
         guests.insert(0, HUB_EMAIL)
         guests_str = ', '.join(guests)
-    
+
     # Build description with agenda
     full_description = descricao
     if pauta:
         full_description += f"\n\n--- PAUTA ---\n{pauta}"
-    
+
     # Build ISO datetimes
     start_iso = f"{meeting_date}T{horario_inicio}:00"
     end_iso = f"{meeting_date}T{horario_fim}:00"
-    
+
     # 1. Call Transcritor API to create meeting
     meeting_provider_id = None
     join_url = None
@@ -5745,11 +5766,11 @@ def crm2_create_meeting(lead_id):
             join_url = api_result.get('join_url', '')
     except Exception as e:
         print(f"[crm2] Erro ao criar reunião no transcritor: {e}")
-    
+
     # 2. Calculate meeting number for this lead
     existing_count = Crm2Meeting.query.filter_by(lead_id=lead_id).count()
     numero = existing_count + 1
-    
+
     # 3. Save meeting to DB
     meeting = Crm2Meeting(
         lead_id=lead_id,
@@ -5767,7 +5788,7 @@ def crm2_create_meeting(lead_id):
         created_by_id=current_user.id
     )
     db.session.add(meeting)
-    
+
     # 4. Send emails to all guests
     email_status = 'not_sent'
     email_count = 0
@@ -5776,7 +5797,7 @@ def crm2_create_meeting(lead_id):
         smtp_configured = is_email_configured()
         smtp_diag = f"configured={smtp_configured}, user='{MAIL_USERNAME}', pass={'SET(' + str(len(MAIL_PASSWORD)) + 'chars)' if MAIL_PASSWORD else 'EMPTY'}, server={MAIL_SERVER}:{MAIL_PORT}"
         print(f"[crm2] SMTP diagnostico: {smtp_diag}")
-        
+
         if not smtp_configured:
             email_status = f'SMTP nao configurado! {smtp_diag}'
         else:
@@ -5794,7 +5815,7 @@ def crm2_create_meeting(lead_id):
         traceback.print_exc()
         email_status = f'erro: {str(e)}'
         print(f"[crm2] Erro ao enviar emails: {e}")
-    
+
     # 5. Auto-advance lead ONLY if it's the first meeting (Captação -> Bloco 1)
     # Subsequent meetings in Bloco 1 or beyond should NOT auto-advance the pipeline.
     # Advancement from Bloco 1 to Bloco 2 should only happen via "Abrir Chamado" flow.
@@ -5805,9 +5826,9 @@ def crm2_create_meeting(lead_id):
             lead.estagio = next_stage
             lead.data_atualizacao = datetime.utcnow()
             stage_msg = f' Lead movido para {next_stage}.'
-    
+
     db.session.commit()
-    
+
     return jsonify({
         'success': True,
         'message': f'Reuniao {numero} criada com sucesso!{stage_msg} Email: {email_status}',
@@ -5837,23 +5858,23 @@ def crm2_refresh_transcript(meeting_id):
     from models import Crm2Meeting
     if not current_user.is_admin and not current_user.acesso_crm:
         return jsonify({'success': False, 'message': 'Sem permissão'}), 403
-    
+
     meeting = Crm2Meeting.query.get(meeting_id)
     if not meeting:
         return jsonify({'success': False, 'message': 'Reunião não encontrada'})
-    
+
     # Fetch transcription
     try:
         from transcritor_service import buscar_transcricao
         result = buscar_transcricao(meeting.titulo, meeting.data)
-        
+
         if not result:
              return jsonify({'success': False, 'message': 'Erro ao conectar com serviço de transcrição (Resposta vazia)'})
 
         if result.get('ok'):
             meeting.transcricao = result['text']
             meeting.status = 'DONE'
-            
+
             # Generate AI analysis
             try:
                 from ai_analysis_service import analisar_transcricao
@@ -5862,7 +5883,7 @@ def crm2_refresh_transcript(meeting_id):
                     meeting.analise = analysis
             except Exception as e:
                 print(f"[crm2] Erro na análise IA: {e}")
-            
+
             db.session.commit()
             return jsonify({
                 'success': True,
@@ -5870,12 +5891,12 @@ def crm2_refresh_transcript(meeting_id):
                 'transcricao': meeting.transcricao,
                 'analise': meeting.analise
             })
-        
+
         if result.get('pending'):
             return jsonify({'success': False, 'pending': True, 'message': 'Transcrição ainda sendo processada. Tente novamente em alguns minutos.'})
-        
+
         return jsonify({'success': False, 'message': result.get('error', 'Transcrição não encontrada')})
-        
+
     except Exception as e:
         print(f"[crm2] Erro ao buscar transcrição: {e}")
         return jsonify({'success': False, 'message': str(e)})
@@ -5888,11 +5909,11 @@ def crm2_delete_meeting(meeting_id):
     from models import Crm2Meeting
     if not current_user.is_admin and not current_user.acesso_crm:
         return jsonify({'success': False, 'message': 'Sem permissão'}), 403
-    
+
     meeting = Crm2Meeting.query.get(meeting_id)
     if not meeting:
         return jsonify({'success': False, 'message': 'Reunião não encontrada'})
-    
+
     db.session.delete(meeting)
     db.session.commit()
     return jsonify({'success': True, 'message': 'Reunião excluída com sucesso'})
@@ -5910,7 +5931,7 @@ def crm2_notifications():
     notifications = Crm2Notification.query.filter_by(
         destinatario_id=current_user.id
     ).order_by(Crm2Notification.created_at.desc()).all()
-    
+
     return render_template('crm2/notifications.html', notifications=notifications)
 
 
@@ -5932,14 +5953,14 @@ def crm2_create_chamado(lead_id):
     """Create a meeting request notification for another user."""
     from models import Crm2Lead, Crm2Meeting, Crm2Notification
     import json as json_module
-    
+
     if not current_user.is_admin and not current_user.acesso_crm:
         return jsonify({'success': False, 'message': 'Sem permissão'}), 403
-    
+
     lead = Crm2Lead.query.get(lead_id)
     if not lead:
         return jsonify({'success': False, 'message': 'Lead não encontrado'})
-    
+
     data = request.get_json()
     destinatario_id = data.get('destinatario_id')
     titulo = data.get('titulo', '')
@@ -5949,38 +5970,38 @@ def crm2_create_chamado(lead_id):
     horario_fim = data.get('horario_fim', '')
     guests_str = data.get('guests', '')
     pauta = data.get('pauta', '')
-    
+
     if not destinatario_id or not titulo or not meeting_date:
         return jsonify({'success': False, 'message': 'Preencha todos os campos obrigatórios'})
-    
+
     destinatario = User.query.get(destinatario_id)
     if not destinatario:
         return jsonify({'success': False, 'message': 'Usuário destinatário não encontrado'})
-        
+
     # Guest email validation
     import re
     email_pattern = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
     raw_guests = [g.strip() for g in guests_str.replace(';', ',').replace(' ', ',').split(',') if g.strip()]
-    
+
     guests = []
     invalid_guests = []
-    
+
     for g in raw_guests:
         if email_pattern.match(g):
             if g not in guests:
                 guests.append(g)
         else:
             invalid_guests.append(g)
-            
+
     if invalid_guests:
         return jsonify({
-            'success': False, 
+            'success': False,
             'message': f'Os seguintes e-mails de convidados são inválidos ou mal digitados: {", ".join(invalid_guests)}. Verifique se não esqueceu a vírgula separando-os.'
         })
-        
+
     # Rebuild normalized guests string
     guests_str = ', '.join(guests)
-    
+
     # Save meeting data as JSON for later creation
     meeting_data = {
         'titulo': titulo,
@@ -5991,7 +6012,7 @@ def crm2_create_chamado(lead_id):
         'horario_fim': horario_fim,
         'guests': guests_str
     }
-    
+
     # Create notification
     notification = Crm2Notification(
         lead_id=lead_id,
@@ -6004,13 +6025,13 @@ def crm2_create_chamado(lead_id):
     )
     db.session.add(notification)
     db.session.commit()
-    
+
     # Send email to the recipient
     try:
         from email_service import send_chamado_email
         parts = meeting_date.split('-')
         display_date = f"{parts[2]}/{parts[1]}/{parts[0]}" if len(parts) == 3 else meeting_date
-        
+
         send_chamado_email(
             to=destinatario.email,
             user_name=destinatario.full_name,
@@ -6022,7 +6043,7 @@ def crm2_create_chamado(lead_id):
         )
     except Exception as e:
         print(f"[crm2] Erro ao enviar email de chamado: {e}")
-    
+
     return jsonify({'success': True, 'message': f'Chamado enviado para {destinatario.full_name}'})
 
 
@@ -6032,38 +6053,38 @@ def crm2_accept_notification(notif_id):
     """Accept a meeting request: create meeting, send emails, advance lead."""
     from models import Crm2Lead, Crm2Meeting, Crm2Notification
     import json as json_module
-    
+
     notification = Crm2Notification.query.get(notif_id)
     if not notification or notification.destinatario_id != current_user.id:
         return jsonify({'success': False, 'message': 'Notificação não encontrada'})
-    
+
     if notification.status != 'PENDING':
         return jsonify({'success': False, 'message': 'Notificação já processada'})
-    
+
     # Parse meeting data
     meeting_info = json_module.loads(notification.meeting_data_json)
     lead = Crm2Lead.query.get(notification.lead_id)
     if not lead:
         return jsonify({'success': False, 'message': 'Lead não encontrado'})
-    
+
     # Parse guests and add recipient email
     guests = [g.strip() for g in meeting_info.get('guests', '').split(',') if g.strip() and '@' in g.strip()]
     if current_user.email and current_user.email not in guests:
         guests.append(current_user.email)
-    
+
     titulo = meeting_info['titulo']
     meeting_date = meeting_info['data']
     horario_inicio = meeting_info['horario_inicio']
     horario_fim = meeting_info['horario_fim']
-    
+
     # Build ISO datetimes
     start_iso = f"{meeting_date}T{horario_inicio}:00"
     end_iso = f"{meeting_date}T{horario_fim}:00"
-    
+
     full_description = meeting_info.get('descricao', '')
     if meeting_info.get('pauta'):
         full_description += f"\n\n--- PAUTA ---\n{meeting_info['pauta']}"
-    
+
     # 1. Create meeting via Transcritor API
     meeting_provider_id = None
     join_url = None
@@ -6076,11 +6097,11 @@ def crm2_accept_notification(notif_id):
             join_url = api_result.get('join_url', '')
     except Exception as e:
         print(f"[crm2] Erro ao criar reunião no transcritor: {e}")
-    
+
     # 2. Calculate meeting number
     existing_count = Crm2Meeting.query.filter_by(lead_id=lead.id).count()
     numero = existing_count + 1
-    
+
     # 3. Save meeting
     meeting = Crm2Meeting(
         lead_id=lead.id,
@@ -6098,7 +6119,7 @@ def crm2_accept_notification(notif_id):
         created_by_id=notification.remetente_id
     )
     db.session.add(meeting)
-    
+
     # 4. Send emails
     try:
         from email_service import send_meeting_invite
@@ -6109,20 +6130,20 @@ def crm2_accept_notification(notif_id):
         send_meeting_invite(guests, titulo, meeting_info.get('descricao', ''), display_date, horario_inicio, horario_fim, organizer)
     except Exception as e:
         print(f"[crm2] Erro ao enviar emails: {e}")
-    
+
     # 5. Auto-advance lead
     next_stage = _get_next_stage(lead.estagio)
     if next_stage:
         lead.estagio = next_stage
         lead.data_atualizacao = datetime.utcnow()
-    
+
     # 6. Update notification
     notification.status = 'ACCEPTED'
     notification.meeting_id = meeting.id
     notification.lida = True
-    
+
     db.session.commit()
-    
+
     return jsonify({
         'success': True,
         'message': f'Reunião aceita e criada! Lead movido para {lead.estagio}',
@@ -6135,18 +6156,18 @@ def crm2_accept_notification(notif_id):
 def crm2_reject_notification(notif_id):
     """Reject a meeting request: cancel everything."""
     from models import Crm2Notification
-    
+
     notification = Crm2Notification.query.get(notif_id)
     if not notification or notification.destinatario_id != current_user.id:
         return jsonify({'success': False, 'message': 'Notificação não encontrada'})
-    
+
     if notification.status != 'PENDING':
         return jsonify({'success': False, 'message': 'Notificação já processada'})
-    
+
     notification.status = 'REJECTED'
     notification.lida = True
     db.session.commit()
-    
+
     return jsonify({'success': True, 'message': 'Reunião recusada'})
 
 
@@ -6161,15 +6182,15 @@ def crm2_advance_to_proposta(lead_id):
     from models import Crm2Lead
     if not current_user.is_admin and not current_user.acesso_crm:
         return jsonify({'success': False, 'message': 'Sem permissão'}), 403
-    
+
     lead = Crm2Lead.query.get(lead_id)
     if not lead:
         return jsonify({'success': False, 'message': 'Lead não encontrado'})
-    
+
     lead.estagio = 'Proposta'
     lead.data_atualizacao = datetime.utcnow()
     db.session.commit()
-    
+
     return jsonify({'success': True, 'message': 'Lead movido para Proposta'})
 
 
@@ -6180,11 +6201,11 @@ def crm2_generate_proposal(lead_id):
     from models import Crm2Lead, Crm2Meeting
     if not current_user.is_admin and not current_user.acesso_crm:
         return jsonify({'success': False, 'message': 'Sem permissão'}), 403
-    
+
     lead = Crm2Lead.query.get(lead_id)
     if not lead:
         return jsonify({'success': False, 'message': 'Lead não encontrado'})
-    
+
     # Collect all meeting data
     reunioes = Crm2Meeting.query.filter_by(lead_id=lead_id).order_by(Crm2Meeting.numero_reuniao).all()
     reunioes_data = []
@@ -6195,7 +6216,7 @@ def crm2_generate_proposal(lead_id):
             'transcricao': r.transcricao or '',
             'analise': r.analise or ''
         })
-    
+
     try:
         from ai_analysis_service import gerar_proposta_ia
         result = gerar_proposta_ia(
@@ -6204,13 +6225,13 @@ def crm2_generate_proposal(lead_id):
             observacoes=lead.observacoes or '',
             reunioes_data=reunioes_data
         )
-        
+
         if result:
             return jsonify({'success': True, 'proposal': result})
         else:
             # Return default template if AI fails
             return jsonify({'success': True, 'proposal': {
-                'titulo': f'Proposta Comercial — {lead.nome_empresa}',
+                'titulo': f'Proposta Comercial - {lead.nome_empresa}',
                 'descricao': '',
                 'escopo': '',
                 'valor_sugerido': 'R$ 0,00',
@@ -6230,16 +6251,16 @@ def crm2_save_proposal(lead_id):
     from models import Crm2Lead, Crm2Proposal
     if not current_user.is_admin and not current_user.acesso_crm:
         return jsonify({'success': False, 'message': 'Sem permissão'}), 403
-    
+
     lead = Crm2Lead.query.get(lead_id)
     if not lead:
         return jsonify({'success': False, 'message': 'Lead não encontrado'})
-    
+
     data = request.get_json()
-    
+
     proposal = Crm2Proposal(
         lead_id=lead_id,
-        titulo=data.get('titulo', f'Proposta — {lead.nome_empresa}'),
+        titulo=data.get('titulo', f'Proposta - {lead.nome_empresa}'),
         descricao=data.get('descricao', ''),
         escopo=data.get('escopo', ''),
         valor=data.get('valor', ''),
@@ -6252,7 +6273,7 @@ def crm2_save_proposal(lead_id):
     )
     db.session.add(proposal)
     db.session.flush()  # Get proposal.id for PDF filename
-    
+
     # Generate PDF
     try:
         from proposal_pdf_service import gerar_pdf_proposta
@@ -6261,9 +6282,9 @@ def crm2_save_proposal(lead_id):
             proposal.pdf_path = pdf_path
     except Exception as e:
         print(f'[crm2] Erro ao gerar PDF: {e}')
-    
+
     db.session.commit()
-    
+
     return jsonify({
         'success': True,
         'message': 'Proposta salva com sucesso!',
@@ -6278,15 +6299,15 @@ def crm2_proposal_pdf(proposal_id):
     """Serve proposal PDF for viewing/download."""
     from models import Crm2Proposal
     import os
-    
+
     proposal = Crm2Proposal.query.get(proposal_id)
     if not proposal or not proposal.pdf_path:
         return jsonify({'success': False, 'message': 'PDF não encontrado'}), 404
-    
+
     filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), proposal.pdf_path)
     if not os.path.exists(filepath):
         return jsonify({'success': False, 'message': 'Arquivo PDF não encontrado'}), 404
-    
+
     download = request.args.get('download', 'false').lower() == 'true'
     return send_file(
         filepath,
@@ -6302,24 +6323,24 @@ def crm2_send_proposal(proposal_id):
     """Send proposal PDF via email to the lead contact."""
     from models import Crm2Proposal
     import os
-    
+
     proposal = Crm2Proposal.query.get(proposal_id)
     if not proposal or not proposal.pdf_path:
         return jsonify({'success': False, 'message': 'PDF não encontrado'})
-    
+
     lead = proposal.lead
     recipient = lead.email_cliente or lead.email
     if not recipient:
         return jsonify({'success': False, 'message': 'Lead não possui email cadastrado'})
-    
+
     filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), proposal.pdf_path)
     if not os.path.exists(filepath):
         return jsonify({'success': False, 'message': 'Arquivo PDF não encontrado'})
-    
+
     try:
         from email_service import send_email
-        
-        subject = f'Proposta Comercial — {lead.nome_empresa}'
+
+        subject = f'Proposta Comercial - {lead.nome_empresa}'
         body = (
             f'Prezado(a) {lead.nome_contato},\n\n'
             f'Segue em anexo a proposta comercial referente ao projeto discutido.\n\n'
@@ -6329,14 +6350,14 @@ def crm2_send_proposal(proposal_id):
             f'Ficamos à disposição para quaisquer esclarecimentos.\n\n'
             f'Atenciosamente,\n{current_user.full_name}'
         )
-        
+
         send_email(
             to=[recipient],
             subject=subject,
             html_body=body,
             attachment_path=filepath
         )
-        
+
         return jsonify({'success': True, 'message': f'Proposta enviada para {recipient}'})
     except Exception as e:
         print(f'[crm2] Erro ao enviar proposta: {e}')
@@ -6348,18 +6369,18 @@ def crm2_send_proposal(proposal_id):
 def crm2_accept_proposal(proposal_id):
     """Accept proposal: mark as ACCEPTED and advance lead to Contrato."""
     from models import Crm2Proposal
-    
+
     proposal = Crm2Proposal.query.get(proposal_id)
     if not proposal:
         return jsonify({'success': False, 'message': 'Proposta não encontrada'})
-    
+
     proposal.status = 'ACCEPTED'
-    
+
     lead = proposal.lead
     lead.estagio = 'Contrato'
     lead.data_atualizacao = datetime.utcnow()
     db.session.commit()
-    
+
     return jsonify({'success': True, 'message': 'Proposta aceita! Lead movido para Contrato.'})
 
 
@@ -6369,11 +6390,11 @@ def crm2_reject_proposal(proposal_id):
     """Reject proposal: delete the proposal."""
     from models import Crm2Proposal
     import os
-    
+
     proposal = Crm2Proposal.query.get(proposal_id)
     if not proposal:
         return jsonify({'success': False, 'message': 'Proposta não encontrada'})
-    
+
     # Delete PDF file if exists
     if proposal.pdf_path:
         filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), proposal.pdf_path)
@@ -6382,10 +6403,10 @@ def crm2_reject_proposal(proposal_id):
                 os.remove(filepath)
             except Exception:
                 pass
-    
+
     db.session.delete(proposal)
     db.session.commit()
-    
+
     return jsonify({'success': True, 'message': 'Proposta recusada e removida.'})
 
 
@@ -6400,15 +6421,15 @@ def crm2_advance_to_contrato(lead_id):
     from models import Crm2Lead
     if not current_user.is_admin and not current_user.acesso_crm:
         return jsonify({'success': False, 'message': 'Sem permissão'}), 403
-    
+
     lead = Crm2Lead.query.get(lead_id)
     if not lead:
         return jsonify({'success': False, 'message': 'Lead não encontrado'})
-    
+
     lead.estagio = 'Contrato'
     lead.data_atualizacao = datetime.utcnow()
     db.session.commit()
-    
+
     return jsonify({'success': True, 'message': 'Lead movido para Contrato'})
 
 
@@ -6419,14 +6440,14 @@ def crm2_generate_contract(lead_id):
     from models import Crm2Lead, Crm2Proposal
     if not current_user.is_admin and not current_user.acesso_crm:
         return jsonify({'success': False, 'message': 'Sem permissão'}), 403
-    
+
     lead = Crm2Lead.query.get(lead_id)
     if not lead:
         return jsonify({'success': False, 'message': 'Lead não encontrado'})
-    
+
     # Get latest accepted proposal data
     proposal = Crm2Proposal.query.filter_by(lead_id=lead_id).order_by(Crm2Proposal.created_at.desc()).first()
-    
+
     proposta_data = {}
     if proposal:
         proposta_data = {
@@ -6438,17 +6459,17 @@ def crm2_generate_contract(lead_id):
             'cronograma': proposal.cronograma or '',
             'justificativa': proposal.justificativa or ''
         }
-    
+
     try:
         from ai_analysis_service import gerar_contrato_ia
         result = gerar_contrato_ia(lead.nome_contato, lead.nome_empresa, proposta_data)
-        
+
         if result:
             return jsonify({'success': True, 'contract': result})
         else:
             # Default contract structure
             return jsonify({'success': True, 'contract': {
-                'titulo': f'Contrato de Prestação de Serviços — {lead.nome_empresa}',
+                'titulo': f'Contrato de Prestação de Serviços - {lead.nome_empresa}',
                 'sections': [
                     {'type': 'title', 'content': 'DAS PARTES'},
                     {'type': 'description', 'content': 'Preencha os dados das partes contratantes.'},
@@ -6470,18 +6491,18 @@ def crm2_save_contract(lead_id):
     from models import Crm2Lead, Crm2Contract, Crm2Proposal
     if not current_user.is_admin and not current_user.acesso_crm:
         return jsonify({'success': False, 'message': 'Sem permissão'}), 403
-    
+
     lead = Crm2Lead.query.get(lead_id)
     if not lead:
         return jsonify({'success': False, 'message': 'Lead não encontrado'})
-    
+
     data = request.get_json()
-    titulo = data.get('titulo', f'Contrato — {lead.nome_empresa}')
+    titulo = data.get('titulo', f'Contrato - {lead.nome_empresa}')
     sections = data.get('sections', [])
-    
+
     # Find latest proposal
     proposal = Crm2Proposal.query.filter_by(lead_id=lead_id).order_by(Crm2Proposal.created_at.desc()).first()
-    
+
     contract = Crm2Contract(
         lead_id=lead_id,
         proposal_id=proposal.id if proposal else None,
@@ -6492,7 +6513,7 @@ def crm2_save_contract(lead_id):
     )
     db.session.add(contract)
     db.session.flush()
-    
+
     # Generate PDF
     try:
         from proposal_pdf_service import gerar_pdf_contrato
@@ -6501,9 +6522,9 @@ def crm2_save_contract(lead_id):
             contract.pdf_path = pdf_path
     except Exception as e:
         print(f'[crm2] Erro ao gerar PDF do contrato: {e}')
-    
+
     db.session.commit()
-    
+
     return jsonify({
         'success': True,
         'message': 'Contrato salvo com sucesso!',
@@ -6517,15 +6538,15 @@ def crm2_save_contract(lead_id):
 def crm2_contract_pdf(contract_id):
     """Serve the contract PDF for view or download."""
     from models import Crm2Contract
-    
+
     contract = Crm2Contract.query.get(contract_id)
     if not contract or not contract.pdf_path:
         return jsonify({'success': False, 'message': 'PDF não encontrado'}), 404
-    
+
     filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), contract.pdf_path)
     if not os.path.exists(filepath):
         return jsonify({'success': False, 'message': 'Arquivo não encontrado'}), 404
-    
+
     download = request.args.get('download', 'false').lower() == 'true'
     return send_file(
         filepath,
@@ -6541,24 +6562,24 @@ def crm2_send_contract(contract_id):
     """Send contract PDF to lead email."""
     from models import Crm2Contract
     import os
-    
+
     contract = Crm2Contract.query.get(contract_id)
     if not contract or not contract.pdf_path:
         return jsonify({'success': False, 'message': 'PDF não encontrado'})
-    
+
     lead = contract.lead
     recipient = lead.email_cliente or lead.email
     if not recipient:
         return jsonify({'success': False, 'message': 'Lead não possui email cadastrado'})
-    
+
     filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), contract.pdf_path)
     if not os.path.exists(filepath):
         return jsonify({'success': False, 'message': 'Arquivo PDF não encontrado'})
-    
+
     try:
         from email_service import send_email
-        
-        subject = f'Contrato de Prestação de Serviços — {lead.nome_empresa}'
+
+        subject = f'Contrato de Prestação de Serviços - {lead.nome_empresa}'
         body = (
             f'Prezado(a) {lead.nome_contato},\n\n'
             f'Segue em anexo o contrato referente aos serviços discutidos.\n\n'
@@ -6566,14 +6587,14 @@ def crm2_send_contract(contract_id):
             f'Por favor, revise o documento e retorne com sua confirmação.\n\n'
             f'Atenciosamente,\n{current_user.full_name}'
         )
-        
+
         send_email(
             to=[recipient],
             subject=subject,
             html_body=body,
             attachment_path=filepath
         )
-        
+
         return jsonify({'success': True, 'message': f'Contrato enviado para {recipient}'})
     except Exception as e:
         print(f'[crm2] Erro ao enviar contrato: {e}')
@@ -6585,17 +6606,17 @@ def crm2_send_contract(contract_id):
 def crm2_accept_contract(contract_id):
     """Mark contract as SIGNED and advance lead to Cliente."""
     from models import Crm2Contract
-    
+
     contract = Crm2Contract.query.get(contract_id)
     if not contract:
         return jsonify({'success': False, 'message': 'Contrato não encontrado'})
-    
+
     contract.status = 'SIGNED'
     lead = contract.lead
     lead.estagio = 'Cliente'
     lead.data_atualizacao = datetime.utcnow()
     db.session.commit()
-    
+
     return jsonify({'success': True, 'message': 'Contrato assinado! Lead movido para Cliente.'})
 
 
@@ -6604,11 +6625,11 @@ def crm2_accept_contract(contract_id):
 def crm2_reject_contract(contract_id):
     """Reject contract: delete contract and PDF."""
     from models import Crm2Contract
-    
+
     contract = Crm2Contract.query.get(contract_id)
     if not contract:
         return jsonify({'success': False, 'message': 'Contrato não encontrado'})
-    
+
     # Delete PDF file
     if contract.pdf_path:
         filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), contract.pdf_path)
@@ -6617,10 +6638,10 @@ def crm2_reject_contract(contract_id):
                 os.remove(filepath)
             except Exception:
                 pass
-    
+
     db.session.delete(contract)
     db.session.commit()
-    
+
     return jsonify({'success': True, 'message': 'Contrato recusado e removido.'})
 
 
@@ -6635,18 +6656,18 @@ def crm2_create_client_from_lead(lead_id):
     from models import Crm2Lead, Client
     if not current_user.is_admin and not current_user.acesso_crm:
         return jsonify({'success': False, 'message': 'Sem permissão'}), 403
-    
+
     lead = Crm2Lead.query.get(lead_id)
     if not lead:
         return jsonify({'success': False, 'message': 'Lead não encontrado'})
-    
+
     data = request.get_json()
-    
+
     # Generate unique public_code
     import string
     import secrets
     public_code = ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(8))
-    
+
     client = Client(
         nome=data.get('nome', lead.nome_empresa),
         email=data.get('email', lead.email_cliente or lead.email),
@@ -6659,12 +6680,12 @@ def crm2_create_client_from_lead(lead_id):
     )
     db.session.add(client)
     db.session.flush()
-    
+
     # Update lead stage
     lead.estagio = 'Convertido'
     lead.data_atualizacao = datetime.utcnow()
     db.session.commit()
-    
+
     return jsonify({
         'success': True,
         'message': f'Cliente "{client.nome}" criado com sucesso!',
@@ -6678,68 +6699,68 @@ def crm2_fix_stages():
     """Consistency check: auto-correct lead stages based on data."""
     if not current_user.is_admin and not current_user.acesso_crm:
         return jsonify({'success': False, 'message': 'Sem permissão'}), 403
-    
+
     # Import necessary models
     from models import Crm2Lead, Crm2Meeting, Crm2Notification, Crm2Proposal, Crm2Contract
-    
+
     # Get all active leads
     leads = Crm2Lead.query.filter(
-        Crm2Lead.estagio != 'Convertido', 
-        Crm2Lead.estagio != 'Perdido', 
+        Crm2Lead.estagio != 'Convertido',
+        Crm2Lead.estagio != 'Perdido',
         Crm2Lead.estagio != 'Arquivado'
     ).all()
-    
+
     count = 0
     details = []
-    
+
     for lead in leads:
         original_stage = lead.estagio
         new_stage = original_stage
-        
+
         # 1. Captação -> Bloco 1 (Has Meeting)
         if lead.estagio == 'Captação':
             has_meeting = Crm2Meeting.query.filter_by(lead_id=lead.id).count() > 0
             if has_meeting:
                 new_stage = 'Bloco 1'
-        
+
         # 2. Bloco 1 -> Bloco 2 (Has Accepted Notification AND Meeting)
         # Check if any meeting was created from a notification (or just has an accepted notification)
         if new_stage == 'Bloco 1':
             # Check for accepted notification for this lead
             has_accepted_chamado = Crm2Notification.query.filter_by(lead_id=lead.id, status='ACCEPTED').count() > 0
-            # Also check if user has created a meeting manually that implies 'Bloco 2' progress? 
+            # Also check if user has created a meeting manually that implies 'Bloco 2' progress?
             # The rule is explicit: "tem chamado aceito ? bloco 2"
             if has_accepted_chamado:
                 new_stage = 'Bloco 2'
-        
+
         # 3. Bloco 2 -> Proposta (Has Proposal)
         if new_stage == 'Bloco 2':
             has_proposal = Crm2Proposal.query.filter_by(lead_id=lead.id).count() > 0
             if has_proposal:
                 new_stage = 'Proposta'
-        
+
         # 4. Proposta -> Contrato (Has Contract)
         if new_stage == 'Proposta':
             has_contract = Crm2Contract.query.filter_by(lead_id=lead.id).count() > 0
             if has_contract:
                 new_stage = 'Contrato'
-                
+
         # 5. Contrato -> Cliente (Has Signed Contract or Accepted)
         if new_stage == 'Contrato':
             has_signed = Crm2Contract.query.filter_by(lead_id=lead.id, status='SIGNED').count() > 0
             if has_signed:
                 new_stage = 'Cliente'
-        
+
         # Apply change if needed
         if new_stage != original_stage:
             lead.estagio = new_stage
             lead.data_atualizacao = datetime.utcnow()
             details.append(f"Lead {lead.id} ({lead.nome_empresa}): {original_stage} -> {new_stage}")
             count += 1
-            
+
     if count > 0:
         db.session.commit()
-        
+
     return jsonify({
         'success': True,
         'message': f'{count} leads atualizados.',

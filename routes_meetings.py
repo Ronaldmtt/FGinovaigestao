@@ -6,7 +6,7 @@ from flask_login import current_user, login_required
 
 from extensions import db
 from models import Meeting, Project, User
-from services.meeting_integrations_service import get_user_integration
+from services.meeting_integrations_service import FIREFLIES_PROVIDER, MICROSOFT_PROVIDER, get_user_integration, list_user_integrations
 from services.meetings_ai_service import analyze_meeting, generate_meeting_agenda
 from services.meetings_calendar_service import (
     GOOGLE_CALENDAR_PROVIDER,
@@ -25,8 +25,6 @@ from services.meetings_fireflies_service import find_transcript_by_title_and_dat
 meetings_bp = Blueprint('meetings_bp', __name__)
 
 
-@meetings_bp.route('/meetings', methods=['GET'])
-@login_required
 def _render_meetings_hub(tab='overview', project_filter=None, user_filter=None, status_filter=None, generated_agenda=None):
     query = Meeting.query
     if project_filter:
@@ -49,6 +47,7 @@ def _render_meetings_hub(tab='overview', project_filter=None, user_filter=None, 
 
     google_integration = get_user_integration(current_user.id, GOOGLE_CALENDAR_PROVIDER)
     google_connected = bool(google_integration and google_integration.is_enabled)
+    all_integrations = list_user_integrations(current_user.id)
     google_events = []
     google_events_error = None
 
@@ -77,9 +76,13 @@ def _render_meetings_hub(tab='overview', project_filter=None, user_filter=None, 
         next_meeting=next_meeting,
         recent_meetings=recent_meetings,
         google_connected=google_connected,
+        google_integration=google_integration,
+        all_integrations=all_integrations,
         google_events=google_events,
         google_events_error=google_events_error,
         generated_agenda=generated_agenda,
+        fireflies_provider=FIREFLIES_PROVIDER,
+        microsoft_provider=MICROSOFT_PROVIDER,
     )
 
 
@@ -282,6 +285,8 @@ def create_calendar_meeting():
     end_dt = datetime.strptime(f'{end_date} {end_time}', '%Y-%m-%d %H:%M')
     attendees = [email.strip() for email in attendees_raw.split(',') if email.strip()]
 
+    participant_users = User.query.filter(User.email.in_(attendees)).all() if attendees else []
+
     service = build_google_calendar_service(credentials)
     full_description = description.strip()
     if agenda:
@@ -301,6 +306,9 @@ def create_calendar_meeting():
         agenda=agenda or None,
     )
     meeting.participants.append(current_user)
+    for user in participant_users:
+        if user not in meeting.participants:
+            meeting.participants.append(user)
     db.session.add(meeting)
     db.session.commit()
 
@@ -384,6 +392,19 @@ def import_calendar_event(event_id):
         flash('Esse evento já foi importado para o módulo de reuniões.', 'info')
         return redirect(url_for('meetings_bp.meeting_detail', meeting_id=existing.id))
 
+    attendees = event.get('attendees') or []
+    attendee_emails = [item.get('email') for item in attendees if item.get('email')]
+    participant_users = User.query.filter(User.email.in_(attendee_emails)).all() if attendee_emails else []
+
+    description_text = (event.get('description') or '').strip()
+    agenda_text = None
+    if '--- AGENDA ---' in description_text:
+        parts = description_text.split('--- AGENDA ---', 1)
+        description_text = parts[0].strip()
+        agenda_text = parts[1].strip() or None
+    elif description_text:
+        agenda_text = description_text
+
     meeting = Meeting(
         title=event.get('summary') or 'Reunião sem título',
         date_time=start_dt,
@@ -394,9 +415,12 @@ def import_calendar_event(event_id):
         raw_provider_payload=json.dumps(event),
         status='agendada',
         meeting_owner_email=(event.get('organizer') or {}).get('email') or current_user.email,
-        agenda=(event.get('description') or '').strip() or None,
+        agenda=agenda_text,
     )
     meeting.participants.append(current_user)
+    for user in participant_users:
+        if user not in meeting.participants:
+            meeting.participants.append(user)
     db.session.add(meeting)
     db.session.commit()
 

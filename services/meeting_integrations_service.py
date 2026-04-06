@@ -14,6 +14,10 @@ def get_user_integration(user_id, provider):
     return UserIntegrationCredential.query.filter_by(user_id=user_id, provider=provider).first()
 
 
+def list_user_integrations(user_id):
+    return UserIntegrationCredential.query.filter_by(user_id=user_id).order_by(UserIntegrationCredential.provider.asc()).all()
+
+
 def get_user_integration_credentials(user_id, provider, default=None):
     record = get_user_integration(user_id, provider)
     if not record or not record.credentials_json:

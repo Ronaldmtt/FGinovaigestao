@@ -351,36 +351,95 @@
 {% endif %}
 
 {% if tab == 'integrations' %}
-<div class="card">
-    <div class="card-header"><strong>Integrações</strong></div>
-    <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center border rounded p-3 mb-3">
-            <div>
-                <div class="fw-semibold">Google Calendar</div>
-                <div class="small text-muted">Conecte sua conta para puxar eventos e criar reuniões com Meet.</div>
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card h-100">
+            <div class="card-header"><strong>Integrações da conta</strong></div>
+            <div class="card-body">
+                <div class="alert alert-secondary">
+                    <i class="fas fa-user me-2"></i>
+                    Conectado como <strong>{{ current_user.full_name }}</strong> ({{ current_user.email }})
+                </div>
+
+                <div class="border rounded p-3 mb-3">
+                    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                        <div>
+                            <div class="fw-semibold">Google Calendar</div>
+                            <div class="small text-muted">Conecte sua conta para puxar eventos, criar reuniões com Meet e sincronizar a agenda operacional.</div>
+                            {% if google_integration and google_integration.account_email %}
+                            <div class="small mt-2">Conta vinculada: <strong>{{ google_integration.account_email }}</strong></div>
+                            {% endif %}
+                            {% if google_integration and google_integration.last_sync_at %}
+                            <div class="small text-muted">Última sincronização: {{ google_integration.last_sync_at.strftime('%d/%m/%Y às %H:%M') }}</div>
+                            {% endif %}
+                        </div>
+                        <div>
+                            {% if google_connected %}
+                                <span class="badge bg-success me-2">Conectado</span>
+                                <a href="{{ url_for('meetings_bp.disconnect_google_calendar') }}" class="btn btn-outline-danger btn-sm">Desconectar</a>
+                            {% else %}
+                                <a href="{{ url_for('meetings_bp.connect_google_calendar') }}" class="btn btn-primary btn-sm">Conectar</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="border rounded p-3 mb-3">
+                    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                        <div>
+                            <div class="fw-semibold">Fireflies</div>
+                            <div class="small text-muted">A integração backend está pronta para localizar e sincronizar transcrições via token de ambiente.</div>
+                        </div>
+                        <span class="badge bg-info">Backend pronto</span>
+                    </div>
+                </div>
+
+                <div class="border rounded p-3">
+                    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                        <div>
+                            <div class="fw-semibold">Microsoft / Azure</div>
+                            <div class="small text-muted">Reservado para a próxima etapa da incorporação do Transcritor, usando as variáveis Azure/MSAL do ambiente.</div>
+                        </div>
+                        <span class="badge bg-secondary">Planejado</span>
+                    </div>
+                </div>
             </div>
-            <div>
-                {% if google_connected %}
-                    <span class="badge bg-success me-2">Conectado</span>
-                    <a href="{{ url_for('meetings_bp.disconnect_google_calendar') }}" class="btn btn-outline-danger btn-sm">Desconectar</a>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header"><strong>Resumo da conta</strong></div>
+            <div class="card-body">
+                <div class="small text-muted mb-1">Email</div>
+                <div class="mb-3">{{ current_user.email }}</div>
+                <div class="small text-muted mb-1">Total de reuniões</div>
+                <div class="mb-3">{{ total_meetings }}</div>
+                <div class="small text-muted mb-1">Integrações registradas</div>
+                <div>{{ all_integrations|length }}</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><strong>Integrações detectadas</strong></div>
+            <div class="card-body">
+                {% if all_integrations %}
+                    <ul class="list-group list-group-flush">
+                        {% for integration in all_integrations %}
+                        <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-semibold">{{ integration.provider }}</div>
+                                {% if integration.account_email %}<div class="small text-muted">{{ integration.account_email }}</div>{% endif %}
+                            </div>
+                            <span class="badge {% if integration.is_enabled %}bg-success{% else %}bg-secondary{% endif %}">
+                                {% if integration.is_enabled %}Ativa{% else %}Inativa{% endif %}
+                            </span>
+                        </li>
+                        {% endfor %}
+                    </ul>
                 {% else %}
-                    <a href="{{ url_for('meetings_bp.connect_google_calendar') }}" class="btn btn-primary btn-sm">Conectar</a>
+                    <p class="text-muted mb-0">Nenhuma integração registrada ainda.</p>
                 {% endif %}
             </div>
-        </div>
-        <div class="d-flex justify-content-between align-items-center border rounded p-3 mb-3">
-            <div>
-                <div class="fw-semibold">Fireflies</div>
-                <div class="small text-muted">A integração backend já está preparada via token de ambiente para busca de transcrições.</div>
-            </div>
-            <span class="badge bg-info">Infra pronta</span>
-        </div>
-        <div class="d-flex justify-content-between align-items-center border rounded p-3">
-            <div>
-                <div class="fw-semibold">Gmail / convites</div>
-                <div class="small text-muted">Camada de serviços preparada para o módulo evoluir comunicação automática.</div>
-            </div>
-            <span class="badge bg-secondary">Próxima etapa</span>
         </div>
     </div>
 </div>

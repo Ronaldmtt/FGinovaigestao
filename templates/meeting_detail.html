@@ -51,6 +51,11 @@
                 <i class="fas fa-arrow-up-right-from-square me-1"></i> Abrir link
             </a>
             {% endif %}
+            <form method="post" action="{{ url_for('meetings_bp.sync_fireflies_for_meeting', meeting_id=meeting.id) }}" class="d-inline">
+                <button type="submit" class="btn btn-sm btn-outline-info">
+                    <i class="fas fa-wave-square me-1"></i> Sincronizar Fireflies
+                </button>
+            </form>
         </div>
     </div>
 </div>
@@ -284,6 +289,23 @@
                         {% if meeting.audio_url %}<div class="mb-2"><a href="{{ meeting.audio_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm w-100">Abrir áudio</a></div>{% endif %}
                         {% if meeting.video_url %}<div class="mb-2"><a href="{{ meeting.video_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm w-100">Abrir vídeo</a></div>{% endif %}
                         {% if not meeting.audio_url and not meeting.video_url %}<p class="text-muted mb-0">Nenhum link de mídia disponível.</p>{% endif %}
+                    </div>
+                </div>
+
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header"><strong>Analisar reunião do calendário</strong></div>
+                    <div class="card-body">
+                        <form method="post" action="{{ url_for('meetings_bp.analyze_calendar_meeting', meeting_id=meeting.id) }}">
+                            <div class="mb-3">
+                                <label class="form-label">Pauta atual</label>
+                                <div class="border rounded p-2 small" style="white-space: pre-wrap; max-height: 120px; overflow-y: auto;">{{ meeting.agenda or 'Sem pauta registrada.' }}</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Transcrição para análise</label>
+                                <textarea name="transcription" class="form-control" rows="8" placeholder="Cole aqui a transcrição completa da reunião...">{{ meeting.transcription_content or '' }}</textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm w-100">Gerar / atualizar análise</button>
+                        </form>
                     </div>
                 </div>
 

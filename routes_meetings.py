@@ -20,7 +20,7 @@ from services.meetings_calendar_service import (
     list_google_calendar_events,
     save_google_credentials_for_user,
 )
-from services.meetings_fireflies_service import get_transcript
+from services.meetings_fireflies_service import find_transcript_by_title_and_date, get_transcript
 
 meetings_bp = Blueprint('meetings_bp', __name__)
 
@@ -313,6 +313,62 @@ def create_calendar_meeting():
 
     flash('Evento criado no Google Calendar com sucesso.', 'success')
     return redirect(url_for('meetings_bp.meetings_hub', tab='calendar'))
+
+
+@meetings_bp.route('/meetings/<int:meeting_id>/calendar-analysis', methods=['POST'])
+@login_required
+def analyze_calendar_meeting(meeting_id):
+    meeting = Meeting.query.get_or_404(meeting_id)
+    transcription = (request.form.get('transcription') or '').strip()
+
+    if not transcription:
+        flash('A transcrição é obrigatória para analisar a reunião.', 'danger')
+        return redirect(url_for('meetings_bp.meeting_detail', meeting_id=meeting.id))
+
+    results = analyze_meeting(meeting.agenda or '', transcription)
+    meeting.transcription_content = transcription
+    meeting.analysis_summary = results.get('meeting_summary')
+    meeting.language = results.get('language')
+    meeting.alignment_score = results.get('alignment_score')
+    meeting.results_json = json.dumps(results)
+    meeting.analysis_status = 'completed'
+    meeting.analysis_generated_at = datetime.utcnow()
+    meeting.status = 'concluida'
+    db.session.commit()
+
+    flash('Análise da reunião gerada com sucesso.', 'success')
+    return redirect(url_for('meetings_bp.meeting_detail', meeting_id=meeting.id))
+
+
+@meetings_bp.route('/meetings/<int:meeting_id>/sync-fireflies', methods=['POST'])
+@login_required
+def sync_fireflies_for_meeting(meeting_id):
+    meeting = Meeting.query.get_or_404(meeting_id)
+
+    target_date = meeting.date_time.date().isoformat() if meeting.date_time else ''
+    transcript_match = find_transcript_by_title_and_date(meeting.title, target_date, limit=100)
+    if not transcript_match:
+        flash('Nenhum transcript correspondente foi encontrado no Fireflies pelo título/data.', 'warning')
+        return redirect(url_for('meetings_bp.meeting_detail', meeting_id=meeting.id))
+
+    transcript_id = transcript_match.get('id')
+    transcript = get_transcript(transcript_id)
+    meeting.fireflies_transcript_id = transcript_id
+    meeting.audio_url = transcript.get('audio_url') or meeting.audio_url
+    meeting.video_url = transcript.get('video_url') or meeting.video_url
+    meeting.external_meeting_link = transcript.get('meeting_link') or meeting.external_meeting_link
+
+    sentences = transcript.get('sentences') or []
+    if sentences:
+        meeting.transcription_content = '\n'.join((item.get('text') or '').strip() for item in sentences if (item.get('text') or '').strip())
+
+    summary = transcript.get('summary') or {}
+    if summary.get('overview') and not meeting.analysis_summary:
+        meeting.analysis_summary = summary.get('overview')
+
+    db.session.commit()
+    flash('Reunião sincronizada com o Fireflies com sucesso.', 'success')
+    return redirect(url_for('meetings_bp.meeting_detail', meeting_id=meeting.id))
 
 
 @meetings_bp.route('/meetings/calendar/import/<event_id>')

@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timezone
 import requests
 
 FIREFLIES_URL = 'https://api.fireflies.ai/graphql'
@@ -64,12 +65,26 @@ def get_transcript(transcript_id):
     return payload.get('data', {}).get('transcript')
 
 
+def _normalize_fireflies_date(item_date):
+    if item_date in (None, ''):
+        return None
+    if isinstance(item_date, (int, float)):
+        return datetime.fromtimestamp(item_date / 1000, tz=timezone.utc).date().isoformat()
+    item_date = str(item_date).strip()
+    if len(item_date) >= 10 and item_date[4] == '-' and item_date[7] == '-':
+        return item_date[:10]
+    if item_date.isdigit():
+        return datetime.fromtimestamp(int(item_date) / 1000, tz=timezone.utc).date().isoformat()
+    return item_date[:10]
+
+
 def find_transcript_by_title_and_date(title, target_date, limit=50):
     transcripts = list_transcripts(limit=limit)
     normalized_title = (title or '').strip().lower()
+    target_date = (target_date or '').strip()[:10]
     for item in transcripts:
         item_title = (item.get('title') or '').strip().lower()
-        item_date = (item.get('date') or '')[:10]
+        item_date = _normalize_fireflies_date(item.get('date'))
         if item_title == normalized_title and item_date == target_date:
             return item
     return None

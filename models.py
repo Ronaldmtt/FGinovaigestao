@@ -828,9 +828,23 @@ class Meeting(db.Model):
     title = db.Column(db.String(200), nullable=False)
     date_time = db.Column(db.DateTime, nullable=False)
     project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=True) # Pode ser solta ou vinculada a proj
-    transcription_id = db.Column(db.String(100), nullable=True) # ID no FGTranscritor
+    transcription_id = db.Column(db.String(100), nullable=True) # Legado / ID externo genérico
     transcription_content = db.Column(db.Text, nullable=True)
     analysis_summary = db.Column(db.Text, nullable=True)
+    agenda = db.Column(db.Text, nullable=True)
+    language = db.Column(db.String(10), nullable=True)
+    alignment_score = db.Column(db.Float, nullable=True)
+    results_json = db.Column(db.Text, nullable=True)
+    audio_url = db.Column(db.String(5000), nullable=True)
+    video_url = db.Column(db.String(5000), nullable=True)
+    google_calendar_event_id = db.Column(db.String(255), nullable=True, index=True)
+    fireflies_transcript_id = db.Column(db.String(255), nullable=True, index=True)
+    external_meeting_link = db.Column(db.String(1000), nullable=True)
+    meeting_source = db.Column(db.String(30), nullable=False, default='internal')
+    analysis_status = db.Column(db.String(30), nullable=False, default='pending')
+    analysis_generated_at = db.Column(db.DateTime, nullable=True)
+    meeting_owner_email = db.Column(db.String(255), nullable=True)
+    raw_provider_payload = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     
@@ -841,6 +855,26 @@ class Meeting(db.Model):
         backref=db.backref('meetings', lazy=True))
     project = db.relationship('Project', backref='meetings', lazy=True)
     creator = db.relationship('User', foreign_keys=[created_by_id])
+
+
+class UserIntegrationCredential(db.Model):
+    __tablename__ = 'user_integration_credentials'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    provider = db.Column(db.String(50), nullable=False, index=True)
+    account_email = db.Column(db.String(255), nullable=True)
+    credentials_json = db.Column(db.Text, nullable=True)
+    is_enabled = db.Column(db.Boolean, nullable=False, default=True)
+    meta_json = db.Column(db.Text, nullable=True)
+    last_sync_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    user = db.relationship('User', backref=db.backref('integration_credentials', lazy='dynamic', cascade='all, delete-orphan'))
+
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'provider', name='uq_user_integration_credentials_user_provider'),
+    )
 
 # ==========================================
 # AI Copilot (Assistente Virtual)

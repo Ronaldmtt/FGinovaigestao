@@ -126,6 +126,61 @@ with app.app_context():
         db.session.rollback()
         pass
 
+    meeting_queries = [
+        "ALTER TABLE meetings ADD COLUMN agenda TEXT",
+        "ALTER TABLE meetings ADD COLUMN language VARCHAR(10)",
+        "ALTER TABLE meetings ADD COLUMN alignment_score DOUBLE PRECISION",
+        "ALTER TABLE meetings ADD COLUMN results_json TEXT",
+        "ALTER TABLE meetings ADD COLUMN audio_url VARCHAR(5000)",
+        "ALTER TABLE meetings ADD COLUMN video_url VARCHAR(5000)",
+        "ALTER TABLE meetings ADD COLUMN google_calendar_event_id VARCHAR(255)",
+        "ALTER TABLE meetings ADD COLUMN fireflies_transcript_id VARCHAR(255)",
+        "ALTER TABLE meetings ADD COLUMN external_meeting_link VARCHAR(1000)",
+        "ALTER TABLE meetings ADD COLUMN meeting_source VARCHAR(30) NOT NULL DEFAULT 'internal'",
+        "ALTER TABLE meetings ADD COLUMN analysis_status VARCHAR(30) NOT NULL DEFAULT 'pending'",
+        "ALTER TABLE meetings ADD COLUMN analysis_generated_at TIMESTAMP",
+        "ALTER TABLE meetings ADD COLUMN meeting_owner_email VARCHAR(255)",
+        "ALTER TABLE meetings ADD COLUMN raw_provider_payload TEXT"
+    ]
+    for q in meeting_queries:
+        try:
+            db.session.execute(text(q))
+            db.session.commit()
+            print(f"Migracao Executada: {q}")
+        except Exception:
+            db.session.rollback()
+            pass
+
+    integration_queries = [
+        """
+        CREATE TABLE user_integration_credentials (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES \"user\"(id),
+            provider VARCHAR(50) NOT NULL,
+            account_email VARCHAR(255),
+            credentials_json TEXT,
+            is_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+            meta_json TEXT,
+            last_sync_at TIMESTAMP,
+            created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+            updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+            CONSTRAINT uq_user_integration_credentials_user_provider UNIQUE (user_id, provider)
+        )
+        """,
+        "CREATE INDEX ix_user_integration_credentials_user_id ON user_integration_credentials (user_id)",
+        "CREATE INDEX ix_user_integration_credentials_provider ON user_integration_credentials (provider)",
+        "CREATE INDEX ix_meetings_google_calendar_event_id ON meetings (google_calendar_event_id)",
+        "CREATE INDEX ix_meetings_fireflies_transcript_id ON meetings (fireflies_transcript_id)"
+    ]
+    for q in integration_queries:
+        try:
+            db.session.execute(text(q))
+            db.session.commit()
+            print(f"Migracao Executada: {q.splitlines()[0][:80]}")
+        except Exception:
+            db.session.rollback()
+            pass
+
     try:
         db.session.execute(text("ALTER TABLE project ADD COLUMN dominio VARCHAR(255)"))
         db.session.commit()

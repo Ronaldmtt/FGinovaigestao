@@ -131,6 +131,12 @@ def get_shared_google_calendar_integration():
 
 
 def get_shared_google_credentials():
+    env_json = (os.environ.get('GOOGLE_CREDENTIALS_JSON') or '').strip()
+    if env_json:
+        try:
+            return json.loads(env_json)
+        except Exception as e:
+            logger.error(f'GOOGLE_CREDENTIALS_JSON inválido: {e}')
     return get_shared_integration_credentials(GOOGLE_CALENDAR_PROVIDER)
 
 

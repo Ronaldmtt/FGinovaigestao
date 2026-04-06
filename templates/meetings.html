@@ -365,7 +365,7 @@
                     <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
                         <div>
                             <div class="fw-semibold">Google Calendar</div>
-                            <div class="small text-muted">Use uma conta operacional central para puxar eventos, criar reuniões com Meet e sincronizar a agenda do módulo, como no FGTranscritor.</div>
+                            <div class="small text-muted">Use uma conta operacional central para puxar eventos, criar reuniões com Meet e sincronizar a agenda do módulo, como no FGTranscritor. O módulo aceita credencial OAuth operacional via <code>GOOGLE_CREDENTIALS_JSON</code> no ambiente.</div>
                             {% if google_integration and google_integration.account_email %}
                             <div class="small mt-2">Conta vinculada: <strong>{{ google_integration.account_email }}</strong></div>
                             {% endif %}

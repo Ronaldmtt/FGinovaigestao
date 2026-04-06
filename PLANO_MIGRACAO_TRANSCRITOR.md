@@ -522,6 +522,315 @@ Preparar lista de migrations SQLAlchemy/Alembic para começar a implementação
 
 ---
 
+# Fase 2 — Desenho Técnico Detalhado
+
+## 2.4. Leitura aprofundada dos templates do Transcritor
+
+### `new_meeting.html`
+Representa o fluxo de **nova análise manual**:
+- título da reunião
+- data opcional
+- pauta
+- transcrição completa
+- submissão para análise direta
+
+**Conclusão:** esse fluxo deve virar uma subaba do Gestão chamada algo como **Nova análise** e pode conviver com criação de reunião de calendário.
+
+### `results.html`
+É o template mais rico do Transcritor e concentra a entrega de valor.
+
+#### Blocos funcionais identificados
+- resumo executivo da reunião
+- score de alinhamento
+- régua visual de qualidade/alinhamento
+- cobertura da pauta
+- itens abordados / não abordados
+- tópicos adicionais
+- insights
+- próximos passos
+- action items
+- direções estratégicas
+- aba separada para transcrição
+- enriquecimento opcional com dados do Fireflies
+
+**Conclusão:** este template deve ser a base do **detalhe avançado da reunião** no Gestão.
+
+### `calendar.html`
+Representa o módulo de agenda/conexão com Google Calendar.
+
+#### Blocos funcionais identificados
+- próxima reunião
+- reuniões recentes
+- atalho para configurações
+- atalho para gerar pauta com IA
+- modal rico para criação de evento
+- suporte a recorrência
+- suporte a participantes
+- fluxo orientado a agenda operacional, não apenas análise
+
+**Conclusão:** o Gestão precisa ganhar uma subaba própria de **Calendário** e não só uma listagem simples de reuniões internas.
+
+### `settings.html`
+Representa um painel de integrações por usuário.
+
+#### Blocos funcionais identificados
+- status da conta
+- status da integração Google Calendar
+- conectar/desconectar conta Google
+- acesso aos próprios eventos
+
+**Conclusão:** no Gestão isso deve virar a subaba **Integrações**, ligada ao usuário logado do Gestão.
+
+---
+
+## 2.5. Serviços técnicos auditados
+
+### `gmail_service.py`
+Capacidade identificada:
+- envio de e-mail via Gmail API usando OAuth2 e refresh token
+- dependência direta de:
+  - `GMAIL_CLIENT_ID`
+  - `GMAIL_CLIENT_SECRET`
+  - `GMAIL_REFRESH_TOKEN`
+  - `GMAIL_SENDER_EMAIL`
+
+**Decisão:** incorporar ao Gestão como serviço auxiliar do módulo Reuniões/Comunicação.
+
+### `calendar_utils.py`
+Capacidade identificada:
+- wrappers para Google OAuth/Calendar
+- criação de evento com recorrência
+- criação de conferenceData/Meet
+
+**Decisão:** incorporar como camada de serviço, evitando dependência direta das rotas com o provider.
+
+### `google_calendar.py` / `google_calendar_integration.py`
+Capacidade identificada:
+- OAuth Google
+- troca de code por credenciais
+- renovação de token
+- listagem de eventos
+- construção do service do Google Calendar
+
+**Decisão:** consolidar isso no Gestão em um serviço único de integração Google.
+
+---
+
+## 2.6. Estrutura alvo de subabas no Gestão
+
+### Aba principal: `Reuniões`
+Subabas propostas para implementação:
+
+1. **Visão Geral**
+   - KPIs rápidos
+   - próximas reuniões
+   - reuniões recentes
+   - atalhos principais
+
+2. **Todas as Reuniões**
+   - listagem
+   - filtros por projeto, participante, status, origem, período
+
+3. **Nova Análise**
+   - fluxo manual do `new_meeting.html`
+   - pauta + transcrição + análise direta
+
+4. **Pautas**
+   - gerar pauta com IA
+   - editar pauta
+   - opcionalmente associar a projeto/reunião
+
+5. **Calendário**
+   - integração Google Calendar
+   - próxima reunião
+   - reuniões recentes
+   - criação de evento com Meet
+   - recorrência
+
+6. **Resultados**
+   - visualização rica tipo `results.html`
+   - tabs de análise / transcrição / ações / direções
+
+7. **Integrações**
+   - status da conexão Google
+   - ações de conectar/desconectar
+   - futuramente Fireflies/Microsoft
+
+---
+
+## 2.7. Schema alvo detalhado
+
+### Estratégia definitiva desta fase
+**Expandir o `Meeting` do Gestão** e manter uma tabela separada para integrações por usuário.
+
+## 2.7.1. Modelo `Meeting` alvo
+Tabela existente: `meetings`
+
+### Campos já existentes no Gestão
+- `id`
+- `title`
+- `date_time`
+- `project_id`
+- `transcription_id`
+- `transcription_content`
+- `analysis_summary`
+- `created_at`
+- `created_by_id`
+- `status`
+
+### Campos a adicionar
+- `agenda` (`Text`, nullable=True)
+- `language` (`String(10)`, nullable=True)
+- `alignment_score` (`Float`, nullable=True)
+- `results_json` (`Text`, nullable=True)
+- `audio_url` (`String(5000)`, nullable=True)
+- `video_url` (`String(5000)`, nullable=True)
+- `google_calendar_event_id` (`String(255)`, nullable=True, index=True)
+- `fireflies_transcript_id` (`String(255)`, nullable=True, index=True)
+- `external_meeting_link` (`String(1000)`, nullable=True)
+- `meeting_source` (`String(30)`, nullable=False, default='internal')`
+- `analysis_status` (`String(30)`, nullable=False, default='pending')`
+- `analysis_generated_at` (`DateTime`, nullable=True)
+- `meeting_owner_email` (`String(255)`, nullable=True)
+- `raw_provider_payload` (`Text`, nullable=True)
+
+### Campos a preservar e reinterpretar
+- `transcription_content` permanece como campo principal de transcrição textual
+- `analysis_summary` permanece como resumo curto renderizável no hub
+- `transcription_id` pode ser mantido por compatibilidade, mas idealmente será descontinuado em favor de IDs explícitos (`fireflies_transcript_id` etc.)
+
+## 2.7.2. Tabela nova: integrações por usuário
+### Nome sugerido
+`user_integration_credentials`
+
+### Campos sugeridos
+- `id`
+- `user_id` (`FK user.id`, index)
+- `provider` (`String(50)`) — ex.: `google_calendar`, `fireflies`, `microsoft`
+- `account_email` (`String(255)`, nullable=True)
+- `credentials_json` (`Text`, nullable=True)
+- `is_enabled` (`Boolean`, default=True)
+- `created_at` (`DateTime`)
+- `updated_at` (`DateTime`)
+- `last_sync_at` (`DateTime`, nullable=True)
+- `meta_json` (`Text`, nullable=True)
+
+### Regras
+- um usuário pode ter múltiplas integrações
+- provider + user_id deve ser único por padrão para Google Calendar, salvo futura necessidade multi-conta
+
+## 2.7.3. Tabela opcional futura
+### `meeting_ai_artifacts`
+Se o volume de dados crescer, podemos extrair blobs/artefatos do `Meeting` depois.
+
+**Nesta fase:** não necessário. Primeiro consolidar no `meetings` para acelerar incorporação.
+
+---
+
+## 2.8. Lista de migrations necessárias
+
+### Migration 1 — expandir `meetings`
+Adicionar colunas:
+- `agenda`
+- `language`
+- `alignment_score`
+- `results_json`
+- `audio_url`
+- `video_url`
+- `google_calendar_event_id`
+- `fireflies_transcript_id`
+- `external_meeting_link`
+- `meeting_source`
+- `analysis_status`
+- `analysis_generated_at`
+- `meeting_owner_email`
+- `raw_provider_payload`
+
+### Migration 2 — criar tabela `user_integration_credentials`
+Criar tabela e índices.
+
+### Migration 3 — constraints e índices
+- índice em `google_calendar_event_id`
+- índice em `fireflies_transcript_id`
+- índice composto eventual em `provider, user_id`
+
+### Migration 4 — backfill inicial
+- popular `meeting_source='internal'` para registros existentes
+- popular `analysis_status='pending'` para registros existentes
+
+### Migration 5 — migração de credenciais antigas (quando houver dados)
+- importar `google_credentials` do banco do Transcritor para `user_integration_credentials`
+
+---
+
+## 2.9. Mapa de incorporação arquivo por arquivo
+
+### Entram como base funcional
+- `openai_service.py` → reaproveitar lógica de análise/transcrição/pauta, mas idealmente fundir em serviços do Gestão
+- `google_calendar.py`
+- `google_calendar_integration.py`
+- `calendar_utils.py`
+- `gmail_service.py`
+
+### Entram como referência de interface e fluxo
+- `templates/new_meeting.html`
+- `templates/results.html`
+- `templates/calendar.html`
+- `templates/edit_agenda.html`
+- `templates/generate_agenda.html`
+- `templates/event_details.html`
+- `templates/analyze_calendar_meeting.html`
+- `templates/settings.html`
+- `templates/meetings.html`
+
+### Não entram como produto final
+- `templates/login.html`
+- `templates/register.html`
+- `templates/verify_email.html`
+- `templates/users.html`
+- rotas `/login`, `/logout`, `/register`, `/verify-email`, `/users`
+
+### Devem ser reescritos/adaptados no Gestão
+- `app.py` do Transcritor não deve ser transplantado; apenas sua lógica funcional deve ser repartida entre:
+  - models do Gestão
+  - services do Gestão
+  - rotas do Gestão
+  - templates do Gestão
+
+---
+
+## 2.10. Ordem de implementação da fase técnica
+
+### Etapa 1
+Criar os models novos/expandidos:
+- expandir `Meeting`
+- criar `UserIntegrationCredential`
+
+### Etapa 2
+Criar migrations reais no Gestão.
+
+### Etapa 3
+Portar serviços:
+- análise/transcrição
+- geração de pauta
+- Google Calendar
+- Fireflies
+- Gmail
+
+### Etapa 4
+Refazer `routes_meetings.py` para suportar subabas.
+
+### Etapa 5
+Portar templates para `base.html`.
+
+### Etapa 6
+Migrar dados antigos do Transcritor.
+
+### Etapa 7
+Virar a navegação principal de Reuniões para o módulo novo.
+
+---
+
 # Decisão Operacional Atual
 A incorporação vai seguir a seguinte linha:
 

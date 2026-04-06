@@ -520,6 +520,21 @@ Desenhar schema final de `Meeting` + tabela de integrações
 ### Fase 3
 Preparar lista de migrations SQLAlchemy/Alembic para começar a implementação
 
+### Fase 3.1 — Base de migração criada
+Arquivo criado:
+- `scripts/import_transcritor_data.py`
+
+Escopo inicial do script:
+- conectar no banco do Transcritor por `--source-url`
+- ler usuários fonte
+- ler reuniões fonte
+- reconciliar usuários por email com o banco do Gestão
+- importar credenciais Google para `user_integration_credentials`
+- importar reuniões para `meetings`
+- preservar IDs externos (`google_calendar_event_id`, `fireflies_transcript_id`)
+- suportar `--dry-run`
+- suportar `--limit`
+
 ---
 
 # Fase 2 — Desenho Técnico Detalhado

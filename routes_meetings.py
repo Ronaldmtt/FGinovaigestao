@@ -1,7 +1,8 @@
 import json
+import os
 from datetime import datetime
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from extensions import db
@@ -23,6 +24,60 @@ from services.meetings_calendar_service import (
 from services.meetings_fireflies_service import find_transcript_by_title_and_date, get_transcript
 
 meetings_bp = Blueprint('meetings_bp', __name__)
+
+HUB_EMAIL = 'hub@inovailab.com'
+
+
+def _validate_api_key():
+    expected = os.environ.get('API_SECRET_KEY')
+    provided = request.headers.get('X-API-Key')
+    if not expected:
+        return jsonify({'error': 'API_SECRET_KEY não configurada no servidor'}), 500
+    if not provided or provided != expected:
+        return jsonify({'error': 'Unauthorized'}), 401
+    return None
+
+
+def _parse_agenda_from_description(description):
+    description = (description or '').strip()
+    if '--- AGENDA ---' in description:
+        return description.split('--- AGENDA ---', 1)[1].strip() or None
+    if '--- PAUTA ---' in description:
+        return description.split('--- PAUTA ---', 1)[1].strip() or None
+    return description or None
+
+
+def _apply_fireflies_transcript_to_meeting(meeting, transcript):
+    if not transcript:
+        return False
+
+    meeting.fireflies_transcript_id = transcript.get('id') or meeting.fireflies_transcript_id
+    meeting.audio_url = transcript.get('audio_url') or meeting.audio_url
+    meeting.video_url = transcript.get('video_url') or meeting.video_url
+    meeting.external_meeting_link = transcript.get('meeting_link') or meeting.external_meeting_link
+
+    sentences = transcript.get('sentences') or []
+    if sentences:
+        meeting.transcription_content = '\n'.join(
+            f"{(item.get('speaker_name') or 'Unknown')}: {(item.get('text') or '').strip()}" if item.get('speaker_name') else (item.get('text') or '').strip()
+            for item in sentences if (item.get('text') or '').strip()
+        )
+
+    summary = transcript.get('summary') or {}
+    if summary.get('overview') and not meeting.analysis_summary:
+        meeting.analysis_summary = summary.get('overview')
+
+    if meeting.transcription_content and not meeting.results_json:
+        results = analyze_meeting(meeting.agenda or '', meeting.transcription_content)
+        meeting.analysis_summary = results.get('meeting_summary') or meeting.analysis_summary
+        meeting.language = results.get('language')
+        meeting.alignment_score = results.get('alignment_score')
+        meeting.results_json = json.dumps(results)
+        meeting.analysis_status = 'completed'
+        meeting.analysis_generated_at = datetime.utcnow()
+        meeting.status = 'concluida'
+
+    return True
 
 
 def _render_meetings_hub(tab='overview', project_filter=None, user_filter=None, status_filter=None, generated_agenda=None):
@@ -284,6 +339,8 @@ def create_calendar_meeting():
     start_dt = datetime.strptime(f'{start_date} {start_time}', '%Y-%m-%d %H:%M')
     end_dt = datetime.strptime(f'{end_date} {end_time}', '%Y-%m-%d %H:%M')
     attendees = [email.strip() for email in attendees_raw.split(',') if email.strip()]
+    if HUB_EMAIL not in attendees:
+        attendees.append(HUB_EMAIL)
 
     participant_users = User.query.filter(User.email.in_(attendees)).all() if attendees else []
 
@@ -354,19 +411,7 @@ def sync_fireflies_for_meeting(meeting_id):
 
     transcript_id = transcript_match.get('id')
     transcript = get_transcript(transcript_id)
-    meeting.fireflies_transcript_id = transcript_id
-    meeting.audio_url = transcript.get('audio_url') or meeting.audio_url
-    meeting.video_url = transcript.get('video_url') or meeting.video_url
-    meeting.external_meeting_link = transcript.get('meeting_link') or meeting.external_meeting_link
-
-    sentences = transcript.get('sentences') or []
-    if sentences:
-        meeting.transcription_content = '\n'.join((item.get('text') or '').strip() for item in sentences if (item.get('text') or '').strip())
-
-    summary = transcript.get('summary') or {}
-    if summary.get('overview') and not meeting.analysis_summary:
-        meeting.analysis_summary = summary.get('overview')
-
+    _apply_fireflies_transcript_to_meeting(meeting, transcript)
     db.session.commit()
     flash('Reunião sincronizada com o Fireflies com sucesso.', 'success')
     return redirect(url_for('meetings_bp.meeting_detail', meeting_id=meeting.id))
@@ -394,6 +439,8 @@ def import_calendar_event(event_id):
 
     attendees = event.get('attendees') or []
     attendee_emails = [item.get('email') for item in attendees if item.get('email')]
+    if HUB_EMAIL not in attendee_emails:
+        attendee_emails.append(HUB_EMAIL)
     participant_users = User.query.filter(User.email.in_(attendee_emails)).all() if attendee_emails else []
 
     description_text = (event.get('description') or '').strip()
@@ -426,3 +473,126 @@ def import_calendar_event(event_id):
 
     flash('Evento importado para o módulo de reuniões.', 'success')
     return redirect(url_for('meetings_bp.meeting_detail', meeting_id=meeting.id))
+
+
+@meetings_bp.route('/api/create_meeting', methods=['POST'])
+def api_create_meeting():
+    auth_error = _validate_api_key()
+    if auth_error:
+        return auth_error
+
+    try:
+        data = request.get_json() or {}
+        user_email = (data.get('user_email') or '').strip().lower()
+        title = (data.get('title') or '').strip()
+        start_str = data.get('start_time')
+        end_str = data.get('end_time')
+        description = (data.get('description') or '').strip()
+        attendees = data.get('attendees') or []
+
+        if not all([user_email, title, start_str, end_str]):
+            return jsonify({'error': 'Missing required fields: user_email, title, start_time, end_time'}), 400
+
+        user = User.query.filter(db.func.lower(User.email) == user_email).first()
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        credentials = get_google_credentials_for_user(user.id)
+        if not credentials:
+            return jsonify({'error': 'User does not have Google Calendar connected'}), 400
+
+        start_time = datetime.fromisoformat(start_str.replace('Z', '+00:00')).replace(tzinfo=None)
+        end_time = datetime.fromisoformat(end_str.replace('Z', '+00:00')).replace(tzinfo=None)
+
+        if not isinstance(attendees, list):
+            return jsonify({'error': 'attendees must be a list'}), 400
+        attendees = [str(email).strip() for email in attendees if str(email).strip()]
+        if HUB_EMAIL not in attendees:
+            attendees.append(HUB_EMAIL)
+
+        service = build_google_calendar_service(credentials)
+        event = create_google_calendar_event(service, title, description, start_time, end_time, attendees=attendees)
+
+        agenda = _parse_agenda_from_description(description) or 'Pauta enviada via API'
+        participant_users = User.query.filter(User.email.in_(attendees)).all() if attendees else []
+
+        meeting = Meeting(
+            title=title,
+            date_time=start_time,
+            agenda=agenda,
+            transcription_content='Para analisar esta reunião, insira a transcrição',
+            created_by_id=user.id,
+            meeting_source='api_google_calendar',
+            google_calendar_event_id=event.get('id'),
+            external_meeting_link=event.get('hangoutLink') or event.get('htmlLink'),
+            raw_provider_payload=json.dumps(event),
+            meeting_owner_email=user.email,
+            status='agendada',
+            analysis_status='pending',
+        )
+        if user not in meeting.participants:
+            meeting.participants.append(user)
+        for participant in participant_users:
+            if participant not in meeting.participants:
+                meeting.participants.append(participant)
+
+        db.session.add(meeting)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'meeting_id': meeting.id,
+            'google_event_id': event.get('id'),
+            'google_link': event.get('htmlLink') or event.get('hangoutLink'),
+            'hub_invited': HUB_EMAIL in attendees,
+        }), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@meetings_bp.route('/api/get_transcript', methods=['POST'])
+def api_get_transcript():
+    auth_error = _validate_api_key()
+    if auth_error:
+        return auth_error
+
+    try:
+        data = request.get_json() or {}
+        title = (data.get('title') or '').strip()
+        target_date = (data.get('date') or '').strip()
+        if not title or not target_date:
+            return jsonify({'error': 'Missing required fields: title, date'}), 400
+
+        transcript_match = find_transcript_by_title_and_date(title, target_date, limit=100)
+        if not transcript_match:
+            return jsonify({
+                'found': False,
+                'message': 'No meeting found with matching title and date',
+                'search_criteria': {'title': title, 'date': target_date}
+            }), 404
+
+        transcript = get_transcript(transcript_match.get('id')) or {}
+        sentences = transcript.get('sentences') or []
+        formatted = []
+        for item in sentences:
+            speaker = (item.get('speaker_name') or '').strip()
+            text = (item.get('text') or '').strip()
+            if not text:
+                continue
+            formatted.append(f'{speaker}: {text}' if speaker else text)
+
+        summary = transcript.get('summary') or {}
+        return jsonify({
+            'found': True,
+            'fireflies_id': transcript.get('id'),
+            'title': transcript.get('title'),
+            'date': target_date,
+            'audio_url': transcript.get('audio_url'),
+            'video_url': transcript.get('video_url'),
+            'meeting_link': transcript.get('meeting_link'),
+            'summary': summary.get('overview', ''),
+            'transcription': '\n'.join(formatted),
+            'raw_transcript': transcript,
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

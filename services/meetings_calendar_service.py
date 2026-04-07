@@ -131,6 +131,22 @@ def get_shared_google_calendar_integration():
 
 
 def get_shared_google_credentials():
+    shared_refresh_token = (os.environ.get('GOOGLE_SHARED_REFRESH_TOKEN') or '').strip()
+    if shared_refresh_token:
+        client_id = (os.environ.get('GOOGLE_OAUTH_CLIENT_ID') or '').strip()
+        client_secret = (os.environ.get('GOOGLE_OAUTH_CLIENT_SECRET') or '').strip()
+        if not client_id or not client_secret:
+            raise ValueError('GOOGLE_SHARED_REFRESH_TOKEN exige GOOGLE_OAUTH_CLIENT_ID e GOOGLE_OAUTH_CLIENT_SECRET configurados')
+        return {
+            'token': None,
+            'refresh_token': shared_refresh_token,
+            'token_uri': 'https://oauth2.googleapis.com/token',
+            'client_id': client_id,
+            'client_secret': client_secret,
+            'scopes': GOOGLE_SCOPES,
+            'expiry': None,
+        }
+
     env_json = (os.environ.get('GOOGLE_CREDENTIALS_JSON') or '').strip()
     if env_json:
         try:
@@ -142,14 +158,14 @@ def get_shared_google_credentials():
 
 def build_google_calendar_service(credentials_data):
     if not credentials_data:
-        raise ValueError('Credenciais Google Calendar não encontradas para o usuário')
+        raise ValueError('Credenciais Google Calendar não encontradas para o hub/ambiente')
 
     expiry = None
     if credentials_data.get('expiry'):
         expiry = datetime.fromisoformat(credentials_data['expiry'])
 
     credentials = Credentials(
-        token=credentials_data['token'],
+        token=credentials_data.get('token'),
         refresh_token=credentials_data.get('refresh_token'),
         token_uri=credentials_data['token_uri'],
         client_id=credentials_data['client_id'],
@@ -158,7 +174,7 @@ def build_google_calendar_service(credentials_data):
         expiry=expiry,
     )
 
-    if credentials.expired and credentials.refresh_token:
+    if credentials.refresh_token and (not credentials.token or credentials.expired):
         from google.auth.transport.requests import Request
         credentials.refresh(Request())
 

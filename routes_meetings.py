@@ -17,7 +17,6 @@ from services.meetings_calendar_service import (
     exchange_google_code_for_credentials,
     get_google_authorization_url,
     get_google_calendar_event,
-    get_google_credentials_for_user,
     get_shared_google_calendar_integration,
     get_shared_google_credentials,
     list_google_calendar_events,
@@ -103,7 +102,7 @@ def _render_meetings_hub(tab='overview', project_filter=None, user_filter=None, 
     recent_meetings = Meeting.query.order_by(Meeting.date_time.desc()).limit(5).all()
 
     google_integration = get_shared_google_calendar_integration() or get_user_integration(current_user.id, GOOGLE_CALENDAR_PROVIDER)
-    google_credentials = get_shared_google_credentials() or get_google_credentials_for_user(current_user.id)
+    google_credentials = get_shared_google_credentials()
     google_connected = bool(google_credentials) or bool(google_integration and google_integration.is_enabled)
     all_integrations = list_user_integrations(current_user.id)
     google_events = []
@@ -334,9 +333,9 @@ def create_calendar_meeting():
         flash('Preencha título, data e horários para criar o evento no calendário.', 'danger')
         return redirect(url_for('meetings_bp.meetings_hub', tab='calendar'))
 
-    credentials = get_shared_google_credentials() or get_google_credentials_for_user(current_user.id)
+    credentials = get_shared_google_credentials()
     if not credentials:
-        flash('Nenhuma conta Google operacional está conectada para o módulo de reuniões.', 'warning')
+        flash('Nenhuma credencial compartilhada do hub está configurada para o módulo de reuniões.', 'warning')
         return redirect(url_for('meetings_bp.meetings_hub', tab='integrations'))
 
     start_dt = datetime.strptime(f'{start_date} {start_time}', '%Y-%m-%d %H:%M')
@@ -423,9 +422,9 @@ def sync_fireflies_for_meeting(meeting_id):
 @meetings_bp.route('/meetings/calendar/import/<event_id>')
 @login_required
 def import_calendar_event(event_id):
-    credentials = get_shared_google_credentials() or get_google_credentials_for_user(current_user.id)
+    credentials = get_shared_google_credentials()
     if not credentials:
-        flash('Nenhuma conta Google operacional está conectada para o módulo de reuniões.', 'warning')
+        flash('Nenhuma credencial compartilhada do hub está configurada para o módulo de reuniões.', 'warning')
         return redirect(url_for('meetings_bp.meetings_hub', tab='integrations'))
 
     service = build_google_calendar_service(credentials)
@@ -500,9 +499,9 @@ def api_create_meeting():
         if not user:
             return jsonify({'error': 'User not found'}), 404
 
-        credentials = get_shared_google_credentials() or get_google_credentials_for_user(user.id)
+        credentials = get_shared_google_credentials()
         if not credentials:
-            return jsonify({'error': 'No operational Google Calendar integration available'}), 400
+            return jsonify({'error': 'No shared hub Google Calendar integration available'}), 400
 
         start_time = datetime.fromisoformat(start_str.replace('Z', '+00:00')).replace(tzinfo=None)
         end_time = datetime.fromisoformat(end_str.replace('Z', '+00:00')).replace(tzinfo=None)

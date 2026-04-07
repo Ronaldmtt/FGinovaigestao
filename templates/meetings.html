@@ -321,8 +321,8 @@
                         {% endfor %}
                     </div>
                 {% else %}
-                    <p class="text-muted">Você precisa conectar a conta Google operacional central primeiro.</p>
-                    <a href="{{ url_for('meetings_bp.connect_google_calendar') }}" class="btn btn-primary">Conectar conta operacional</a>
+                    <p class="text-muted">Você precisa configurar a credencial compartilhada do hub primeiro.</p>
+                    <a href="{{ url_for('meetings_bp.meetings_hub', tab='integrations') }}" class="btn btn-primary">Ver instruções da integração do hub</a>
                 {% endif %}
             </div>
         </div>
@@ -364,12 +364,12 @@
                 <div class="border rounded p-3 mb-3">
                     <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
                         <div>
-                            <div class="fw-semibold">Google Calendar</div>
-                            <div class="small text-muted">Use uma conta operacional central para puxar eventos, criar reuniões com Meet e sincronizar a agenda do módulo, como no FGTranscritor. O módulo aceita credencial OAuth operacional via <code>GOOGLE_CREDENTIALS_JSON</code> no ambiente.</div>
+                            <div class="fw-semibold">Google Calendar do Hub</div>
+                            <div class="small text-muted">O módulo de reuniões usa uma credencial compartilhada do hub para puxar eventos, criar reuniões com Meet e sincronizar a agenda central. Configure no ambiente <code>GOOGLE_OAUTH_CLIENT_ID</code>, <code>GOOGLE_OAUTH_CLIENT_SECRET</code>, <code>REDIRECT_URI</code>, <code>GOOGLE_SHARED_ACCOUNT_EMAIL</code> e <code>GOOGLE_SHARED_REFRESH_TOKEN</code>.</div>
                             {% if google_integration and google_integration.account_email %}
-                            <div class="small mt-2">Conta vinculada: <strong>{{ google_integration.account_email }}</strong></div>
+                            <div class="small mt-2">Conta vinculada no banco: <strong>{{ google_integration.account_email }}</strong></div>
                             {% elif google_connected %}
-                            <div class="small mt-2">Conta operacional central carregada via ambiente.</div>
+                            <div class="small mt-2">Conta compartilhada do hub carregada via ambiente.</div>
                             {% endif %}
                             {% if google_integration and google_integration.last_sync_at %}
                             <div class="small text-muted">Última sincronização: {{ google_integration.last_sync_at.strftime('%d/%m/%Y às %H:%M') }}</div>
@@ -378,9 +378,8 @@
                         <div>
                             {% if google_connected %}
                                 <span class="badge bg-success me-2">Conectado</span>
-                                <a href="{{ url_for('meetings_bp.disconnect_google_calendar') }}" class="btn btn-outline-danger btn-sm">Desconectar</a>
                             {% else %}
-                                <a href="{{ url_for('meetings_bp.connect_google_calendar') }}" class="btn btn-primary btn-sm">Conectar</a>
+                                <span class="badge bg-secondary">Pendente</span>
                             {% endif %}
                         </div>
                     </div>

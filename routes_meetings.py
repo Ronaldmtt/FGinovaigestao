@@ -53,8 +53,6 @@ def _apply_fireflies_transcript_to_meeting(meeting, transcript):
         return False
 
     meeting.fireflies_transcript_id = transcript.get('id') or meeting.fireflies_transcript_id
-    meeting.audio_url = transcript.get('audio_url') or meeting.audio_url
-    meeting.video_url = transcript.get('video_url') or meeting.video_url
     meeting.external_meeting_link = transcript.get('meeting_link') or meeting.external_meeting_link
 
     sentences = transcript.get('sentences') or []
@@ -277,6 +275,9 @@ def meeting_detail(meeting_id):
         except Exception as e:
             fireflies_error = str(e)
 
+    media_audio_url = (fireflies_transcript.get('audio_url') if fireflies_transcript else None) or meeting.audio_url
+    media_video_url = (fireflies_transcript.get('video_url') if fireflies_transcript else None) or meeting.video_url
+
     return render_template(
         'meeting_detail.html',
         meeting=meeting,
@@ -286,6 +287,8 @@ def meeting_detail(meeting_id):
         fireflies_auto_synced=fireflies_auto_synced,
         fireflies_pending=bool(_meeting_can_auto_sync_fireflies(meeting) and not meeting.fireflies_transcript_id),
         meeting_end_time=_get_meeting_end_time(meeting),
+        media_audio_url=media_audio_url,
+        media_video_url=media_video_url,
     )
 
 

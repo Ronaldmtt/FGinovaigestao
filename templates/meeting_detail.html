@@ -349,16 +349,16 @@
                 <div class="card shadow-sm">
                     <div class="card-header"><strong>Transcrição textual</strong></div>
                     <div class="card-body">
-                        {% if meeting.audio_url %}
+                        {% if media_audio_url %}
                         <div class="mb-3">
                             <label class="form-label small text-muted">Áudio</label>
-                            <audio controls class="w-100" src="{{ meeting.audio_url }}"></audio>
+                            <audio controls preload="none" class="w-100" src="{{ media_audio_url }}"></audio>
                         </div>
                         {% endif %}
-                        {% if meeting.video_url %}
+                        {% if media_video_url %}
                         <div class="mb-3">
                             <label class="form-label small text-muted">Vídeo</label>
-                            <video controls class="w-100 rounded" src="{{ meeting.video_url }}" style="max-height: 220px;"></video>
+                            <video controls preload="none" class="w-100 rounded" src="{{ media_video_url }}" style="max-height: 320px;"></video>
                         </div>
                         {% endif %}
                         {% if meeting.transcription_content %}
@@ -373,9 +373,11 @@
                 <div class="card shadow-sm mb-4">
                     <div class="card-header"><strong>Mídias</strong></div>
                     <div class="card-body">
-                        {% if meeting.audio_url %}<div class="mb-2"><a href="{{ meeting.audio_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm w-100">Abrir áudio</a></div>{% endif %}
-                        {% if meeting.video_url %}<div class="mb-2"><a href="{{ meeting.video_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm w-100">Abrir vídeo</a></div>{% endif %}
-                        {% if not meeting.audio_url and not meeting.video_url %}<p class="text-muted mb-0">Nenhum link de mídia disponível.</p>{% endif %}
+                        {% if media_audio_url or media_video_url %}
+                        <p class="text-muted mb-0">Áudio e vídeo são carregados sob demanda do Fireflies na própria visualização da transcrição.</p>
+                        {% else %}
+                        <p class="text-muted mb-0">Nenhuma mídia disponível no Fireflies para esta reunião.</p>
+                        {% endif %}
                     </div>
                 </div>
 

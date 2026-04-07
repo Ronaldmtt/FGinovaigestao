@@ -134,3 +134,19 @@ def find_transcript_by_title_and_date(title, target_date, limit=50):
         if item_title == normalized_title and item_date == target_date:
             return item
     return None
+
+
+def summarize_recent_transcripts(limit=5):
+    transcripts = list_transcripts(limit=max(limit, 1)) or []
+    summary = []
+    for item in transcripts[:limit]:
+        if not isinstance(item, dict):
+            continue
+        summary.append({
+            'id': item.get('id'),
+            'title': item.get('title'),
+            'date': _normalize_fireflies_date(item.get('date')),
+            'meeting_link': item.get('meeting_link'),
+            'meet_code': _extract_google_meet_code(item.get('meeting_link')),
+        })
+    return summary

@@ -53,9 +53,8 @@ def get_transcript(transcript_id):
         meeting_link
         duration
         speakers { id name }
-        sentences { index speaker_name text }
-        summary { overview bullets }
-        action_items { text }
+        sentences { index speaker_name text start_time end_time }
+        summary { overview bullet_gist }
       }
     }
     """
@@ -65,8 +64,11 @@ def get_transcript(transcript_id):
         'variables': {'id': transcript_id}
     }, headers=_headers(), timeout=30)
     resp.raise_for_status()
-    payload = resp.json()
-    return payload.get('data', {}).get('transcript')
+    payload = resp.json() or {}
+    if payload.get('errors'):
+        messages = '; '.join((item.get('message') or 'Fireflies GraphQL error') for item in (payload.get('errors') or []) if isinstance(item, dict))
+        raise ValueError(messages or 'Fireflies GraphQL error')
+    return (payload.get('data') or {}).get('transcript')
 
 
 def _normalize_fireflies_date(item_date):

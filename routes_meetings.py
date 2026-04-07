@@ -140,19 +140,27 @@ def _auto_sync_fireflies_for_meeting(meeting):
     try:
         target_date = meeting.date_time.date().isoformat()
         transcript_match = None
+        strategies = []
 
         if meeting.external_meeting_link:
+            strategies.append('meeting_link')
             transcript_match = find_transcript_by_meeting_link(meeting.external_meeting_link, limit=100)
 
         if not transcript_match:
+            strategies.append('title_date')
             transcript_match = find_transcript_by_title_and_date(meeting.title, target_date, limit=100)
 
         if not transcript_match:
-            return False, None
+            details = []
+            if meeting.external_meeting_link:
+                details.append(f'link={meeting.external_meeting_link}')
+            details.append(f'title={meeting.title}')
+            details.append(f'date={target_date}')
+            return False, f"Transcript não encontrado no Fireflies ({', '.join(strategies)}; {'; '.join(details)})"
 
         transcript_id = transcript_match.get('id')
         if not transcript_id:
-            return False, None
+            return False, 'Transcript encontrado no Fireflies sem id válido'
 
         transcript = get_transcript(transcript_id)
         changed = _apply_fireflies_transcript_to_meeting(meeting, transcript)

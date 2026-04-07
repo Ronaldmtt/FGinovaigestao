@@ -1,4 +1,5 @@
 import os
+import re
 from datetime import datetime, timezone
 import requests
 
@@ -93,17 +94,30 @@ def _normalize_meeting_link(link):
     return link
 
 
+def _extract_google_meet_code(link):
+    normalized = _normalize_meeting_link(link)
+    if not normalized:
+        return ''
+    match = re.search(r'meet\.google\.com/([a-z]{3}-[a-z]{4}-[a-z]{3})', normalized)
+    return (match.group(1) if match else '').strip().lower()
+
+
 def find_transcript_by_meeting_link(meeting_link, limit=100):
     normalized_link = _normalize_meeting_link(meeting_link)
-    if not normalized_link:
+    meet_code = _extract_google_meet_code(meeting_link)
+    if not normalized_link and not meet_code:
         return None
 
     transcripts = list_transcripts(limit=limit) or []
     for item in transcripts:
         if not isinstance(item, dict):
             continue
-        item_link = _normalize_meeting_link(item.get('meeting_link'))
-        if item_link and item_link == normalized_link:
+        item_link_raw = item.get('meeting_link')
+        item_link = _normalize_meeting_link(item_link_raw)
+        item_code = _extract_google_meet_code(item_link_raw)
+        if normalized_link and item_link and item_link == normalized_link:
+            return item
+        if meet_code and item_code and item_code == meet_code:
             return item
     return None
 

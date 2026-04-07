@@ -212,6 +212,13 @@
             <div class="card-body">
                 <form action="{{ url_for('meetings_bp.generate_agenda_for_meeting') }}" method="post">
                     <div class="mb-3">
+                        <label class="form-label">Projeto vinculado</label>
+                        <select name="project_id" class="form-select">
+                            <option value="">Sem vínculo</option>
+                            {% for p in projects %}<option value="{{ p.id }}" {% if generated_agenda and generated_agenda.project_id|string == p.id|string %}selected{% endif %}>{{ p.nome }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">Tópico</label>
                         <input type="text" name="topic" class="form-control" required>
                     </div>
@@ -258,6 +265,13 @@
             <div class="card-body">
                 {% if google_connected %}
                 <form action="{{ url_for('meetings_bp.create_calendar_meeting') }}" method="post">
+                    <div class="mb-3">
+                        <label class="form-label">Projeto vinculado</label>
+                        <select name="project_id" class="form-select">
+                            <option value="">Sem vínculo</option>
+                            {% for p in projects %}<option value="{{ p.id }}" {% if generated_agenda and generated_agenda.project_id|string == p.id|string %}selected{% endif %}>{{ p.nome }}</option>{% endfor %}
+                        </select>
+                    </div>
                     <div class="mb-3">
                         <label class="form-label">Título</label>
                         <input name="title" class="form-control" required value="{{ generated_agenda.title if generated_agenda else '' }}">
@@ -447,7 +461,7 @@
 {% endif %}
 
 <div class="modal fade" id="newMeetingModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <form action="{{ url_for('meetings_bp.create_meeting') }}" method="POST">
                 <div class="modal-header">
@@ -455,31 +469,50 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Título *</label>
-                        <input type="text" name="title" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Data e hora *</label>
-                        <input type="datetime-local" name="date_time" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Projeto</label>
-                        <select name="project_id" class="form-select">
-                            <option value="">Sem vínculo</option>
-                            {% for p in projects %}<option value="{{ p.id }}">{{ p.nome }}</option>{% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Participantes</label>
-                        <select name="participants" class="form-select" multiple size="5">
-                            {% for u in users %}{% if u.id != current_user.id %}<option value="{{ u.id }}">{{ u.full_name }}</option>{% endif %}{% endfor %}
-                        </select>
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Título *</label>
+                            <input type="text" name="title" class="form-control" placeholder="Ex.: Alinhamento semanal do projeto" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Projeto vinculado</label>
+                            <select name="project_id" class="form-select">
+                                <option value="">Sem vínculo</option>
+                                {% for p in projects %}<option value="{{ p.id }}">{{ p.nome }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Data *</label>
+                            <input type="date" name="meeting_date" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Hora início *</label>
+                            <input type="time" name="start_time" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Hora término</label>
+                            <input type="time" name="end_time" class="form-control">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Pauta</label>
+                            <textarea name="agenda" class="form-control" rows="5" placeholder="Descreva os tópicos que precisam ser tratados na reunião."></textarea>
+                            <div class="form-text">Se quiser uma pauta mais rica, use a aba <strong>Pautas</strong> para gerar com IA.</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Participantes internos</label>
+                            <select name="participants" class="form-select" multiple size="6">
+                                {% for u in users %}{% if u.id != current_user.id %}<option value="{{ u.id }}">{{ u.full_name }} — {{ u.email }}</option>{% endif %}{% endfor %}
+                            </select>
+                            <div class="form-text">Seleção interna do sistema. Aqui não é campo de emails separados por vírgula.</div>
+                        </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Criar reunião</button>
+                <div class="modal-footer justify-content-between">
+                    <a href="{{ url_for('meetings_bp.meetings_hub', tab='agendas') }}" class="btn btn-outline-primary">Gerar pauta com IA</a>
+                    <div>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Criar reunião</button>
+                    </div>
                 </div>
             </form>
         </div>

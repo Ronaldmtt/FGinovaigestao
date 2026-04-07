@@ -389,20 +389,32 @@ def meeting_detail(meeting_id):
 @meetings_bp.route('/api/meetings/create', methods=['POST'])
 @login_required
 def create_meeting():
-    title = request.form.get('title')
-    date_time_str = request.form.get('date_time')
+    title = (request.form.get('title') or '').strip()
+    meeting_date = (request.form.get('meeting_date') or '').strip()
+    start_time = (request.form.get('start_time') or '').strip()
+    end_time = (request.form.get('end_time') or '').strip()
+    agenda = (request.form.get('agenda') or '').strip()
     project_id = request.form.get('project_id')
     participant_ids = request.form.getlist('participants')
 
-    if not title or not date_time_str:
-        flash('Título e Data/Hora são obrigatórios', 'error')
+    if not title or not meeting_date or not start_time:
+        flash('Título, data e hora de início são obrigatórios.', 'error')
         return redirect(url_for('meetings_bp.meetings_hub', tab='list'))
 
     try:
-        dt = datetime.strptime(date_time_str, '%Y-%m-%dT%H:%M')
+        dt = datetime.strptime(f'{meeting_date} {start_time}', '%Y-%m-%d %H:%M')
     except ValueError:
-        flash('Formato de data inválido.', 'error')
+        flash('Formato de data/hora inválido.', 'error')
         return redirect(url_for('meetings_bp.meetings_hub', tab='list'))
+
+    raw_provider_payload = None
+    if end_time:
+        try:
+            end_dt = datetime.strptime(f'{meeting_date} {end_time}', '%Y-%m-%d %H:%M')
+            raw_provider_payload = json.dumps({'end': {'dateTime': end_dt.isoformat()}})
+        except ValueError:
+            flash('Hora de término inválida.', 'error')
+            return redirect(url_for('meetings_bp.meetings_hub', tab='list'))
 
     new_meeting = Meeting(
         title=title,
@@ -411,6 +423,8 @@ def create_meeting():
         created_by_id=current_user.id,
         meeting_source='internal',
         analysis_status='pending',
+        agenda=agenda or None,
+        raw_provider_payload=raw_provider_payload,
     )
 
     if participant_ids:
@@ -481,6 +495,7 @@ def generate_agenda_for_meeting():
     topic = (request.form.get('topic') or '').strip()
     description = (request.form.get('description') or '').strip()
     language = (request.form.get('language') or 'pt').strip()
+    project_id = (request.form.get('project_id') or '').strip()
 
     if not topic or not description:
         flash('Informe tópico e descrição para gerar a pauta.', 'danger')
@@ -488,6 +503,7 @@ def generate_agenda_for_meeting():
 
     generated = generate_meeting_agenda(topic, description, language)
     generated['description'] = description
+    generated['project_id'] = project_id or ''
     flash('Pauta gerada com sucesso. Revise o texto abaixo e use na criação da reunião.', 'success')
     return _render_meetings_hub(tab='agendas', generated_agenda=generated)
 
@@ -528,6 +544,7 @@ def create_calendar_meeting():
     title = (request.form.get('title') or '').strip()
     description = (request.form.get('description') or '').strip()
     agenda = (request.form.get('agenda') or '').strip()
+    project_id = request.form.get('project_id')
     start_date = request.form.get('start_date')
     start_time = request.form.get('start_time')
     end_date = request.form.get('end_date') or start_date
@@ -560,6 +577,7 @@ def create_calendar_meeting():
     meeting = Meeting(
         title=title,
         date_time=start_dt,
+        project_id=project_id if project_id else None,
         created_by_id=current_user.id,
         meeting_source='google_calendar',
         google_calendar_event_id=event.get('id'),

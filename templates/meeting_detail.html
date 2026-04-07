@@ -67,43 +67,69 @@
     </div>
 </div>
 
-<div class="row g-4 mb-4">
-    <div class="col-md-4">
-        <div class="card h-100 border-primary shadow-sm">
-            <div class="card-body">
-                <div class="text-muted small mb-2">Score de alinhamento</div>
-                <div class="d-flex align-items-end gap-2 mb-2">
-                    <div class="display-5 fw-bold text-primary">{{ '%.1f'|format(alignment|float) }}</div>
-                    <div class="text-muted mb-2">/10</div>
-                </div>
-                <div class="progress" style="height: 12px;">
-                    <div class="progress-bar bg-primary" style="width: {{ (alignment|float * 10)|round(0, 'floor') }}%"></div>
-                </div>
-            </div>
-        </div>
+<div class="card shadow-sm border-primary mb-4">
+    <div class="card-header bg-dark text-primary">
+        <strong>Resumo da reunião</strong>
     </div>
-    <div class="col-md-4">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body">
-                <div class="text-muted small mb-2">Cobertura da pauta</div>
-                <div class="display-6 fw-bold">{{ addressed_count }}/{{ total_count }}</div>
-                <div class="progress mt-2" style="height: 12px;">
-                    <div class="progress-bar bg-info" style="width: {{ coverage_percent }}%"></div>
+    <div class="card-body">
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h4 class="mb-0">Alinhamento com a pauta</h4>
+                    <div class="badge bg-primary rounded-pill fs-6">{{ '%.1f'|format(alignment|float) }}/10</div>
                 </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body">
-                <div class="text-muted small mb-2">Status da análise</div>
-                <div class="fs-4 fw-bold {% if meeting.analysis_status == 'completed' %}text-success{% else %}text-warning{% endif %}">
-                    {{ meeting.analysis_status|replace('_', ' ')|title }}
+
+                <div class="position-relative mb-4">
+                    <div class="progress" style="height: 30px;">
+                        <div class="progress-bar bg-danger" style="width: 33%;"><i class="fas fa-skull"></i></div>
+                        <div class="progress-bar bg-warning text-dark" style="width: 34%;"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div class="progress-bar bg-success" style="width: 33%;"><i class="fas fa-money-bill"></i></div>
+                    </div>
+                    {% set score_position = (alignment|float * 10) %}
+                    <div class="position-absolute" style="top: -10px; left: {{ score_position }}%; transform: translateX(-50%);">
+                        <div class="bg-primary text-white rounded-circle d-flex justify-content-center align-items-center"
+                             style="width: 42px; height: 42px; border: 2px solid white; box-shadow: 0 0 10px rgba(0,0,0,.35); font-size: .85rem;">
+                            {{ '%.1f'|format(alignment|float) }}
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between mt-2 text-muted small">
+                        <div><i class="fas fa-skull"></i> Desalinhado</div>
+                        <div><i class="fas fa-exclamation-triangle"></i> Parcial</div>
+                        <div><i class="fas fa-money-bill"></i> Excelente</div>
+                    </div>
                 </div>
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="mb-0">Cobertura da pauta</h5>
+                        <span class="badge bg-info rounded-pill">{{ addressed_count }}/{{ total_count }} itens</span>
+                    </div>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar bg-info" style="width: {{ coverage_percent }}%;">{{ coverage_percent }}%</div>
+                    </div>
+                </div>
+
                 {% if meeting.analysis_generated_at %}
-                <div class="small text-muted mt-2">Gerada em {{ meeting.analysis_generated_at.strftime('%d/%m/%Y às %H:%M') }}</div>
+                <div class="small text-muted">Análise gerada em {{ meeting.analysis_generated_at.strftime('%d/%m/%Y às %H:%M') }}</div>
                 {% endif %}
             </div>
+        </div>
+
+        <div>
+            <h4 class="border-bottom pb-2 mb-3">Overview</h4>
+            {% set raw_overview = fireflies_transcript.summary.overview if fireflies_transcript and fireflies_transcript.summary and fireflies_transcript.summary.overview else '' %}
+            {% set overview_lines = raw_overview.split('\n') if raw_overview else [] %}
+            {% if overview_lines %}
+                <ul class="list-unstyled mb-0">
+                    {% for line in overview_lines if line|trim %}
+                        <li class="mb-2">• {{ line|trim|replace('- ', '', 1) }}</li>
+                    {% endfor %}
+                </ul>
+            {% elif meeting_summary %}
+                <p class="lead mb-0">{{ meeting_summary }}</p>
+            {% else %}
+                <p class="text-muted mb-0">Ainda não existe resumo executivo gerado para esta reunião.</p>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -118,45 +144,70 @@
     <div class="tab-pane fade show active" id="analysis-tab-pane">
         <div class="row g-4">
             <div class="col-lg-8">
-                <div class="card shadow-sm border-primary mb-4">
-                    <div class="card-header bg-dark text-primary"><strong>Resumo executivo da reunião</strong></div>
-                    <div class="card-body">
-                        {% if meeting_summary %}
-                            <p class="lead mb-0">{{ meeting_summary }}</p>
-                        {% else %}
-                            <p class="text-muted mb-0">Ainda não existe resumo executivo gerado para esta reunião.</p>
-                        {% endif %}
+                <div class="card shadow-sm h-100 border-primary mb-4">
+                    <div class="card-header bg-dark text-primary d-flex justify-content-between align-items-center">
+                        <strong>Itens da pauta</strong>
+                        <div>
+                            <span class="badge bg-success rounded-pill me-1"><i class="fas fa-check"></i> {{ addressed_count }}</span>
+                            <span class="badge bg-danger rounded-pill"><i class="fas fa-xmark"></i> {{ unaddressed_items|length }}</span>
+                        </div>
                     </div>
-                </div>
-
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header"><strong>Itens da pauta</strong></div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
-                            <table class="table table-hover mb-0">
-                                <thead>
+                            <table class="table table-striped table-hover mb-0">
+                                <thead class="bg-dark">
                                     <tr>
-                                        <th style="width: 80px;">Status</th>
-                                        <th>Item</th>
-                                        <th>Contexto / recomendação</th>
+                                        <th width="60" class="text-center">Status</th>
+                                        <th>Item da pauta</th>
+                                        <th width="120" class="text-center">Detalhes</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for item in agenda_items %}
-                                    <tr>
-                                        <td>
-                                            {% if item.addressed %}
-                                            <span class="badge bg-success">OK</span>
-                                            {% else %}
-                                            <span class="badge bg-danger">Pendente</span>
-                                            {% endif %}
-                                        </td>
-                                        <td><strong>{{ item.item }}</strong></td>
-                                        <td>{{ item.context or item.recommendation or '-' }}</td>
-                                    </tr>
+                                    {% if agenda_items %}
+                                        {% for item in agenda_items %}
+                                        <tr>
+                                            <td class="text-center">
+                                                {% if item.addressed %}
+                                                <span class="badge bg-success rounded-pill"><i class="fas fa-check"></i></span>
+                                                {% else %}
+                                                <span class="badge bg-danger rounded-pill"><i class="fas fa-xmark"></i></span>
+                                                {% endif %}
+                                            </td>
+                                            <td><strong>{{ item.item }}</strong></td>
+                                            <td class="text-center">
+                                                <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#itemDetails{{ loop.index }}">
+                                                    <i class="fas fa-info-circle"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <div class="modal fade" id="itemDetails{{ loop.index }}" tabindex="-1" aria-hidden="true">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header {% if item.addressed %}bg-success{% else %}bg-danger{% endif %} text-white">
+                                                        <h5 class="modal-title">
+                                                            {% if item.addressed %}<i class="fas fa-check-circle me-2"></i>{% else %}<i class="fas fa-times-circle me-2"></i>{% endif %}
+                                                            {{ item.item }}
+                                                        </h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        {% if item.addressed %}
+                                                            <h6 class="text-success mb-3">Item abordado na reunião</h6>
+                                                            <h6>Contexto:</h6>
+                                                            <p class="mb-0">{{ item.context or 'Sem contexto detalhado.' }}</p>
+                                                        {% else %}
+                                                            <h6 class="text-danger mb-3">Item não abordado na reunião</h6>
+                                                            <h6>Recomendação:</h6>
+                                                            <p class="mb-0">{{ item.recommendation or 'Sem recomendação detalhada.' }}</p>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
                                     {% else %}
-                                    <tr><td colspan="3" class="text-center text-muted py-4">Nenhum item estruturado de pauta disponível.</td></tr>
-                                    {% endfor %}
+                                        <tr><td colspan="3" class="text-center py-4 text-muted">Nenhum item estruturado de pauta disponível.</td></tr>
+                                    {% endif %}
                                 </tbody>
                             </table>
                         </div>
@@ -193,12 +244,16 @@
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <div class="card shadow-sm h-100">
-                            <div class="card-header"><strong>Ações / responsáveis</strong></div>
+                        <div class="card shadow-sm h-100 border-success">
+                            <div class="card-header bg-dark text-success"><strong>Ações sugeridas</strong></div>
                             <div class="card-body">
                                 {% if action_items %}
                                 <ul class="mb-0">
                                     {% for item in action_items %}<li class="mb-2">{{ item }}</li>{% endfor %}
+                                </ul>
+                                {% elif fireflies_transcript and fireflies_transcript.summary and fireflies_transcript.summary.bullet_gist %}
+                                <ul class="mb-0">
+                                    {% for item in fireflies_transcript.summary.bullet_gist %}<li class="mb-2">{{ item }}</li>{% endfor %}
                                 </ul>
                                 {% else %}
                                 <p class="text-muted mb-0">Nenhuma ação registrada.</p>
@@ -224,6 +279,19 @@
             </div>
 
             <div class="col-lg-4">
+                <div class="card shadow-sm mb-4 border-info">
+                    <div class="card-header bg-dark text-info"><strong>Notas</strong></div>
+                    <div class="card-body">
+                        {% if fireflies_transcript and fireflies_transcript.summary and fireflies_transcript.summary.overview %}
+                            {% for line in fireflies_transcript.summary.overview.split('\n') if line|trim %}
+                                <p class="mb-2">{{ line|trim|replace('- ', '', 1) }}</p>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted mb-0">Nenhuma nota disponível.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
                 <div class="card shadow-sm mb-4">
                     <div class="card-header"><strong>Participantes</strong></div>
                     <ul class="list-group list-group-flush">
@@ -281,6 +349,18 @@
                 <div class="card shadow-sm">
                     <div class="card-header"><strong>Transcrição textual</strong></div>
                     <div class="card-body">
+                        {% if meeting.audio_url %}
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Áudio</label>
+                            <audio controls class="w-100" src="{{ meeting.audio_url }}"></audio>
+                        </div>
+                        {% endif %}
+                        {% if meeting.video_url %}
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Vídeo</label>
+                            <video controls class="w-100 rounded" src="{{ meeting.video_url }}" style="max-height: 220px;"></video>
+                        </div>
+                        {% endif %}
                         {% if meeting.transcription_content %}
                         <div class="border rounded p-3 bg-light text-dark" style="max-height: 520px; overflow-y: auto; white-space: pre-wrap; font-family: monospace; font-size: 0.92rem;">{{ meeting.transcription_content }}</div>
                         {% else %}

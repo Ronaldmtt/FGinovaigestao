@@ -102,13 +102,13 @@ def _extract_google_meet_code(link):
     return (match.group(1) if match else '').strip().lower()
 
 
-def find_transcript_by_meeting_link(meeting_link, limit=100):
+def match_transcript_from_list(transcripts, meeting_link=None, title=None, target_date=None):
+    transcripts = transcripts or []
     normalized_link = _normalize_meeting_link(meeting_link)
     meet_code = _extract_google_meet_code(meeting_link)
-    if not normalized_link and not meet_code:
-        return None
+    normalized_title = (title or '').strip().lower()
+    normalized_date = (target_date or '').strip()[:10]
 
-    transcripts = list_transcripts(limit=limit) or []
     for item in transcripts:
         if not isinstance(item, dict):
             continue
@@ -116,24 +116,31 @@ def find_transcript_by_meeting_link(meeting_link, limit=100):
         item_link = _normalize_meeting_link(item_link_raw)
         item_code = _extract_google_meet_code(item_link_raw)
         if normalized_link and item_link and item_link == normalized_link:
-            return item
+            return item, 'meeting_link'
         if meet_code and item_code and item_code == meet_code:
-            return item
-    return None
+            return item, 'meet_code'
 
-
-def find_transcript_by_title_and_date(title, target_date, limit=50):
-    transcripts = list_transcripts(limit=limit) or []
-    normalized_title = (title or '').strip().lower()
-    target_date = (target_date or '').strip()[:10]
     for item in transcripts:
         if not isinstance(item, dict):
             continue
         item_title = (item.get('title') or '').strip().lower()
         item_date = _normalize_fireflies_date(item.get('date'))
-        if item_title == normalized_title and item_date == target_date:
-            return item
-    return None
+        if normalized_title and normalized_date and item_title == normalized_title and item_date == normalized_date:
+            return item, 'title_date'
+
+    return None, None
+
+
+def find_transcript_by_meeting_link(meeting_link, limit=100):
+    transcripts = list_transcripts(limit=limit) or []
+    match, _strategy = match_transcript_from_list(transcripts, meeting_link=meeting_link)
+    return match
+
+
+def find_transcript_by_title_and_date(title, target_date, limit=50):
+    transcripts = list_transcripts(limit=limit) or []
+    match, _strategy = match_transcript_from_list(transcripts, title=title, target_date=target_date)
+    return match
 
 
 def summarize_recent_transcripts(limit=5):

@@ -81,6 +81,38 @@ def _apply_fireflies_transcript_to_meeting(meeting, transcript):
     return True
 
 
+def _meeting_can_auto_sync_fireflies(meeting):
+    if not meeting or meeting.fireflies_transcript_id:
+        return False
+    if not meeting.title or not meeting.date_time:
+        return False
+    return meeting.date_time <= datetime.utcnow()
+
+
+def _auto_sync_fireflies_for_meeting(meeting):
+    if not _meeting_can_auto_sync_fireflies(meeting):
+        return False, None
+
+    try:
+        target_date = meeting.date_time.date().isoformat()
+        transcript_match = find_transcript_by_title_and_date(meeting.title, target_date, limit=100)
+        if not transcript_match:
+            return False, None
+
+        transcript_id = transcript_match.get('id')
+        if not transcript_id:
+            return False, None
+
+        transcript = get_transcript(transcript_id)
+        changed = _apply_fireflies_transcript_to_meeting(meeting, transcript)
+        if changed:
+            db.session.commit()
+        return changed, None
+    except Exception as e:
+        db.session.rollback()
+        return False, str(e)
+
+
 def _render_meetings_hub(tab='overview', project_filter=None, user_filter=None, status_filter=None, generated_agenda=None):
     query = Meeting.query
     if project_filter:
@@ -157,6 +189,13 @@ def meetings_hub():
 def meeting_detail(meeting_id):
     meeting = Meeting.query.get_or_404(meeting_id)
 
+    fireflies_auto_synced = False
+    fireflies_error = None
+    if _meeting_can_auto_sync_fireflies(meeting):
+        fireflies_auto_synced, auto_sync_error = _auto_sync_fireflies_for_meeting(meeting)
+        if auto_sync_error:
+            fireflies_error = auto_sync_error
+
     results = {}
     if meeting.results_json:
         try:
@@ -165,7 +204,6 @@ def meeting_detail(meeting_id):
             results = {}
 
     fireflies_transcript = None
-    fireflies_error = None
     if meeting.fireflies_transcript_id:
         try:
             fireflies_transcript = get_transcript(meeting.fireflies_transcript_id)
@@ -178,6 +216,7 @@ def meeting_detail(meeting_id):
         results=results,
         fireflies_transcript=fireflies_transcript,
         fireflies_error=fireflies_error,
+        fireflies_auto_synced=fireflies_auto_synced,
     )
 
 
@@ -405,16 +444,14 @@ def analyze_calendar_meeting(meeting_id):
 def sync_fireflies_for_meeting(meeting_id):
     meeting = Meeting.query.get_or_404(meeting_id)
 
-    target_date = meeting.date_time.date().isoformat() if meeting.date_time else ''
-    transcript_match = find_transcript_by_title_and_date(meeting.title, target_date, limit=100)
-    if not transcript_match:
+    synced, error = _auto_sync_fireflies_for_meeting(meeting)
+    if error:
+        flash(f'Erro ao sincronizar com o Fireflies: {error}', 'warning')
+        return redirect(url_for('meetings_bp.meeting_detail', meeting_id=meeting.id))
+    if not synced:
         flash('Nenhum transcript correspondente foi encontrado no Fireflies pelo título/data.', 'warning')
         return redirect(url_for('meetings_bp.meeting_detail', meeting_id=meeting.id))
 
-    transcript_id = transcript_match.get('id')
-    transcript = get_transcript(transcript_id)
-    _apply_fireflies_transcript_to_meeting(meeting, transcript)
-    db.session.commit()
     flash('Reunião sincronizada com o Fireflies com sucesso.', 'success')
     return redirect(url_for('meetings_bp.meeting_detail', meeting_id=meeting.id))
 

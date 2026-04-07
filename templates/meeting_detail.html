@@ -315,6 +315,9 @@
                         {% if meeting.fireflies_transcript_id %}<span class="badge bg-info text-dark">Vinculado</span>{% endif %}
                     </div>
                     <div class="card-body">
+                        {% if fireflies_auto_synced %}
+                        <div class="alert alert-success py-2">Transcript do Fireflies sincronizado automaticamente nesta abertura.</div>
+                        {% endif %}
                         {% if fireflies_error %}
                         <div class="alert alert-warning py-2">{{ fireflies_error }}</div>
                         {% endif %}

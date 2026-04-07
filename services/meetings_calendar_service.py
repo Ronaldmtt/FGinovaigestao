@@ -32,7 +32,7 @@ def get_google_redirect_uri():
     env_redirect = os.environ.get('REDIRECT_URI')
     if env_redirect:
         return env_redirect
-    return 'http://localhost/settings/google_callback'
+    return 'http://localhost/oauth2callback'
 
 
 def create_google_oauth_flow():

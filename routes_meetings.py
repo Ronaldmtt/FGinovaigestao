@@ -296,6 +296,7 @@ def connect_google_calendar():
 
 
 @meetings_bp.route('/meetings/integrations/google/callback')
+@meetings_bp.route('/oauth2callback')
 @login_required
 def google_calendar_callback():
     code = request.args.get('code')

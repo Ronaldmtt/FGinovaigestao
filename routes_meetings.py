@@ -103,16 +103,16 @@ def _render_meetings_hub(tab='overview', project_filter=None, user_filter=None, 
     recent_meetings = Meeting.query.order_by(Meeting.date_time.desc()).limit(5).all()
 
     google_integration = get_shared_google_calendar_integration() or get_user_integration(current_user.id, GOOGLE_CALENDAR_PROVIDER)
-    google_connected = bool(google_integration and google_integration.is_enabled)
+    google_credentials = get_shared_google_credentials() or get_google_credentials_for_user(current_user.id)
+    google_connected = bool(google_credentials) or bool(google_integration and google_integration.is_enabled)
     all_integrations = list_user_integrations(current_user.id)
     google_events = []
     google_events_error = None
 
     if google_connected and tab in {'overview', 'calendar', 'integrations', 'agendas'}:
         try:
-            credentials = get_shared_google_credentials() or get_google_credentials_for_user(current_user.id)
-            if credentials:
-                service = build_google_calendar_service(credentials)
+            if google_credentials:
+                service = build_google_calendar_service(google_credentials)
                 google_events = list_google_calendar_events(service, max_results=10, include_recent=True)
         except Exception as e:
             google_events_error = str(e)

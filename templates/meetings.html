@@ -368,6 +368,8 @@
                             <div class="small text-muted">Use uma conta operacional central para puxar eventos, criar reuniões com Meet e sincronizar a agenda do módulo, como no FGTranscritor. O módulo aceita credencial OAuth operacional via <code>GOOGLE_CREDENTIALS_JSON</code> no ambiente.</div>
                             {% if google_integration and google_integration.account_email %}
                             <div class="small mt-2">Conta vinculada: <strong>{{ google_integration.account_email }}</strong></div>
+                            {% elif google_connected %}
+                            <div class="small mt-2">Conta operacional central carregada via ambiente.</div>
                             {% endif %}
                             {% if google_integration and google_integration.last_sync_at %}
                             <div class="small text-muted">Última sincronização: {{ google_integration.last_sync_at.strftime('%d/%m/%Y às %H:%M') }}</div>

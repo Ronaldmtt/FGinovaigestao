@@ -32,8 +32,12 @@ def list_transcripts(limit=50):
         'variables': {'limit': limit}
     }, headers=_headers(), timeout=30)
     resp.raise_for_status()
-    payload = resp.json()
-    return payload.get('data', {}).get('transcripts', [])
+    payload = resp.json() or {}
+    data = payload.get('data') or {}
+    transcripts = data.get('transcripts') or []
+    if not isinstance(transcripts, list):
+        return []
+    return [item for item in transcripts if isinstance(item, dict)]
 
 
 def get_transcript(transcript_id):
@@ -79,10 +83,12 @@ def _normalize_fireflies_date(item_date):
 
 
 def find_transcript_by_title_and_date(title, target_date, limit=50):
-    transcripts = list_transcripts(limit=limit)
+    transcripts = list_transcripts(limit=limit) or []
     normalized_title = (title or '').strip().lower()
     target_date = (target_date or '').strip()[:10]
     for item in transcripts:
+        if not isinstance(item, dict):
+            continue
         item_title = (item.get('title') or '').strip().lower()
         item_date = _normalize_fireflies_date(item.get('date'))
         if item_title == normalized_title and item_date == target_date:

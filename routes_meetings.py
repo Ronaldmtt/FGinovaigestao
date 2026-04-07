@@ -29,8 +29,6 @@ TRANSCRIPT_SPEAKER_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#9b59b6', '#f1c40
 
 meetings_bp = Blueprint('meetings_bp', __name__)
 
-HUB_EMAIL = 'hub@inovailab.com'
-
 
 def _validate_api_key():
     expected = os.environ.get('API_SECRET_KEY')
@@ -128,12 +126,10 @@ def _parse_fireflies_notes(summary):
         if '**' in text and '(' in text and ')' in text:
             if current:
                 notes.append(current)
-            title = text
-            time_range = ''
-            if '(' in text and ')' in text:
-                time_range = text[text.rfind('(')+1:text.rfind(')')].strip()
+            time_range = text[text.rfind('(')+1:text.rfind(')')].strip() if '(' in text and ')' in text else ''
+            title = re.sub(r'\s*\([^)]*\)\s*$', '', text).replace('**', '').strip()
             current = {
-                'title': text,
+                'title': title,
                 'time_range': time_range,
                 'lines': []
             }

@@ -72,7 +72,7 @@ def get_transcript(transcript_id):
         duration
         speakers { id name }
         sentences { index speaker_name text start_time end_time }
-        summary { overview bullet_gist }
+        summary { overview bullet_gist action_items shorthand_bullet }
       }
     }
     """

@@ -1,5 +1,6 @@
 import os
 import re
+import unicodedata
 from datetime import datetime, timezone
 import requests
 
@@ -85,10 +86,19 @@ def _normalize_fireflies_date(item_date):
     return item_date[:10]
 
 
+def _normalize_text(value):
+    value = '' if value is None else str(value)
+    value = unicodedata.normalize('NFKC', value)
+    value = ''.join(ch for ch in value if not unicodedata.category(ch).startswith('C'))
+    value = re.sub(r'\s+', ' ', value).strip().lower()
+    return value
+
+
 def _normalize_meeting_link(link):
-    link = (link or '').strip().lower()
+    link = _normalize_text(link)
     if not link:
         return ''
+    link = link.replace('http://', 'https://')
     if link.endswith('/'):
         link = link[:-1]
     return link
@@ -106,7 +116,7 @@ def match_transcript_from_list(transcripts, meeting_link=None, title=None, targe
     transcripts = transcripts or []
     normalized_link = _normalize_meeting_link(meeting_link)
     meet_code = _extract_google_meet_code(meeting_link)
-    normalized_title = (title or '').strip().lower()
+    normalized_title = _normalize_text(title)
     normalized_date = (target_date or '').strip()[:10]
 
     for item in transcripts:
@@ -115,15 +125,15 @@ def match_transcript_from_list(transcripts, meeting_link=None, title=None, targe
         item_link_raw = item.get('meeting_link')
         item_link = _normalize_meeting_link(item_link_raw)
         item_code = _extract_google_meet_code(item_link_raw)
-        if normalized_link and item_link and item_link == normalized_link:
+        if normalized_link and item_link and (item_link == normalized_link or normalized_link in item_link or item_link in normalized_link):
             return item, 'meeting_link'
-        if meet_code and item_code and item_code == meet_code:
+        if meet_code and item_code and (item_code == meet_code or meet_code in item_code or item_code in meet_code):
             return item, 'meet_code'
 
     for item in transcripts:
         if not isinstance(item, dict):
             continue
-        item_title = (item.get('title') or '').strip().lower()
+        item_title = _normalize_text(item.get('title'))
         item_date = _normalize_fireflies_date(item.get('date'))
         if normalized_title and normalized_date and item_title == normalized_title and item_date == normalized_date:
             return item, 'title_date'

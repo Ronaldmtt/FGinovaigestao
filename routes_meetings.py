@@ -155,7 +155,7 @@ def _auto_sync_fireflies_for_meeting(meeting):
             details.append(f'date={target_date}')
             recent = summarize_recent_transcripts(limit=5)
             candidates = ' | '.join(
-                f"{item.get('date')} :: {item.get('title')} :: {item.get('meeting_link')}"
+                f"{item.get('date')} :: {repr(item.get('title'))} :: {repr(item.get('meeting_link'))}"
                 for item in recent
             ) or 'nenhum transcript recente retornado'
             return False, f"Transcript não encontrado no Fireflies (single_list_match; {'; '.join(details)}; recentes={candidates})"

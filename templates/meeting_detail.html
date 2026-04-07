@@ -225,9 +225,9 @@
                                 {% if fireflies_notes %}
                                     {% for note in fireflies_notes %}
                                         <div class="mb-3 pb-2 {% if not loop.last %}border-bottom border-secondary-subtle{% endif %}">
-                                            <div class="fw-semibold">{{ note.title|replace('**', '') }}</div>
-                                            {% if note.time_range %}<div class="small text-muted mb-2">{{ note.time_range }}</div>{% endif %}
-                                            {% for line in note.lines %}
+                                            <div class="fw-semibold">{{ note['title']|replace('**', '') }}</div>
+                                            {% if note['time_range'] %}<div class="small text-muted mb-2">{{ note['time_range'] }}</div>{% endif %}
+                                            {% for line in note['lines'] %}
                                                 <p class="mb-1">{{ line }}</p>
                                             {% endfor %}
                                         </div>
@@ -250,9 +250,9 @@
                                 {% if fireflies_action_groups %}
                                     {% for group in fireflies_action_groups %}
                                         <div class="mb-3 pb-2 {% if not loop.last %}border-bottom border-secondary-subtle{% endif %}">
-                                            <div class="fw-semibold text-success-emphasis mb-2">{{ group.speaker }}</div>
+                                            <div class="fw-semibold text-success-emphasis mb-2">{{ group['speaker'] }}</div>
                                             <ul class="mb-0 ps-3">
-                                                {% for item in group.items %}
+                                                {% for item in group['items'] %}
                                                     <li class="mb-2">{{ item }}</li>
                                                 {% endfor %}
                                             </ul>

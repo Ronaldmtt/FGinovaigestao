@@ -142,9 +142,9 @@
 
 <div class="tab-content">
     <div class="tab-pane fade show active" id="analysis-tab-pane">
-        <div class="row g-4">
-            <div class="col-lg-8">
-                <div class="card shadow-sm h-100 border-primary mb-4">
+        <div class="row g-4 align-items-start">
+            <div class="col-xl-7 col-lg-12">
+                <div class="card shadow-sm border-primary mb-4">
                     <div class="card-header bg-dark text-primary d-flex justify-content-between align-items-center">
                         <strong>Itens da pauta</strong>
                         <div>
@@ -214,11 +214,64 @@
                     </div>
                 </div>
 
+            </div>
+
+            <div class="col-xl-5 col-lg-12">
                 <div class="row g-4">
+                    <div class="col-md-6 col-xl-12">
+                        <div class="card shadow-sm h-100 border-info">
+                            <div class="card-header bg-dark text-info"><strong>Notas</strong></div>
+                            <div class="card-body" style="min-height: 220px;">
+                                {% if fireflies_transcript and fireflies_transcript.summary and fireflies_transcript.summary.overview %}
+                                    {% for line in fireflies_transcript.summary.overview.split('\n') if line|trim %}
+                                        <p class="mb-2">{{ line|trim|replace('- ', '', 1) }}</p>
+                                    {% endfor %}
+                                {% else %}
+                                    <p class="text-muted mb-0">Nenhuma nota disponível.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 col-xl-12">
+                        <div class="card shadow-sm h-100 border-success">
+                            <div class="card-header bg-dark text-success"><strong>Ações sugeridas</strong></div>
+                            <div class="card-body" style="min-height: 220px;">
+                                {% if action_items %}
+                                    {% for item in action_items %}
+                                        {% set parts = item.split(':', 1) %}
+                                        {% if parts|length > 1 and parts[0]|length < 40 %}
+                                            <div class="mb-3 pb-2 border-bottom border-secondary-subtle">
+                                                <div class="fw-semibold text-success-emphasis">{{ parts[0].strip() }}</div>
+                                                <div>{{ parts[1].strip() }}</div>
+                                            </div>
+                                        {% else %}
+                                            <p class="mb-2">• {{ item }}</p>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% elif fireflies_transcript and fireflies_transcript.summary and fireflies_transcript.summary.bullet_gist %}
+                                    {% for item in fireflies_transcript.summary.bullet_gist %}
+                                        {% set parts = item.split(':', 1) %}
+                                        {% if parts|length > 1 and parts[0]|length < 40 %}
+                                            <div class="mb-3 pb-2 border-bottom border-secondary-subtle">
+                                                <div class="fw-semibold text-success-emphasis">{{ parts[0].strip() }}</div>
+                                                <div>{{ parts[1].strip() }}</div>
+                                            </div>
+                                        {% else %}
+                                            <p class="mb-2">• {{ item }}</p>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    <p class="text-muted mb-0">Nenhuma ação registrada.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="col-md-6">
                         <div class="card shadow-sm h-100">
                             <div class="card-header"><strong>Insights</strong></div>
-                            <div class="card-body">
+                            <div class="card-body" style="min-height: 180px;">
                                 {% if insights %}
                                 <ul class="mb-0">
                                     {% for item in insights %}<li class="mb-2">{{ item }}</li>{% endfor %}
@@ -232,7 +285,7 @@
                     <div class="col-md-6">
                         <div class="card shadow-sm h-100">
                             <div class="card-header"><strong>Próximos passos</strong></div>
-                            <div class="card-body">
+                            <div class="card-body" style="min-height: 180px;">
                                 {% if next_steps %}
                                 <ul class="mb-0">
                                     {% for item in next_steps %}<li class="mb-2">{{ item }}</li>{% endfor %}
@@ -244,27 +297,9 @@
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <div class="card shadow-sm h-100 border-success">
-                            <div class="card-header bg-dark text-success"><strong>Ações sugeridas</strong></div>
-                            <div class="card-body">
-                                {% if action_items %}
-                                <ul class="mb-0">
-                                    {% for item in action_items %}<li class="mb-2">{{ item }}</li>{% endfor %}
-                                </ul>
-                                {% elif fireflies_transcript and fireflies_transcript.summary and fireflies_transcript.summary.bullet_gist %}
-                                <ul class="mb-0">
-                                    {% for item in fireflies_transcript.summary.bullet_gist %}<li class="mb-2">{{ item }}</li>{% endfor %}
-                                </ul>
-                                {% else %}
-                                <p class="text-muted mb-0">Nenhuma ação registrada.</p>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
                         <div class="card shadow-sm h-100">
                             <div class="card-header"><strong>Direções estratégicas</strong></div>
-                            <div class="card-body">
+                            <div class="card-body" style="min-height: 180px;">
                                 {% if directions %}
                                 <ul class="mb-0">
                                     {% for item in directions %}<li class="mb-2">{{ item }}</li>{% endfor %}
@@ -275,68 +310,63 @@
                             </div>
                         </div>
                     </div>
+                    <div class="col-md-6">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header"><strong>Tópicos adicionais</strong></div>
+                            <div class="card-body" style="min-height: 180px;">
+                                {% if additional_topics %}
+                                <ul class="mb-0">
+                                    {% for item in additional_topics %}<li class="mb-2">{{ item }}</li>{% endfor %}
+                                </ul>
+                                {% else %}
+                                <p class="text-muted mb-0">Nenhum tópico adicional registrado.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="col-lg-4">
-                <div class="card shadow-sm mb-4 border-info">
-                    <div class="card-header bg-dark text-info"><strong>Notas</strong></div>
-                    <div class="card-body">
-                        {% if fireflies_transcript and fireflies_transcript.summary and fireflies_transcript.summary.overview %}
-                            {% for line in fireflies_transcript.summary.overview.split('\n') if line|trim %}
-                                <p class="mb-2">{{ line|trim|replace('- ', '', 1) }}</p>
-                            {% endfor %}
-                        {% else %}
-                            <p class="text-muted mb-0">Nenhuma nota disponível.</p>
-                        {% endif %}
+            <div class="col-12">
+                <div class="row g-4">
+                    <div class="col-lg-5">
+                        <div class="card shadow-sm mb-4">
+                            <div class="card-header"><strong>Participantes</strong></div>
+                            <ul class="list-group list-group-flush">
+                                {% for p in meeting.participants %}
+                                <li class="list-group-item d-flex align-items-center">
+                                    <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                                        {{ p.nome[0] }}{{ p.sobrenome[0] if p.sobrenome else '' }}
+                                    </div>
+                                    <div>
+                                        <div class="fw-semibold">{{ p.full_name }}</div>
+                                        <small class="text-muted">{{ p.email }}</small>
+                                    </div>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
                     </div>
-                </div>
-
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header"><strong>Participantes</strong></div>
-                    <ul class="list-group list-group-flush">
-                        {% for p in meeting.participants %}
-                        <li class="list-group-item d-flex align-items-center">
-                            <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 32px; height: 32px; font-size: 0.8rem;">
-                                {{ p.nome[0] }}{{ p.sobrenome[0] if p.sobrenome else '' }}
+                    <div class="col-lg-7">
+                        <div class="card shadow-sm">
+                            <div class="card-header"><strong>Itens não abordados</strong></div>
+                            <div class="card-body">
+                                {% if unaddressed_items %}
+                                <div class="row g-3">
+                                    {% for item in unaddressed_items %}
+                                    <div class="col-md-6">
+                                        <div class="border rounded p-3 h-100">
+                                            <div class="fw-semibold mb-2">{{ item.item }}</div>
+                                            <div class="small text-muted">{{ item.recommendation }}</div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                <p class="text-muted mb-0">Nenhum item pendente de pauta.</p>
+                                {% endif %}
                             </div>
-                            <div>
-                                <div class="fw-semibold">{{ p.full_name }}</div>
-                                <small class="text-muted">{{ p.email }}</small>
-                            </div>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                </div>
-
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header"><strong>Tópicos adicionais</strong></div>
-                    <div class="card-body">
-                        {% if additional_topics %}
-                        <ul class="mb-0">
-                            {% for item in additional_topics %}<li class="mb-2">{{ item }}</li>{% endfor %}
-                        </ul>
-                        {% else %}
-                        <p class="text-muted mb-0">Nenhum tópico adicional registrado.</p>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <div class="card shadow-sm">
-                    <div class="card-header"><strong>Itens não abordados</strong></div>
-                    <div class="card-body">
-                        {% if unaddressed_items %}
-                        <ul class="mb-0">
-                            {% for item in unaddressed_items %}
-                            <li class="mb-3">
-                                <div class="fw-semibold">{{ item.item }}</div>
-                                <div class="small text-muted">{{ item.recommendation }}</div>
-                            </li>
-                            {% endfor %}
-                        </ul>
-                        {% else %}
-                        <p class="text-muted mb-0">Nenhum item pendente de pauta.</p>
-                        {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>

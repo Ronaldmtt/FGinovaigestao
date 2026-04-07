@@ -24,6 +24,9 @@ from services.meetings_calendar_service import (
 )
 from services.meetings_fireflies_service import get_transcript, list_transcripts, match_transcript_from_list, _normalize_fireflies_date
 
+HUB_EMAIL = 'hub@inovailab.com'
+TRANSCRIPT_SPEAKER_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#9b59b6', '#f1c40f', '#1abc9c', '#f39c12']
+
 meetings_bp = Blueprint('meetings_bp', __name__)
 
 HUB_EMAIL = 'hub@inovailab.com'
@@ -77,6 +80,93 @@ def _apply_fireflies_transcript_to_meeting(meeting, transcript):
         meeting.status = 'concluida'
 
     return True
+
+
+def _format_mmss(value):
+    try:
+        total_seconds = max(int(float(value or 0)), 0)
+    except Exception:
+        total_seconds = 0
+    minutes = total_seconds // 60
+    seconds = total_seconds % 60
+    return f"{minutes:02d}:{seconds:02d}"
+
+
+def _parse_fireflies_action_items(summary):
+    raw = (summary or {}).get('action_items') if isinstance(summary, dict) else None
+    if not raw:
+        return []
+    groups = []
+    current = None
+    for line in str(raw).splitlines():
+        text = line.strip()
+        if not text:
+            continue
+        if text.startswith('**') and text.endswith('**'):
+            if current:
+                groups.append(current)
+            current = {'speaker': text.strip('* ').strip(), 'items': []}
+            continue
+        if current is None:
+            current = {'speaker': 'Geral', 'items': []}
+        current['items'].append(text)
+    if current:
+        groups.append(current)
+    return [g for g in groups if g.get('items')]
+
+
+def _parse_fireflies_notes(summary):
+    raw = (summary or {}).get('shorthand_bullet') if isinstance(summary, dict) else None
+    if not raw:
+        return []
+    notes = []
+    current = None
+    for line in str(raw).splitlines():
+        text = line.strip()
+        if not text:
+            continue
+        if '**' in text and '(' in text and ')' in text:
+            if current:
+                notes.append(current)
+            title = text
+            time_range = ''
+            if '(' in text and ')' in text:
+                time_range = text[text.rfind('(')+1:text.rfind(')')].strip()
+            current = {
+                'title': text,
+                'time_range': time_range,
+                'lines': []
+            }
+        else:
+            if current is None:
+                current = {'title': 'Notas', 'time_range': '', 'lines': []}
+            current['lines'].append(text)
+    if current:
+        notes.append(current)
+    return notes
+
+
+def _build_transcript_blocks(fireflies_transcript):
+    sentences = (fireflies_transcript or {}).get('sentences') or []
+    if not sentences:
+        return []
+    speaker_order = []
+    for item in sentences:
+        speaker = (item.get('speaker_name') or 'Unknown').strip()
+        if speaker not in speaker_order:
+            speaker_order.append(speaker)
+    color_map = {speaker: TRANSCRIPT_SPEAKER_COLORS[idx % len(TRANSCRIPT_SPEAKER_COLORS)] for idx, speaker in enumerate(speaker_order)}
+    blocks = []
+    for item in sentences:
+        speaker = (item.get('speaker_name') or 'Unknown').strip()
+        blocks.append({
+            'speaker': speaker,
+            'time': _format_mmss(item.get('start_time')),
+            'text': (item.get('text') or '').strip(),
+            'color': color_map.get(speaker, '#6c757d'),
+            'initial': (speaker[:1] or '?').upper(),
+        })
+    return [b for b in blocks if b['text']]
 
 
 def _parse_iso_datetime(value):
@@ -277,6 +367,10 @@ def meeting_detail(meeting_id):
 
     media_audio_url = (fireflies_transcript.get('audio_url') if fireflies_transcript else None) or meeting.audio_url
     media_video_url = (fireflies_transcript.get('video_url') if fireflies_transcript else None) or meeting.video_url
+    fireflies_summary = (fireflies_transcript or {}).get('summary') or {}
+    fireflies_action_groups = _parse_fireflies_action_items(fireflies_summary)
+    fireflies_notes = _parse_fireflies_notes(fireflies_summary)
+    transcript_blocks = _build_transcript_blocks(fireflies_transcript)
 
     return render_template(
         'meeting_detail.html',
@@ -289,6 +383,9 @@ def meeting_detail(meeting_id):
         meeting_end_time=_get_meeting_end_time(meeting),
         media_audio_url=media_audio_url,
         media_video_url=media_video_url,
+        fireflies_action_groups=fireflies_action_groups,
+        fireflies_notes=fireflies_notes,
+        transcript_blocks=transcript_blocks,
     )
 
 

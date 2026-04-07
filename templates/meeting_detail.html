@@ -222,7 +222,17 @@
                         <div class="card shadow-sm h-100 border-info">
                             <div class="card-header bg-dark text-info"><strong>Notas</strong></div>
                             <div class="card-body" style="min-height: 220px;">
-                                {% if fireflies_transcript and fireflies_transcript.summary and fireflies_transcript.summary.overview %}
+                                {% if fireflies_notes %}
+                                    {% for note in fireflies_notes %}
+                                        <div class="mb-3 pb-2 {% if not loop.last %}border-bottom border-secondary-subtle{% endif %}">
+                                            <div class="fw-semibold">{{ note.title|replace('**', '') }}</div>
+                                            {% if note.time_range %}<div class="small text-muted mb-2">{{ note.time_range }}</div>{% endif %}
+                                            {% for line in note.lines %}
+                                                <p class="mb-1">{{ line }}</p>
+                                            {% endfor %}
+                                        </div>
+                                    {% endfor %}
+                                {% elif fireflies_transcript and fireflies_transcript.summary and fireflies_transcript.summary.overview %}
                                     {% for line in fireflies_transcript.summary.overview.split('\n') if line|trim %}
                                         <p class="mb-2">{{ line|trim|replace('- ', '', 1) }}</p>
                                     {% endfor %}
@@ -237,30 +247,25 @@
                         <div class="card shadow-sm h-100 border-success">
                             <div class="card-header bg-dark text-success"><strong>Ações sugeridas</strong></div>
                             <div class="card-body" style="min-height: 220px;">
-                                {% if action_items %}
-                                    {% for item in action_items %}
-                                        {% set parts = item.split(':', 1) %}
-                                        {% if parts|length > 1 and parts[0]|length < 40 %}
-                                            <div class="mb-3 pb-2 border-bottom border-secondary-subtle">
-                                                <div class="fw-semibold text-success-emphasis">{{ parts[0].strip() }}</div>
-                                                <div>{{ parts[1].strip() }}</div>
-                                            </div>
-                                        {% else %}
-                                            <p class="mb-2">• {{ item }}</p>
-                                        {% endif %}
+                                {% if fireflies_action_groups %}
+                                    {% for group in fireflies_action_groups %}
+                                        <div class="mb-3 pb-2 {% if not loop.last %}border-bottom border-secondary-subtle{% endif %}">
+                                            <div class="fw-semibold text-success-emphasis mb-2">{{ group.speaker }}</div>
+                                            <ul class="mb-0 ps-3">
+                                                {% for item in group.items %}
+                                                    <li class="mb-2">{{ item }}</li>
+                                                {% endfor %}
+                                            </ul>
+                                        </div>
                                     {% endfor %}
+                                {% elif action_items %}
+                                    <ul class="mb-0 ps-3">
+                                        {% for item in action_items %}<li class="mb-2">{{ item }}</li>{% endfor %}
+                                    </ul>
                                 {% elif fireflies_transcript and fireflies_transcript.summary and fireflies_transcript.summary.bullet_gist %}
-                                    {% for item in fireflies_transcript.summary.bullet_gist %}
-                                        {% set parts = item.split(':', 1) %}
-                                        {% if parts|length > 1 and parts[0]|length < 40 %}
-                                            <div class="mb-3 pb-2 border-bottom border-secondary-subtle">
-                                                <div class="fw-semibold text-success-emphasis">{{ parts[0].strip() }}</div>
-                                                <div>{{ parts[1].strip() }}</div>
-                                            </div>
-                                        {% else %}
-                                            <p class="mb-2">• {{ item }}</p>
-                                        {% endif %}
-                                    {% endfor %}
+                                    <ul class="mb-0 ps-3">
+                                        {% for item in fireflies_transcript.summary.bullet_gist %}<li class="mb-2">{{ item }}</li>{% endfor %}
+                                    </ul>
                                 {% else %}
                                     <p class="text-muted mb-0">Nenhuma ação registrada.</p>
                                 {% endif %}
@@ -377,7 +382,7 @@
         <div class="row g-4">
             <div class="col-lg-8">
                 <div class="card shadow-sm">
-                    <div class="card-header"><strong>Transcrição textual</strong></div>
+                    <div class="card-header"><strong>Transcrição completa</strong></div>
                     <div class="card-body">
                         {% if media_audio_url %}
                         <div class="mb-3">
@@ -391,7 +396,22 @@
                             <video controls preload="none" class="w-100 rounded" src="{{ media_video_url }}" style="max-height: 320px;"></video>
                         </div>
                         {% endif %}
-                        {% if meeting.transcription_content %}
+                        {% if transcript_blocks %}
+                        <div class="border rounded p-3 bg-light text-dark" style="max-height: 560px; overflow-y: auto;">
+                            {% for block in transcript_blocks %}
+                            <div class="d-flex gap-3 mb-3">
+                                <span class="rounded-circle text-white d-inline-flex align-items-center justify-content-center flex-shrink-0" style="width: 36px; height: 36px; background: {{ block.color }};">{{ block.initial }}</span>
+                                <div>
+                                    <div>
+                                        <span class="fw-semibold" style="color: {{ block.color }};">{{ block.speaker }}</span>
+                                        <span class="text-muted small ms-2">{{ block.time }}</span>
+                                    </div>
+                                    <div class="mt-1">{{ block.text }}</div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% elif meeting.transcription_content %}
                         <div class="border rounded p-3 bg-light text-dark" style="max-height: 520px; overflow-y: auto; white-space: pre-wrap; font-family: monospace; font-size: 0.92rem;">{{ meeting.transcription_content }}</div>
                         {% else %}
                         <p class="text-muted mb-0">Nenhuma transcrição textual armazenada.</p>

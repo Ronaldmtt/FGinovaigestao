@@ -61,7 +61,7 @@ def _apply_fireflies_transcript_to_meeting(meeting, transcript):
     if sentences:
         meeting.transcription_content = '\n'.join(
             f"{(item.get('speaker_name') or 'Unknown')}: {(item.get('text') or '').strip()}" if item.get('speaker_name') else (item.get('text') or '').strip()
-            for item in sentences if (item.get('text') or '').strip()
+            for item in sentences if isinstance(item, dict) and (item.get('text') or '').strip()
         )
 
     summary = transcript.get('summary') or {}
@@ -81,12 +81,56 @@ def _apply_fireflies_transcript_to_meeting(meeting, transcript):
     return True
 
 
+def _parse_iso_datetime(value):
+    value = (value or '').strip() if isinstance(value, str) else value
+    if not value:
+        return None
+    try:
+        if isinstance(value, datetime):
+            return value.replace(tzinfo=None) if value.tzinfo else value
+        parsed = datetime.fromisoformat(str(value).replace('Z', '+00:00'))
+        return parsed.replace(tzinfo=None) if parsed.tzinfo else parsed
+    except Exception:
+        return None
+
+
+def _get_meeting_end_time(meeting):
+    if not meeting:
+        return None
+    payload_raw = meeting.raw_provider_payload
+    if not payload_raw:
+        return None
+    try:
+        payload = json.loads(payload_raw) if isinstance(payload_raw, str) else payload_raw
+    except Exception:
+        return None
+    if not isinstance(payload, dict):
+        return None
+    end_data = payload.get('end') or {}
+    if isinstance(end_data, dict):
+        return _parse_iso_datetime(end_data.get('dateTime')) or _parse_iso_datetime(end_data.get('date'))
+    return None
+
+
+def _update_meeting_status_from_time(meeting):
+    if not meeting or meeting.status in {'concluida', 'cancelada'}:
+        return False
+    end_time = _get_meeting_end_time(meeting)
+    reference_time = end_time or meeting.date_time
+    if reference_time and reference_time <= datetime.utcnow():
+        meeting.status = 'concluida'
+        return True
+    return False
+
+
 def _meeting_can_auto_sync_fireflies(meeting):
     if not meeting or meeting.fireflies_transcript_id:
         return False
     if not meeting.title or not meeting.date_time:
         return False
-    return meeting.date_time <= datetime.utcnow()
+    end_time = _get_meeting_end_time(meeting)
+    reference_time = end_time or meeting.date_time
+    return reference_time <= datetime.utcnow()
 
 
 def _auto_sync_fireflies_for_meeting(meeting):
@@ -196,12 +240,17 @@ def meetings_hub():
 def meeting_detail(meeting_id):
     meeting = Meeting.query.get_or_404(meeting_id)
 
+    status_updated = _update_meeting_status_from_time(meeting)
+
     fireflies_auto_synced = False
     fireflies_error = None
     if _meeting_can_auto_sync_fireflies(meeting):
         fireflies_auto_synced, auto_sync_error = _auto_sync_fireflies_for_meeting(meeting)
         if auto_sync_error:
             fireflies_error = auto_sync_error
+
+    if status_updated and not fireflies_auto_synced:
+        db.session.commit()
 
     results = {}
     if meeting.results_json:
@@ -224,6 +273,8 @@ def meeting_detail(meeting_id):
         fireflies_transcript=fireflies_transcript,
         fireflies_error=fireflies_error,
         fireflies_auto_synced=fireflies_auto_synced,
+        fireflies_pending=bool(_meeting_can_auto_sync_fireflies(meeting) and not meeting.fireflies_transcript_id),
+        meeting_end_time=_get_meeting_end_time(meeting),
     )
 
 
@@ -450,13 +501,18 @@ def analyze_calendar_meeting(meeting_id):
 @login_required
 def sync_fireflies_for_meeting(meeting_id):
     meeting = Meeting.query.get_or_404(meeting_id)
+    status_updated = _update_meeting_status_from_time(meeting)
 
     synced, error = _auto_sync_fireflies_for_meeting(meeting)
     if error:
+        if status_updated:
+            db.session.commit()
         flash(f'Erro ao sincronizar com o Fireflies: {error}', 'warning')
         return redirect(url_for('meetings_bp.meeting_detail', meeting_id=meeting.id))
     if not synced:
-        flash('Nenhum transcript correspondente foi encontrado no Fireflies pelo título/data.', 'warning')
+        if status_updated:
+            db.session.commit()
+        flash('Nenhum transcript correspondente foi encontrado no Fireflies para esta reunião ainda.', 'warning')
         return redirect(url_for('meetings_bp.meeting_detail', meeting_id=meeting.id))
 
     flash('Reunião sincronizada com o Fireflies com sucesso.', 'success')

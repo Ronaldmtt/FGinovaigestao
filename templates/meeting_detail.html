@@ -26,6 +26,10 @@
             <h2 class="mb-1"><i class="fas fa-video me-2 text-primary"></i>{{ meeting.title }}</h2>
             <div class="text-muted small">
                 <i class="far fa-calendar-alt me-1"></i> {{ meeting.date_time.strftime('%d/%m/%Y às %H:%M') }}
+                {% if meeting_end_time %}
+                <span class="mx-2">→</span>
+                <i class="far fa-clock me-1"></i> até {{ meeting_end_time.strftime('%H:%M') }}
+                {% endif %}
                 <span class="mx-2">|</span>
                 <i class="fas fa-user-tie me-1"></i> Criador: {{ meeting.creator.full_name }}
                 {% if meeting.project %}
@@ -56,6 +60,9 @@
                     <i class="fas fa-wave-square me-1"></i> Sincronizar Fireflies
                 </button>
             </form>
+            {% if fireflies_pending %}
+            <span class="badge bg-secondary-subtle text-secondary-emphasis border">Aguardando transcrição do Fireflies</span>
+            {% endif %}
         </div>
     </div>
 </div>

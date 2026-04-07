@@ -17,7 +17,10 @@ def _headers():
     }
 
 
+MAX_FIREFLIES_LIMIT = 50
+
 def list_transcripts(limit=50, include_debug=False):
+    limit = min(limit or MAX_FIREFLIES_LIMIT, MAX_FIREFLIES_LIMIT)
     query = """
     query ListTranscripts($limit: Int) {
       transcripts(limit: $limit) {

@@ -139,7 +139,7 @@ def _auto_sync_fireflies_for_meeting(meeting):
 
     try:
         target_date = meeting.date_time.date().isoformat()
-        transcripts, ff_debug = list_transcripts(limit=100, include_debug=True)
+        transcripts, ff_debug = list_transcripts(limit=50, include_debug=True)
         transcripts = transcripts or []
         transcript_match, strategy = match_transcript_from_list(
             transcripts,

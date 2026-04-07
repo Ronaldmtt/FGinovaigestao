@@ -22,7 +22,7 @@ from services.meetings_calendar_service import (
     list_google_calendar_events,
     save_google_credentials_for_user,
 )
-from services.meetings_fireflies_service import get_transcript, list_transcripts, match_transcript_from_list, summarize_recent_transcripts
+from services.meetings_fireflies_service import get_transcript, list_transcripts, match_transcript_from_list, _normalize_fireflies_date
 
 meetings_bp = Blueprint('meetings_bp', __name__)
 
@@ -153,12 +153,11 @@ def _auto_sync_fireflies_for_meeting(meeting):
                 details.append(f'link={meeting.external_meeting_link}')
             details.append(f'title={meeting.title}')
             details.append(f'date={target_date}')
-            recent = summarize_recent_transcripts(limit=5)
             candidates = ' | '.join(
-                f"{item.get('date')} :: {repr(item.get('title'))} :: {repr(item.get('meeting_link'))}"
-                for item in recent
+                f"{_normalize_fireflies_date(item.get('date'))} :: {repr(item.get('title'))} :: {repr(item.get('meeting_link'))} :: id={item.get('id')}"
+                for item in transcripts[:5] if isinstance(item, dict)
             ) or 'nenhum transcript recente retornado'
-            return False, f"Transcript não encontrado no Fireflies (single_list_match; {'; '.join(details)}; recentes={candidates})"
+            return False, f"Transcript não encontrado no Fireflies (single_list_match; {'; '.join(details)}; recentes_mesma_lista={candidates})"
 
         transcript_id = transcript_match.get('id')
         if not transcript_id:

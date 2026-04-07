@@ -42,12 +42,15 @@ def list_transcripts(limit=50, include_debug=False):
     items = [item for item in transcripts if isinstance(item, dict)]
     if include_debug:
         token = os.environ.get('FIREFLIES_API_TOKEN') or ''
+        errors = payload.get('errors') or []
+        error_messages = [item.get('message') for item in errors if isinstance(item, dict) and item.get('message')]
         return items, {
             'count': len(items),
             'payload_keys': sorted(payload.keys()) if isinstance(payload, dict) else [],
             'data_keys': sorted(data.keys()) if isinstance(data, dict) else [],
             'raw_transcripts_type': type(transcripts).__name__,
             'token_prefix': token[:8],
+            'error_messages': error_messages,
         }
     return items
 

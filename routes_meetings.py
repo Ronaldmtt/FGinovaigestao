@@ -7,7 +7,7 @@ from flask import Blueprint, flash, jsonify, redirect, render_template, request,
 from flask_login import current_user, login_required
 
 from extensions import db
-from models import Meeting, Project, User
+from models import Client, Meeting, Project, User
 from services.meeting_integrations_service import FIREFLIES_PROVIDER, MICROSOFT_PROVIDER, get_user_integration, list_user_integrations
 from services.meetings_ai_service import analyze_meeting, generate_meeting_agenda
 from services.meetings_calendar_service import (
@@ -260,8 +260,34 @@ def _auto_sync_fireflies_for_meeting(meeting):
         return False, str(e)
 
 
-def _render_meetings_hub(tab='overview', project_filter=None, user_filter=None, status_filter=None, generated_agenda=None):
+def _parse_attendee_emails(raw_value):
+    raw = (raw_value or '').strip()
+    if not raw:
+        return []
+    pieces = re.split(r'[;,=\n]+', raw)
+    emails = []
+    for piece in pieces:
+        email = piece.strip()
+        if not email:
+            continue
+        if '@' not in email:
+            continue
+        emails.append(email)
+    deduped = []
+    seen = set()
+    for email in emails:
+        lowered = email.lower()
+        if lowered in seen:
+            continue
+        seen.add(lowered)
+        deduped.append(email)
+    return deduped
+
+
+def _render_meetings_hub(tab='overview', project_filter=None, user_filter=None, status_filter=None, generated_agenda=None, client_filter=None):
     query = Meeting.query
+    if client_filter:
+        query = query.join(Project, Meeting.project_id == Project.id).filter(Project.client_id == client_filter)
     if project_filter:
         query = query.filter_by(project_id=project_filter)
     if user_filter:
@@ -270,6 +296,7 @@ def _render_meetings_hub(tab='overview', project_filter=None, user_filter=None, 
         query = query.filter_by(status=status_filter)
 
     meetings = query.order_by(Meeting.date_time.desc()).all()
+    clients = Client.query.order_by(Client.nome.asc()).all()
     projects = Project.query.order_by(Project.nome.asc()).all()
     users = User.query.filter_by(ativo=True).order_by(User.nome.asc(), User.sobrenome.asc()).all()
 
@@ -299,8 +326,10 @@ def _render_meetings_hub(tab='overview', project_filter=None, user_filter=None, 
         'meetings.html',
         tab=tab,
         meetings=meetings,
+        clients=clients,
         projects=projects,
         users=users,
+        selected_client=client_filter,
         selected_project=project_filter,
         selected_user=user_filter,
         selected_status=status_filter,
@@ -325,10 +354,11 @@ def _render_meetings_hub(tab='overview', project_filter=None, user_filter=None, 
 @login_required
 def meetings_hub():
     tab = request.args.get('tab', 'overview')
+    client_filter = request.args.get('client_id')
     project_filter = request.args.get('project_id')
     user_filter = request.args.get('user_id')
     status_filter = request.args.get('status')
-    return _render_meetings_hub(tab=tab, project_filter=project_filter, user_filter=user_filter, status_filter=status_filter)
+    return _render_meetings_hub(tab=tab, project_filter=project_filter, user_filter=user_filter, status_filter=status_filter, client_filter=client_filter)
 
 
 @meetings_bp.route('/meetings/<int:meeting_id>', methods=['GET'])
@@ -562,7 +592,9 @@ def create_calendar_meeting():
 
     start_dt = datetime.strptime(f'{start_date} {start_time}', '%Y-%m-%d %H:%M')
     end_dt = datetime.strptime(f'{end_date} {end_time}', '%Y-%m-%d %H:%M')
-    attendees = [email.strip() for email in attendees_raw.split(',') if email.strip()]
+    attendees = _parse_attendee_emails(attendees_raw)
+    if current_user.email and current_user.email not in attendees:
+        attendees.append(current_user.email)
     if HUB_EMAIL not in attendees:
         attendees.append(HUB_EMAIL)
 
@@ -594,7 +626,7 @@ def create_calendar_meeting():
     db.session.add(meeting)
     db.session.commit()
 
-    flash('Evento criado no Google Calendar com sucesso.', 'success')
+    flash('Evento criado no Google Calendar com sucesso. O hub e o criador foram adicionados automaticamente como convidados.', 'success')
     return redirect(url_for('meetings_bp.meetings_hub', tab='calendar'))
 
 

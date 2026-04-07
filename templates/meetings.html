@@ -77,7 +77,7 @@
                     {% endif %}
                 {% else %}
                     <p class="text-muted">O módulo de reuniões precisa de uma conta Google operacional central conectada para puxar agenda e criar reuniões com Meet.</p>
-                    <a href="{{ url_for('meetings_bp.connect_google_calendar') }}" class="btn btn-primary btn-sm">Conectar conta operacional</a>
+                    <a href="{{ url_for('meetings_bp.meetings_hub', tab='integrations') }}" class="btn btn-primary btn-sm">Ver integrações</a>
                 {% endif %}
             </div>
         </div>
@@ -111,10 +111,17 @@
         <form method="GET" action="{{ url_for('meetings_bp.meetings_hub') }}" class="row g-3 align-items-end">
             <input type="hidden" name="tab" value="list">
             <div class="col-md-3">
-                <label class="form-label">Projeto</label>
-                <select name="project_id" class="form-select">
+                <label class="form-label">Cliente</label>
+                <select name="client_id" class="form-select js-client-filter">
                     <option value="">Todos</option>
-                    {% for p in projects %}<option value="{{ p.id }}" {% if selected_project|string == p.id|string %}selected{% endif %}>{{ p.nome }}</option>{% endfor %}
+                    {% for c in clients %}<option value="{{ c.id }}" {% if selected_client|string == c.id|string %}selected{% endif %}>{{ c.nome }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Projeto</label>
+                <select name="project_id" class="form-select js-project-filter">
+                    <option value="">Todos</option>
+                    {% for p in projects %}<option value="{{ p.id }}" data-client-id="{{ p.client_id }}" {% if selected_project|string == p.id|string %}selected{% endif %}>{{ p.nome }}</option>{% endfor %}
                 </select>
             </div>
             <div class="col-md-3">
@@ -124,7 +131,7 @@
                     {% for u in users %}<option value="{{ u.id }}" {% if selected_user|string == u.id|string %}selected{% endif %}>{{ u.full_name }}</option>{% endfor %}
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label">Status</label>
                 <select name="status" class="form-select">
                     <option value="">Todos</option>
@@ -133,9 +140,8 @@
                     <option value="cancelada" {% if selected_status == 'cancelada' %}selected{% endif %}>Cancelada</option>
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-1">
                 <button class="btn btn-secondary me-2">Filtrar</button>
-                <a href="{{ url_for('meetings_bp.meetings_hub', tab='list') }}" class="btn btn-outline-secondary">Limpar</a>
             </div>
         </form>
     </div>
@@ -213,9 +219,9 @@
                 <form action="{{ url_for('meetings_bp.generate_agenda_for_meeting') }}" method="post">
                     <div class="mb-3">
                         <label class="form-label">Projeto vinculado</label>
-                        <select name="project_id" class="form-select">
+                        <select name="project_id" class="form-select js-project-by-client">
                             <option value="">Sem vínculo</option>
-                            {% for p in projects %}<option value="{{ p.id }}" {% if generated_agenda and generated_agenda.project_id|string == p.id|string %}selected{% endif %}>{{ p.nome }}</option>{% endfor %}
+                            {% for p in projects %}<option value="{{ p.id }}" data-client-id="{{ p.client_id }}" {% if generated_agenda and generated_agenda.project_id|string == p.id|string %}selected{% endif %}>{{ p.nome }}</option>{% endfor %}
                         </select>
                     </div>
                     <div class="mb-3">
@@ -267,9 +273,9 @@
                 <form action="{{ url_for('meetings_bp.create_calendar_meeting') }}" method="post">
                     <div class="mb-3">
                         <label class="form-label">Projeto vinculado</label>
-                        <select name="project_id" class="form-select">
+                        <select name="project_id" class="form-select js-project-by-client">
                             <option value="">Sem vínculo</option>
-                            {% for p in projects %}<option value="{{ p.id }}" {% if generated_agenda and generated_agenda.project_id|string == p.id|string %}selected{% endif %}>{{ p.nome }}</option>{% endfor %}
+                            {% for p in projects %}<option value="{{ p.id }}" data-client-id="{{ p.client_id }}" {% if generated_agenda and generated_agenda.project_id|string == p.id|string %}selected{% endif %}>{{ p.nome }}</option>{% endfor %}
                         </select>
                     </div>
                     <div class="mb-3">
@@ -290,12 +296,12 @@
                         <div class="col-md-6"><label class="form-label">Data fim</label><input type="date" name="end_date" class="form-control" required></div>
                         <div class="col-md-6"><label class="form-label">Hora fim</label><input type="time" name="end_time" class="form-control" required></div>
                     </div>
-                    <div class="mt-3"><label class="form-label">Participantes (emails separados por vírgula)</label><textarea name="attendees" class="form-control" rows="3"></textarea></div>
+                    <div class="mt-3"><label class="form-label">Participantes externos</label><textarea name="attendees" class="form-control" rows="3" placeholder="email1@empresa.com, email2@empresa.com ou email1@empresa.com = email2@empresa.com"></textarea><div class="form-text">O criador da reunião e o hub são adicionados automaticamente. Pode separar emails com vírgula, ponto e vírgula, quebra de linha ou =.</div></div>
                     <div class="mt-3"><button class="btn btn-primary">Criar evento com essa pauta</button></div>
                 </form>
                 {% else %}
                     <p class="text-muted mb-2">Conecte o Google Calendar para transformar a pauta em reunião agendada com Meet.</p>
-                    <a href="{{ url_for('meetings_bp.connect_google_calendar') }}" class="btn btn-primary btn-sm">Conectar Google</a>
+                    <a href="{{ url_for('meetings_bp.meetings_hub', tab='integrations') }}" class="btn btn-primary btn-sm">Ver integrações</a>
                 {% endif %}
             </div>
         </div>
@@ -355,7 +361,7 @@
                         <div class="col-md-6"><label class="form-label">Data fim</label><input type="date" name="end_date" class="form-control" required></div>
                         <div class="col-md-6"><label class="form-label">Hora fim</label><input type="time" name="end_time" class="form-control" required></div>
                     </div>
-                    <div class="mt-3"><label class="form-label">Participantes (emails separados por vírgula)</label><textarea name="attendees" class="form-control" rows="3"></textarea></div>
+                    <div class="mt-3"><label class="form-label">Participantes externos</label><textarea name="attendees" class="form-control" rows="3" placeholder="email1@empresa.com, email2@empresa.com ou email1@empresa.com = email2@empresa.com"></textarea><div class="form-text">O criador da reunião e o hub são adicionados automaticamente. Pode separar emails com vírgula, ponto e vírgula, quebra de linha ou =.</div></div>
                     <div class="mt-3"><button class="btn btn-primary">Criar evento</button></div>
                 </form>
             </div>
@@ -433,29 +439,6 @@
                 <div>{{ all_integrations|length }}</div>
             </div>
         </div>
-
-        <div class="card">
-            <div class="card-header"><strong>Integrações detectadas</strong></div>
-            <div class="card-body">
-                {% if all_integrations %}
-                    <ul class="list-group list-group-flush">
-                        {% for integration in all_integrations %}
-                        <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
-                            <div>
-                                <div class="fw-semibold">{{ integration.provider }}</div>
-                                {% if integration.account_email %}<div class="small text-muted">{{ integration.account_email }}</div>{% endif %}
-                            </div>
-                            <span class="badge {% if integration.is_enabled %}bg-success{% else %}bg-secondary{% endif %}">
-                                {% if integration.is_enabled %}Ativa{% else %}Inativa{% endif %}
-                            </span>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                {% else %}
-                    <p class="text-muted mb-0">Nenhuma integração registrada ainda.</p>
-                {% endif %}
-            </div>
-        </div>
     </div>
 </div>
 {% endif %}
@@ -470,15 +453,22 @@
                 </div>
                 <div class="modal-body">
                     <div class="row g-3">
-                        <div class="col-md-8">
+                        <div class="col-md-6">
                             <label class="form-label">Título *</label>
                             <input type="text" name="title" class="form-control" placeholder="Ex.: Alinhamento semanal do projeto" required>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
+                            <label class="form-label">Cliente</label>
+                            <select class="form-select js-client-filter" data-target="meeting-project-select">
+                                <option value="">Todos</option>
+                                {% for c in clients %}<option value="{{ c.id }}">{{ c.nome }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
                             <label class="form-label">Projeto vinculado</label>
-                            <select name="project_id" class="form-select">
+                            <select name="project_id" id="meeting-project-select" class="form-select js-project-filter">
                                 <option value="">Sem vínculo</option>
-                                {% for p in projects %}<option value="{{ p.id }}">{{ p.nome }}</option>{% endfor %}
+                                {% for p in projects %}<option value="{{ p.id }}" data-client-id="{{ p.client_id }}">{{ p.nome }}</option>{% endfor %}
                             </select>
                         </div>
                         <div class="col-md-4">
@@ -503,7 +493,7 @@
                             <select name="participants" class="form-select" multiple size="6">
                                 {% for u in users %}{% if u.id != current_user.id %}<option value="{{ u.id }}">{{ u.full_name }} — {{ u.email }}</option>{% endif %}{% endfor %}
                             </select>
-                            <div class="form-text">Seleção interna do sistema. Aqui não é campo de emails separados por vírgula.</div>
+                            <div class="form-text">O criador já entra automaticamente como participante da reunião.</div>
                         </div>
                     </div>
                 </div>
@@ -518,4 +508,32 @@
         </div>
     </div>
 </div>
+
+<script>
+(function () {
+    function filterProjectSelect(clientSelect, projectSelect) {
+        if (!clientSelect || !projectSelect) return;
+        const clientId = clientSelect.value;
+        const options = projectSelect.querySelectorAll('option[data-client-id]');
+        options.forEach(option => {
+            const matches = !clientId || option.dataset.clientId === clientId;
+            option.hidden = !matches;
+            if (!matches && option.selected) {
+                projectSelect.value = '';
+            }
+        });
+    }
+
+    function wirePair(clientSelect, projectSelect) {
+        if (!clientSelect || !projectSelect) return;
+        clientSelect.addEventListener('change', () => filterProjectSelect(clientSelect, projectSelect));
+        filterProjectSelect(clientSelect, projectSelect);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        wirePair(document.querySelector('select[name="client_id"].js-client-filter'), document.querySelector('select[name="project_id"].js-project-filter'));
+        wirePair(document.querySelector('#newMeetingModal .js-client-filter'), document.querySelector('#meeting-project-select'));
+    });
+})();
+</script>
 {% endblock %}

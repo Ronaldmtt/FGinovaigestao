@@ -218,8 +218,15 @@
             <div class="card-body">
                 <form action="{{ url_for('meetings_bp.generate_agenda_for_meeting') }}" method="post">
                     <div class="mb-3">
+                        <label class="form-label">Cliente</label>
+                        <select class="form-select js-client-filter" data-target="agenda-project-select">
+                            <option value="">Todos</option>
+                            {% for c in clients %}<option value="{{ c.id }}">{{ c.nome }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">Projeto vinculado</label>
-                        <select name="project_id" class="form-select js-project-by-client">
+                        <select name="project_id" id="agenda-project-select" class="form-select js-project-by-client">
                             <option value="">Sem vínculo</option>
                             {% for p in projects %}<option value="{{ p.id }}" data-client-id="{{ p.client_id }}" {% if generated_agenda and generated_agenda.project_id|string == p.id|string %}selected{% endif %}>{{ p.nome }}</option>{% endfor %}
                         </select>
@@ -272,8 +279,15 @@
                 {% if google_connected %}
                 <form action="{{ url_for('meetings_bp.create_calendar_meeting') }}" method="post">
                     <div class="mb-3">
+                        <label class="form-label">Cliente</label>
+                        <select class="form-select js-client-filter" data-target="agenda-calendar-project-select">
+                            <option value="">Todos</option>
+                            {% for c in clients %}<option value="{{ c.id }}">{{ c.nome }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">Projeto vinculado</label>
-                        <select name="project_id" class="form-select js-project-by-client">
+                        <select name="project_id" id="agenda-calendar-project-select" class="form-select js-project-by-client">
                             <option value="">Sem vínculo</option>
                             {% for p in projects %}<option value="{{ p.id }}" data-client-id="{{ p.client_id }}" {% if generated_agenda and generated_agenda.project_id|string == p.id|string %}selected{% endif %}>{{ p.nome }}</option>{% endfor %}
                         </select>
@@ -533,6 +547,8 @@
     document.addEventListener('DOMContentLoaded', function () {
         wirePair(document.querySelector('select[name="client_id"].js-client-filter'), document.querySelector('select[name="project_id"].js-project-filter'));
         wirePair(document.querySelector('#newMeetingModal .js-client-filter'), document.querySelector('#meeting-project-select'));
+        wirePair(document.querySelector('select[data-target="agenda-project-select"]'), document.querySelector('#agenda-project-select'));
+        wirePair(document.querySelector('select[data-target="agenda-calendar-project-select"]'), document.querySelector('#agenda-calendar-project-select'));
     });
 })();
 </script>

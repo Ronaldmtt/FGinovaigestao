@@ -84,6 +84,30 @@ def _normalize_fireflies_date(item_date):
     return item_date[:10]
 
 
+def _normalize_meeting_link(link):
+    link = (link or '').strip().lower()
+    if not link:
+        return ''
+    if link.endswith('/'):
+        link = link[:-1]
+    return link
+
+
+def find_transcript_by_meeting_link(meeting_link, limit=100):
+    normalized_link = _normalize_meeting_link(meeting_link)
+    if not normalized_link:
+        return None
+
+    transcripts = list_transcripts(limit=limit) or []
+    for item in transcripts:
+        if not isinstance(item, dict):
+            continue
+        item_link = _normalize_meeting_link(item.get('meeting_link'))
+        if item_link and item_link == normalized_link:
+            return item
+    return None
+
+
 def find_transcript_by_title_and_date(title, target_date, limit=50):
     transcripts = list_transcripts(limit=limit) or []
     normalized_title = (title or '').strip().lower()

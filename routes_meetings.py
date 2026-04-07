@@ -139,7 +139,8 @@ def _auto_sync_fireflies_for_meeting(meeting):
 
     try:
         target_date = meeting.date_time.date().isoformat()
-        transcripts = list_transcripts(limit=100) or []
+        transcripts, ff_debug = list_transcripts(limit=100, include_debug=True)
+        transcripts = transcripts or []
         transcript_match, strategy = match_transcript_from_list(
             transcripts,
             meeting_link=meeting.external_meeting_link,
@@ -157,7 +158,8 @@ def _auto_sync_fireflies_for_meeting(meeting):
                 f"{_normalize_fireflies_date(item.get('date'))} :: {repr(item.get('title'))} :: {repr(item.get('meeting_link'))} :: id={item.get('id')}"
                 for item in transcripts[:5] if isinstance(item, dict)
             ) or 'nenhum transcript recente retornado'
-            return False, f"Transcript não encontrado no Fireflies (single_list_match; {'; '.join(details)}; recentes_mesma_lista={candidates})"
+            debug_bits = f"count={ff_debug.get('count')} token_prefix={ff_debug.get('token_prefix')} payload_keys={ff_debug.get('payload_keys')} data_keys={ff_debug.get('data_keys')} raw_type={ff_debug.get('raw_transcripts_type')}"
+            return False, f"Transcript não encontrado no Fireflies (single_list_match; {'; '.join(details)}; {debug_bits}; recentes_mesma_lista={candidates})"
 
         transcript_id = transcript_match.get('id')
         if not transcript_id:

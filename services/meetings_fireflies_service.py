@@ -17,7 +17,7 @@ def _headers():
     }
 
 
-def list_transcripts(limit=50):
+def list_transcripts(limit=50, include_debug=False):
     query = """
     query ListTranscripts($limit: Int) {
       transcripts(limit: $limit) {
@@ -38,8 +38,18 @@ def list_transcripts(limit=50):
     data = payload.get('data') or {}
     transcripts = data.get('transcripts') or []
     if not isinstance(transcripts, list):
-        return []
-    return [item for item in transcripts if isinstance(item, dict)]
+        transcripts = []
+    items = [item for item in transcripts if isinstance(item, dict)]
+    if include_debug:
+        token = os.environ.get('FIREFLIES_API_TOKEN') or ''
+        return items, {
+            'count': len(items),
+            'payload_keys': sorted(payload.keys()) if isinstance(payload, dict) else [],
+            'data_keys': sorted(data.keys()) if isinstance(data, dict) else [],
+            'raw_transcripts_type': type(transcripts).__name__,
+            'token_prefix': token[:8],
+        }
+    return items
 
 
 def get_transcript(transcript_id):

@@ -18,6 +18,7 @@ from services.meetings_calendar_service import (
     exchange_google_code_for_credentials,
     get_google_authorization_url,
     get_google_calendar_event,
+    get_google_credentials_for_user,
     get_shared_google_calendar_integration,
     get_shared_google_credentials,
     list_google_calendar_events,
@@ -284,6 +285,19 @@ def _parse_attendee_emails(raw_value):
     return deduped
 
 
+def _get_preferred_google_credentials(user_id):
+    user_credentials = get_google_credentials_for_user(user_id)
+    if user_credentials:
+        return user_credentials, 'user'
+
+    shared_credentials = get_shared_google_credentials()
+    if shared_credentials:
+        return shared_credentials, 'shared'
+
+    return None, None
+
+
+
 def _render_meetings_hub(tab='overview', project_filter=None, user_filter=None, status_filter=None, generated_agenda=None, client_filter=None):
     query = Meeting.query
     if client_filter:
@@ -307,8 +321,8 @@ def _render_meetings_hub(tab='overview', project_filter=None, user_filter=None, 
     next_meeting = Meeting.query.filter(Meeting.date_time >= datetime.utcnow()).order_by(Meeting.date_time.asc()).first()
     recent_meetings = Meeting.query.order_by(Meeting.date_time.desc()).limit(5).all()
 
-    google_integration = get_shared_google_calendar_integration() or get_user_integration(current_user.id, GOOGLE_CALENDAR_PROVIDER)
-    google_credentials = get_shared_google_credentials()
+    google_integration = get_user_integration(current_user.id, GOOGLE_CALENDAR_PROVIDER) or get_shared_google_calendar_integration()
+    google_credentials, google_credentials_source = _get_preferred_google_credentials(current_user.id)
     google_connected = bool(google_credentials) or bool(google_integration and google_integration.is_enabled)
     all_integrations = list_user_integrations(current_user.id)
     google_events = []
@@ -347,6 +361,7 @@ def _render_meetings_hub(tab='overview', project_filter=None, user_filter=None, 
         generated_agenda=generated_agenda,
         fireflies_provider=FIREFLIES_PROVIDER,
         microsoft_provider=MICROSOFT_PROVIDER,
+        google_credentials_source=google_credentials_source,
     )
 
 
@@ -583,11 +598,11 @@ def create_calendar_meeting():
 
     if not all([title, start_date, start_time, end_date, end_time]):
         flash('Preencha título, data e horários para criar o evento no calendário.', 'danger')
-        return redirect(url_for('meetings_bp.meetings_hub', tab='calendar'))
+        return redirect(url_for('meetings_bp.meetings_hub', tab='agendas'))
 
-    credentials = get_shared_google_credentials()
+    credentials, credentials_source = _get_preferred_google_credentials(current_user.id)
     if not credentials:
-        flash('Nenhuma credencial compartilhada do hub está configurada para o módulo de reuniões.', 'warning')
+        flash('Nenhuma credencial do Google Calendar está configurada para criar a reunião.', 'warning')
         return redirect(url_for('meetings_bp.meetings_hub', tab='integrations'))
 
     start_dt = datetime.strptime(f'{start_date} {start_time}', '%Y-%m-%d %H:%M')
@@ -604,7 +619,12 @@ def create_calendar_meeting():
     full_description = description.strip()
     if agenda:
         full_description = f"{full_description}\n\n--- AGENDA ---\n{agenda}".strip()
-    event = create_google_calendar_event(service, title, full_description, start_dt, end_dt, attendees=attendees)
+
+    try:
+        event = create_google_calendar_event(service, title, full_description, start_dt, end_dt, attendees=attendees)
+    except Exception as e:
+        flash(f'Falha ao criar evento no Google Calendar: {e}', 'danger')
+        return redirect(url_for('meetings_bp.meetings_hub', tab='agendas'))
 
     meeting = Meeting(
         title=title,
@@ -626,8 +646,9 @@ def create_calendar_meeting():
     db.session.add(meeting)
     db.session.commit()
 
-    flash('Evento criado no Google Calendar com sucesso. O hub e o criador foram adicionados automaticamente como convidados.', 'success')
-    return redirect(url_for('meetings_bp.meetings_hub', tab='calendar'))
+    origem = 'sua conta Google' if credentials_source == 'user' else 'a conta compartilhada do hub'
+    flash(f'Evento criado no Google Calendar com sucesso usando {origem}. O hub e o criador foram adicionados automaticamente como convidados.', 'success')
+    return redirect(url_for('meetings_bp.meeting_detail', meeting_id=meeting.id))
 
 
 @meetings_bp.route('/meetings/<int:meeting_id>/calendar-analysis', methods=['POST'])

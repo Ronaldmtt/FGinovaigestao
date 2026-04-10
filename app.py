@@ -140,7 +140,10 @@ with app.app_context():
         "ALTER TABLE meetings ADD COLUMN analysis_status VARCHAR(30) NOT NULL DEFAULT 'pending'",
         "ALTER TABLE meetings ADD COLUMN analysis_generated_at TIMESTAMP",
         "ALTER TABLE meetings ADD COLUMN meeting_owner_email VARCHAR(255)",
-        "ALTER TABLE meetings ADD COLUMN raw_provider_payload TEXT"
+        "ALTER TABLE meetings ADD COLUMN raw_provider_payload TEXT",
+        "ALTER TABLE meetings ADD COLUMN last_calendar_sync_at TIMESTAMP",
+        "ALTER TABLE meetings ADD COLUMN calendar_last_modified_at TIMESTAMP",
+        "ALTER TABLE meetings ADD COLUMN calendar_sync_error TEXT"
     ]
     for q in meeting_queries:
         try:

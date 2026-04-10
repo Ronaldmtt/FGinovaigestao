@@ -106,6 +106,9 @@
                     <div class="fw-semibold">{{ m.title }}</div>
                     <div class="small text-muted mb-2">{{ m.date_time.strftime('%d/%m/%Y às %H:%M') }}</div>
                     <div class="small mb-2">Origem: <span class="badge bg-secondary">{{ m.meeting_source or 'internal' }}</span></div>
+                    {% if m.meeting_source == 'google_calendar' %}
+                    <div class="small text-muted mb-2">Última sync: {{ m.last_calendar_sync_at.strftime('%d/%m/%Y %H:%M') if m.last_calendar_sync_at else 'nunca' }}</div>
+                    {% endif %}
                     <a href="{{ url_for('meetings_bp.meeting_detail', meeting_id=m.id) }}" class="btn btn-outline-primary btn-sm">Ver detalhes</a>
                 </div>
             </div>
@@ -170,6 +173,10 @@
                 </div>
                 <h6 class="card-subtitle mb-2 text-muted">{{ m.date_time.strftime('%d/%m/%Y às %H:%M') }}</h6>
                 <p class="small mb-2">Origem: <strong>{{ m.meeting_source or 'internal' }}</strong></p>
+                {% if m.meeting_source == 'google_calendar' %}
+                <div class="small text-muted mb-1">Última sync: {{ m.last_calendar_sync_at.strftime('%d/%m/%Y %H:%M') if m.last_calendar_sync_at else 'nunca' }}</div>
+                {% if m.calendar_sync_error %}<div class="small text-warning mb-2">Sync com erro</div>{% endif %}
+                {% endif %}
                 {% if m.project %}<p class="mb-2 small">Projeto: <strong>{{ m.project.nome }}</strong></p>{% endif %}
                 {% if m.analysis_summary %}<p class="small text-muted">{{ m.analysis_summary[:160] }}{% if m.analysis_summary|length > 160 %}...{% endif %}</p>{% endif %}
             </div>

@@ -240,6 +240,25 @@ def _parse_google_event_datetime(value):
         return None
 
 
+def _mark_meeting_sync_success(meeting, event=None):
+    if not meeting:
+        return
+    meeting.last_calendar_sync_at = datetime.utcnow()
+    meeting.calendar_sync_error = None
+    if isinstance(event, dict):
+        updated_raw = event.get('updated')
+        parsed_updated = _parse_google_event_datetime(updated_raw)
+        if parsed_updated:
+            meeting.calendar_last_modified_at = parsed_updated
+
+
+def _mark_meeting_sync_error(meeting, error):
+    if not meeting:
+        return
+    meeting.last_calendar_sync_at = datetime.utcnow()
+    meeting.calendar_sync_error = str(error)[:5000] if error else None
+
+
 def _sync_meeting_from_google_event(meeting, event):
     if not meeting or not event:
         return False
@@ -302,6 +321,7 @@ def _sync_meeting_from_google_event(meeting, event):
         meeting.status = new_status
         changed = True
 
+    _mark_meeting_sync_success(meeting, event)
     return changed
 
 
@@ -312,15 +332,21 @@ def _sync_google_calendar_meeting(meeting):
     try:
         credentials, _source = _get_google_credentials_for_creation(meeting.created_by_id if meeting.created_by_id else None)
         if not credentials:
+            _mark_meeting_sync_error(meeting, 'Nenhuma credencial Google disponível para sincronizar a reunião.')
+            db.session.commit()
             return False, 'Nenhuma credencial Google disponível para sincronizar a reunião.'
         service = build_google_calendar_service(credentials)
         event = get_google_calendar_event(service, meeting.google_calendar_event_id)
         changed = _sync_meeting_from_google_event(meeting, event)
-        if changed:
-            db.session.commit()
+        db.session.commit()
         return changed, None
     except Exception as e:
         db.session.rollback()
+        try:
+            _mark_meeting_sync_error(meeting, e)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
         return False, str(e)
 
 
@@ -444,10 +470,10 @@ def _sync_recent_google_calendar_meetings(meetings, limit=12):
                 event = get_google_calendar_event(service, meeting.google_calendar_event_id)
                 if _sync_meeting_from_google_event(meeting, event):
                     changed_count += 1
-            except Exception:
+            except Exception as e:
+                _mark_meeting_sync_error(meeting, e)
                 continue
-        if changed_count:
-            db.session.commit()
+        db.session.commit()
         return changed_count, None
     except Exception as e:
         db.session.rollback()
@@ -616,6 +642,7 @@ def meeting_detail(meeting_id):
         transcript_blocks=transcript_blocks,
         edit_attendee_emails=edit_attendee_emails,
         edit_description=edit_description,
+        now_utc=datetime.utcnow(),
     )
 
 
@@ -826,6 +853,9 @@ def create_calendar_meeting():
         status='agendada',
         meeting_owner_email=current_user.email,
         agenda=agenda or None,
+        last_calendar_sync_at=datetime.utcnow(),
+        calendar_last_modified_at=_parse_google_event_datetime(event.get('updated')),
+        calendar_sync_error=None,
     )
     meeting.participants.append(current_user)
     for user in participant_users:
@@ -892,6 +922,11 @@ def update_calendar_meeting_route(meeting_id):
         flash('Reunião atualizada no Google Calendar e sincronizada no sistema.', 'success')
     except Exception as e:
         db.session.rollback()
+        try:
+            _mark_meeting_sync_error(meeting, e)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
         flash(f'Falha ao editar reunião no Google Calendar: {e}', 'danger')
 
     return redirect(url_for('meetings_bp.meeting_detail', meeting_id=meeting.id))
@@ -908,10 +943,16 @@ def cancel_calendar_meeting_route(meeting_id):
             cancel_google_calendar_event(service, meeting.google_calendar_event_id)
         except Exception as e:
             db.session.rollback()
+            try:
+                _mark_meeting_sync_error(meeting, e)
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
             flash(f'Falha ao cancelar reunião no Google Calendar: {e}', 'danger')
             return redirect(url_for('meetings_bp.meeting_detail', meeting_id=meeting.id))
 
     meeting.status = 'cancelada'
+    _mark_meeting_sync_success(meeting, {'updated': datetime.utcnow().isoformat()})
     db.session.commit()
     flash('Reunião cancelada no sistema e no Google Calendar.', 'success')
     return redirect(url_for('meetings_bp.meetings_hub', tab='list'))
@@ -1027,6 +1068,9 @@ def import_calendar_event(event_id):
         status='agendada',
         meeting_owner_email=(event.get('organizer') or {}).get('email') or current_user.email,
         agenda=agenda_text,
+        last_calendar_sync_at=datetime.utcnow(),
+        calendar_last_modified_at=_parse_google_event_datetime(event.get('updated')),
+        calendar_sync_error=None,
     )
     meeting.participants.append(current_user)
     for user in participant_users:

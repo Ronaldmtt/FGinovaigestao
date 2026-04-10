@@ -80,6 +80,9 @@
             {% if meeting.meeting_source == 'google_calendar' and calendar_sync_error %}
             <span class="badge bg-warning-subtle text-warning-emphasis border">Falha ao sincronizar com Google Calendar</span>
             {% endif %}
+            {% if meeting.meeting_source == 'google_calendar' and meeting.last_calendar_sync_at %}
+            <span class="badge bg-secondary-subtle text-secondary-emphasis border">Última sync: {{ meeting.last_calendar_sync_at.strftime('%d/%m/%Y %H:%M') }}</span>
+            {% endif %}
             <form method="post" action="{{ url_for('meetings_bp.sync_fireflies_for_meeting', meeting_id=meeting.id) }}" class="d-inline">
                 <button type="submit" class="btn btn-sm btn-outline-info">
                     <i class="fas fa-wave-square me-1"></i> Sincronizar Fireflies
@@ -91,6 +94,39 @@
         </div>
     </div>
 </div>
+
+{% if meeting.meeting_source == 'google_calendar' %}
+<div class="card shadow-sm mb-4 border-secondary">
+    <div class="card-header"><strong>Sincronização com Google Calendar</strong></div>
+    <div class="card-body small">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="text-muted">Última sincronização</div>
+                <div>{{ meeting.last_calendar_sync_at.strftime('%d/%m/%Y %H:%M') if meeting.last_calendar_sync_at else 'Ainda não sincronizada' }}</div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-muted">Última alteração vista no Google</div>
+                <div>{{ meeting.calendar_last_modified_at.strftime('%d/%m/%Y %H:%M') if meeting.calendar_last_modified_at else 'Não informado pelo Google' }}</div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-muted">Estado atual</div>
+                <div>
+                    {% if meeting.calendar_sync_error %}
+                    <span class="text-warning">Com erro de sincronização</span>
+                    {% else %}
+                    <span class="text-success">Sincronizada</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% if meeting.calendar_sync_error %}
+            <div class="col-12">
+                <div class="alert alert-warning py-2 mb-0">{{ meeting.calendar_sync_error }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <div class="card shadow-sm border-primary mb-4">
     <div class="card-header bg-dark text-primary">

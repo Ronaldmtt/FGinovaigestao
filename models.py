@@ -845,6 +845,9 @@ class Meeting(db.Model):
     analysis_generated_at = db.Column(db.DateTime, nullable=True)
     meeting_owner_email = db.Column(db.String(255), nullable=True)
     raw_provider_payload = db.Column(db.Text, nullable=True)
+    last_calendar_sync_at = db.Column(db.DateTime, nullable=True)
+    calendar_last_modified_at = db.Column(db.DateTime, nullable=True)
+    calendar_sync_error = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     

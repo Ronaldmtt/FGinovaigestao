@@ -219,6 +219,109 @@ def _meeting_can_auto_sync_fireflies(meeting):
     return reference_time <= datetime.utcnow()
 
 
+def _extract_agenda_from_google_event(event):
+    description_text = (event.get('description') or '').strip()
+    if not description_text:
+        return None
+    if '--- AGENDA ---' in description_text:
+        return description_text.split('--- AGENDA ---', 1)[1].strip() or None
+    return description_text
+
+
+def _parse_google_event_datetime(value):
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value).replace('Z', '+00:00'))
+        return parsed.replace(tzinfo=None) if parsed.tzinfo else parsed
+    except Exception:
+        return None
+
+
+def _sync_meeting_from_google_event(meeting, event):
+    if not meeting or not event:
+        return False
+
+    changed = False
+    new_title = (event.get('summary') or 'Reunião sem título').strip()
+    if new_title and meeting.title != new_title:
+        meeting.title = new_title
+        changed = True
+
+    start_dt = _parse_google_event_datetime((event.get('start') or {}).get('dateTime'))
+    if start_dt and meeting.date_time != start_dt:
+        meeting.date_time = start_dt
+        changed = True
+
+    new_link = event.get('hangoutLink') or event.get('htmlLink')
+    if new_link != meeting.external_meeting_link:
+        meeting.external_meeting_link = new_link
+        changed = True
+
+    owner_email = ((event.get('organizer') or {}).get('email') or meeting.meeting_owner_email or '').strip() or None
+    if owner_email != meeting.meeting_owner_email:
+        meeting.meeting_owner_email = owner_email
+        changed = True
+
+    new_agenda = _extract_agenda_from_google_event(event)
+    if new_agenda != meeting.agenda:
+        meeting.agenda = new_agenda
+        changed = True
+
+    raw_payload = json.dumps(event)
+    if raw_payload != meeting.raw_provider_payload:
+        meeting.raw_provider_payload = raw_payload
+        changed = True
+
+    attendee_emails = []
+    for item in (event.get('attendees') or []):
+        email = (item.get('email') or '').strip().lower()
+        if email and email not in attendee_emails:
+            attendee_emails.append(email)
+    organizer_email = ((event.get('organizer') or {}).get('email') or '').strip().lower()
+    if organizer_email and organizer_email not in attendee_emails:
+        attendee_emails.append(organizer_email)
+    if HUB_EMAIL not in attendee_emails:
+        attendee_emails.append(HUB_EMAIL)
+    if meeting.meeting_owner_email and meeting.meeting_owner_email.lower() not in attendee_emails:
+        attendee_emails.append(meeting.meeting_owner_email.lower())
+
+    participant_users = User.query.filter(User.email.in_(attendee_emails)).all() if attendee_emails else []
+    desired_ids = {user.id for user in participant_users}
+    desired_ids.add(meeting.created_by_id)
+    current_ids = {user.id for user in meeting.participants}
+    if desired_ids != current_ids:
+        meeting.participants = list({user.id: user for user in participant_users + ([meeting.creator] if meeting.creator else [])}.values())
+        changed = True
+
+    end_dt = _parse_google_event_datetime((event.get('end') or {}).get('dateTime'))
+    new_status = 'cancelada' if event.get('status') == 'cancelled' else ('concluida' if end_dt and end_dt <= datetime.utcnow() else 'agendada')
+    if meeting.status != new_status:
+        meeting.status = new_status
+        changed = True
+
+    return changed
+
+
+def _sync_google_calendar_meeting(meeting):
+    if not meeting or meeting.meeting_source != 'google_calendar' or not meeting.google_calendar_event_id:
+        return False, None
+
+    try:
+        credentials, _source = _get_google_credentials_for_creation(meeting.created_by_id if meeting.created_by_id else None)
+        if not credentials:
+            return False, 'Nenhuma credencial Google disponível para sincronizar a reunião.'
+        service = build_google_calendar_service(credentials)
+        event = get_google_calendar_event(service, meeting.google_calendar_event_id)
+        changed = _sync_meeting_from_google_event(meeting, event)
+        if changed:
+            db.session.commit()
+        return changed, None
+    except Exception as e:
+        db.session.rollback()
+        return False, str(e)
+
+
 def _auto_sync_fireflies_for_meeting(meeting):
     if not _meeting_can_auto_sync_fireflies(meeting):
         return False, None
@@ -381,16 +484,21 @@ def meetings_hub():
 def meeting_detail(meeting_id):
     meeting = Meeting.query.get_or_404(meeting_id)
 
+    calendar_synced = False
+    calendar_sync_error = None
+    if meeting.meeting_source == 'google_calendar' and meeting.google_calendar_event_id:
+        calendar_synced, calendar_sync_error = _sync_google_calendar_meeting(meeting)
+
     status_updated = _update_meeting_status_from_time(meeting)
 
     fireflies_auto_synced = False
-    fireflies_error = None
+    fireflies_error = calendar_sync_error
     if _meeting_can_auto_sync_fireflies(meeting):
         fireflies_auto_synced, auto_sync_error = _auto_sync_fireflies_for_meeting(meeting)
         if auto_sync_error:
             fireflies_error = auto_sync_error
 
-    if status_updated and not fireflies_auto_synced:
+    if status_updated and not fireflies_auto_synced and not calendar_synced:
         db.session.commit()
 
     results = {}
@@ -421,6 +529,8 @@ def meeting_detail(meeting_id):
         fireflies_transcript=fireflies_transcript,
         fireflies_error=fireflies_error,
         fireflies_auto_synced=fireflies_auto_synced,
+        calendar_synced=calendar_synced,
+        calendar_sync_error=calendar_sync_error,
         fireflies_pending=bool(_meeting_can_auto_sync_fireflies(meeting) and not meeting.fireflies_transcript_id),
         meeting_end_time=_get_meeting_end_time(meeting),
         media_audio_url=media_audio_url,

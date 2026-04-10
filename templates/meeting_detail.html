@@ -64,6 +64,12 @@
                 <i class="fas fa-arrow-up-right-from-square me-1"></i> Abrir link
             </a>
             {% endif %}
+            {% if meeting.meeting_source == 'google_calendar' and calendar_synced %}
+            <span class="badge bg-success-subtle text-success-emphasis border">Sincronizada agora com Google Calendar</span>
+            {% endif %}
+            {% if meeting.meeting_source == 'google_calendar' and calendar_sync_error %}
+            <span class="badge bg-warning-subtle text-warning-emphasis border">Falha ao sincronizar com Google Calendar</span>
+            {% endif %}
             <form method="post" action="{{ url_for('meetings_bp.sync_fireflies_for_meeting', meeting_id=meeting.id) }}" class="d-inline">
                 <button type="submit" class="btn btn-sm btn-outline-info">
                     <i class="fas fa-wave-square me-1"></i> Sincronizar Fireflies

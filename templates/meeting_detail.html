@@ -64,6 +64,16 @@
                 <i class="fas fa-arrow-up-right-from-square me-1"></i> Abrir link
             </a>
             {% endif %}
+            {% if meeting.meeting_source == 'google_calendar' %}
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editMeetingModal">
+                <i class="fas fa-pen me-1"></i> Editar
+            </button>
+            <form method="post" action="{{ url_for('meetings_bp.cancel_calendar_meeting_route', meeting_id=meeting.id) }}" class="d-inline" onsubmit="return confirm('Cancelar esta reunião no sistema e no Google Calendar?');">
+                <button type="submit" class="btn btn-sm btn-outline-danger">
+                    <i class="fas fa-ban me-1"></i> Cancelar
+                </button>
+            </form>
+            {% endif %}
             {% if meeting.meeting_source == 'google_calendar' and calendar_synced %}
             <span class="badge bg-success-subtle text-success-emphasis border">Sincronizada agora com Google Calendar</span>
             {% endif %}
@@ -516,4 +526,62 @@
         </div>
     </div>
 </div>
+
+{% if meeting.meeting_source == 'google_calendar' %}
+<div class="modal fade" id="editMeetingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" action="{{ url_for('meetings_bp.update_calendar_meeting_route', meeting_id=meeting.id) }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar reunião sincronizada</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-secondary py-2 small">
+                        Para reuniões sincronizadas, o Google Calendar é a fonte de verdade. Alterações feitas aqui atualizam o Google e voltam para o sistema.
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Título</label>
+                            <input type="text" name="title" class="form-control" required value="{{ meeting.title }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Participantes externos</label>
+                            <input type="text" name="attendees" class="form-control" value="{{ edit_attendee_emails|join(', ') }}" placeholder="email1@empresa.com, email2@empresa.com">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Data início</label>
+                            <input type="date" name="start_date" class="form-control" required value="{{ meeting.date_time.strftime('%Y-%m-%d') if meeting.date_time else '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Hora início</label>
+                            <input type="time" name="start_time" class="form-control" required value="{{ meeting.date_time.strftime('%H:%M') if meeting.date_time else '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Data fim</label>
+                            <input type="date" name="end_date" class="form-control" required value="{{ meeting_end_time.strftime('%Y-%m-%d') if meeting_end_time else (meeting.date_time.strftime('%Y-%m-%d') if meeting.date_time else '') }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Hora fim</label>
+                            <input type="time" name="end_time" class="form-control" required value="{{ meeting_end_time.strftime('%H:%M') if meeting_end_time else '' }}">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Descrição</label>
+                            <textarea name="description" class="form-control" rows="4">{{ edit_description }}</textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Pauta</label>
+                            <textarea name="agenda" class="form-control" rows="6">{{ meeting.agenda or '' }}</textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <button type="submit" class="btn btn-primary">Salvar e sincronizar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

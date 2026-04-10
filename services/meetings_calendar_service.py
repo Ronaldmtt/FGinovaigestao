@@ -229,6 +229,27 @@ def get_google_calendar_event(service, event_id):
     return service.events().get(calendarId='primary', eventId=event_id, timeZone='America/Sao_Paulo').execute()
 
 
+def update_google_calendar_event(service, event_id, title, description, start_time, end_time, attendees=None, existing_event=None):
+    event = existing_event or get_google_calendar_event(service, event_id)
+    event['summary'] = title
+    event['description'] = description
+    event['start'] = {'dateTime': start_time.isoformat(), 'timeZone': 'America/Sao_Paulo'}
+    event['end'] = {'dateTime': end_time.isoformat(), 'timeZone': 'America/Sao_Paulo'}
+    event['attendees'] = [{'email': email} for email in (attendees or [])]
+    updated = service.events().update(
+        calendarId='primary',
+        eventId=event_id,
+        body=event,
+        conferenceDataVersion=1,
+        sendUpdates='all'
+    ).execute()
+    return updated
+
+
+def cancel_google_calendar_event(service, event_id):
+    return service.events().delete(calendarId='primary', eventId=event_id, sendUpdates='all').execute()
+
+
 def _build_rrule(recurrence):
     if not recurrence:
         return None

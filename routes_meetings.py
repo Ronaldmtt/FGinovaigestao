@@ -23,6 +23,8 @@ from services.meetings_calendar_service import (
     get_shared_google_credentials,
     list_google_calendar_events,
     save_google_credentials_for_user,
+    update_google_calendar_event,
+    cancel_google_calendar_event,
 )
 from services.meetings_fireflies_service import get_transcript, list_transcripts, match_transcript_from_list, _normalize_fireflies_date
 
@@ -322,6 +324,31 @@ def _sync_google_calendar_meeting(meeting):
         return False, str(e)
 
 
+def _get_google_service_for_meeting(meeting):
+    credentials, source = _get_google_credentials_for_creation(meeting.created_by_id if meeting and meeting.created_by_id else None)
+    if not credentials:
+        raise ValueError('Nenhuma credencial Google disponível para esta operação.')
+    return build_google_calendar_service(credentials), source
+
+
+def _build_meeting_description(description, agenda):
+    description = (description or '').strip()
+    agenda = (agenda or '').strip()
+    if agenda:
+        return f"{description}\n\n--- AGENDA ---\n{agenda}".strip()
+    return description
+
+
+def _extract_non_internal_attendees(meeting, attendee_emails):
+    internal_emails = {u.email.strip().lower() for u in User.query.filter(User.ativo == True).all() if u.email}
+    ignored = {HUB_EMAIL.lower()}
+    if current_user.is_authenticated and current_user.email:
+        ignored.add(current_user.email.lower())
+    if meeting and meeting.creator and meeting.creator.email:
+        ignored.add(meeting.creator.email.lower())
+    return ', '.join(sorted([email for email in attendee_emails if email not in internal_emails and email not in ignored]))
+
+
 def _auto_sync_fireflies_for_meeting(meeting):
     if not _meeting_can_auto_sync_fireflies(meeting):
         return False, None
@@ -400,6 +427,33 @@ def _get_google_credentials_for_creation(user_id=None):
     return None, None
 
 
+def _sync_recent_google_calendar_meetings(meetings, limit=12):
+    google_meetings = [m for m in (meetings or []) if m.meeting_source == 'google_calendar' and m.google_calendar_event_id]
+    if not google_meetings:
+        return 0, None
+
+    credentials, _source = _get_google_credentials_for_creation(current_user.id if getattr(current_user, 'is_authenticated', False) else None)
+    if not credentials:
+        return 0, 'Nenhuma credencial Google disponível para sincronizar reuniões.'
+
+    try:
+        service = build_google_calendar_service(credentials)
+        changed_count = 0
+        for meeting in google_meetings[:limit]:
+            try:
+                event = get_google_calendar_event(service, meeting.google_calendar_event_id)
+                if _sync_meeting_from_google_event(meeting, event):
+                    changed_count += 1
+            except Exception:
+                continue
+        if changed_count:
+            db.session.commit()
+        return changed_count, None
+    except Exception as e:
+        db.session.rollback()
+        return 0, str(e)
+
+
 
 def _render_meetings_hub(tab='overview', project_filter=None, user_filter=None, status_filter=None, generated_agenda=None, client_filter=None):
     query = Meeting.query
@@ -430,6 +484,11 @@ def _render_meetings_hub(tab='overview', project_filter=None, user_filter=None, 
     all_integrations = list_user_integrations(current_user.id)
     google_events = []
     google_events_error = None
+    google_sync_count = 0
+    meetings_sync_error = None
+
+    if tab in {'overview', 'list'}:
+        google_sync_count, meetings_sync_error = _sync_recent_google_calendar_meetings(meetings, limit=12 if tab == 'list' else 6)
 
     if google_connected and tab in {'overview', 'calendar', 'integrations', 'agendas'}:
         try:
@@ -465,6 +524,8 @@ def _render_meetings_hub(tab='overview', project_filter=None, user_filter=None, 
         fireflies_provider=FIREFLIES_PROVIDER,
         microsoft_provider=MICROSOFT_PROVIDER,
         google_credentials_source=google_credentials_source,
+        google_sync_count=google_sync_count,
+        meetings_sync_error=meetings_sync_error,
     )
 
 
@@ -522,6 +583,21 @@ def meeting_detail(meeting_id):
     fireflies_notes = _parse_fireflies_notes(fireflies_summary)
     transcript_blocks = _build_transcript_blocks(fireflies_transcript)
 
+    edit_payload = {}
+    if meeting.raw_provider_payload:
+        try:
+            edit_payload = json.loads(meeting.raw_provider_payload)
+        except Exception:
+            edit_payload = {}
+    edit_attendee_emails = []
+    for item in (edit_payload.get('attendees') or []):
+        email = (item.get('email') or '').strip()
+        if email:
+            edit_attendee_emails.append(email)
+    edit_description = (edit_payload.get('description') or '').strip() if isinstance(edit_payload, dict) else ''
+    if '--- AGENDA ---' in edit_description:
+        edit_description = edit_description.split('--- AGENDA ---', 1)[0].strip()
+
     return render_template(
         'meeting_detail.html',
         meeting=meeting,
@@ -538,6 +614,8 @@ def meeting_detail(meeting_id):
         fireflies_action_groups=fireflies_action_groups,
         fireflies_notes=fireflies_notes,
         transcript_blocks=transcript_blocks,
+        edit_attendee_emails=edit_attendee_emails,
+        edit_description=edit_description,
     )
 
 
@@ -761,6 +839,101 @@ def create_calendar_meeting():
     return redirect(url_for('meetings_bp.meeting_detail', meeting_id=meeting.id))
 
 
+@meetings_bp.route('/meetings/<int:meeting_id>/edit', methods=['POST'])
+@login_required
+def update_calendar_meeting_route(meeting_id):
+    meeting = Meeting.query.get_or_404(meeting_id)
+    if meeting.meeting_source != 'google_calendar' or not meeting.google_calendar_event_id:
+        flash('A edição inline está disponível apenas para reuniões sincronizadas com Google Calendar.', 'warning')
+        return redirect(url_for('meetings_bp.meeting_detail', meeting_id=meeting.id))
+
+    title = (request.form.get('title') or '').strip()
+    description = (request.form.get('description') or '').strip()
+    agenda = (request.form.get('agenda') or '').strip()
+    start_date = (request.form.get('start_date') or '').strip()
+    start_time = (request.form.get('start_time') or '').strip()
+    end_date = (request.form.get('end_date') or start_date or '').strip()
+    end_time = (request.form.get('end_time') or '').strip()
+    attendees_raw = request.form.get('attendees', '')
+
+    if not all([title, start_date, start_time, end_date, end_time]):
+        flash('Título, datas e horários são obrigatórios para editar a reunião.', 'danger')
+        return redirect(url_for('meetings_bp.meeting_detail', meeting_id=meeting.id))
+
+    try:
+        start_dt = datetime.strptime(f'{start_date} {start_time}', '%Y-%m-%d %H:%M')
+        end_dt = datetime.strptime(f'{end_date} {end_time}', '%Y-%m-%d %H:%M')
+    except ValueError:
+        flash('Formato de data/hora inválido para edição da reunião.', 'danger')
+        return redirect(url_for('meetings_bp.meeting_detail', meeting_id=meeting.id))
+
+    attendees = _parse_attendee_emails(attendees_raw)
+    creator_email = (meeting.creator.email if meeting.creator and meeting.creator.email else current_user.email or '').strip().lower()
+    if creator_email and creator_email not in attendees:
+        attendees.append(creator_email)
+    if HUB_EMAIL not in attendees:
+        attendees.append(HUB_EMAIL)
+
+    try:
+        service, _source = _get_google_service_for_meeting(meeting)
+        existing_event = get_google_calendar_event(service, meeting.google_calendar_event_id)
+        updated_event = update_google_calendar_event(
+            service,
+            meeting.google_calendar_event_id,
+            title=title,
+            description=_build_meeting_description(description, agenda),
+            start_time=start_dt,
+            end_time=end_dt,
+            attendees=attendees,
+            existing_event=existing_event,
+        )
+        _sync_meeting_from_google_event(meeting, updated_event)
+        db.session.commit()
+        flash('Reunião atualizada no Google Calendar e sincronizada no sistema.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Falha ao editar reunião no Google Calendar: {e}', 'danger')
+
+    return redirect(url_for('meetings_bp.meeting_detail', meeting_id=meeting.id))
+
+
+@meetings_bp.route('/meetings/<int:meeting_id>/cancel', methods=['POST'])
+@login_required
+def cancel_calendar_meeting_route(meeting_id):
+    meeting = Meeting.query.get_or_404(meeting_id)
+
+    if meeting.meeting_source == 'google_calendar' and meeting.google_calendar_event_id:
+        try:
+            service, _source = _get_google_service_for_meeting(meeting)
+            cancel_google_calendar_event(service, meeting.google_calendar_event_id)
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Falha ao cancelar reunião no Google Calendar: {e}', 'danger')
+            return redirect(url_for('meetings_bp.meeting_detail', meeting_id=meeting.id))
+
+    meeting.status = 'cancelada'
+    db.session.commit()
+    flash('Reunião cancelada no sistema e no Google Calendar.', 'success')
+    return redirect(url_for('meetings_bp.meetings_hub', tab='list'))
+
+
+@meetings_bp.route('/meetings/sync-google', methods=['POST'])
+@login_required
+def sync_google_meetings_route():
+    meetings = Meeting.query.filter(
+        Meeting.meeting_source == 'google_calendar',
+        Meeting.google_calendar_event_id.isnot(None)
+    ).order_by(Meeting.date_time.desc()).limit(25).all()
+
+    synced, error = _sync_recent_google_calendar_meetings(meetings, limit=25)
+    if error:
+        flash(f'Falha ao sincronizar reuniões com Google Calendar: {error}', 'warning')
+    else:
+        flash(f'Sincronização concluída. {synced} reunião(ões) atualizada(s) a partir do Google Calendar.', 'success')
+
+    return redirect(url_for('meetings_bp.meetings_hub', tab=request.args.get('tab', 'overview')))
+
+
 @meetings_bp.route('/meetings/<int:meeting_id>/calendar-analysis', methods=['POST'])
 @login_required
 def analyze_calendar_meeting(meeting_id):
@@ -864,6 +1037,24 @@ def import_calendar_event(event_id):
 
     flash('Evento importado para o módulo de reuniões.', 'success')
     return redirect(url_for('meetings_bp.meeting_detail', meeting_id=meeting.id))
+
+
+@meetings_bp.route('/api/meetings/sync-google', methods=['POST'])
+def api_sync_google_meetings():
+    auth_error = _validate_api_key()
+    if auth_error:
+        return auth_error
+
+    limit = request.args.get('limit', default=50, type=int) or 50
+    meetings = Meeting.query.filter(
+        Meeting.meeting_source == 'google_calendar',
+        Meeting.google_calendar_event_id.isnot(None)
+    ).order_by(Meeting.date_time.desc()).limit(max(1, min(limit, 100))).all()
+
+    synced, error = _sync_recent_google_calendar_meetings(meetings, limit=max(1, min(limit, 100)))
+    if error:
+        return jsonify({'success': False, 'error': error, 'synced': synced}), 500
+    return jsonify({'success': True, 'synced': synced, 'checked': len(meetings)})
 
 
 @meetings_bp.route('/api/create_meeting', methods=['POST'])

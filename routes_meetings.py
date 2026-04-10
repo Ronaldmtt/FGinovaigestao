@@ -285,14 +285,14 @@ def _parse_attendee_emails(raw_value):
     return deduped
 
 
-def _get_preferred_google_credentials(user_id):
-    user_credentials = get_google_credentials_for_user(user_id)
-    if user_credentials:
-        return user_credentials, 'user'
-
+def _get_google_credentials_for_creation(user_id=None):
     shared_credentials = get_shared_google_credentials()
     if shared_credentials:
         return shared_credentials, 'shared'
+
+    user_credentials = get_google_credentials_for_user(user_id) if user_id else None
+    if user_credentials:
+        return user_credentials, 'user'
 
     return None, None
 
@@ -321,8 +321,8 @@ def _render_meetings_hub(tab='overview', project_filter=None, user_filter=None, 
     next_meeting = Meeting.query.filter(Meeting.date_time >= datetime.utcnow()).order_by(Meeting.date_time.asc()).first()
     recent_meetings = Meeting.query.order_by(Meeting.date_time.desc()).limit(5).all()
 
-    google_integration = get_user_integration(current_user.id, GOOGLE_CALENDAR_PROVIDER) or get_shared_google_calendar_integration()
-    google_credentials, google_credentials_source = _get_preferred_google_credentials(current_user.id)
+    google_integration = get_shared_google_calendar_integration() or get_user_integration(current_user.id, GOOGLE_CALENDAR_PROVIDER)
+    google_credentials, google_credentials_source = _get_google_credentials_for_creation(current_user.id)
     google_connected = bool(google_credentials) or bool(google_integration and google_integration.is_enabled)
     all_integrations = list_user_integrations(current_user.id)
     google_events = []
@@ -600,7 +600,7 @@ def create_calendar_meeting():
         flash('Preencha título, data e horários para criar o evento no calendário.', 'danger')
         return redirect(url_for('meetings_bp.meetings_hub', tab='agendas'))
 
-    credentials, credentials_source = _get_preferred_google_credentials(current_user.id)
+    credentials, credentials_source = _get_google_credentials_for_creation(current_user.id)
     if not credentials:
         flash('Nenhuma credencial do Google Calendar está configurada para criar a reunião.', 'warning')
         return redirect(url_for('meetings_bp.meetings_hub', tab='integrations'))
@@ -646,7 +646,7 @@ def create_calendar_meeting():
     db.session.add(meeting)
     db.session.commit()
 
-    origem = 'sua conta Google' if credentials_source == 'user' else 'a conta compartilhada do hub'
+    origem = 'a conta compartilhada do hub' if credentials_source == 'shared' else 'uma conta Google de fallback'
     flash(f'Evento criado no Google Calendar com sucesso usando {origem}. O hub e o criador foram adicionados automaticamente como convidados.', 'success')
     return redirect(url_for('meetings_bp.meeting_detail', meeting_id=meeting.id))
 

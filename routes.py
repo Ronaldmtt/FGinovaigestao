@@ -681,12 +681,9 @@ def projects():
                 glow_class = 'glow-purple' # Atrasado
 
         today_date = datetime.utcnow().date()
-        week_start = today_date - timedelta(days=today_date.weekday())
-        week_end = week_start + timedelta(days=6)
-        open_tasks_this_week = [
+        kanban_tasks_in_progress = [
             task for task in project.tasks
-            if task.status != 'concluida'
-            and (task.data_conclusao is None or week_start <= task.data_conclusao <= week_end)
+            if task.status == 'em_andamento'
         ]
 
         github_generated_at = getattr(project, 'github_todos_generated_at', None)
@@ -699,15 +696,15 @@ def projects():
         github_alarm_state = 'idle'
         github_alarm_text = ''
         if github_alarm_visible:
-            if not open_tasks_this_week:
-                github_alarm_state = 'idle'
-                github_alarm_text = 'Sem tarefa aberta para a semana'
-            elif github_updated_today:
+            if github_updated_today:
                 github_alarm_state = 'ok'
                 github_alarm_text = 'GitHub atualizado hoje'
-            else:
+            elif kanban_tasks_in_progress:
                 github_alarm_state = 'pending'
                 github_alarm_text = 'Hoje sem atualização GitHub'
+            else:
+                github_alarm_state = 'idle'
+                github_alarm_text = 'Sem tarefa aberta no Kanban'
 
         projects_data.append({
             'id': project.id,

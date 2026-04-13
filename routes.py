@@ -759,12 +759,29 @@ def projects():
                 elif pct < 0.9: c_glow = 'glow-orange'
                 elif pct <= 1.0: c_glow = 'glow-red'
                 else:           c_glow = 'glow-purple'
+            c_open_tasks_this_week = [
+                task for task in c.tasks
+                if task.status != 'concluida'
+                and (task.data_conclusao is None or week_start <= task.data_conclusao <= week_end)
+            ]
             c_github_generated_at = getattr(c, 'github_todos_generated_at', None)
             c_github_updated_today = bool(
                 c.status == 'em_andamento'
                 and c_github_generated_at
-                and c_github_generated_at.date() == datetime.utcnow().date()
+                and c_github_generated_at.date() == today_date
             )
+            c_github_alarm_state = 'idle'
+            c_github_alarm_text = ''
+            if c.status == 'em_andamento':
+                if not c_open_tasks_this_week:
+                    c_github_alarm_state = 'idle'
+                    c_github_alarm_text = 'Sem tarefa aberta para a semana'
+                elif c_github_updated_today:
+                    c_github_alarm_state = 'ok'
+                    c_github_alarm_text = 'GitHub atualizado hoje'
+                else:
+                    c_github_alarm_state = 'pending'
+                    c_github_alarm_text = 'Hoje sem atualização GitHub'
 
             children_list.append({
                 'id':             c.id,

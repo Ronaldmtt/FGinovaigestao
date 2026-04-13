@@ -169,6 +169,14 @@
                                         <i class="fas fa-history me-1"></i>Histórico
                                     </button>
                                 </div>
+                                {% if p.github_alarm_visible %}
+                                <div class="project-card-info mt-2">
+                                    <span class="github-daily-badge github-daily-{{ p.github_alarm_state }}">
+                                        <i class="fas {{ 'fa-check-circle' if p.github_alarm_state == 'ok' else ('fa-exclamation-triangle' if p.github_alarm_state == 'pending' else 'fa-calendar-minus') }} me-1"></i>
+                                        {{ p.github_alarm_text }}
+                                    </span>
+                                </div>
+                                {% endif %}
                                 <div class="project-card-info mt-2">
                                     <div class="d-flex flex-column small w-100">
                                         <span class="text-secondary"><i class="fas fa-play text-muted me-2"
@@ -277,6 +285,14 @@
                                         <i class="fas fa-history me-1"></i>Histórico
                                     </button>
                                 </div>
+                                {% if c.github_alarm_visible %}
+                                <div class="project-card-info mt-2">
+                                    <span class="github-daily-badge github-daily-{{ c.github_alarm_state }}">
+                                        <i class="fas {{ 'fa-check-circle' if c.github_alarm_state == 'ok' else ('fa-exclamation-triangle' if c.github_alarm_state == 'pending' else 'fa-calendar-minus') }} me-1"></i>
+                                        {{ c.github_alarm_text }}
+                                    </span>
+                                </div>
+                                {% endif %}
                                 <div class="project-card-info mt-2">
                                     <div class="d-flex flex-column small w-100">
                                         <span class="text-secondary"><i class="fas fa-play text-muted me-2"
@@ -434,9 +450,9 @@
                     </div>
                     {% if p.github_alarm_visible %}
                     <div class="project-card-info mt-2">
-                        <span class="github-daily-badge {{ 'github-daily-ok' if p.github_updated_today else 'github-daily-pending' }}">
-                            <i class="fas {{ 'fa-check-circle' if p.github_updated_today else 'fa-exclamation-triangle' }} me-1"></i>
-                            {{ 'GitHub atualizado hoje' if p.github_updated_today else 'Hoje sem atualização GitHub' }}
+                        <span class="github-daily-badge github-daily-{{ p.github_alarm_state }}">
+                            <i class="fas {{ 'fa-check-circle' if p.github_alarm_state == 'ok' else ('fa-exclamation-triangle' if p.github_alarm_state == 'pending' else 'fa-calendar-minus') }} me-1"></i>
+                            {{ p.github_alarm_text }}
                         </span>
                     </div>
                     {% endif %}
@@ -1214,6 +1230,12 @@
         background: rgba(255, 193, 7, .14);
         color: #ffd666;
         border: 1px solid rgba(255, 193, 7, .42);
+    }
+
+    .github-daily-idle {
+        background: rgba(108, 117, 125, .16);
+        color: #c7ccd1;
+        border: 1px solid rgba(173, 181, 189, .28);
     }
 
     .status-active {

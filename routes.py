@@ -782,10 +782,9 @@ def projects():
                 elif pct < 0.9: c_glow = 'glow-orange'
                 elif pct <= 1.0: c_glow = 'glow-red'
                 else:           c_glow = 'glow-purple'
-            c_open_tasks_this_week = [
+            c_kanban_tasks_in_progress = [
                 task for task in c.tasks
-                if task.status != 'concluida'
-                and (task.data_conclusao is None or week_start <= task.data_conclusao <= week_end)
+                if task.status == 'em_andamento'
             ]
             c_github_generated_at = getattr(c, 'github_todos_generated_at', None)
             c_github_updated_today = bool(
@@ -796,15 +795,15 @@ def projects():
             c_github_alarm_state = 'idle'
             c_github_alarm_text = ''
             if c.status == 'em_andamento':
-                if not c_open_tasks_this_week:
-                    c_github_alarm_state = 'idle'
-                    c_github_alarm_text = 'Sem tarefa aberta para a semana'
-                elif c_github_updated_today:
+                if c_github_updated_today:
                     c_github_alarm_state = 'ok'
                     c_github_alarm_text = 'GitHub atualizado hoje'
-                else:
+                elif c_kanban_tasks_in_progress:
                     c_github_alarm_state = 'pending'
                     c_github_alarm_text = 'Hoje sem atualização GitHub'
+                else:
+                    c_github_alarm_state = 'idle'
+                    c_github_alarm_text = 'Sem tarefa aberta no Kanban'
 
             children_list.append({
                 'id':             c.id,

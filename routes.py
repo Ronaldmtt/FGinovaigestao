@@ -680,13 +680,34 @@ def projects():
             else:
                 glow_class = 'glow-purple' # Atrasado
 
+        today_date = datetime.utcnow().date()
+        week_start = today_date - timedelta(days=today_date.weekday())
+        week_end = week_start + timedelta(days=6)
+        open_tasks_this_week = [
+            task for task in project.tasks
+            if task.status != 'concluida'
+            and (task.data_conclusao is None or week_start <= task.data_conclusao <= week_end)
+        ]
+
         github_generated_at = getattr(project, 'github_todos_generated_at', None)
         github_updated_today = bool(
             project.status == 'em_andamento'
             and github_generated_at
-            and github_generated_at.date() == datetime.utcnow().date()
+            and github_generated_at.date() == today_date
         )
         github_alarm_visible = project.status == 'em_andamento'
+        github_alarm_state = 'idle'
+        github_alarm_text = ''
+        if github_alarm_visible:
+            if not open_tasks_this_week:
+                github_alarm_state = 'idle'
+                github_alarm_text = 'Sem tarefa aberta para a semana'
+            elif github_updated_today:
+                github_alarm_state = 'ok'
+                github_alarm_text = 'GitHub atualizado hoje'
+            else:
+                github_alarm_state = 'pending'
+                github_alarm_text = 'Hoje sem atualização GitHub'
 
         projects_data.append({
             'id': project.id,
@@ -711,6 +732,8 @@ def projects():
             'github_alarm_visible': github_alarm_visible,
             'github_updated_today': github_updated_today,
             'github_generated_at': github_generated_at,
+            'github_alarm_state': github_alarm_state,
+            'github_alarm_text': github_alarm_text,
             'project': project,
             'rpa_identifier': project.rpa_identifier,
             'rpa_status': None,

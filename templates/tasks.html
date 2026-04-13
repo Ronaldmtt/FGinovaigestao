@@ -4,6 +4,13 @@
 
 {% block content %}
 <div class="container-fluid px-4">
+    <script>
+        const taskProjectStatusMap = {
+            {% for project in all_projects %}
+            "{{ project.id }}": "{{ project.status }}"{% if not loop.last %},{% endif %}
+            {% endfor %}
+        };
+    </script>
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4 pt-3">
         <div class="d-flex align-items-center">
@@ -192,7 +199,7 @@
 <div class="modal fade" id="manualTaskModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content bg-dark text-light">
-            <form method="POST" action="{{ url_for('new_manual_task') }}">
+            <form id="manualTaskForm" method="POST" action="{{ url_for('new_manual_task') }}">
                 {{ manual_form.hidden_tag() if manual_form }}
                 <div class="modal-header border-secondary">
                     <h5 class="modal-title">Criar Tarefa Manual</h5>
@@ -243,7 +250,7 @@
 <div class="modal fade" id="newTaskModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content bg-dark text-light">
-            <form method="POST" action="{{ url_for('new_task') }}">
+            <form id="simpleTaskForm" method="POST" action="{{ url_for('new_task') }}">
                 {{ simple_form.hidden_tag() if simple_form }}
                 <div class="modal-header border-secondary">
                     <h5 class="modal-title">Nova Tarefa Simples</h5>
@@ -278,7 +285,7 @@
 <div class="modal fade" id="transcriptionTaskModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content bg-dark text-light">
-            <form method="POST" action="{{ url_for('transcription_task') }}">
+            <form id="transcriptionTaskForm" method="POST" action="{{ url_for('transcription_task') }}">
                 {{ transcription_form.hidden_tag() if transcription_form }}
                 <div class="modal-header border-secondary">
                     <h5 class="modal-title">Gerar Tarefas com IA</h5>
@@ -331,6 +338,23 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="taskStatusBlockedModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-light border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">Ação não permitida</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Só é possível criar tarefas quando o projeto estiver com status <strong>“Em andamento”</strong>.
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Entendi</button>
+            </div>
         </div>
     </div>
 </div>
@@ -474,6 +498,38 @@
 </style>
 
 <script>
+function isProjectBlockedForTaskCreation(projectId) {
+    if (!projectId) return false;
+    return taskProjectStatusMap[String(projectId)] && taskProjectStatusMap[String(projectId)] !== 'em_andamento';
+}
+
+function showTaskStatusBlockedModal() {
+    const modalEl = document.getElementById('taskStatusBlockedModal');
+    if (!modalEl) return;
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+}
+
+function setupTaskCreationGuard(formId) {
+    const form = document.getElementById(formId);
+    if (!form) return;
+
+    form.addEventListener('submit', function (event) {
+        const projectSelect = form.querySelector('select[name="project_id"]');
+        const projectId = projectSelect ? projectSelect.value : '';
+
+        if (isProjectBlockedForTaskCreation(projectId)) {
+            event.preventDefault();
+            showTaskStatusBlockedModal();
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    setupTaskCreationGuard('manualTaskForm');
+    setupTaskCreationGuard('simpleTaskForm');
+    setupTaskCreationGuard('transcriptionTaskForm');
+});
+
 function editTask(taskId) {
     const modal = new bootstrap.Modal(document.getElementById('editTaskModal'));
     const content = document.getElementById('editTaskContent');

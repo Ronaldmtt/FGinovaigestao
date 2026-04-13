@@ -850,6 +850,7 @@
                         <div class="col-12">
                             <label class="form-label">Motivo da mudança de status</label>
                             <textarea class="form-control bg-dark text-light border-secondary" name="status_change_reason" id="detailStatusChangeReason" rows="2" placeholder="Explique brevemente o motivo da mudança de status e o impacto para o cliente."></textarea>
+                            <div class="invalid-feedback">Preencha o motivo da mudança de status para continuar.</div>
                             <div class="form-text">Esse motivo será salvo no histórico e usado nos relatórios executivos.</div>
                         </div>
                     </div>
@@ -2526,9 +2527,32 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
         const modal = document.getElementById('editProjectModal');
         if (!modal) return;
         const statusSelect = modal.querySelector('select[name="status"]');
+        const form = document.getElementById('editProjectForm');
+        const reasonInput = modal.querySelector('#detailStatusChangeReason');
         if (statusSelect) {
             statusSelect.addEventListener('change', toggleDetailStatusReason);
             toggleDetailStatusReason();
+        }
+
+        if (form && reasonInput) {
+            form.addEventListener('submit', function (event) {
+                const originalStatus = statusSelect ? (statusSelect.dataset.originalStatus || '') : '';
+                const changed = statusSelect && statusSelect.value !== originalStatus;
+                const hasReason = !!reasonInput.value.trim();
+
+                reasonInput.classList.remove('is-invalid');
+                if (changed && !hasReason) {
+                    event.preventDefault();
+                    reasonInput.classList.add('is-invalid');
+                    reasonInput.focus();
+                }
+            });
+
+            reasonInput.addEventListener('input', function () {
+                if (reasonInput.value.trim()) {
+                    reasonInput.classList.remove('is-invalid');
+                }
+            });
         }
     });
 

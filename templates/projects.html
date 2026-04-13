@@ -1451,6 +1451,7 @@
             <div class="col-12">
                 <label class="form-label">Motivo da mudança de status</label>
                 <textarea class="form-control bg-dark text-light border-secondary" name="status_change_reason" id="statusChangeReason" rows="2" placeholder="Ex: projeto aguardando retorno do cliente, entrou em teste, foi concluído após validação final..."></textarea>
+                <div class="invalid-feedback">Preencha o motivo da mudança de status para continuar.</div>
                 <div class="form-text text-white-50">Esse motivo será salvo no histórico e exibido no card do projeto.</div>
             </div>
         </div>
@@ -1628,6 +1629,29 @@
         }
     }
 
+    function validateProjectStatusReason(event) {
+        const form = document.getElementById('editProjectForm');
+        if (!form) return true;
+
+        const statusSelect = form.querySelector('select[name="status"]');
+        const reasonInput = form.querySelector('#statusChangeReason');
+        if (!statusSelect || !reasonInput) return true;
+
+        const originalStatus = statusSelect.dataset.originalStatus || '';
+        const changed = statusSelect.value !== originalStatus;
+        const hasReason = !!reasonInput.value.trim();
+
+        reasonInput.classList.remove('is-invalid');
+        if (changed && !hasReason) {
+            if (event) event.preventDefault();
+            reasonInput.classList.add('is-invalid');
+            reasonInput.focus();
+            return false;
+        }
+
+        return true;
+    }
+
     // ===== SLIDER DE CARD COMPLETO (pai + filhos) =====
     const csgIdx = {}; // { projectId: currentIndex }
 
@@ -1678,6 +1702,20 @@
 
     // Init: apply correct glow to all clips on page load
     document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('editProjectForm');
+        if (form) {
+            form.addEventListener('submit', validateProjectStatusReason);
+
+            const reasonInput = form.querySelector('#statusChangeReason');
+            if (reasonInput) {
+                reasonInput.addEventListener('input', function () {
+                    if (reasonInput.value.trim()) {
+                        reasonInput.classList.remove('is-invalid');
+                    }
+                });
+            }
+        }
+
         document.querySelectorAll('.csg-clip').forEach(function (clip) {
             const pid = clip.id.replace('csg_', '');
             const track = document.getElementById('cst_' + pid);

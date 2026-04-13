@@ -2,6 +2,7 @@ import json
 import os
 import re
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
@@ -29,6 +30,7 @@ from services.meetings_calendar_service import (
 from services.meetings_fireflies_service import get_transcript, list_transcripts, match_transcript_from_list, _normalize_fireflies_date
 
 HUB_EMAIL = 'hub@inovailab.com'
+LOCAL_TIMEZONE = ZoneInfo('America/Sao_Paulo')
 TRANSCRIPT_SPEAKER_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#9b59b6', '#f1c40f', '#1abc9c', '#f39c12']
 
 meetings_bp = Blueprint('meetings_bp', __name__)
@@ -269,7 +271,8 @@ def _sync_meeting_from_google_event(meeting, event):
         meeting.title = new_title
         changed = True
 
-    start_dt = _parse_google_event_datetime((event.get('start') or {}).get('dateTime'))
+    start_payload = event.get('start') or {}
+    start_dt = _parse_google_event_datetime(start_payload.get('dateTime') or start_payload.get('date'), fallback_hour=9)
     if start_dt and meeting.date_time != start_dt:
         meeting.date_time = start_dt
         changed = True
@@ -315,7 +318,8 @@ def _sync_meeting_from_google_event(meeting, event):
         meeting.participants = list({user.id: user for user in participant_users + ([meeting.creator] if meeting.creator else [])}.values())
         changed = True
 
-    end_dt = _parse_google_event_datetime((event.get('end') or {}).get('dateTime'))
+    end_payload = event.get('end') or {}
+    end_dt = _parse_google_event_datetime(end_payload.get('dateTime') or end_payload.get('date'), fallback_hour=18)
     new_status = 'cancelada' if event.get('status') == 'cancelled' else ('concluida' if end_dt and end_dt <= datetime.utcnow() else 'agendada')
     if meeting.status != new_status:
         meeting.status = new_status

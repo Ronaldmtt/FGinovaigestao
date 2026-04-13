@@ -85,7 +85,7 @@ def get_kanban_project_block_message(project):
     status_label = get_project_status_label(project.status) if project else 'desconhecido'
     return (
         f"O projeto '{project.nome}' está com status '{status_label}'. "
-        "Só é possível abrir tarefas/demandas no Kanban quando o projeto estiver Em Andamento."
+        "Só é possível criar tarefas quando o projeto estiver Em Andamento."
     )
 
 
@@ -1096,12 +1096,16 @@ def edit_project(id):
 
     status_change_reason = (request.form.get('status_change_reason') or '').strip()
 
+    if old_status != project.status and not status_change_reason:
+        flash('Preencha o motivo da mudança de status para continuar.', 'warning')
+        return redirect(url_for('project_detail', id=id))
+
     if old_status != project.status:
         register_project_status_history(
             project,
             project.status,
             old_status=old_status,
-            note=status_change_reason or None,
+            note=status_change_reason,
             changed_by_id=current_user.id
         )
 
@@ -1544,6 +1548,11 @@ def tasks():
 def new_task():
     form = TaskForm()
     if form.validate_on_submit():
+        project = Project.query.get_or_404(form.project_id.data)
+        if not project_allows_kanban_demands(project):
+            flash(get_kanban_project_block_message(project), 'warning')
+            return redirect(url_for('tasks'))
+
         task = Task(
             titulo=form.titulo.data,
             descricao=form.descricao.data,

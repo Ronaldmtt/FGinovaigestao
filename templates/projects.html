@@ -1344,7 +1344,10 @@
                             const originalStatus = statusSelect.dataset.originalStatus || data.project.status || '';
                             const changed = statusSelect.value !== originalStatus;
                             if (statusReasonRow) statusReasonRow.classList.toggle('d-none', !changed);
-                            if (!changed && statusReasonInput) statusReasonInput.value = '';
+                            if (!changed && statusReasonInput) {
+                                statusReasonInput.value = '';
+                                statusReasonInput.classList.remove('is-invalid');
+                            }
                         };
 
                         statusSelect.addEventListener('change', function () {
@@ -1357,6 +1360,38 @@
                             }
                             toggleStatusReason();
                         });
+
+                        if (statusReasonInput) {
+                            statusReasonInput.addEventListener('input', function () {
+                                if (statusReasonInput.value.trim()) {
+                                    statusReasonInput.classList.remove('is-invalid');
+                                }
+                            });
+                        }
+
+                        if (form) {
+                            form.onsubmit = function (event) {
+                                const originalStatus = statusSelect.dataset.originalStatus || data.project.status || '';
+                                const changed = statusSelect.value !== originalStatus;
+                                const hasReason = statusReasonInput && !!statusReasonInput.value.trim();
+
+                                if (statusReasonInput) {
+                                    statusReasonInput.classList.remove('is-invalid');
+                                }
+
+                                if (changed && !hasReason) {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    if (statusReasonInput) {
+                                        statusReasonInput.classList.add('is-invalid');
+                                        statusReasonInput.focus();
+                                    }
+                                    return false;
+                                }
+
+                                return true;
+                            };
+                        }
 
                         toggleStatusReason();
                     }

@@ -10,6 +10,11 @@ from models import db, FinCostCenter, FinAccount, FinTransaction, FinGoal, FinSu
 
 def register_finance_routes(app):
     
+    def finance_access_denied(is_api=False):
+        if current_user.is_admin or getattr(current_user, 'acesso_financeiro', False):
+            return None
+        return (jsonify({'error': 'Acesso negado'}), 403) if is_api else ("Acesso Negado", 403)
+
     def add_months(base_date, months_to_add):
         month_index = base_date.month - 1 + months_to_add
         year = base_date.year + month_index // 12
@@ -23,43 +28,50 @@ def register_finance_routes(app):
     @app.route('/financeiro/dashboard')
     @login_required
     def finance_dashboard():
-        if not current_user.is_admin: return "Acesso Negado", 403
+        denied = finance_access_denied()
+        if denied: return denied
         return render_template('financeiro/dashboard.html')
 
     @app.route('/financeiro/contas')
     @login_required
     def finance_accounts():
-        if not current_user.is_admin: return "Acesso Negado", 403
+        denied = finance_access_denied()
+        if denied: return denied
         return render_template('financeiro/accounts.html')
 
     @app.route('/financeiro/centros-custo')
     @login_required
     def finance_cost_centers():
-        if not current_user.is_admin: return "Acesso Negado", 403
+        denied = finance_access_denied()
+        if denied: return denied
         return render_template('financeiro/cost_centers.html')
 
     @app.route('/financeiro/lancamentos')
     @login_required
     def finance_transactions():
-        if not current_user.is_admin: return "Acesso Negado", 403
+        denied = finance_access_denied()
+        if denied: return denied
         return render_template('financeiro/transactions.html')
 
     @app.route('/financeiro/relatorios')
     @login_required
     def finance_reports():
-        if not current_user.is_admin: return "Acesso Negado", 403
+        denied = finance_access_denied()
+        if denied: return denied
         return render_template('financeiro/reports.html')
 
     @app.route('/financeiro/metas')
     @login_required
     def finance_goals():
-        if not current_user.is_admin: return "Acesso Negado", 403
+        denied = finance_access_denied()
+        if denied: return denied
         return render_template('financeiro/goals.html')
 
     @app.route('/financeiro/fornecedores')
     @login_required
     def finance_suppliers():
-        if not current_user.is_admin: return "Acesso Negado", 403
+        denied = finance_access_denied()
+        if denied: return denied
         return render_template('financeiro/suppliers.html')
 
     # ==========================
@@ -68,7 +80,8 @@ def register_finance_routes(app):
     @app.route('/api/financeiro/suppliers', methods=['GET', 'POST'])
     @login_required
     def api_suppliers():
-        if not current_user.is_admin: return jsonify({'error': 'Acesso negado'}), 403
+        denied = finance_access_denied(is_api=True)
+        if denied: return denied
         
         if request.method == 'GET':
             suppliers = FinSupplier.query.filter_by(is_active=True).all()
@@ -87,7 +100,8 @@ def register_finance_routes(app):
     @app.route('/api/financeiro/suppliers/<int:s_id>', methods=['PUT', 'DELETE'])
     @login_required
     def api_suppliers_detail(s_id):
-        if not current_user.is_admin: return jsonify({'error': 'Acesso negado'}), 403
+        denied = finance_access_denied(is_api=True)
+        if denied: return denied
         sup = FinSupplier.query.get_or_404(s_id)
         
         if request.method == 'PUT':
@@ -109,7 +123,8 @@ def register_finance_routes(app):
     @app.route('/api/financeiro/clients', methods=['GET'])
     @login_required
     def api_finance_clients():
-        if not current_user.is_admin: return jsonify({'error': 'Acesso negado'}), 403
+        denied = finance_access_denied(is_api=True)
+        if denied: return denied
         clientes = Client.query.all()
         return jsonify([{'id': c.id, 'nome': getattr(c, 'nome', f'Cliente #{c.id}')} for c in clientes])
 
@@ -119,7 +134,8 @@ def register_finance_routes(app):
     @app.route('/api/financeiro/cost-centers', methods=['GET', 'POST'])
     @login_required
     def api_cost_centers():
-        if not current_user.is_admin: return jsonify({'error': 'Acesso negado'}), 403
+        denied = finance_access_denied(is_api=True)
+        if denied: return denied
         
         if request.method == 'GET':
             centros = FinCostCenter.query.filter_by(is_active=True).all()
@@ -138,7 +154,8 @@ def register_finance_routes(app):
     @app.route('/api/financeiro/cost-centers/<int:cc_id>', methods=['DELETE'])
     @login_required
     def api_cost_centers_del(cc_id):
-        if not current_user.is_admin: return jsonify({'error': 'Acesso negado'}), 403
+        denied = finance_access_denied(is_api=True)
+        if denied: return denied
         cc = FinCostCenter.query.get_or_404(cc_id)
         cc.is_active = False # Soft delete
         db.session.commit()
@@ -150,7 +167,8 @@ def register_finance_routes(app):
     @app.route('/api/financeiro/accounts', methods=['GET', 'POST'])
     @login_required
     def api_accounts():
-        if not current_user.is_admin: return jsonify({'error': 'Acesso negado'}), 403
+        denied = finance_access_denied(is_api=True)
+        if denied: return denied
         
         if request.method == 'GET':
             contas = FinAccount.query.filter_by(is_active=True).all()
@@ -202,7 +220,8 @@ def register_finance_routes(app):
     @app.route('/api/financeiro/accounts/<int:a_id>', methods=['DELETE', 'PUT'])
     @login_required
     def api_accounts_del(a_id):
-        if not current_user.is_admin: return jsonify({'error': 'Acesso negado'}), 403
+        denied = finance_access_denied(is_api=True)
+        if denied: return denied
         acc = FinAccount.query.get_or_404(a_id)
         
         if request.method == 'PUT':
@@ -231,7 +250,8 @@ def register_finance_routes(app):
     @app.route('/api/financeiro/transactions', methods=['GET', 'POST'])
     @login_required
     def api_transactions():
-        if not current_user.is_admin: return jsonify({'error': 'Acesso negado'}), 403
+        denied = finance_access_denied(is_api=True)
+        if denied: return denied
         
         if request.method == 'GET':
             status_filter = request.args.get('status')
@@ -334,7 +354,8 @@ def register_finance_routes(app):
     @app.route('/api/financeiro/transactions/<int:t_id>', methods=['PUT', 'DELETE'])
     @login_required
     def api_transaction_detail(t_id):
-        if not current_user.is_admin: return jsonify({'error': 'Acesso negado'}), 403
+        denied = finance_access_denied(is_api=True)
+        if denied: return denied
         trans = FinTransaction.query.get_or_404(t_id)
 
         if request.method == 'PUT':
@@ -360,13 +381,15 @@ def register_finance_routes(app):
     @login_required
     def finance_upload(filename):
         from flask import current_app, send_from_directory
-        if not current_user.is_admin: return "Acesso Negado", 403
+        denied = finance_access_denied()
+        if denied: return denied
         return send_from_directory(current_app.config['UPLOAD_FOLDER'], filename)
         
     @app.route('/api/financeiro/dashboard-stats', methods=['GET'])
     @login_required
     def api_dashboard_stats():
-        if not current_user.is_admin: return jsonify({'error': 'Acesso negado'}), 403
+        denied = finance_access_denied(is_api=True)
+        if denied: return denied
         
         hoje = dt.date.today()
         primeiro_dia_mes = dt.date(hoje.year, hoje.month, 1)
@@ -410,7 +433,8 @@ def register_finance_routes(app):
     @app.route('/api/financeiro/relatorios-dados', methods=['GET'])
     @login_required
     def api_reports_data():
-        if not current_user.is_admin: return jsonify({'error': 'Acesso negado'}), 403
+        denied = finance_access_denied(is_api=True)
+        if denied: return denied
         
         hoje = dt.date.today()
         primeiro_dia_mes = dt.date(hoje.year, hoje.month, 1)
@@ -463,7 +487,8 @@ def register_finance_routes(app):
     @app.route('/api/financeiro/goals', methods=['GET', 'POST'])
     @login_required
     def api_goals():
-        if not current_user.is_admin: return jsonify({'error': 'Acesso negado'}), 403
+        denied = finance_access_denied(is_api=True)
+        if denied: return denied
         
         if request.method == 'GET':
             metas = FinGoal.query.order_by(FinGoal.prazo.asc()).all()
@@ -504,7 +529,8 @@ def register_finance_routes(app):
     @app.route('/api/financeiro/goals/<int:g_id>', methods=['PUT', 'DELETE'])
     @login_required
     def api_goal_detail(g_id):
-        if not current_user.is_admin: return jsonify({'error': 'Acesso negado'}), 403
+        denied = finance_access_denied(is_api=True)
+        if denied: return denied
         meta = FinGoal.query.get_or_404(g_id)
         if request.method == 'PUT':
             data = request.get_json()

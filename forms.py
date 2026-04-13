@@ -21,6 +21,11 @@ class UserForm(FlaskForm):
     acesso_tarefas = BooleanField('Acesso a Tarefas', default=True)
     acesso_kanban = BooleanField('Acesso ao Kanban', default=True)
     acesso_crm = BooleanField('Acesso ao CRM', default=True)
+    acesso_usuarios = BooleanField('Acesso a Usuários', default=True)
+    acesso_financeiro = BooleanField('Acesso ao Financeiro', default=True)
+    acesso_reunioes = BooleanField('Acesso a Reuniões', default=True)
+    acesso_relatorios = BooleanField('Acesso a Relatórios', default=True)
+    acesso_api_sistema = BooleanField('Acesso à API do Sistema', default=True)
     
     def validate_email(self, email):
         user = User.query.filter_by(email=email.data).first()
@@ -39,6 +44,11 @@ class EditUserForm(FlaskForm):
     acesso_tarefas = BooleanField('Acesso a Tarefas', default=True)
     acesso_kanban = BooleanField('Acesso ao Kanban', default=True)
     acesso_crm = BooleanField('Acesso ao CRM', default=True)
+    acesso_usuarios = BooleanField('Acesso a Usuários', default=True)
+    acesso_financeiro = BooleanField('Acesso ao Financeiro', default=True)
+    acesso_reunioes = BooleanField('Acesso a Reuniões', default=True)
+    acesso_relatorios = BooleanField('Acesso a Relatórios', default=True)
+    acesso_api_sistema = BooleanField('Acesso à API do Sistema', default=True)
     receber_notificacoes = BooleanField('Receber Notificações por Email', default=True)
     ativo = BooleanField('Usuário Ativo', default=True)
     

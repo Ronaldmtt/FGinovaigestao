@@ -110,6 +110,7 @@ class Project(db.Model):
     has_drive = db.Column(db.Boolean, default=False, nullable=False)
     has_env = db.Column(db.Boolean, default=None, nullable=True)
     has_backup_db = db.Column(db.Boolean, default=None, nullable=True)
+    github_todos_generated_at = db.Column(db.DateTime, nullable=True)
     
     # Integração RPA
     rpa_identifier = db.Column(db.String(100), nullable=True)

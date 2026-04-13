@@ -492,6 +492,7 @@
                     </div>
                     {% endif %}
 
+                    {% if current_user.is_admin or current_user.acesso_reunioes %}
                     <div class="nav-item">
                         <a href="{{ url_for('meetings_bp.meetings_hub') }}"
                             class="nav-link {% if request.endpoint and 'meetings' in request.endpoint %}active{% endif %}">
@@ -499,8 +500,9 @@
                             <span>Reuniões</span>
                         </a>
                     </div>
+                    {% endif %}
 
-
+                    {% if current_user.is_admin or current_user.acesso_relatorios %}
                     <div class="nav-item">
                         <a href="{{ url_for('reports') }}"
                             class="nav-link {% if request.endpoint == 'reports' %}active{% endif %}">
@@ -508,6 +510,7 @@
                             <span>Relatórios</span>
                         </a>
                     </div>
+                    {% endif %}
 
                     <div class="nav-item">
                         <a href="{{ url_for('crm2_notifications') }}"

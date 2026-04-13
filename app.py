@@ -271,6 +271,30 @@ with app.app_context():
     except Exception as e:
         db.session.rollback()
         print(f"Migracao Falhou/Ignorada (github_token): {e}")
+
+    user_permission_queries = [
+        'ALTER TABLE "user" ADD COLUMN acesso_usuarios BOOLEAN NOT NULL DEFAULT TRUE',
+        'ALTER TABLE "user" ADD COLUMN acesso_financeiro BOOLEAN NOT NULL DEFAULT TRUE',
+        'ALTER TABLE "user" ADD COLUMN acesso_reunioes BOOLEAN NOT NULL DEFAULT TRUE',
+        'ALTER TABLE "user" ADD COLUMN acesso_relatorios BOOLEAN NOT NULL DEFAULT TRUE',
+        'ALTER TABLE "user" ADD COLUMN acesso_api_sistema BOOLEAN NOT NULL DEFAULT TRUE'
+    ]
+    for q in user_permission_queries:
+        try:
+            db.session.execute(text(q))
+            db.session.commit()
+            print(f"Migracao Executada: {q}")
+        except Exception:
+            db.session.rollback()
+            pass
+
+    try:
+        db.session.execute(text('ALTER TABLE project ADD COLUMN github_todos_generated_at TIMESTAMP'))
+        db.session.commit()
+        print('Migracao Executada: github_todos_generated_at em project.')
+    except Exception:
+        db.session.rollback()
+        pass
     
     # Create default admin user if it doesn't exist
     from models import User

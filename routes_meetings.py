@@ -562,6 +562,10 @@ def _render_meetings_hub(tab='overview', project_filter=None, user_filter=None, 
 @meetings_bp.route('/meetings', methods=['GET'])
 @login_required
 def meetings_hub():
+    if not (current_user.is_admin or getattr(current_user, 'acesso_reunioes', False)):
+        flash('Você não tem permissão para acessar a aba de reuniões.', 'danger')
+        return redirect(url_for('dashboard'))
+
     tab = request.args.get('tab', 'overview')
     client_filter = request.args.get('client_id')
     project_filter = request.args.get('project_id')

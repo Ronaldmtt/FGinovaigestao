@@ -331,7 +331,12 @@ def admin_new_user():
             acesso_projetos=form.acesso_projetos.data,
             acesso_tarefas=form.acesso_tarefas.data,
             acesso_kanban=form.acesso_kanban.data,
-            acesso_crm=form.acesso_crm.data
+            acesso_crm=form.acesso_crm.data,
+            acesso_usuarios=form.acesso_usuarios.data,
+            acesso_financeiro=form.acesso_financeiro.data,
+            acesso_reunioes=form.acesso_reunioes.data,
+            acesso_relatorios=form.acesso_relatorios.data,
+            acesso_api_sistema=form.acesso_api_sistema.data
         )
         db.session.add(user)
         db.session.commit()
@@ -347,8 +352,9 @@ def admin_new_user():
 
 @app.route('/admin/users/edit/<int:user_id>', methods=['GET', 'POST'])
 @login_required
+@requires_permission('acesso_usuarios')
 def admin_edit_user(user_id):
-    if not current_user.is_admin:
+    if not (current_user.is_admin or getattr(current_user, 'acesso_usuarios', False)):
         flash('Acesso negado.', 'danger')
         return redirect(url_for('dashboard'))
 
@@ -674,6 +680,14 @@ def projects():
             else:
                 glow_class = 'glow-purple' # Atrasado
 
+        github_generated_at = getattr(project, 'github_todos_generated_at', None)
+        github_updated_today = bool(
+            project.status == 'em_andamento'
+            and github_generated_at
+            and github_generated_at.date() == datetime.utcnow().date()
+        )
+        github_alarm_visible = project.status == 'em_andamento'
+
         projects_data.append({
             'id': project.id,
             'nome': project.nome,
@@ -694,6 +708,9 @@ def projects():
             'can_edit': current_user.is_admin or current_user.id == project.responsible_id,
             'created_at': project.created_at,
             'can_edit': current_user.is_admin or current_user.id == project.responsible_id,
+            'github_alarm_visible': github_alarm_visible,
+            'github_updated_today': github_updated_today,
+            'github_generated_at': github_generated_at,
             'project': project,
             'rpa_identifier': project.rpa_identifier,
             'rpa_status': None,
@@ -742,6 +759,13 @@ def projects():
                 elif pct < 0.9: c_glow = 'glow-orange'
                 elif pct <= 1.0: c_glow = 'glow-red'
                 else:           c_glow = 'glow-purple'
+            c_github_generated_at = getattr(c, 'github_todos_generated_at', None)
+            c_github_updated_today = bool(
+                c.status == 'em_andamento'
+                and c_github_generated_at
+                and c_github_generated_at.date() == datetime.utcnow().date()
+            )
+
             children_list.append({
                 'id':             c.id,
                 'nome':           c.nome,
@@ -758,6 +782,9 @@ def projects():
                 'client':         project.client.nome if project.client else '-',
                 'data_inicio':    c.data_inicio.strftime('%d/%m/%Y') if c.data_inicio else '',
                 'data_fim':       c.data_fim.strftime('%d/%m/%Y') if c.data_fim else '',
+                'github_alarm_visible': c.status == 'em_andamento',
+                'github_updated_today': c_github_updated_today,
+                'github_generated_at': c_github_generated_at,
                 # Badges de infra
                 'has_github':     c.has_github if hasattr(c, 'has_github') else False,
                 'has_env':        c.has_env    if hasattr(c, 'has_env')    else None,
@@ -2669,6 +2696,8 @@ def api_generate_todos_from_commits(task_id):
         commits_data = resp.json()
         if not commits_data:
             return jsonify({'success': False, 'message': 'Nenhum commit encontrado no período selecionado.'})
+
+        project.github_todos_generated_at = datetime.utcnow()
 
         # Compilar texto enriquecido dos commits, incluindo arquivos alterados e pistas de módulo.
         commits_text_lines = []
@@ -4917,11 +4946,9 @@ def delete_project_api_key(project_id, key_id):
 
 @app.route('/admin/system-api-keys')
 @login_required
+@requires_permission('acesso_api_sistema')
 def system_api_keys_page():
     """Página de gerenciamento de chaves de API do sistema"""
-    if not current_user.is_admin:
-        flash('Apenas administradores podem acessar esta página.', 'danger')
-        return redirect(url_for('dashboard'))
 
     api_keys = SystemApiKey.query.order_by(SystemApiKey.created_at.desc()).all()
     return render_template('admin_system_api_keys.html', api_keys=api_keys, now=datetime.utcnow())
@@ -4929,10 +4956,9 @@ def system_api_keys_page():
 
 @app.route('/api/system-api-keys', methods=['GET'])
 @login_required
+@requires_permission('acesso_api_sistema')
 def list_system_api_keys():
-    """Lista chaves de API do sistema (apenas admin)"""
-    if not current_user.is_admin:
-        return jsonify({'success': False, 'message': 'Acesso negado'}), 403
+    """Lista chaves de API do sistema"""
 
     api_keys = SystemApiKey.query.order_by(SystemApiKey.created_at.desc()).all()
 
@@ -4944,10 +4970,9 @@ def list_system_api_keys():
 
 @app.route('/api/system-api-keys', methods=['POST'])
 @login_required
+@requires_permission('acesso_api_sistema')
 def create_system_api_key():
     """Gera nova System API Key. Retorna o token UMA única vez."""
-    if not current_user.is_admin:
-        return jsonify({'success': False, 'message': 'Apenas administradores podem criar chaves de sistema'}), 403
 
     data = request.get_json()
     if not data:

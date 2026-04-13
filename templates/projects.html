@@ -432,6 +432,14 @@
                             <i class="fas fa-history me-1"></i>Histórico
                         </button>
                     </div>
+                    {% if p.github_alarm_visible %}
+                    <div class="project-card-info mt-2">
+                        <span class="github-daily-badge {{ 'github-daily-ok' if p.github_updated_today else 'github-daily-pending' }}">
+                            <i class="fas {{ 'fa-check-circle' if p.github_updated_today else 'fa-exclamation-triangle' }} me-1"></i>
+                            {{ 'GitHub atualizado hoje' if p.github_updated_today else 'Hoje sem atualização GitHub' }}
+                        </span>
+                    </div>
+                    {% endif %}
 
                     <div class="project-card-info mt-2">
                         <div class="d-flex flex-column small w-100">
@@ -1185,6 +1193,29 @@
         color: #a9cbff;
     }
 
+    .github-daily-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: .25rem;
+        padding: .35rem .6rem;
+        border-radius: 999px;
+        font-size: .72rem;
+        font-weight: 700;
+        letter-spacing: .01em;
+    }
+
+    .github-daily-ok {
+        background: rgba(25, 135, 84, .18);
+        color: #75d69c;
+        border: 1px solid rgba(25, 135, 84, .45);
+    }
+
+    .github-daily-pending {
+        background: rgba(255, 193, 7, .14);
+        color: #ffd666;
+        border: 1px solid rgba(255, 193, 7, .42);
+    }
+
     .status-active {
         background: rgba(13, 110, 253, 0.2);
         color: #5ba3ff;
@@ -1844,6 +1875,11 @@
     }
 
     .csg-dot.active {
+        background: #3b82f6;
+        transform: scale(1.5);
+    }
+</style>
+{% endblock %}tive {
         background: #3b82f6;
         transform: scale(1.5);
     }

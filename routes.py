@@ -135,6 +135,87 @@ def github_request_with_fallback(url, *, method='GET', params=None, timeout=10, 
     return requests.request(method, url, headers=build_github_headers(), params=params, timeout=timeout)
 
 
+def extract_github_repo_path(repo_value):
+    import re
+    if not repo_value:
+        return None
+    repo_match = re.search(r'(?:github\.com/)?([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(?:\.git|/)?$', repo_value)
+    if not repo_match:
+        return None
+    return f"{repo_match.group(1)}/{repo_match.group(2)}"
+
+
+def fetch_latest_github_commit_info(project, user=None):
+    repo_path = extract_github_repo_path(getattr(project, 'github_repo', None))
+    if not repo_path:
+        return None
+    try:
+        resp = github_request_with_fallback(f'https://api.github.com/repos/{repo_path}/commits', params={'per_page': 1}, timeout=10, user=user or current_user)
+        if resp.status_code != 200:
+            return None
+        data = resp.json() or []
+        if not data:
+            return None
+        latest = data[0]
+        commit_date = latest.get('commit', {}).get('author', {}).get('date') or latest.get('commit', {}).get('committer', {}).get('date')
+        parsed_date = None
+        if commit_date:
+            try:
+                parsed_date = datetime.fromisoformat(commit_date.replace('Z', '+00:00')).replace(tzinfo=None)
+            except Exception:
+                parsed_date = None
+        return {
+            'sha': latest.get('sha'),
+            'date': parsed_date,
+            'message': latest.get('commit', {}).get('message', ''),
+        }
+    except Exception:
+        return None
+
+
+def build_project_repo_context(project, user=None, max_commits=10):
+    repo_path = extract_github_repo_path(getattr(project, 'github_repo', None))
+    if not repo_path:
+        return {'repo_path': None, 'context_text': '', 'latest_commit': None}
+    latest_commit = fetch_latest_github_commit_info(project, user=user)
+    context_lines = []
+    try:
+        commits_resp = github_request_with_fallback(
+            f'https://api.github.com/repos/{repo_path}/commits',
+            params={'per_page': max_commits},
+            timeout=10,
+            user=user or current_user
+        )
+        if commits_resp.status_code == 200:
+            commits = commits_resp.json() or []
+            for c in commits:
+                sha = (c.get('sha') or '')[:7]
+                msg = (c.get('commit', {}).get('message') or '').strip()
+                author = (c.get('commit', {}).get('author', {}).get('name') or 'Autor não identificado').strip()
+                context_lines.append(f'- {sha} | {author} | {msg}')
+    except Exception:
+        pass
+
+    try:
+        contents_resp = github_request_with_fallback(
+            f'https://api.github.com/repos/{repo_path}/contents',
+            params={}, timeout=10, user=user or current_user
+        )
+        if contents_resp.status_code == 200:
+            contents = contents_resp.json() or []
+            names = [item.get('name') for item in contents[:20] if item.get('name')]
+            if names:
+                context_lines.append('Arquivos/pastas raiz: ' + ', '.join(names))
+    except Exception:
+        pass
+
+    return {
+        'repo_path': repo_path,
+        'context_text': '\n'.join(context_lines),
+        'latest_commit': latest_commit,
+    }
+
+
 def get_project_status_label(status):
     return PROJECT_STATUS_LABELS.get(status, status or '-')
 
@@ -3182,39 +3263,97 @@ def get_projects_by_client(client_id):
 @requires_permission('acesso_tarefas')
 @requires_permission('acesso_kanban')
 def kanban_transcription():
-    data = request.get_json()
+    data = request.get_json() or {}
 
     try:
         project_id = data.get('project_id')
-        transcription = data.get('transcription')
-
-        if not project_id or not transcription:
-            return jsonify({'success': False, 'message': 'Dados incompletos'})
+        if not project_id:
+            return jsonify({'success': False, 'message': 'Projeto não informado'})
 
         project = Project.query.get_or_404(project_id)
+        if not current_user.is_admin and current_user.id != project.responsible_id and current_user not in project.team_members:
+            return jsonify({'success': False, 'message': 'Sem permissão para este projeto'}), 403
 
-        # Gerar tarefas com IA usando a transcrição
-        auto_tasks = generate_tasks_from_transcription(transcription, project.nome)
+        meeting = Meeting.query.filter(
+            Meeting.project_id == project.id,
+            db.or_(Meeting.transcription_content.isnot(None), Meeting.analysis_summary.isnot(None), Meeting.results_json.isnot(None))
+        ).order_by(Meeting.date_time.desc()).first()
+
+        transcription = (data.get('transcription') or '').strip()
+        if not transcription and meeting:
+            transcription = (meeting.transcription_content or '').strip()
+
+        if not transcription:
+            return jsonify({'success': False, 'message': 'Nenhuma transcrição útil foi encontrada para este projeto. Vincule uma reunião ao projeto e gere a transcrição/análise primeiro.'})
+
+        meeting_summary = meeting.analysis_summary if meeting else ''
+        meeting_results = ''
+        if meeting and meeting.results_json:
+            meeting_results = meeting.results_json
+
+        repo_bundle = build_project_repo_context(project, user=current_user, max_commits=12)
+        meeting_context = f"""
+Projeto: {project.nome}
+Transcrição:
+{transcription}
+
+Resumo/Análise:
+{meeting_summary or 'Sem resumo disponível.'}
+
+Resultados estruturados:
+{meeting_results or 'Sem resultados estruturados.'}
+"""
+
+        generated = generate_project_tasks_from_meeting_and_repo(
+            project_name=project.nome,
+            meeting_context=meeting_context,
+            repo_context=repo_bundle.get('context_text', '')
+        )
+
+        tasks_payload = generated.get('tasks') if isinstance(generated, dict) else []
+        if not tasks_payload:
+            return jsonify({'success': False, 'message': 'A IA não encontrou contexto suficiente para gerar tarefas acionáveis.'})
 
         tasks_created = 0
-        for task_data in auto_tasks:
+        todos_created = 0
+        for task_data in tasks_payload:
+            due_days = int(task_data.get('due_days') or 0)
+            due_date = datetime.utcnow().date() + timedelta(days=due_days) if due_days > 0 else None
             task = Task(
-                titulo=task_data['titulo'],
-                descricao=task_data['descricao'],
+                titulo=(task_data.get('titulo') or 'Tarefa gerada por IA').strip(),
+                descricao=(task_data.get('descricao') or '').strip(),
                 project_id=project.id,
-                status='pendente'
+                status='pendente',
+                due_date=due_date
             )
             db.session.add(task)
+            db.session.flush()
             tasks_created += 1
+
+            comentario_base = (task_data.get('comentario') or '').strip()
+            for todo_data in (task_data.get('todos') or []):
+                todo_due_days = int(todo_data.get('due_days') or 0)
+                todo_due_date = datetime.utcnow().date() + timedelta(days=todo_due_days) if todo_due_days > 0 else None
+                todo = Todo(
+                    texto=(todo_data.get('texto') or 'Executar item').strip(),
+                    completed=False,
+                    due_date=todo_due_date,
+                    comentario=((todo_data.get('comentario') or comentario_base or 'Gerado a partir de transcrição + análise do repositório Git.')).strip(),
+                    task_id=task.id
+                )
+                db.session.add(todo)
+                todos_created += 1
 
         db.session.commit()
 
-        rpa_log.info(f"IA gerou {tasks_created} tarefas automaticamente para o projeto '{project.nome}' via Kanban", regiao="ia")
+        rpa_log.info(f"IA gerou {tasks_created} tarefas e {todos_created} to-dos para o projeto '{project.nome}' via transcrição + Git", regiao="ia")
 
         return jsonify({
             'success': True,
-            'message': f'{tasks_created} tarefas foram geradas com sucesso!',
-            'tasks_created': tasks_created
+            'message': f'{tasks_created} tarefas e {todos_created} to-dos foram gerados com sucesso!',
+            'tasks_created': tasks_created,
+            'todos_created': todos_created,
+            'latest_commit_sha': (repo_bundle.get('latest_commit') or {}).get('sha')
         })
 
     except Exception as e:

@@ -330,6 +330,68 @@ def generate_client_report_from_tasks(project_name, tasks, completed_todos=None,
             ]
         }
 
+def generate_project_tasks_from_meeting_and_repo(project_name, meeting_context, repo_context=""):
+    """
+    Gera tarefas e to-dos a partir da combinação entre reunião/transcrição e contexto técnico do repositório.
+    """
+    try:
+        prompt = f"""
+        Você é um gerente técnico e product owner senior.
+
+        Seu trabalho é gerar tarefas acionáveis para o projeto \"{project_name}\" com base em duas fontes:
+        1. Contexto da reunião/transcrição
+        2. Contexto técnico do repositório Git
+
+        CONTEXTO DA REUNIÃO:
+        {meeting_context}
+
+        CONTEXTO TÉCNICO DO REPOSITÓRIO:
+        {repo_context or 'Sem contexto adicional de repositório.'}
+
+        OBJETIVO:
+        - entender o que a reunião pediu
+        - entender o que o sistema/projeto faz hoje
+        - transformar isso em tarefas reais de execução
+        - cada tarefa deve ter subtarefas/to-dos práticos
+        - cada tarefa deve trazer um comentário aberto explicando o que fazer e como fazer
+        - sugerir prazo quando houver sinal suficiente no contexto
+
+        REGRAS:
+        - gere entre 3 e 8 tarefas, apenas se houver contexto suficiente
+        - não invente funcionalidades fora do que reunião + repo sustentam
+        - prefira tarefas de implementação objetivas
+        - to-dos devem ser executáveis e específicos
+        - comentário deve explicar a intenção e o caminho técnico
+
+        Retorne APENAS JSON no formato:
+        {{
+          "tasks": [
+            {{
+              "titulo": "...",
+              "descricao": "...",
+              "comentario": "...",
+              "due_days": 3,
+              "todos": [
+                {{"texto": "...", "comentario": "...", "due_days": 2}},
+                {{"texto": "...", "comentario": "...", "due_days": 4}}
+              ]
+            }}
+          ]
+        }}
+        """
+        response = openai.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"},
+            temperature=0.35
+        )
+        content = response.choices[0].message.content
+        return json.loads(content) if content else {"tasks": []}
+    except Exception as e:
+        print(f"Erro ao gerar tarefas a partir de reunião + repo: {e}")
+        return {"tasks": []}
+
+
 def generate_kanban_todos_from_commits(commits_text, project_name, existing_todos_text="", repo_context="", batch_hint=""):
     """
     Analisa um histórico recente de commits e gera To-Dos técnicos estruturados para o Kanban.

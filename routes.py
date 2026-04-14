@@ -56,9 +56,83 @@ PROJECT_STATUS_LABELS = {
     'em_andamento': 'Em Andamento',
     'em_teste': 'Em Teste',
     'concluido': 'Concluído',
-    'pausado': 'Em Espera',
+    'pausado': 'Pausado',
     'cancelado': 'Cancelado'
 }
+
+
+def parse_github_tokens(raw_value):
+    if not raw_value:
+        return []
+    separators = ['\n', ',', ';']
+    values = [str(raw_value)]
+    for sep in separators:
+        next_values = []
+        for item in values:
+            next_values.extend(item.split(sep))
+        values = next_values
+    tokens = []
+    seen = set()
+    for item in values:
+        token = (item or '').strip()
+        if token and token not in seen:
+            seen.add(token)
+            tokens.append(token)
+    return tokens
+
+
+def get_available_github_tokens(user=None):
+    tokens = []
+    seen = set()
+    target_user = user or current_user
+
+    for token in parse_github_tokens(getattr(target_user, 'github_token', None)):
+        if token not in seen:
+            seen.add(token)
+            tokens.append(token)
+
+    admin_users = User.query.filter_by(is_admin=True, ativo=True).order_by(User.id.asc()).all()
+    for admin in admin_users:
+        for token in parse_github_tokens(getattr(admin, 'github_token', None)):
+            if token not in seen:
+                seen.add(token)
+                tokens.append(token)
+
+    return tokens
+
+
+def build_github_headers(token=None):
+    headers = {'Accept': 'application/vnd.github.v3+json'}
+    if token:
+        headers['Authorization'] = f'token {token}'
+    return headers
+
+
+def github_request_with_fallback(url, *, method='GET', params=None, timeout=10, user=None):
+    import requests
+    tokens = get_available_github_tokens(user=user)
+    candidates = tokens if tokens else [None]
+    last_response = None
+    last_error = None
+
+    for token in candidates:
+        headers = build_github_headers(token)
+        try:
+            response = requests.request(method, url, headers=headers, params=params, timeout=timeout)
+            last_response = response
+            if response.status_code in (200, 201, 202, 204):
+                return response
+            if response.status_code in (401, 403, 404):
+                continue
+        except Exception as exc:
+            last_error = exc
+            continue
+
+    if last_response is not None:
+        return last_response
+    if last_error:
+        raise last_error
+    return requests.request(method, url, headers=build_github_headers(), params=params, timeout=timeout)
 
 
 def get_project_status_label(status):
@@ -640,7 +714,7 @@ def projects():
             'em_andamento': {'label': 'Em Andamento', 'class': 'status-active'},
             'em_teste': {'label': 'Em Teste', 'class': 'status-testing'},
             'concluido': {'label': 'Concluído', 'class': 'status-completed'},
-            'pausado': {'label': 'Em Espera', 'class': 'status-paused'},
+            'pausado': {'label': 'Pausado', 'class': 'status-paused'},
             'cancelado': {'label': 'Cancelado', 'class': 'status-delayed'}
         }
         status_info = status_map.get(project.status, {'label': project.status, 'class': 'status-paused'})
@@ -756,7 +830,7 @@ def projects():
                 'em_andamento': {'label': 'Em Andamento', 'class': 'status-active'},
                 'em_teste':     {'label': 'Em Teste',     'class': 'status-testing'},
                 'concluido':    {'label': 'Concluído',    'class': 'status-completed'},
-                'pausado':      {'label': 'Em Espera',    'class': 'status-paused'},
+                'pausado':      {'label': 'Pausado',    'class': 'status-paused'},
                 'cancelado':    {'label': 'Cancelado',    'class': 'status-delayed'},
             }
             c_si = c_status_map.get(c.status, {'label': c.status, 'class': 'status-paused'})
@@ -1324,15 +1398,13 @@ def get_github_data(id):
     if repo_path.endswith('.git'):
         repo_path = repo_path[:-4]
 
-    headers = {'Accept': 'application/vnd.github.v3+json'}
-    if current_user.github_token:
-        headers['Authorization'] = f'token {current_user.github_token}'
+    headers = None
 
     try:
         import requests
 
         # 1. Obter info do repositório
-        repo_resp = requests.get(f'https://api.github.com/repos/{repo_path}', headers=headers, timeout=10)
+        repo_resp = github_request_with_fallback(f'https://api.github.com/repos/{repo_path}', timeout=10)
 
         if repo_resp.status_code == 404:
             return jsonify({'success': False, 'message': 'Repositório não encontrado. Verifique o nome/caminho ou se você configurou o seu Personal Access Token na página de Perfil.'})
@@ -1367,7 +1439,7 @@ def get_github_data(id):
         try:
             count_params = {'per_page': 1}
             if target_branch: count_params['sha'] = target_branch
-            c_resp = requests.get(f'https://api.github.com/repos/{repo_path}/commits', headers=headers, params=count_params, timeout=5)
+            c_resp = github_request_with_fallback(f'https://api.github.com/repos/{repo_path}/commits', params=count_params, timeout=5)
             if c_resp.status_code == 200:
                 link_header = c_resp.headers.get('Link')
                 if link_header:
@@ -1404,13 +1476,16 @@ def get_github_data(id):
             readme_url = f'https://api.github.com/repos/{repo_path}/readme/{target_path}'.strip('/')
             if readme_url.endswith('readme'): readme_url = f'https://api.github.com/repos/{repo_path}/readme'
 
-            rm_headers = headers.copy()
-            rm_headers['Accept'] = 'application/vnd.github.v3.html'
             rm_params = {'ref': target_branch} if target_branch else {}
 
-            rm_resp = requests.get(readme_url, headers=rm_headers, params=rm_params, timeout=5)
-            if rm_resp.status_code == 200:
-                readme_html = rm_resp.text
+            for token in (get_available_github_tokens(current_user) or [None]):
+                rm_headers = {'Accept': 'application/vnd.github.v3.html'}
+                if token:
+                    rm_headers['Authorization'] = f'token {token}'
+                rm_resp = requests.get(readme_url, headers=rm_headers, params=rm_params, timeout=5)
+                if rm_resp.status_code == 200:
+                    readme_html = rm_resp.text
+                    break
         except Exception:
             pass
 
@@ -1443,13 +1518,11 @@ def get_github_commit_details(id, sha):
     if repo_path.endswith('.git'):
         repo_path = repo_path[:-4]
 
-    headers = {'Accept': 'application/vnd.github.v3+json'}
-    if current_user.github_token:
-        headers['Authorization'] = f'token {current_user.github_token}'
+    headers = None
 
     try:
         import requests
-        resp = requests.get(f'https://api.github.com/repos/{repo_path}/commits/{sha}', headers=headers, timeout=5)
+        resp = github_request_with_fallback(f'https://api.github.com/repos/{repo_path}/commits/{sha}', timeout=5)
         if resp.status_code == 200:
             return jsonify({'success': True, 'commit': resp.json()})
         else:
@@ -1476,7 +1549,7 @@ def get_github_commits_list(id):
         import requests
         params = {'per_page': 50}
         if target_branch: params['sha'] = target_branch
-        resp = requests.get(f'https://api.github.com/repos/{repo_path}/commits', headers=headers, params=params, timeout=10)
+        resp = github_request_with_fallback(f'https://api.github.com/repos/{repo_path}/commits', params=params, timeout=10)
         if resp.status_code == 200:
             return jsonify({'success': True, 'commits': resp.json()})
     except Exception:
@@ -1497,14 +1570,11 @@ def get_github_file_content(id):
     repo_path = project.github_repo.replace('https://github.com/', '').replace('http://github.com/', '').strip('/')
     if repo_path.endswith('.git'): repo_path = repo_path[:-4]
 
-    headers = {'Accept': 'application/vnd.github.v3+json'}
-    if current_user.github_token: headers['Authorization'] = f'token {current_user.github_token}'
-
     try:
         import requests
         import base64
         params = {'ref': branch} if branch else {}
-        resp = requests.get(f'https://api.github.com/repos/{repo_path}/contents/{path}', headers=headers, params=params, timeout=5)
+        resp = github_request_with_fallback(f'https://api.github.com/repos/{repo_path}/contents/{path}', params=params, timeout=5)
         if resp.status_code == 200:
             data = resp.json()
             if 'content' in data:
@@ -1529,13 +1599,11 @@ def get_github_file_commit(id):
     if repo_path.endswith('.git'):
         repo_path = repo_path[:-4]
 
-    headers = {'Accept': 'application/vnd.github.v3+json'}
-    if current_user.github_token:
-        headers['Authorization'] = f'token {current_user.github_token}'
+    headers = None
 
     try:
         import requests
-        resp = requests.get(f'https://api.github.com/repos/{repo_path}/commits', params={'path': path, 'per_page': 1}, headers=headers, timeout=5)
+        resp = github_request_with_fallback(f'https://api.github.com/repos/{repo_path}/commits', params={'path': path, 'per_page': 1}, timeout=5)
         if resp.status_code == 200:
             commits = resp.json()
             if commits:
@@ -2693,8 +2761,8 @@ def api_generate_todos_from_commits(task_id):
     if not project.github_repo:
         return jsonify({'success': False, 'message': 'Projeto não possui repositório GitHub vinculado.'})
 
-    if not current_user.github_token:
-        return jsonify({'success': False, 'message': 'Você não possui Token do GitHub configurado no seu perfil.'})
+    if not get_available_github_tokens(current_user):
+        return jsonify({'success': False, 'message': 'Nenhum token GitHub foi encontrado. Você pode cadastrar um token no seu perfil ou salvar um ou mais tokens na conta admin para uso compartilhado.'})
 
     data = request.get_json() or {}
     period = data.get('period', 'today')
@@ -2731,7 +2799,6 @@ def api_generate_todos_from_commits(task_id):
 
     headers = {
         'Accept': 'application/vnd.github.v3+json',
-        'Authorization': f'token {current_user.github_token}'
     }
 
     params = {
@@ -2742,7 +2809,7 @@ def api_generate_todos_from_commits(task_id):
 
     try:
         import requests
-        resp = requests.get(f'https://api.github.com/repos/{repo_path}/commits', headers=headers, params=params, timeout=10)
+        resp = github_request_with_fallback(f'https://api.github.com/repos/{repo_path}/commits', params=params, timeout=10)
         if resp.status_code != 200:
             return jsonify({'success': False, 'message': f'Erro ao buscar commits no GitHub: Código {resp.status_code}'})
 
@@ -2792,7 +2859,6 @@ def api_generate_todos_from_commits(task_id):
             try:
                 commit_resp = requests.get(
                     f'https://api.github.com/repos/{repo_path}/commits/{c.get("sha", "")}',
-                    headers=headers,
                     timeout=20
                 )
                 if commit_resp.status_code == 200:

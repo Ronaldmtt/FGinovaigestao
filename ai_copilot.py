@@ -646,7 +646,8 @@ def execute_tool(name, arguments, user):
         if not task: return json.dumps({"status": "error", "message": "Task não encontrada."})
         project = task.project
         if not project.github_repo: return json.dumps({"status": "error", "message": "Projeto não possui repositório GitHub vinculado."})
-        if not user.github_token: return json.dumps({"status": "error", "message": "Você não possui Token do GitHub configurado no seu perfil."})
+        from routes import get_available_github_tokens, github_request_with_fallback
+        if not get_available_github_tokens(user): return json.dumps({"status": "error", "message": "Nenhum token GitHub foi encontrado no perfil atual ou em contas admin."})
 
         from datetime import datetime, timedelta
         import re, requests
@@ -668,11 +669,10 @@ def execute_tool(name, arguments, user):
         repo_match = re.search(r'(?:github\.com/)?([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(?:\.git|/)?$', project.github_repo)
         if not repo_match: return json.dumps({"status": "error", "message": "Formato de URL do repo do GitHub inválido."})
 
-        headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {user.github_token}'}
         params = {'since': since.isoformat() + 'Z', 'until': until.isoformat() + 'Z', 'per_page': 100}
 
         try:
-            resp = requests.get(f'https://api.github.com/repos/{repo_match.group(1)}/{repo_match.group(2)}/commits', headers=headers, params=params, timeout=10)
+            resp = github_request_with_fallback(f'https://api.github.com/repos/{repo_match.group(1)}/{repo_match.group(2)}/commits', params=params, timeout=10, user=user)
             if resp.status_code != 200: return json.dumps({"status": "error", "message": f"Erro buscar commits (Github API): {resp.status_code}"})
             commits = resp.json()
             if not commits: return json.dumps({"status": "success", "action": "chat_reply", "content": "Análise concluída. Nenhum commit foi encontrado no Github neste período."})

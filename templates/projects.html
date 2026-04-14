@@ -97,7 +97,7 @@
             </a>
             <a href="{{ url_for('projects', status='pausado', client_id=current_filters.client_id, responsible_id=current_filters.responsible_id) }}"
                 class="status-pill {% if current_filters.status == 'pausado' %}active{% endif %}">
-                Em Espera
+                Pausado
             </a>
             <a href="{{ url_for('projects', status='atrasados', client_id=current_filters.client_id, responsible_id=current_filters.responsible_id) }}"
                 class="status-pill {% if current_filters.status == 'atrasados' %}active{% endif %}">
@@ -610,7 +610,7 @@
                                 required>
                                 <option value="em_andamento">Em Andamento</option>
                                 <option value="em_teste">Em Teste</option>
-                                <option value="pausado">Em Espera</option>
+                                <option value="pausado">Pausado</option>
                                 <option value="concluido">Concluído</option>
                             </select>
                         </div>

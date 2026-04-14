@@ -2,67 +2,86 @@
 {% block title %}Fornecedores - Financeiro PJ{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="fas fa-truck-loading me-2 text-primary"></i>Fornecedores</h2>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newSupplierModal">
-        <i class="fas fa-plus me-2"></i>Novo Fornecedor
-    </button>
-</div>
+<style>
+    .fin-suppliers-shell { display: grid; gap: 1.25rem; }
+    .fin-suppliers-hero,
+    .fin-suppliers-table-card {
+        border: 1px solid var(--fg-border) !important;
+        border-radius: 20px !important;
+        background: linear-gradient(180deg, rgba(23,29,37,.96), rgba(18,24,32,.92)) !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.03), var(--fg-shadow-card);
+    }
+    .fin-suppliers-hero { padding: 1.2rem 1.35rem; }
+    .fin-suppliers-shell .modal-content {
+        background: linear-gradient(180deg, rgba(23,29,37,.98), rgba(18,24,32,.96)) !important;
+        border-radius: 20px !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.03), var(--fg-shadow-modal) !important;
+        border: 1px solid var(--fg-border) !important;
+    }
+    .fin-suppliers-shell .modal-header,
+    .fin-suppliers-shell .modal-footer { border-color: var(--fg-border) !important; }
+    .fin-suppliers-shell .form-control,
+    .fin-suppliers-shell .form-select { min-height: 44px; }
+    .fin-suppliers-shell .table tbody tr:hover { background: rgba(255,255,255,.03) !important; }
+</style>
+<div class="fin-suppliers-shell">
+    <div class="d-flex justify-content-between align-items-center fin-suppliers-hero">
+        <h2><i class="fas fa-truck-loading me-2 text-primary"></i>Fornecedores</h2>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newSupplierModal">
+            <i class="fas fa-plus me-2"></i>Novo Fornecedor
+        </button>
+    </div>
 
-<div class="card bg-dark text-white border-secondary shadow-sm">
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-dark table-hover align-middle">
-                <thead>
-                    <tr>
-                        <th>Fornecedor</th>
-                        <th>Email</th>
-                        <th>Telefone</th>
-                        <th class="text-center">Ações</th>
-                    </tr>
-                </thead>
-                <tbody id="suppliersTable">
-                    <tr>
-                        <td colspan="4" class="text-center text-muted">Carregando...</td>
-                    </tr>
-                </tbody>
-            </table>
+    <div class="card fin-suppliers-table-card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Fornecedor</th>
+                            <th>Email</th>
+                            <th>Telefone</th>
+                            <th class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="suppliersTable">
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">Carregando...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Modal Novo Fornecedor -->
-<div class="modal fade" id="newSupplierModal" tabindex="-1" aria-hidden="true" data-bs-theme="dark">
-    <div class="modal-dialog">
-        <div class="modal-content bg-dark text-white">
-            <div class="modal-header border-bottom border-secondary">
-                <h5 class="modal-title">Configurar Fornecedor</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                    aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="formSupplier">
-                    <input type="hidden" id="supId" value="">
-                    <div class="mb-3">
-                        <label class="form-label">Nome Fantasia / Razão Social</label>
-                        <input type="text" class="form-control bg-dark text-white border-secondary" id="supNome"
-                            required placeholder="Ex: Fornecedor Ltda">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Email (Opcional)</label>
-                        <input type="email" class="form-control bg-dark text-white border-secondary" id="supEmail"
-                            placeholder="contato@fornecedor.com">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Telefone (Opcional)</label>
-                        <input type="text" class="form-control bg-dark text-white border-secondary" id="supTelefone"
-                            placeholder="(11) 99999-9999">
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer border-top border-secondary">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" onclick="saveSupplier()">Salvar Fornecedor</button>
+    <div class="modal fade" id="newSupplierModal" tabindex="-1" aria-hidden="true" data-bs-theme="dark">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark text-white">
+                <div class="modal-header border-bottom border-secondary">
+                    <h5 class="modal-title">Configurar Fornecedor</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formSupplier">
+                        <input type="hidden" id="supId" value="">
+                        <div class="mb-3">
+                            <label class="form-label">Nome Fantasia / Razão Social</label>
+                            <input type="text" class="form-control bg-dark text-white border-secondary" id="supNome" required placeholder="Ex: Fornecedor Ltda">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email (Opcional)</label>
+                            <input type="email" class="form-control bg-dark text-white border-secondary" id="supEmail" placeholder="contato@fornecedor.com">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Telefone (Opcional)</label>
+                            <input type="text" class="form-control bg-dark text-white border-secondary" id="supTelefone" placeholder="(11) 99999-9999">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-top border-secondary">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="saveSupplier()">Salvar Fornecedor</button>
+                </div>
             </div>
         </div>
     </div>

@@ -3,7 +3,12 @@
 {% block title %}Gerenciar Tarefas - Sistema de Gerenciamento de Projetos{% endblock %}
 
 {% block content %}
-<div class="container-fluid px-4">
+<style>
+    .tasks-shell .modal-content { background: linear-gradient(180deg, rgba(23,29,37,.98), rgba(18,24,32,.96)) !important; border-radius: 20px !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.03), var(--fg-shadow-modal) !important; }
+    .tasks-shell .modal-header, .tasks-shell .modal-footer { border-color: var(--fg-border) !important; }
+    .tasks-shell .form-control, .tasks-shell .form-select { min-height: 44px; }
+</style>
+<div class="container-fluid px-4 tasks-shell">
     <script>
         const taskProjectStatusMap = {
             {% for project in all_projects %}

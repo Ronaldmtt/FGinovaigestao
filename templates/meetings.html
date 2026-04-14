@@ -1,9 +1,20 @@
 {% extends "base.html" %}
 
-{% block title %}Reuniões{% endblock %}
+{% block title %}Reuniões</div>
+{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
+<style>
+    .meetings-shell { display:grid; gap:1.25rem; }
+    .meetings-hero, .meetings-tabs-card, .meetings-filter-card { border:1px solid var(--fg-border)!important; border-radius:20px!important; background: linear-gradient(180deg, rgba(23,29,37,.96), rgba(18,24,32,.92)) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.03), var(--fg-shadow-card); }
+    .meetings-hero { padding:1.2rem 1.35rem; }
+    .meetings-kpi .card { border-radius:18px!important; }
+    .meeting-entry { border:1px solid var(--fg-border); border-radius:16px; background:rgba(255,255,255,.025); box-shadow: inset 0 1px 0 rgba(255,255,255,.02); }
+    .nav-pills .nav-link { background:rgba(255,255,255,.03); border:1px solid var(--fg-border); color:var(--fg-text-muted); border-radius:999px; font-weight:600; }
+    .nav-pills .nav-link.active { background:rgba(30,215,96,.14); color:#dfffea; border-color:rgba(30,215,96,.22); }
+</style>
+<div class="meetings-shell">
+<div class="d-flex justify-content-between align-items-center mb-0 meetings-hero">
     <div>
         <h2 class="mb-1"><i class="fas fa-video me-2 text-primary"></i>Reuniões</h2>
         <p class="text-muted mb-0">Hub evolutivo de reuniões, análises, pautas e calendário.</p>
@@ -44,7 +55,7 @@
 </div>
 
 {% if tab == 'overview' %}
-<div class="row g-3 mb-4">
+<div class="row g-3 mb-4 meetings-kpi">
     <div class="col-md-3"><div class="card h-100"><div class="card-body"><div class="text-muted small">Total</div><div class="fs-3 fw-bold">{{ total_meetings }}</div></div></div></div>
     <div class="col-md-3"><div class="card h-100"><div class="card-body"><div class="text-muted small">Agendadas</div><div class="fs-3 fw-bold text-warning">{{ scheduled_count }}</div></div></div></div>
     <div class="col-md-3"><div class="card h-100"><div class="card-body"><div class="text-muted small">Concluídas</div><div class="fs-3 fw-bold text-success">{{ completed_count }}</div></div></div></div>
@@ -677,6 +688,7 @@
     });
 })();
 </script>
+</div>
 {% endblock %}
 }
 rim();
@@ -697,4 +709,5 @@ rim();
     });
 })();
 </script>
+</div>
 {% endblock %}

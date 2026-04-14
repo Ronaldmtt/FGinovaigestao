@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Kanban - Sistema de Gerenciamento de Projetos</div>
-{% endblock %}
+{% block title %}Kanban - Sistema de Gerenciamento de Projetos{% endblock %}
 
 {% block content %}
 <style>
@@ -9,6 +8,12 @@
     .kanban-hero, .kanban-filter-shell { border:1px solid var(--fg-border)!important; border-radius:20px!important; background: linear-gradient(180deg, rgba(23,29,37,.96), rgba(18,24,32,.92))!important; box-shadow: inset 0 1px 0 rgba(255,255,255,.03), var(--fg-shadow-card); }
     .kanban-hero { padding:1.2rem 1.35rem; }
     .kanban-filter-shell { padding:1rem 1.1rem; }
+    .kanban-column-container { border-radius:22px; overflow:hidden; }
+    .kanban-column-header { border-radius:18px 18px 0 0!important; box-shadow: inset 0 1px 0 rgba(255,255,255,.04); }
+    .kanban-column { background: linear-gradient(180deg, rgba(18,24,32,.96), rgba(13,17,21,.94)) !important; border: 1px solid var(--fg-border) !important; border-top:none!important; border-radius:0 0 18px 18px!important; box-shadow: var(--fg-shadow-card); }
+    .task-card-modern { border-radius:18px!important; border:1px solid var(--fg-border)!important; background: linear-gradient(180deg, rgba(23,29,37,.98), rgba(18,24,32,.94)) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.03), 0 14px 36px rgba(0,0,0,.22)!important; }
+    .task-card-modern:hover { transform: translateY(-3px)!important; box-shadow: inset 0 1px 0 rgba(255,255,255,.03), 0 18px 42px rgba(0,0,0,.28)!important; }
+    .task-drawer { background: linear-gradient(180deg, rgba(18,24,32,.985), rgba(12,16,20,.985)) !important; border-left: 1px solid var(--fg-border) !important; box-shadow: var(--fg-shadow-modal)!important; }
 </style>
 <div class="kanban-shell">
 <div class="row mb-4">

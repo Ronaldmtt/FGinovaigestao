@@ -2147,11 +2147,12 @@ def public_update_todo(todo_id, code):
 
 @app.route('/projects/<int:id>/data')
 @login_required
+@requires_permission('acesso_projetos')
 def get_project_data(id):
     project = Project.query.get_or_404(id)
 
     # Verificar se o usuário tem acesso ao projeto
-    if not current_user.is_admin and current_user.id != project.responsible_id:
+    if not current_user.is_admin and current_user.id != project.responsible_id and current_user not in project.team_members:
         return jsonify({'success': False, 'message': 'Acesso negado'}), 403
 
     # Buscar dados necessários para o formulário
@@ -2289,6 +2290,7 @@ def new_task_kanban():
 
 @app.route('/tasks/transcription', methods=['GET', 'POST'])
 @login_required
+@requires_permission('acesso_tarefas')
 def transcription_task():
     form = TranscriptionTaskForm()
     if form.validate_on_submit():
@@ -2651,8 +2653,14 @@ def api_update_task(task_id):
 
 @app.route('/api/tasks/<int:task_id>', methods=['DELETE'])
 @login_required
+@requires_permission('acesso_tarefas')
 def api_delete_task(task_id):
     task = Task.query.get_or_404(task_id)
+    project = task.project
+
+    if not current_user.is_admin and task.assigned_user_id != current_user.id:
+        if current_user.id != project.responsible_id and current_user not in project.team_members:
+            return jsonify({'success': False, 'message': 'Sem permissão'}), 403
 
     try:
         # Deletar todos os to-do's relacionados primeiro

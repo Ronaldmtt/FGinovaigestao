@@ -557,24 +557,3 @@ function copyUrl() {
 }
 </script>
 {% endblock %}
-});
-}
-
-function copyUrl() {
-    const url = document.getElementById('publicUrlFull').value;
-    navigator.clipboard.writeText(url).then(() => {
-        const btn = event.target.closest('button');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-check me-2"></i>Copiado!';
-        btn.classList.add('btn-success');
-        btn.classList.remove('btn-outline-primary');
-        setTimeout(() => {
-            btn.innerHTML = originalText;
-            btn.classList.remove('btn-success');
-            btn.classList.add('btn-outline-primary');
-        }, 2000);
-    });
-}
-</script>
-</div>
-{% endblock %}

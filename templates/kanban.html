@@ -3467,39 +3467,4 @@ ${periodText ? `**PERÍODO DE ANÁLISE:**\n${periodText}\n` : ''}**Regras de Exe
     }
 </script>
 </div>
-{% endblock %}    }
-</script>
-</div>
-{% endblock %}ateMatch[0], '').trim();
-                }
-
-                // Limpar "fru fru" (Markdown bold/italic excessivo)
-                cleanText = cleanText.replace(/\*\*/g, ''); // Remove negrito (**Texto**)
-                cleanText = cleanText.replace(/^\*\s*/, ''); // Remove * no início se sobrar
-
-                if (cleanText) {
-                    const isCompleted = match[1].toLowerCase() === 'x';
-                    addTodo(cleanText, isCompleted, dateVal);
-                    count++;
-                }
-            }
-        });
-
-        if (count > 0) {
-            // Fechar modal
-            const modalEl = document.getElementById('importTodoJsonModal');
-            const modal = bootstrap.Modal.getInstance(modalEl);
-            modal.hide();
-
-            // Feedback
-            // alert(`${count} to-dos importados com sucesso!`);
-
-            // Salvar automaticamente após importar
-            saveTaskFromDrawer();
-        } else {
-            alert('Nenhum to-do encontrado no texto. Use o formato de lista (- Item).');
-        }
-    }
-</script>
-</div>
 {% endblock %}

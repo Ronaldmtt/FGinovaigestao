@@ -579,6 +579,21 @@ def meetings_hub():
 def meeting_detail(meeting_id):
     meeting = Meeting.query.get_or_404(meeting_id)
 
+    allowed = current_user.is_admin or getattr(current_user, 'acesso_reunioes', False)
+    if not allowed:
+        flash('Você não tem permissão para acessar reuniões.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    is_participant = current_user in meeting.participants
+    is_creator = meeting.created_by_id == current_user.id
+    is_project_member = False
+    if meeting.project:
+        is_project_member = current_user.id == meeting.project.responsible_id or current_user in meeting.project.team_members
+
+    if not current_user.is_admin and not (is_participant or is_creator or is_project_member):
+        flash('Você não tem acesso a esta reunião.', 'danger')
+        return redirect(url_for('meetings_bp.meetings_hub', tab='list'))
+
     calendar_synced = False
     calendar_sync_error = None
     if meeting.meeting_source == 'google_calendar' and meeting.google_calendar_event_id:

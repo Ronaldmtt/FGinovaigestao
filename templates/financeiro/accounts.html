@@ -2,80 +2,99 @@
 {% block title %}Contas e Cartões - Financeiro PJ{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="fas fa-wallet me-2 text-primary"></i>Contas e Cartões</h2>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newAccountModal">
-        <i class="fas fa-plus me-2"></i>Adicionar Conta/Cartão
-    </button>
-</div>
-
-<div class="row" id="accountsGrid">
-    <div class="col-12 mt-5">
-        <h5 class="text-center text-muted">Buscando contas no sistema...</h5>
+<style>
+    .fin-accounts-shell { display: grid; gap: 1.25rem; }
+    .fin-accounts-hero,
+    .fin-accounts-grid-shell {
+        border: 1px solid var(--fg-border) !important;
+        border-radius: 20px !important;
+        background: linear-gradient(180deg, rgba(23,29,37,.96), rgba(18,24,32,.92)) !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.03), var(--fg-shadow-card);
+    }
+    .fin-accounts-hero { padding: 1.2rem 1.35rem; }
+    .fin-accounts-shell .modal-content {
+        background: linear-gradient(180deg, rgba(23,29,37,.98), rgba(18,24,32,.96)) !important;
+        border-radius: 20px !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.03), var(--fg-shadow-modal) !important;
+        border: 1px solid var(--fg-border) !important;
+    }
+    .fin-accounts-shell .modal-header,
+    .fin-accounts-shell .modal-footer { border-color: var(--fg-border) !important; }
+    .fin-accounts-shell .form-control,
+    .fin-accounts-shell .form-select { min-height: 44px; }
+</style>
+<div class="fin-accounts-shell">
+    <div class="d-flex justify-content-between align-items-center fin-accounts-hero">
+        <h2><i class="fas fa-wallet me-2 text-primary"></i>Contas e Cartões</h2>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newAccountModal">
+            <i class="fas fa-plus me-2"></i>Adicionar Conta/Cartão
+        </button>
     </div>
-</div>
 
-<!-- Modal Nova Conta -->
-<div class="modal fade" id="newAccountModal" tabindex="-1" aria-hidden="true" data-bs-theme="dark">
-    <div class="modal-dialog">
-        <div class="modal-content bg-dark text-white">
-            <div class="modal-header border-bottom border-secondary">
-                <h5 class="modal-title">Nova Conta Institucional</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                    aria-label="Close"></button>
+    <div class="card fin-accounts-grid-shell">
+        <div class="card-body">
+            <div class="row" id="accountsGrid">
+                <div class="col-12 mt-5">
+                    <h5 class="text-center text-muted">Buscando contas no sistema...</h5>
+                </div>
             </div>
-            <div class="modal-body">
-                <form id="formAccount">
-                    <input type="hidden" id="accId" value="">
-                    <div class="mb-3">
-                        <label class="form-label">Nome (Ex: Conta Banco do Brasil, Itaú Corporate)</label>
-                        <input type="text" class="form-control bg-dark text-white border-secondary" id="accNome"
-                            required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Tipo de Conta</label>
-                        <select class="form-select bg-dark text-white border-secondary" id="accTipo"
-                            onchange="toggleAccountFields()">
-                            <option value="wallet">Carteira / Conta Corrente / Caixa</option>
-                            <option value="credit_card">Cartão de Crédito</option>
-                        </select>
-                    </div>
+        </div>
+    </div>
 
-                    <!-- Campos de Wallet -->
-                    <div class="mb-3" id="walletFields">
-                        <label class="form-label">Saldo Inicial (R$)</label>
-                        <input type="text" class="form-control bg-dark text-white border-secondary money-mask"
-                            id="accSaldo" value="R$ 0,00" onkeyup="mascaraMoeda(this, event)">
-                    </div>
+    <div class="modal fade" id="newAccountModal" tabindex="-1" aria-hidden="true" data-bs-theme="dark">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark text-white">
+                <div class="modal-header border-bottom border-secondary">
+                    <h5 class="modal-title">Nova Conta Institucional</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formAccount">
+                        <input type="hidden" id="accId" value="">
+                        <div class="mb-3">
+                            <label class="form-label">Nome (Ex: Conta Banco do Brasil, Itaú Corporate)</label>
+                            <input type="text" class="form-control bg-dark text-white border-secondary" id="accNome" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tipo de Conta</label>
+                            <select class="form-select bg-dark text-white border-secondary" id="accTipo" onchange="toggleAccountFields()">
+                                <option value="wallet">Carteira / Conta Corrente / Caixa</option>
+                                <option value="credit_card">Cartão de Crédito</option>
+                            </select>
+                        </div>
 
-                    <!-- Campos de Cartão -->
-                    <div class="row" id="cardFields" style="display: none;">
-                        <div class="col-12 mb-3">
-                            <label class="form-label">Limite de Crédito Disponibilizado (R$)</label>
-                            <input type="text" class="form-control bg-dark text-white border-secondary money-mask"
-                                id="accLimite" value="R$ 0,00" onkeyup="mascaraMoeda(this, event)">
+                        <div class="mb-3" id="walletFields">
+                            <label class="form-label">Saldo Inicial (R$)</label>
+                            <input type="text" class="form-control bg-dark text-white border-secondary money-mask" id="accSaldo" value="R$ 0,00" onkeyup="mascaraMoeda(this, event)">
                         </div>
-                        <div class="col-6 mb-3">
-                            <label class="form-label">Dia do Fechamento</label>
-                            <input type="number" min="1" max="31"
-                                class="form-control bg-dark text-white border-secondary" id="accFechamento" value="1">
+
+                        <div class="row" id="cardFields" style="display: none;">
+                            <div class="col-12 mb-3">
+                                <label class="form-label">Limite de Crédito Disponibilizado (R$)</label>
+                                <input type="text" class="form-control bg-dark text-white border-secondary money-mask" id="accLimite" value="R$ 0,00" onkeyup="mascaraMoeda(this, event)">
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label class="form-label">Dia do Fechamento</label>
+                                <input type="number" min="1" max="31" class="form-control bg-dark text-white border-secondary" id="accFechamento" value="1">
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label class="form-label">Dia do Vencimento</label>
+                                <input type="number" min="1" max="31" class="form-control bg-dark text-white border-secondary" id="accVencimento" value="10">
+                            </div>
                         </div>
-                        <div class="col-6 mb-3">
-                            <label class="form-label">Dia do Vencimento</label>
-                            <input type="number" min="1" max="31"
-                                class="form-control bg-dark text-white border-secondary" id="accVencimento" value="10">
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer border-top border-secondary">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" onclick="saveAccount()">Cadastrar</button>
+                    </form>
+                </div>
+                <div class="modal-footer border-top border-secondary">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="saveAccount()">Cadastrar</button>
+                </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block scripts %}
 <script>
     function toggleAccountFields() {
         const type = document.getElementById('accTipo').value;
@@ -88,11 +107,7 @@
         }
     }
 </script>
-{% endblock %}
-
-{% block scripts %}
 <script>
-    // JS Moeda
     String.prototype.reverse = function () {
         return this.split('').reverse().join('');
     };
@@ -186,7 +201,6 @@
                                     </div>
                                     <p class="text-muted mb-1 small">Fatura Atual (Vence dia ${acc.dia_vencimento})</p>
                                     <h3 class="text-warning mb-3">${formatter.format(faturado)}</h3>
-                                    
                                     <div class="d-flex justify-content-between text-muted small mb-1">
                                         <span>Limite Consumido</span>
                                         <span>${pc}%</span>
@@ -229,9 +243,6 @@
             if (res.success) {
                 bootstrap.Modal.getInstance(document.getElementById('newAccountModal')).hide();
                 loadAccounts();
-                document.getElementById('formAccount').reset();
-                document.getElementById('accId').value = '';
-                toggleAccountFields(); // reset visibility
             } else {
                 alert(res.message);
             }
@@ -245,13 +256,13 @@
         document.getElementById('accSaldo').value = formatter.format(saldo || 0);
         document.getElementById('accLimite').value = formatter.format(limite || 0);
         document.getElementById('accFechamento').value = fechamento || 1;
-        document.getElementById('accVencimento').value = vencimento || 1;
+        document.getElementById('accVencimento').value = vencimento || 10;
         toggleAccountFields();
         new bootstrap.Modal(document.getElementById('newAccountModal')).show();
     }
 
     function deleteAccount(id) {
-        if (confirm('Tem certeza? Lançamentos ligados a essa conta não serão apagados.')) {
+        if (confirm('Tem certeza que deseja inativar/remover esta conta?')) {
             fetch(`/api/financeiro/accounts/${id}`, { method: 'DELETE' })
                 .then(res => res.json())
                 .then(res => {

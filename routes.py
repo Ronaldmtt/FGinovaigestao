@@ -1542,9 +1542,6 @@ def get_github_commits_list(id):
     repo_path = project.github_repo.replace('https://github.com/', '').replace('http://github.com/', '').strip('/')
     if repo_path.endswith('.git'): repo_path = repo_path[:-4]
 
-    headers = {'Accept': 'application/vnd.github.v3+json'}
-    if current_user.github_token: headers['Authorization'] = f'token {current_user.github_token}'
-
     try:
         import requests
         params = {'per_page': 50}
@@ -3183,6 +3180,8 @@ def get_projects_by_client(client_id):
 
 @app.route('/kanban/transcription', methods=['POST'])
 @login_required
+@requires_permission('acesso_tarefas')
+@requires_permission('acesso_kanban')
 def kanban_transcription():
     data = request.get_json()
 

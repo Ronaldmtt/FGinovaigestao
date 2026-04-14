@@ -2908,6 +2908,7 @@ def api_generate_todos_from_commits(task_id):
 
 @app.route('/api/tasks/<int:task_id>/status', methods=['POST'])
 @login_required
+@requires_permission('acesso_tarefas')
 def update_task_status(task_id):
     task = Task.query.get_or_404(task_id)
 

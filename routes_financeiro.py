@@ -142,8 +142,8 @@ def register_finance_routes(app):
             return jsonify([{'id': c.id, 'nome': c.nome, 'icone': c.icone, 'cor': c.cor} for c in centros])
             
         if request.method == 'POST':
-            data = request.get_json()
-            nome = data.get('nome')
+            data = request.get_json(silent=True) or {}
+            nome = (data.get('nome') or '').strip()
             if not nome: return jsonify({'success': False, 'message': 'Nome obrigatório'}), 400
             
             novo_cc = FinCostCenter(nome=nome, icone=data.get('icone', 'fas fa-tag'), cor=data.get('cor', '#cccccc'))

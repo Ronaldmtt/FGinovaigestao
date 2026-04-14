@@ -2345,7 +2345,6 @@ def new_task_kanban():
     db.session.commit()
 
     rpa_log.info(f"{current_user.nome} criou a tarefa '{task.titulo}' diretamente no Kanban", regiao="tarefas")
-    rpa_log.info(f"{current_user.nome} criou a tarefa '{task.titulo}' diretamente no Kanban", regiao="tarefas")
     flash('Tarefa criada com sucesso!', 'success')
 
     # Redirecionar mantendo o filtro do projeto se houver

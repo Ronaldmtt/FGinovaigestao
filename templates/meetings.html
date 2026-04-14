@@ -30,7 +30,7 @@
 <div class="alert alert-warning py-2">{{ meetings_sync_error }}</div>
 {% endif %}
 
-<div class="card mb-4">
+<div class="card mb-4 meetings-tabs-card">
     <div class="card-body py-2">
         <ul class="nav nav-pills gap-2 flex-wrap">
             <li class="nav-item"><a class="nav-link {% if tab == 'overview' %}active{% endif %}" href="{{ url_for('meetings_bp.meetings_hub', tab='overview') }}">Visão Geral</a></li>
@@ -660,6 +660,26 @@
         addBtn.addEventListener('click', () => {
             const id = select.value;
             const label = select.options[select.selectedIndex]?.text?.trim();
+            if (!id || !label || selected.has(id)) return;
+            selected.set(id, label);
+            select.value = '';
+            sync();
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        wirePair(document.querySelector('select[name="client_id"].js-client-filter'), document.querySelector('select[name="project_id"].js-project-filter'));
+        wirePair(document.querySelector('#newMeetingModal .js-client-filter'), document.querySelector('#meeting-project-select'));
+        wirePair(document.querySelector('select[data-target="agenda-project-select"]'), document.querySelector('#agenda-project-select'));
+        wirePair(document.querySelector('select[data-target="agenda-calendar-project-select"]'), document.querySelector('#agenda-calendar-project-select'));
+        setupAttendeeChipWidgets();
+        setupInternalParticipants();
+    });
+})();
+</script>
+{% endblock %}
+}
+rim();
             if (!id || !label || selected.has(id)) return;
             selected.set(id, label);
             select.value = '';

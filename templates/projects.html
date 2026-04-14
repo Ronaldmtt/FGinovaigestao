@@ -153,6 +153,21 @@
                                                     style="font-size:.6rem;"></i>
                                             </div>
                                             {% endif %}
+                                            <div class="d-flex align-items-center bg-dark rounded px-1"
+                                                style="height:20px;" title="RPA: {{ p.rpa_status if p.rpa_identifier else 'Não Configurado' }}">
+                                                <i class="fas fa-robot text-light" style="font-size:.8rem;"></i>
+                                                {% if p.rpa_identifier %}
+                                                    {% if p.rpa_status == 'online' %}
+                                                    <i class="fas fa-check-circle text-success ms-1" style="font-size:.6rem;"></i>
+                                                    {% elif p.rpa_status == 'warning_7d' %}
+                                                    <i class="fas fa-exclamation-triangle text-warning ms-1" style="font-size:.6rem;"></i>
+                                                    {% else %}
+                                                    <i class="fas fa-times-circle text-danger ms-1" style="font-size:.6rem;"></i>
+                                                    {% endif %}
+                                                {% else %}
+                                                <i class="fas fa-question-circle text-secondary ms-1" style="font-size:.6rem;"></i>
+                                                {% endif %}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

@@ -400,7 +400,7 @@ def admin_delete_user(user_id):
         return redirect(url_for('admin_users'))
 
     # Verificar se o usuário tem projetos ou tarefas associadas
-    if user.projects_responsible.count() > 0 or user.assigned_tasks.count() > 0:
+    if len(user.responsible_projects) > 0 or len(user.assigned_tasks) > 0:
         flash('Não é possível deletar este usuário pois ele tem projetos ou tarefas associadas.', 'danger')
         return redirect(url_for('admin_users'))
 
@@ -6884,3 +6884,4 @@ except Exception as e:
     import traceback
     with open('finance_error.txt', 'w') as err_file:
         err_file.write(traceback.format_exc())
+    pass

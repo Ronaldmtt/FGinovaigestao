@@ -28,6 +28,11 @@ class User(UserMixin, db.Model):
     acesso_tarefas = db.Column(db.Boolean, default=True, nullable=False)
     acesso_kanban = db.Column(db.Boolean, default=True, nullable=False)
     acesso_crm = db.Column(db.Boolean, default=True, nullable=False)
+    acesso_usuarios = db.Column(db.Boolean, default=True, nullable=False)
+    acesso_financeiro = db.Column(db.Boolean, default=True, nullable=False)
+    acesso_reunioes = db.Column(db.Boolean, default=True, nullable=False)
+    acesso_relatorios = db.Column(db.Boolean, default=True, nullable=False)
+    acesso_api_sistema = db.Column(db.Boolean, default=True, nullable=False)
     
     # Integracoes Pessoais
     github_token = db.Column(db.String(255), nullable=True)

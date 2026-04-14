@@ -442,4 +442,4 @@ def handle_global_exception(e):
         pass # Ignore screenshot failures on backend
         
     # Re-raise to let Flask handle the 500 response
-    return "Erro interno do servidor. O administrador foi notificado.", 500
+    return "Erro interno do servidor. Já registramos o problema.", 500

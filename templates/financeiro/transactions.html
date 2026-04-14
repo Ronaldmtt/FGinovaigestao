@@ -2,175 +2,186 @@
 {% block title %}Lançamentos Financeiros - Financeiro PJ{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="fas fa-exchange-alt me-2 text-primary"></i>Lançamentos Financeiros</h2>
-    <div class="d-flex gap-2">
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newTransactionModal">
-            <i class="fas fa-plus me-2"></i>Novo Lançamento
-        </button>
+<style>
+    .fin-trans-shell { display: grid; gap: 1.25rem; }
+    .fin-trans-hero,
+    .fin-trans-filters,
+    .fin-trans-table-card {
+        border: 1px solid var(--fg-border) !important;
+        border-radius: 20px !important;
+        background: linear-gradient(180deg, rgba(23,29,37,.96), rgba(18,24,32,.92)) !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.03), var(--fg-shadow-card);
+    }
+    .fin-trans-hero { padding: 1.2rem 1.35rem; }
+    .fin-trans-shell .modal-content {
+        background: linear-gradient(180deg, rgba(23,29,37,.98), rgba(18,24,32,.96)) !important;
+        border-radius: 20px !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.03), var(--fg-shadow-modal) !important;
+        border: 1px solid var(--fg-border) !important;
+    }
+    .fin-trans-shell .modal-header,
+    .fin-trans-shell .modal-footer { border-color: var(--fg-border) !important; }
+    .fin-trans-shell .form-control,
+    .fin-trans-shell .form-select { min-height: 44px; }
+    .fin-trans-shell .table tbody tr:hover { background: rgba(255,255,255,.03) !important; }
+    .fin-trans-shell .btn-group .btn { min-height: 46px; }
+</style>
+<div class="fin-trans-shell">
+    <div class="d-flex justify-content-between align-items-center fin-trans-hero">
+        <h2><i class="fas fa-exchange-alt me-2 text-primary"></i>Lançamentos Financeiros</h2>
+        <div class="d-flex gap-2">
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newTransactionModal">
+                <i class="fas fa-plus me-2"></i>Novo Lançamento
+            </button>
+        </div>
     </div>
-</div>
 
-<div class="card bg-dark text-white mb-4">
-    <div class="card-body">
-        <div class="row g-3 align-items-end">
-            <div class="col-md-3">
-                <label class="form-label">Status</label>
-                <select class="form-select bg-dark text-white border-secondary" id="filterStatus">
-                    <option value="all">Todos</option>
-                    <option value="realized">Pagos / Recebidos</option>
-                    <option value="pending">Pendentes / Previstos</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Tipo</label>
-                <select class="form-select bg-dark text-white border-secondary" id="filterTipo">
-                    <option value="all">Todos</option>
-                    <option value="income">Entradas</option>
-                    <option value="expense">Saídas</option>
-                </select>
-            </div>
-            <div class="col-md-4">
-                <label class="form-label">Conta</label>
-                <select class="form-select bg-dark text-white border-secondary" id="filterConta">
-                    <option value="">Todas</option>
-                </select>
-            </div>
-            <div class="col-md-2 d-grid">
-                <button class="btn btn-outline-light" onclick="loadTransactions()"><i class="fas fa-search me-2"></i>Aplicar</button>
+    <div class="card fin-trans-filters">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select class="form-select bg-dark text-white border-secondary" id="filterStatus">
+                        <option value="all">Todos</option>
+                        <option value="realized">Pagos / Recebidos</option>
+                        <option value="pending">Pendentes / Previstos</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Tipo</label>
+                    <select class="form-select bg-dark text-white border-secondary" id="filterTipo">
+                        <option value="all">Todos</option>
+                        <option value="income">Entradas</option>
+                        <option value="expense">Saídas</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Conta</label>
+                    <select class="form-select bg-dark text-white border-secondary" id="filterConta">
+                        <option value="">Todas</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-grid">
+                    <button class="btn btn-outline-light" onclick="loadTransactions()"><i class="fas fa-search me-2"></i>Aplicar</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="card bg-dark text-white">
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-dark table-hover align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th>Data</th>
-                        <th>Descrição</th>
-                        <th>Categoria</th>
-                        <th>Conta Ref.</th>
-                        <th class="text-end">Valor (R$)</th>
-                        <th class="text-center">Status</th>
-                        <th class="text-center">Ações</th>
-                    </tr>
-                </thead>
-                <tbody id="transactionsTable">
-                    <tr>
-                        <td colspan="7" class="text-center text-muted">Carregando lançamentos...</td>
-                    </tr>
-                </tbody>
-            </table>
+    <div class="card fin-trans-table-card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Descrição</th>
+                            <th>Categoria</th>
+                            <th>Conta Ref.</th>
+                            <th class="text-end">Valor (R$)</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactionsTable">
+                        <tr>
+                            <td colspan="7" class="text-center text-muted">Carregando lançamentos...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Modal Novo Lançamento -->
-<div class="modal fade" id="newTransactionModal" tabindex="-1" aria-hidden="true" data-bs-theme="dark">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content bg-dark text-white">
-            <div class="modal-header border-bottom border-secondary">
-                <h5 class="modal-title">Novo Lançamento Manual</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                    aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="formTransaction">
+    <div class="modal fade" id="newTransactionModal" tabindex="-1" aria-hidden="true" data-bs-theme="dark">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content bg-dark text-white">
+                <div class="modal-header border-bottom border-secondary">
+                    <h5 class="modal-title">Novo Lançamento Manual</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formTransaction">
+                        <div class="mb-4">
+                            <label class="form-label d-block text-center">Tipo de Movimentação</label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="transTipo" id="btnIncome" autocomplete="off" value="income" checked>
+                                <label class="btn btn-outline-success" for="btnIncome"><i class="fas fa-arrow-down me-2"></i>Entrada (Receita)</label>
 
-                    <div class="mb-4">
-                        <label class="form-label d-block text-center">Tipo de Movimentação</label>
-                        <div class="btn-group w-100" role="group">
-                            <input type="radio" class="btn-check" name="transTipo" id="btnIncome" autocomplete="off"
-                                value="income" checked>
-                            <label class="btn btn-outline-success" for="btnIncome"><i
-                                    class="fas fa-arrow-down me-2"></i>Entrada (Receita)</label>
-
-                            <input type="radio" class="btn-check" name="transTipo" id="btnExpense" autocomplete="off"
-                                value="expense">
-                            <label class="btn btn-outline-danger" for="btnExpense"><i
-                                    class="fas fa-arrow-up me-2"></i>Saída (Despesa)</label>
-                        </div>
-                    </div>
-
-                    <div class="row" id="areaEntidade">
-                        <div class="col-md-12 mb-3" id="boxCliente" style="display:block;">
-                            <label class="form-label text-success"><i class="fas fa-user-tag me-1"></i>Vincular a
-                                Cliente (Opcional)</label>
-                            <select class="form-select bg-dark text-white border-secondary" id="transCliente">
-                                <option value="">Nenhum (Entrada Avulsa / Aporte)</option>
-                            </select>
-                        </div>
-                        <div class="col-md-12 mb-3" id="boxFornecedor" style="display:none;">
-                            <label class="form-label text-danger"><i class="fas fa-truck-loading me-1"></i>Vincular a
-                                Fornecedor (Opcional)</label>
-                            <select class="form-select bg-dark text-white border-secondary" id="transFornecedor">
-                                <option value="">Nenhum (Saída Avulsa / Impostos)</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-8 mb-3">
-                            <label class="form-label">Descrição (Documento/Motivo)</label>
-                            <input type="text" class="form-control bg-dark text-white border-secondary"
-                                id="transDescricao" required placeholder="Ex: Pagamento Fornecedor XYZ">
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Data Ocorrência</label>
-                            <input type="date" class="form-control bg-dark text-white border-secondary" id="transData"
-                                required>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-3 mb-3">
-                            <label class="form-label">Valor do Documento (R$)</label>
-                            <input type="text"
-                                class="form-control bg-dark text-white border-secondary form-control-lg text-end money-mask"
-                                id="transValor" required value="R$ 0,00" onkeyup="mascaraMoeda(this, event)">
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label class="form-label">Parcelas</label>
-                            <input type="number" min="1" max="60" class="form-control bg-dark text-white border-secondary" id="transParcelas" value="1">
-                            <div class="form-text">Gera uma parcela por mês.</div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label class="form-label">Centro de Custo (Categoria)</label>
-                            <select class="form-select bg-dark text-white border-secondary" id="transCategoria"
-                                required>
-                                <option value="" selected disabled>Carregando...</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label class="form-label">Conta de Saída/Entrada</label>
-                            <select class="form-select bg-dark text-white border-secondary" id="transConta" required>
-                                <option value="" selected disabled>Carregando...</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3 d-flex align-items-center">
-                            <div class="form-check form-switch mt-4">
-                                <input class="form-check-input" type="checkbox" id="transRealizado">
-                                <label class="form-check-label" for="transRealizado">Pago / Recebido</label>
-                                <div class="form-text">Só movimenta saldo/fatura quando este campo estiver marcado.</div>
+                                <input type="radio" class="btn-check" name="transTipo" id="btnExpense" autocomplete="off" value="expense">
+                                <label class="btn btn-outline-danger" for="btnExpense"><i class="fas fa-arrow-up me-2"></i>Saída (Despesa)</label>
                             </div>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Anexo (Opcional - Boleto/Comprovante)</label>
-                            <input type="file" class="form-control bg-dark text-white border-secondary" id="transAnexo"
-                                accept=".pdf,.png,.jpg,.jpeg">
+
+                        <div class="row" id="areaEntidade">
+                            <div class="col-md-12 mb-3" id="boxCliente" style="display:block;">
+                                <label class="form-label text-success"><i class="fas fa-user-tag me-1"></i>Vincular a Cliente (Opcional)</label>
+                                <select class="form-select bg-dark text-white border-secondary" id="transCliente">
+                                    <option value="">Nenhum (Entrada Avulsa / Aporte)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-12 mb-3" id="boxFornecedor" style="display:none;">
+                                <label class="form-label text-danger"><i class="fas fa-truck-loading me-1"></i>Vincular a Fornecedor (Opcional)</label>
+                                <select class="form-select bg-dark text-white border-secondary" id="transFornecedor">
+                                    <option value="">Nenhum (Saída Avulsa / Impostos)</option>
+                                </select>
+                            </div>
                         </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer border-top border-secondary">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" onclick="saveTransaction()">Lançar</button>
+
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label class="form-label">Descrição (Documento/Motivo)</label>
+                                <input type="text" class="form-control bg-dark text-white border-secondary" id="transDescricao" required placeholder="Ex: Pagamento Fornecedor XYZ">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Data Ocorrência</label>
+                                <input type="date" class="form-control bg-dark text-white border-secondary" id="transData" required>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Valor do Documento (R$)</label>
+                                <input type="text" class="form-control bg-dark text-white border-secondary form-control-lg text-end money-mask" id="transValor" required value="R$ 0,00" onkeyup="mascaraMoeda(this, event)">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Parcelas</label>
+                                <input type="number" min="1" max="60" class="form-control bg-dark text-white border-secondary" id="transParcelas" value="1">
+                                <div class="form-text">Gera uma parcela por mês.</div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Centro de Custo (Categoria)</label>
+                                <select class="form-select bg-dark text-white border-secondary" id="transCategoria" required>
+                                    <option value="" selected disabled>Carregando...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Conta de Saída/Entrada</label>
+                                <select class="form-select bg-dark text-white border-secondary" id="transConta" required>
+                                    <option value="" selected disabled>Carregando...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3 d-flex align-items-center">
+                                <div class="form-check form-switch mt-4">
+                                    <input class="form-check-input" type="checkbox" id="transRealizado">
+                                    <label class="form-check-label" for="transRealizado">Pago / Recebido</label>
+                                    <div class="form-text">Só movimenta saldo/fatura quando este campo estiver marcado.</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Anexo (Opcional - Boleto/Comprovante)</label>
+                                <input type="file" class="form-control bg-dark text-white border-secondary" id="transAnexo" accept=".pdf,.png,.jpg,.jpeg">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-top border-secondary">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="saveTransaction()">Lançar</button>
+                </div>
             </div>
         </div>
     </div>
@@ -179,7 +190,6 @@
 
 {% block scripts %}
 <script>
-    // JS Moeda
     String.prototype.reverse = function () {
         return this.split('').reverse().join('');
     };
@@ -211,8 +221,6 @@
     document.addEventListener('DOMContentLoaded', () => {
         loadTransactions();
         loadSelects();
-
-        // Sincronizar data de hoje como padrão no lançamento
         document.getElementById('transData').valueAsDate = new Date();
     });
 
@@ -281,7 +289,6 @@
     }
 
     function loadSelects() {
-        // Load Categorias
         fetch('/api/financeiro/cost-centers')
             .then(res => res.json())
             .then(data => {
@@ -292,7 +299,6 @@
                 });
             });
 
-        // Load Accounts
         fetch('/api/financeiro/accounts')
             .then(res => res.json())
             .then(data => {
@@ -311,7 +317,6 @@
                 }
             });
 
-        // Load Clients
         fetch('/api/financeiro/clients')
             .then(res => res.json())
             .then(data => {
@@ -322,7 +327,6 @@
                 });
             });
 
-        // Load Suppliers
         fetch('/api/financeiro/suppliers')
             .then(res => res.json())
             .then(data => {
@@ -333,7 +337,6 @@
                 });
             });
 
-        // Add Listeners on radios to toggle Entities
         document.querySelectorAll('input[name="transTipo"]').forEach(r => {
             r.addEventListener('change', (e) => {
                 if (e.target.value === 'income') {
@@ -350,7 +353,6 @@
     }
 
     function saveTransaction() {
-        // Encontra o radio checkado do Tipo
         const tipoRow = document.querySelector('input[name="transTipo"]:checked');
 
         const formData = new FormData();

@@ -12,7 +12,9 @@
     .status-pill { display:inline-flex; align-items:center; padding:.72rem 1rem; border-radius:999px; text-decoration:none; color:var(--fg-text-muted); border:1px solid var(--fg-border); background:rgba(255,255,255,.03); font-weight:600; transition:all .18s ease; }
     .status-pill:hover { color:var(--fg-text-strong); transform:translateY(-1px); }
     .status-pill.active { background:rgba(30,215,96,.14); color:#dfffea; border-color:rgba(30,215,96,.22); box-shadow:0 10px 24px rgba(30,215,96,.08); }
-    .project-card, .csg-clip { background: linear-gradient(180deg, rgba(23,29,37,.98), rgba(18,24,32,.94)) !important; border: 1px solid var(--fg-border) !important; border-radius: 22px !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.03), var(--fg-shadow-card) !important; transition: transform .18s ease, box-shadow .18s ease; }
+    .project-card, .csg-clip { background: linear-gradient(180deg, rgba(23,29,37,.98), rgba(18,24,32,.94)) !important; border: 1px solid var(--fg-border) !important; border-radius: 22px !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.03), var(--fg-shadow-card) !important; transition: transform .18s ease, box-shadow .18s ease; position: relative; isolation: isolate; overflow: hidden; }
+    .project-card::before, .csg-clip::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; z-index: 2; mix-blend-mode: screen; }
+    .project-card > *, .csg-clip > * { position: relative; z-index: 3; }
     .project-card:hover { transform:translateY(-3px); box-shadow: inset 0 1px 0 rgba(255,255,255,.03), 0 22px 48px rgba(0,0,0,.28)!important; }
     .csg-clip { position:relative; overflow:hidden; }
     .csg-track { display:flex !important; width:100% !important; transition: transform .38s cubic-bezier(.4,0,.2,1); will-change: transform; }
@@ -1042,6 +1044,12 @@
             background-color: rgba(13, 202, 240, 0.15);
         }
     }
+    @keyframes innerPulseGreen { 0%,100% { opacity:.22; } 50% { opacity:.58; } }
+    @keyframes innerPulseOrange { 0%,100% { opacity:.22; } 50% { opacity:.56; } }
+    @keyframes innerPulseRed { 0%,100% { opacity:.20; } 50% { opacity:.62; } }
+    @keyframes innerPulsePurple { 0%,100% { opacity:.20; } 50% { opacity:.60; } }
+    @keyframes innerPulseBlue { 0%,100% { opacity:.22; } 50% { opacity:.56; } }
+    @keyframes innerPulsePink { 0%,100% { opacity:.20; } 50% { opacity:.60; } }
 
     .glow-green {
         box-shadow: inset 0 0 44px rgba(78, 201, 145, 0.24), inset 0 0 90px rgba(78, 201, 145, 0.10), 0 0 16px rgba(78, 201, 145, 0.60), 0 0 38px rgba(78, 201, 145, 0.22) !important;
@@ -1049,6 +1057,7 @@
         background-color: rgba(78, 201, 145, 0.12) !important;
         animation: none !important;
     }
+    .project-card.glow-green::before, .csg-clip.glow-green::before { opacity:.95; background: radial-gradient(circle at center, rgba(78, 201, 145, 0.42) 0%, rgba(78, 201, 145, 0.24) 34%, rgba(78, 201, 145, 0.08) 56%, rgba(78, 201, 145, 0.00) 78%); animation: innerPulseGreen 1.6s infinite ease-in-out; }
 
     .glow-orange {
         box-shadow: inset 0 0 44px rgba(255, 193, 7, 0.24), inset 0 0 90px rgba(255, 193, 7, 0.10), 0 0 16px rgba(255, 193, 7, 0.60), 0 0 38px rgba(255, 193, 7, 0.22) !important;
@@ -1056,12 +1065,14 @@
         background-color: rgba(255, 193, 7, 0.12) !important;
         animation: none !important;
     }
+    .project-card.glow-orange::before, .csg-clip.glow-orange::before { opacity:.95; background: radial-gradient(circle at center, rgba(255, 193, 7, 0.42) 0%, rgba(255, 193, 7, 0.24) 34%, rgba(255, 193, 7, 0.08) 56%, rgba(255, 193, 7, 0.00) 78%); animation: innerPulseOrange 1.6s infinite ease-in-out; }
 
     .glow-red {
         border-color: #ff5d73 !important;
         box-shadow: inset 0 0 36px rgba(220, 53, 69, 0.22), inset 0 0 84px rgba(220, 53, 69, 0.08), 0 0 16px rgba(220, 53, 69, 0.55), 0 0 36px rgba(220, 53, 69, 0.18) !important;
         animation: blink-red 1s infinite ease-in-out !important;
     }
+    .project-card.glow-red::before, .csg-clip.glow-red::before { opacity:.95; background: radial-gradient(circle at center, rgba(220, 53, 69, 0.44) 0%, rgba(220, 53, 69, 0.26) 34%, rgba(220, 53, 69, 0.08) 56%, rgba(220, 53, 69, 0.00) 78%); animation: innerPulseRed 1s infinite ease-in-out; }
 
     .glow-purple {
         border-color: #9d6bff !important;
@@ -1080,6 +1091,7 @@
         background-color: rgba(13, 202, 240, 0.12) !important;
         animation: none !important;
     }
+    .project-card.glow-complete::before, .csg-clip.glow-complete::before { opacity:.95; background: radial-gradient(circle at center, rgba(13, 202, 240, 0.42) 0%, rgba(13, 202, 240, 0.24) 34%, rgba(13, 202, 240, 0.08) 56%, rgba(13, 202, 240, 0.00) 78%); animation: innerPulseBlue 1.6s infinite ease-in-out; }
 
     .glow-pink-test {
         border-color: #d63384 !important;

@@ -3,6 +3,15 @@
 {% block title %}{{ project.nome }} - Sistema de Gerenciamento de Projetos{% endblock %}
 
 {% block content %}
+<style>
+    .project-detail-shell { display:grid; gap:1.25rem; }
+    .project-hero, .project-tabs-shell, .linked-projects-premium { border:1px solid var(--fg-border)!important; border-radius:20px!important; background: linear-gradient(180deg, rgba(23,29,37,.96), rgba(18,24,32,.92))!important; box-shadow: inset 0 1px 0 rgba(255,255,255,.03), var(--fg-shadow-card); }
+    .project-hero { padding:1.25rem 1.4rem; }
+    .nav-tabs .nav-link { color: var(--fg-text-muted); border:1px solid transparent; border-radius:999px; }
+    .nav-tabs .nav-link.active { background: rgba(30,215,96,.14); color:#dfffea; border-color: rgba(30,215,96,.22); }
+    .breadcrumb { margin-bottom:0; }
+</style>
+<div class="project-detail-shell">
 <div class="row">
     <div class="col-12">
         <nav aria-label="breadcrumb">
@@ -12,7 +21,7 @@
             </ol>
         </nav>
 
-        <div class="d-flex justify-content-between align-items-start">
+        <div class="d-flex justify-content-between align-items-start project-hero">
             <div>
                 <h2><i class="fas fa-project-diagram me-2"></i>{{ project.nome }}</h2>
                 <p class="text-muted">
@@ -103,7 +112,8 @@
 </div>
 
 <!-- Sistema de Abas -->
-<ul class="nav nav-tabs mt-4" id="projectTabs" role="tablist">
+<div class="project-tabs-shell p-3">
+<ul class="nav nav-tabs mt-0 border-0" id="projectTabs" role="tablist">
     <li class="nav-item" role="presentation">
         <button class="nav-link active" id="detalhes-tab" data-bs-toggle="tab" data-bs-target="#detalhes" type="button"
             role="tab">
@@ -3396,4 +3406,6 @@ Gere o conteúdo em Português do Brasil com base na sua análise do código.</t
   </div>
 </div>
 
+</div>
+</div>
 {% endblock %}

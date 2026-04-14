@@ -1829,6 +1829,53 @@
     }
 
     // Init: apply correct glow to all clips on page load
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('editProjectForm');
+        if (form) {
+            form.addEventListener('submit', validateProjectStatusReason);
+
+            const reasonInput = form.querySelector('#statusChangeReason');
+            if (reasonInput) {
+                reasonInput.addEventListener('input', function () {
+                    if (reasonInput.value.trim()) {
+                        reasonInput.classList.remove('is-invalid');
+                    }
+                });
+            }
+        }
+
+        document.querySelectorAll('.csg-clip').forEach(function (clip) {
+            const pid = clip.id.replace('csg_', '');
+            const track = document.getElementById('cst_' + pid);
+            if (!track) return;
+            const total = track.querySelectorAll('.csg-slide').length;
+            csgApply(pid, total);
+        });
+    });
+</script>
+{% endblock %}
+erySelectorAll(`#csgD_${pid} .csg-dot`);
+        dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+
+        // Arrows
+        const btnL = document.getElementById('csgL_' + pid);
+        const btnR = document.getElementById('csgR_' + pid);
+        if (btnL) btnL.disabled = idx === 0;
+        if (btnR) btnR.disabled = idx >= total - 1;
+
+        // Glow: update clip border color based on current slide
+        if (clip) {
+            const glowClasses = ['glow-complete', 'glow-pink-test', 'glow-green', 'glow-orange', 'glow-red', 'glow-purple'];
+            clip.classList.remove(...glowClasses);
+            const slides = track.querySelectorAll('.csg-slide');
+            if (slides[idx]) {
+                const g = slides[idx].dataset.glow;
+                if (g) clip.classList.add(g);
+            }
+        }
+    }
+
+    // Init: apply correct glow to all clips on page load
     /* ===== OVERRIDE FINAL DOS ALERTAS VISUAIS DOS CARDS ===== */
     .project-card.glow-green, .csg-clip.glow-green {
         border-color: #4ec991 !important;

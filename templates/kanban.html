@@ -1,3 +1,3505 @@
 {% extends "base.html" %}
 
 {% block title %}Kanban - Sistema de Gerenciamento de Projetos{% endblock %}
+
+{% block content %}
+<style>
+    .kanban-shell { display:grid; gap:1.2rem; }
+    .kanban-hero, .kanban-filter-shell { border:1px solid var(--fg-border)!important; border-radius:20px!important; background: linear-gradient(180deg, rgba(23,29,37,.96), rgba(18,24,32,.92))!important; box-shadow: inset 0 1px 0 rgba(255,255,255,.03), var(--fg-shadow-card); }
+    .kanban-hero { padding:1.2rem 1.35rem; }
+    .kanban-filter-shell { padding:1rem 1.1rem; }
+    .kanban-column-container { border-radius:22px; overflow:hidden; }
+    .kanban-column-header { border-radius:18px 18px 0 0!important; box-shadow: inset 0 1px 0 rgba(255,255,255,.04); }
+    .kanban-column { background: linear-gradient(180deg, rgba(18,24,32,.96), rgba(13,17,21,.94)) !important; border: 1px solid var(--fg-border) !important; border-top:none!important; border-radius:0 0 18px 18px!important; box-shadow: var(--fg-shadow-card); }
+    .task-card-modern { border-radius:18px!important; border:1px solid var(--fg-border)!important; background: linear-gradient(180deg, rgba(23,29,37,.98), rgba(18,24,32,.94)) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.03), 0 14px 36px rgba(0,0,0,.22)!important; }
+    .task-card-modern:hover { transform: translateY(-3px)!important; box-shadow: inset 0 1px 0 rgba(255,255,255,.03), 0 18px 42px rgba(0,0,0,.28)!important; }
+    .task-drawer { background: linear-gradient(180deg, rgba(18,24,32,.985), rgba(12,16,20,.985)) !important; border-left: 1px solid var(--fg-border) !important; box-shadow: var(--fg-shadow-modal)!important; }
+</style>
+<div class="kanban-shell">
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center kanban-hero">
+            <h2>
+                <i class="fas fa-columns me-2"></i>Kanban
+                {% if selected_project_name %}
+                <span class="text-muted ms-2 fs-4">- {{ selected_project_name }}</span>
+                {% endif %}
+            </h2>
+            <div>
+                <button type="button" class="btn btn-outline-light me-2" data-bs-toggle="modal"
+                    data-bs-target="#transcriptionModal">
+                    <i class="fas fa-arrow-down me-1"></i>Incluir Transcrição
+                </button>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                    data-bs-target="#newTaskKanbanModal" {% if not writable_project_ids %}disabled title="Nenhum projeto em andamento disponível para abrir demandas no Kanban."{% endif %}>
+                    <i class="fas fa-plus me-1"></i>Nova Tarefa
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<!-- Filtros -->
+<!-- Filtros -->
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="kanban-filter-shell">
+        <form method="GET" id="kanbanFilterForm" class="d-flex align-items-center gap-3 flex-wrap">
+            <!-- Data para JS -->
+            <script>
+                const relationsData = {{ relations_data | tojson }};
+            </script>
+
+            <style>
+                .filter-dropdown-btn {
+                    background-color: #2b3544 !important;
+                    color: #e2e8f0 !important;
+                    border: 1px solid #3d3d3d !important;
+                    position: relative;
+                }
+
+                .filter-dropdown-btn:hover {
+                    background-color: #374151 !important;
+                    border-color: #4b5563 !important;
+                }
+
+                .dropdown-menu.dark-dropdown {
+                    background-color: #1f2937;
+                    border: 1px solid #374151;
+                    color: #e2e8f0;
+                }
+
+                .dropdown-menu.dark-dropdown .form-control {
+                    background-color: #111827;
+                    border: 1px solid #374151;
+                    color: #e2e8f0;
+                    margin-bottom: 0.5rem;
+                }
+
+                .dropdown-menu.dark-dropdown .form-check-input {
+                    background-color: #374151;
+                    border-color: #4b5563;
+                    margin-top: 0.3em;
+                }
+
+                .dropdown-menu.dark-dropdown .form-check-input:checked {
+                    background-color: #3b82f6;
+                    border-color: #3b82f6;
+                }
+
+                .dropdown-menu.dark-dropdown .filter-option-item:hover {
+                    background-color: #374151;
+                }
+
+                .filter-option-item {
+                    padding: 6px 12px;
+                    border-radius: 4px;
+                    margin-bottom: 2px;
+                    display: flex;
+                    align-items: flex-start;
+                    width: 100%;
+                }
+
+                .filter-option-item .form-check-input {
+                    margin-right: 10px;
+                    flex-shrink: 0;
+                }
+
+                .filter-option-item label {
+                    cursor: pointer;
+                    width: 100%;
+                    margin-bottom: 0;
+                    line-height: normal;
+                }
+
+                /* Scrollbar styled for dark theme */
+                .dropdown-menu.dark-dropdown::-webkit-scrollbar {
+                    width: 8px;
+                }
+
+                .dropdown-menu.dark-dropdown::-webkit-scrollbar-track {
+                    background: #1f2937;
+                }
+
+                .dropdown-menu.dark-dropdown::-webkit-scrollbar-thumb {
+                    background: #4b5563;
+                    border-radius: 4px;
+                }
+
+                .dropdown-menu.dark-dropdown::-webkit-scrollbar-thumb:hover {
+                    background: #6b7280;
+                }
+
+                .dropdown-menu.dark-dropdown::-webkit-scrollbar-thumb:hover {
+                    background: #6b7280;
+                }
+
+                /* Glow Effects - Intense Blinking */
+                @keyframes blink-green {
+
+                    0%,
+                    100% {
+                        box-shadow: 0 0 10px rgba(78, 201, 145, 0.4);
+                        border-color: rgba(78, 201, 145, 0.8);
+                        background-color: rgba(78, 201, 145, 0.15);
+                    }
+
+                    50% {
+                        box-shadow: 0 0 25px rgba(78, 201, 145, 0.9), 0 0 50px rgba(78, 201, 145, 0.5);
+                        border-color: #4ec991;
+                        background-color: rgba(78, 201, 145, 0.35);
+                    }
+                }
+
+                @keyframes blink-orange {
+
+                    0%,
+                    100% {
+                        box-shadow: 0 0 10px rgba(255, 193, 7, 0.4);
+                        border-color: rgba(255, 193, 7, 0.8);
+                        background-color: rgba(255, 193, 7, 0.15);
+                    }
+
+                    50% {
+                        box-shadow: 0 0 25px rgba(255, 193, 7, 0.9), 0 0 50px rgba(255, 193, 7, 0.5);
+                        border-color: #ffc107;
+                        background-color: rgba(255, 193, 7, 0.35);
+                    }
+                }
+
+                @keyframes blink-red {
+
+                    0%,
+                    0%,
+                    100% {
+                        box-shadow: 0 0 15px rgba(220, 53, 69, 0.5);
+                        border-color: rgba(220, 53, 69, 0.9);
+                        background-color: rgba(220, 53, 69, 0.2);
+                    }
+
+                    50% {
+                        box-shadow: 0 0 40px rgba(220, 53, 69, 1), 0 0 70px rgba(220, 53, 69, 0.7);
+                        border-color: #dc3545;
+                        background-color: rgba(220, 53, 69, 0.5);
+                    }
+                }
+
+                @keyframes blink-purple {
+
+                    0%,
+                    100% {
+                        box-shadow: 0 0 15px rgba(111, 66, 193, 0.5);
+                        border-color: rgba(111, 66, 193, 0.9);
+                        background-color: rgba(111, 66, 193, 0.2);
+                    }
+
+                    50% {
+                        box-shadow: 0 0 40px rgba(111, 66, 193, 1), 0 0 70px rgba(111, 66, 193, 0.7);
+                        border-color: #6f42c1;
+                        background-color: rgba(111, 66, 193, 0.5);
+                    }
+                }
+
+                .glow-purple {
+                    animation: blink-purple 1s infinite ease-in-out !important;
+                }
+
+                .glow-red {
+                    animation: blink-red 1s infinite ease-in-out !important;
+                }
+
+                .glow-orange {
+                    box-shadow: 0 0 10px rgba(255, 193, 7, 0.6) !important;
+                    border: 1px solid #ffc107 !important;
+                    background-color: rgba(255, 193, 7, 0.1) !important;
+                    animation: none !important;
+                }
+
+                .glow-green {
+                    box-shadow: 0 0 10px rgba(78, 201, 145, 0.6) !important;
+                    border: 1px solid #4ec991 !important;
+                    background-color: rgba(78, 201, 145, 0.1) !important;
+                    animation: none !important;
+                }
+
+                .glow-complete {
+                    box-shadow: 0 0 10px rgba(13, 202, 240, 0.6) !important;
+                    border: 1px solid #0dcaf0 !important;
+                    background-color: rgba(13, 202, 240, 0.1) !important;
+                    animation: none !important;
+                }
+            </style>
+
+            <!-- Filtro de Projetos -->
+            <div class="dropdown" style="min-width: 350px;">
+                <button
+                    class="btn dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center filter-dropdown-btn"
+                    type="button" id="projectFilterDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside"
+                    aria-expanded="false">
+                    <span id="projectFilterLabel">Projetos (Todos)</span>
+                </button>
+                <div class="dropdown-menu p-2 w-100 dark-dropdown" style="max-height: 400px; overflow-y: auto;"
+                    aria-labelledby="projectFilterDropdown">
+                    <input type="text" class="form-control form-control-sm mb-2" placeholder="Buscar..."
+                        onkeyup="filterDropdownOptions(this)">
+                    <div id="projectOptionsContainer">
+                        {% for project in projects %}
+                        <div class="filter-option-item" data-id="{{ project.id }}">
+                            <input class="form-check-input project-checkbox" type="checkbox" name="project_id"
+                                value="{{ project.id }}" id="proj_{{ project.id }}" {% if project.id in
+                                current_filters.project_id %}checked{% endif %}>
+                            <label class="form-check-label text-truncate w-100" for="proj_{{ project.id }}"
+                                title="{{ project.client.nome }} - {{ project.nome }}">
+                                <small class="text-muted d-block" style="font-size: 0.75rem;">{{ project.client.nome
+                                    }}</small>
+                                {{ project.nome }}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtro de Clientes -->
+            <div class="dropdown" style="min-width: 200px;">
+                <button
+                    class="btn dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center filter-dropdown-btn"
+                    type="button" id="clientFilterDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside"
+                    aria-expanded="false">
+                    <span id="clientFilterLabel">Clientes (Todos)</span>
+                </button>
+                <div class="dropdown-menu p-2 w-100 dark-dropdown" style="max-height: 400px; overflow-y: auto;"
+                    aria-labelledby="clientFilterDropdown">
+                    <input type="text" class="form-control form-control-sm mb-2" placeholder="Buscar..."
+                        onkeyup="filterDropdownOptions(this)">
+                    <div id="clientOptionsContainer">
+                        {% for client in clients %}
+                        <div class="filter-option-item" data-id="{{ client.id }}">
+                            <input class="form-check-input client-checkbox" type="checkbox" name="client_id"
+                                value="{{ client.id }}" id="client_{{ client.id }}" {% if client.id in
+                                current_filters.client_id %}checked{% endif %}>
+                            <label class="form-check-label text-truncate w-100" for="client_{{ client.id }}"
+                                title="{{ client.nome }}">
+                                {{ client.nome }}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtro de Usuários -->
+            <div class="dropdown" style="min-width: 200px;">
+                <button
+                    class="btn dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center filter-dropdown-btn"
+                    type="button" id="userFilterDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside"
+                    aria-expanded="false">
+                    <span id="userFilterLabel">Usuários (Todos)</span>
+                </button>
+                <div class="dropdown-menu p-2 w-100 dark-dropdown" style="max-height: 400px; overflow-y: auto;"
+                    aria-labelledby="userFilterDropdown">
+                    <input type="text" class="form-control form-control-sm mb-2" placeholder="Buscar..."
+                        onkeyup="filterDropdownOptions(this)">
+                    <div id="userOptionsContainer">
+                        {% for user in all_users %}
+                        <div class="filter-option-item" data-id="{{ user.id }}">
+                            <input class="form-check-input user-checkbox" type="checkbox" name="user_id"
+                                value="{{ user.id }}" id="user_{{ user.id }}" {% if user.id in current_filters.user_id
+                                %}checked{% endif %}>
+                            <label class="form-check-label text-truncate w-100" for="user_{{ user.id }}"
+                                title="{{ user.full_name }}">
+                                {{ user.full_name }}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Auto-filter on close -->
+
+            <button type="button" class="btn btn-success" onclick="dispatchFilteredTasks()">
+                <i class="fas fa-envelope me-1"></i>Disparar Tarefas
+            </button>
+
+            <a href="{{ url_for('kanban') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-times me-1"></i>Limpar
+            </a>
+        </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Lógica de Filtros Dependentes e UI
+    document.addEventListener('DOMContentLoaded', function () {
+        // Auto-submit ao fechar dropdowns
+        const dropdowns = document.querySelectorAll('.dropdown');
+        dropdowns.forEach(dropdown => {
+            dropdown.addEventListener('hidden.bs.dropdown', function () {
+                document.getElementById('kanbanFilterForm').submit();
+            });
+        });
+        const projectChecks = document.querySelectorAll('.project-checkbox');
+        const clientChecks = document.querySelectorAll('.client-checkbox');
+        const userChecks = document.querySelectorAll('.user-checkbox');
+
+        function getSelectedValues(nodeList) {
+            return Array.from(nodeList).filter(cb => cb.checked).map(cb => parseInt(cb.value));
+        }
+
+        function updateLabels() {
+            updateLabel('projectFilterLabel', projectChecks, 'Projeto');
+            updateLabel('clientFilterLabel', clientChecks, 'Cliente');
+            updateLabel('userFilterLabel', userChecks, 'Usuário');
+        }
+
+        function updateLabel(elementId, checks, singularName) {
+            const checked = Array.from(checks).filter(c => c.checked);
+            const count = checked.length;
+            const label = document.getElementById(elementId);
+
+            if (count === 0) {
+                label.textContent = `${singularName}s (Todos)`;
+            } else if (count === 1) {
+                // Encontrar o texto do label associado ao checkbox selecionado
+                // A estrutura é: .filter-option-item > input + label
+                const selectedCheckbox = checked[0];
+                const labelElement = selectedCheckbox.nextElementSibling;
+                // Usar o texto principal do label, removendo o <small> se existir (para projetos)
+                let text = labelElement.textContent.trim();
+
+                // Limpeza específica para o label de projetos que tem <small> com nome do cliente
+                // Clone o elemento para não modificar o DOM original ao extrair texto
+                const clone = labelElement.cloneNode(true);
+                const small = clone.querySelector('small');
+                if (small) small.remove();
+                text = clone.textContent.trim();
+
+                label.textContent = text;
+            } else {
+                label.textContent = `${count} ${singularName}s`;
+            }
+        }
+
+        // Inicializar Labels e Dependências
+        updateLabels();
+        applyDependencies();
+
+        // Listeners para checkboxes
+        projectChecks.forEach(cb => cb.addEventListener('change', updateLabels));
+
+        clientChecks.forEach(cb => cb.addEventListener('change', () => {
+            updateLabels();
+            applyDependencies();
+        }));
+
+        userChecks.forEach(cb => cb.addEventListener('change', () => {
+            updateLabels();
+            applyDependencies();
+        }));
+
+        function applyDependencies() {
+            const selectedClientIds = getSelectedValues(clientChecks);
+            const selectedUserIds = getSelectedValues(userChecks);
+
+            // Filtrar Projetos baseados em Clientes e Usuários
+            document.querySelectorAll('#projectOptionsContainer .filter-option-item').forEach(item => {
+                const projectId = parseInt(item.dataset.id);
+                const projectRelation = relationsData.projects.find(p => p.id === projectId);
+
+                if (!projectRelation) return;
+
+                let show = true;
+
+                // Restrição de Cliente
+                if (selectedClientIds.length > 0) {
+                    if (!selectedClientIds.includes(projectRelation.clientId)) {
+                        show = false;
+                    }
+                }
+
+                // Restrição de Usuário
+                if (show && selectedUserIds.length > 0) {
+                    // Mostrar se o projeto é de RESPONSABILIDADE de qualquer um dos usuários selecionados
+                    // NÃO basta ser membro da equipe, tem que ser o responsável (p.responsibleId)
+                    const isResponsible = selectedUserIds.includes(projectRelation.responsibleId);
+                    if (!isResponsible) {
+                        show = false;
+                    }
+                }
+
+                item.style.display = show ? '' : 'none';
+            });
+
+            // Filtrar Clientes baseados em Usuários (Responsáveis)
+            if (selectedUserIds.length > 0) {
+                // Quais clientes tem projetos onde esses usuários são RESPONSÁVEIS?
+                const validClientIds = new Set();
+                relationsData.projects.forEach(p => {
+                    if (selectedUserIds.includes(p.responsibleId)) {
+                        validClientIds.add(p.clientId);
+                    }
+                });
+
+                document.querySelectorAll('#clientOptionsContainer .filter-option-item').forEach(item => {
+                    const clientId = parseInt(item.dataset.id);
+                    if (validClientIds.has(clientId)) {
+                        item.style.display = '';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            } else {
+                // Se nenhum usuário selecionado, mostrar todos os clientes
+                document.querySelectorAll('#clientOptionsContainer .filter-option-item').forEach(item => {
+                    item.style.display = '';
+                });
+            }
+        }
+
+        // Aplicar dependências iniciais
+        setTimeout(applyDependencies, 100);
+    });
+
+    // Função de busca dentro do dropdown
+    function filterDropdownOptions(input) {
+        const filter = input.value.toLowerCase();
+        const items = input.nextElementSibling.querySelectorAll('.filter-option-item');
+
+        items.forEach(item => {
+            // Se o item foi escondido peça lógica de dependência (style.display = 'none'), ignoramos
+            if (item.style.display === 'none') {
+                return;
+            }
+
+            const text = item.textContent.toLowerCase();
+            // Usamos style.display aqui também para não conflitar com a visibilidade base
+            // Mas espera: se usarmos style.display, podemos sobrescrever a lógica de dependência se o usuário limpar a busca?
+            // A lógica de dependência setou style.display.
+            // Se eu 'esconder' por busca, devo usar outro mecanismo para não perder o estado "visivel por dependencia".
+            // Vamos usar uma classe 'search-hidden' para a busca.
+
+            if (text.includes(filter)) {
+                item.classList.remove('d-none');
+            } else {
+                item.classList.add('d-none');
+            }
+        });
+    }
+</script>
+
+<!-- Kanban Board -->
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="kanban-column-container">
+            <div class="kanban-column-header kanban-header-pendente">
+                <div class="d-flex align-items-center">
+                    <div class="kanban-icon-circle"
+                        style="background-color: #6c757d; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px;">
+                        <i class="fas fa-clock" style="color: white; font-size: 14px;"></i>
+                    </div>
+                    <h6 class="mb-0 me-2" style="font-weight: 600;">Pendente</h6>
+                    <span class="badge rounded-pill kanban-badge-pendente">{{ task_columns.pendente|length }}</span>
+                </div>
+            </div>
+            <div class="kanban-column" data-status="pendente" style="min-height: 400px;">
+                {% for task in task_columns.pendente %}
+                {% set pending_todos_count = task.todos|selectattr('completed', 'false')|list|length %}
+                <div class="task-card-modern card mb-3" data-task-id="{{ task.id }}" draggable="true"
+                    onclick="editTask({{ task.id }})"
+                    style="cursor: pointer; border-left: 4px solid #6c757d; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    {% if pending_todos_count > 0 %}
+                    <span class="todo-notification-badge">{{ pending_todos_count }}</span>
+                    {% endif %}
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="card-title mb-0" style="font-weight: 600; font-size: 14px; flex: 1;">
+                                {% if task.disparada %}<i class="fas fa-paper-plane text-danger me-1"
+                                    title="Tarefa disparada"></i>{% endif %}
+                                {{ task.titulo }}
+                            </h6>
+                            <span class="badge bg-secondary"
+                                style="font-size: 10px; white-space: nowrap;">PENDENTE</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-end">
+                            <div class="flex-grow-1">
+                                <small class="d-block mb-1" style="color: #6c757d; font-size: 12px;">{{
+                                    task.project.client.nome }} - {{ task.project.nome }}</small>
+                                {% if task.assigned_user %}
+                                <small class="d-block mb-1" style="color: #0d6efd; font-size: 12px;">
+                                    <i class="fas fa-user me-1"></i>{{ task.assigned_user.full_name }}
+                                </small>
+                                {% endif %}
+                                {% if task.data_conclusao %}
+                                <small class="d-block" style="color: #ffc107; font-size: 12px;">
+                                    <i class="fas fa-calendar me-1"></i>{{ task.data_conclusao.strftime('%d/%m/%Y') }}
+                                </small>
+                                {% endif %}
+                                {% if task.disparada and task.disparada_at %}
+                                <small class="d-block text-danger" style="font-size: 12px;">
+                                    <i class="fas fa-paper-plane me-1"></i>Disparada em {{
+                                    task.disparada_at.strftime('%d/%m/%Y %H:%M') }}
+                                </small>
+                                {% endif %}
+                            </div>
+                            {% if pending_todos_count > 0 %}
+                            <div class="todo-count-right" style="text-align: right; min-width: 90px;">
+                                <span class="d-flex align-items-center justify-content-end"
+                                    style="color: #25D366; font-size: 14px; font-weight: 600;">
+                                    <i class="fas fa-list-check me-2" style="font-size: 15px;"></i>{{
+                                    pending_todos_count }} to-do{{ 's' if pending_todos_count > 1 else '' }}
+                                </span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="kanban-column-container">
+            <div class="kanban-column-header kanban-header-andamento">
+                <div class="d-flex align-items-center">
+                    <div class="kanban-icon-circle"
+                        style="background-color: #6554c0; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px;">
+                        <i class="fas fa-play" style="color: white; font-size: 12px;"></i>
+                    </div>
+                    <h6 class="mb-0 me-2" style="font-weight: 600;">Em Andamento</h6>
+                    <span class="badge rounded-pill kanban-badge-andamento">{{ task_columns.em_andamento|length
+                        }}</span>
+                </div>
+            </div>
+            <div class="kanban-column" data-status="em_andamento" style="min-height: 400px;">
+                {% for task in task_columns.em_andamento %}
+                {% set pending_todos_count = task.todos|selectattr('completed', 'false')|list|length %}
+
+                {# Lógica de Brilho (Glow) baseada no prazo #}
+                {% set glow_class = '' %}
+                {% if task.data_conclusao %}
+                {% set days_remaining = (task.data_conclusao - today).days %}
+                {% if days_remaining <= 0 %} {% set glow_class='glow-purple' %} {% elif days_remaining==1 %} {% set
+                    glow_class='glow-red' %} {% elif days_remaining==2 %} {% set glow_class='glow-orange' %} {% else %}
+                    {% set glow_class='glow-green' %} {% endif %} {% endif %} <div
+                    class="task-card-modern card mb-3 {{ glow_class }}" data-task-id="{{ task.id }}" draggable="true"
+                    onclick="editTask({{ task.id }})"
+                    style="cursor: pointer; border-left: 4px solid #6554c0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    {% if pending_todos_count > 0 %}
+                    <span class="todo-notification-badge">{{ pending_todos_count }}</span>
+                    {% endif %}
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="card-title mb-0" style="font-weight: 600; font-size: 14px; flex: 1;">
+                                {% if task.disparada %}<i class="fas fa-paper-plane text-danger me-1"
+                                    title="Tarefa disparada"></i>{% endif %}
+                                {{ task.titulo }}
+                            </h6>
+                            <span class="badge"
+                                style="background-color: #6554c0; font-size: 10px; white-space: nowrap;">EM
+                                ANDAMENTO</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-end">
+                            <div class="flex-grow-1">
+                                <small class="d-block mb-1" style="color: #6c757d; font-size: 12px;">{{
+                                    task.project.client.nome }} - {{ task.project.nome }}</small>
+                                {% if task.assigned_user %}
+                                <small class="d-block mb-1" style="color: #0d6efd; font-size: 12px;">
+                                    <i class="fas fa-user me-1"></i>{{ task.assigned_user.full_name }}
+                                </small>
+                                {% endif %}
+                                {% if task.data_conclusao %}
+                                <small class="d-block" style="color: #ffc107; font-size: 12px;">
+                                    <i class="fas fa-calendar me-1"></i>{{ task.data_conclusao.strftime('%d/%m/%Y') }}
+                                </small>
+                                {% endif %}
+                                {% if task.disparada and task.disparada_at %}
+                                <small class="d-block text-danger" style="font-size: 12px;">
+                                    <i class="fas fa-paper-plane me-1"></i>Disparada em {{
+                                    task.disparada_at.strftime('%d/%m/%Y %H:%M') }}
+                                </small>
+                                {% endif %}
+                            </div>
+                            {% if pending_todos_count > 0 %}
+                            <div class="todo-count-right" style="text-align: right; min-width: 90px;">
+                                <span class="d-flex align-items-center justify-content-end"
+                                    style="color: #25D366; font-size: 14px; font-weight: 600;">
+                                    <i class="fas fa-list-check me-2" style="font-size: 15px;"></i>{{
+                                    pending_todos_count }} to-do{{ 's' if pending_todos_count > 1 else '' }}
+                                </span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="col-md-4">
+    <div class="kanban-column-container">
+        <div class="kanban-column-header kanban-header-concluida">
+            <div class="d-flex align-items-center">
+                <div class="kanban-icon-circle"
+                    style="background-color: #00a86b; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px;">
+                    <i class="fas fa-check" style="color: white; font-size: 14px;"></i>
+                </div>
+                <h6 class="mb-0 me-2" style="font-weight: 600;">Concluída</h6>
+                <span class="badge rounded-pill kanban-badge-concluida">{{ task_columns.concluida|length }}</span>
+            </div>
+        </div>
+        <div class="kanban-column" data-status="concluida" style="min-height: 400px;">
+            {% for task in task_columns.concluida %}
+            {% set pending_todos_count = task.todos|selectattr('completed', 'false')|list|length %}
+            <div class="task-card-modern card mb-3" data-task-id="{{ task.id }}" draggable="true"
+                onclick="editTask({{ task.id }})"
+                style="cursor: pointer; border-left: 4px solid #00a86b; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                {% if pending_todos_count > 0 %}
+                <span class="todo-notification-badge">{{ pending_todos_count }}</span>
+                {% endif %}
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="card-title mb-0" style="font-weight: 600; font-size: 14px; flex: 1;">
+                            {% if task.disparada %}<i class="fas fa-paper-plane text-danger me-1"
+                                title="Tarefa disparada"></i>{% endif %}
+                            {{ task.titulo }}
+                        </h6>
+                        <span class="badge bg-success" style="font-size: 10px; white-space: nowrap;">CONCLUÍDA</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-end">
+                        <div class="flex-grow-1">
+                            <small class="d-block mb-1" style="color: #6c757d; font-size: 12px;">{{
+                                task.project.client.nome }} - {{ task.project.nome }}</small>
+                            {% if task.assigned_user %}
+                            <small class="d-block mb-1" style="color: #0d6efd; font-size: 12px;">
+                                <i class="fas fa-user me-1"></i>{{ task.assigned_user.full_name }}
+                            </small>
+                            {% endif %}
+                            {% if task.completed_at %}
+                            <small class="d-block" style="color: #00a86b; font-size: 12px;">
+                                <i class="fas fa-check me-1"></i>{{ task.completed_at.strftime('%d/%m/%Y') }}
+                            </small>
+                            {% endif %}
+                            {% if task.disparada and task.disparada_at %}
+                            <small class="d-block text-danger" style="font-size: 12px;">
+                                <i class="fas fa-paper-plane me-1"></i>Disparada em {{
+                                task.disparada_at.strftime('%d/%m/%Y %H:%M') }}
+                            </small>
+                            {% endif %}
+                        </div>
+                        {% if pending_todos_count > 0 %}
+                        <div class="todo-count-right" style="text-align: right; min-width: 90px;">
+                            <span class="d-flex align-items-center justify-content-end"
+                                style="color: #25D366; font-size: 14px; font-weight: 600;">
+                                <i class="fas fa-list-check me-2" style="font-size: 15px;"></i>{{
+                                pending_todos_count }} to-do{{ 's' if pending_todos_count > 1 else '' }}
+                            </span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- Backdrop do Drawer -->
+<div class="task-drawer-backdrop" id="taskDrawerBackdrop" onclick="closeTaskDrawer()"></div>
+
+<!-- Drawer Lateral de Edição de Tarefa (Estilo Asana) -->
+<div class="task-drawer" id="taskDrawer">
+    <div class="task-drawer-header">
+        <button type="button" class="task-drawer-close" onclick="closeTaskDrawer()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+
+    <div class="task-drawer-content">
+        <form id="editTaskForm">
+            <input type="hidden" id="editTaskId">
+
+            <!-- Título da Tarefa - Grande e sem borda -->
+            <div class="task-field-clean">
+                <input type="text" class="task-title-input" id="editTaskTitulo" placeholder="Nome da tarefa" required>
+            </div>
+
+            <!-- Projeto/Cliente - Clean -->
+            <div class="task-field-clean" id="taskProjectInfo">
+                <i class="fas fa-folder text-muted me-2"></i>
+                <span class="text-muted" style="font-size: 14px;">Carregando...</span>
+            </div>
+
+            <!-- Responsável - Clean com seletor -->
+            <div class="task-field-row">
+                <div class="task-field-label">
+                    <i class="fas fa-user text-muted"></i>
+                    <span>Responsável</span>
+                </div>
+                <select class="task-select-clean" id="editTaskResponsavel">
+                    <option value="">Nenhum responsável</option>
+                    {% for user in all_users %}
+                    <option value="{{ user.id }}">{{ user.full_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Status - Clean com seletor -->
+            <div class="task-field-row">
+                <div class="task-field-label">
+                    <i class="fas fa-circle-notch text-muted"></i>
+                    <span>Status</span>
+                </div>
+                <select class="task-select-clean" id="editTaskStatus" required>
+                    <option value="pendente">Pendente</option>
+                    <option value="em_andamento">Em Andamento</option>
+                    <option value="concluida">Concluída</option>
+                </select>
+            </div>
+
+            <!-- Data de Conclusão - Clean com date picker -->
+            <div class="task-field-row">
+                <div class="task-field-label">
+                    <i class="fas fa-calendar text-muted"></i>
+                    <span>Data de conclusão</span>
+                </div>
+                <input type="date" class="task-date-clean" id="editTaskDataConclusao">
+            </div>
+
+            <div class="task-divider"></div>
+
+            <!-- Descrição - Com borda (estilo Asana) -->
+            <div class="task-section">
+                <label class="task-section-label">Descrição</label>
+                <textarea class="task-textarea-bordered" id="editTaskDescricao" rows="6"
+                    placeholder="Do que se trata esta tarefa?"></textarea>
+            </div>
+
+            <div class="task-divider"></div>
+
+            <!-- Subtarefas / To-Do's - Com borda -->
+            <div class="task-section">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <label class="task-section-label mb-0">Subtarefas</label>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-dark" onclick="openGithubTodosModal()"
+                            title="Gerar via GitHub">
+                            <i class="fab fa-github"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-info" onclick="openTodoPromptModal()"
+                            title="Gerar com IA">
+                            <i class="fas fa-magic"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="openTodoImportModal()"
+                            title="Importar">
+                            <i class="fas fa-file-import"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="todosList" class="task-todos-list">
+                    <!-- To-do's serão carregados aqui -->
+                </div>
+                <div class="task-add-todo">
+                    <input type="text" class="task-add-todo-input" id="newTodoText" placeholder="Adicionar subtarefa..."
+                        maxlength="300">
+                    <button type="button" class="task-add-todo-btn" onclick="addTodo()">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="task-divider"></div>
+
+            <!-- Botões de ação -->
+            <div class="task-drawer-actions">
+                <div id="autoSaveStatus" class="text-muted small mb-2"></div>
+                <button type="button" class="btn btn-outline-danger" onclick="deleteTask()">
+                    <i class="fas fa-trash me-1"></i>Deletar Tarefa
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal de Transcrição -->
+<div class="modal fade" id="transcriptionModal" tabindex="-1" aria-labelledby="transcriptionModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="transcriptionModalLabel">
+                    <i class="fas fa-microphone me-2"></i>Incluir Transcrição
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="transcriptionForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="transcriptionProject" class="form-label">Selecionar Projeto</label>
+                        <select class="form-select" id="transcriptionProject" required>
+                            <option value="">Selecione um projeto</option>
+                            {% for project in projects %}
+                            <option value="{{ project.id }}">{{ project.client.nome }} - {{ project.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="transcriptionText" class="form-label">Transcrição</label>
+                        <textarea class="form-control" id="transcriptionText" rows="8"
+                            placeholder="Cole aqui a transcrição da reunião ou discussão do projeto..."
+                            required></textarea>
+                        <div class="form-text">A IA analisará esta transcrição e gerará tarefas automaticamente para o
+                            projeto selecionado.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-magic me-1"></i>Gerar Tarefas
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Gerar To-Dos via GitHub -->
+<div class="modal fade" id="githubTodosModal" tabindex="-1" aria-labelledby="githubTodosModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="githubTodosModalLabel">
+                    <i class="fab fa-github me-2"></i>Gerar To-Dos via GitHub
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>O sistema analisará os últimos commits do projeto associado e gerará uma nova lista de to-dos, marcando como concluídos os que já foram feitos.</p>
+                <div class="mb-3">
+                    <label for="githubTodosPeriod" class="form-label">Selecionar período:</label>
+                    <select class="form-select" id="githubTodosPeriod">
+                        <option value="today">Hoje</option>
+                        <option value="yesterday">Ontem e Hoje</option>
+                        <option value="last_3_days">Últimos 3 dias</option>
+                        <option value="last_7_days">Últimos 7 dias</option>
+                        <option value="last_15_days">Últimos 15 dias</option>
+                        <option value="last_30_days">Último mês (30 dias)</option>
+                    </select>
+                </div>
+                <div id="githubTodosLoading" class="alert alert-info d-none">
+                    <i class="fas fa-spinner fa-spin me-2"></i>Analisando commits com IA. Aguarde, isso pode levar alguns segundos...
+                </div>
+                <div id="githubTodosMessage" class="alert d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="btnCancelGithubTodos">Cancelar</button>
+                <button type="button" class="btn btn-dark" id="btnGenerateGithubTodos" onclick="generateTodosFromGithub()">
+                    <i class="fas fa-bolt me-1"></i>Gerar To-Dos
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Função para disparar tarefa por e-mail
+    function dispatchTask(taskId) {
+        if (!confirm('Deseja disparar esta tarefa por e-mail para o usuário responsável?')) {
+            return;
+        }
+
+        fetch(`/api/tasks/${taskId}/dispatch`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Tarefa disparada com sucesso!');
+                    location.reload();
+                } else {
+                    alert('Erro ao disparar tarefa: ' + (data.message || 'Erro desconhecido'));
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao disparar tarefa:', error);
+                alert('Erro ao disparar tarefa. Tente novamente.');
+            });
+    }
+
+    // Função para abrir drawer de edição de tarefa
+    function editTask(taskId) {
+        fetch(`/tasks/${taskId}/data`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const task = data.task;
+
+                    // Preencher campos
+                    document.getElementById('editTaskId').value = task.id;
+                    document.getElementById('editTaskTitulo').value = task.titulo;
+                    document.getElementById('editTaskDescricao').value = task.descricao || '';
+                    document.getElementById('editTaskResponsavel').value = task.assigned_user_id || '';
+                    document.getElementById('editTaskStatus').value = task.status || 'pendente';
+                    document.getElementById('editTaskDataConclusao').value = task.data_conclusao || '';
+
+                    // Atualizar informações do projeto
+                    const projectInfo = document.getElementById('taskProjectInfo');
+                    if (task.project_id) {
+                        const project = data.projects.find(p => p.id === task.project_id);
+                        if (project) {
+                            projectInfo.innerHTML = `
+                            <i class="fas fa-folder text-muted me-2"></i>
+                            <span class="text-muted" style="font-size: 14px;">${project.client_nome} - ${project.nome}</span>
+                        `;
+                        }
+                    }
+
+                    // Carregar to-do's
+                    loadTodos(task.todos || []);
+
+                    // Abrir drawer
+                    openTaskDrawer();
+
+                    // Configurar auto-save
+                    setupDrawerAutoSave();
+                } else {
+                    alert('Erro ao carregar dados da tarefa');
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao carregar dados da tarefa:', error);
+                alert('Erro ao carregar dados da tarefa');
+            });
+    }
+
+    // Funções para controlar o drawer
+    function openTaskDrawer() {
+        const drawer = document.getElementById('taskDrawer');
+        const backdrop = document.getElementById('taskDrawerBackdrop');
+
+        // Resetar flag de mudanças ao abrir
+        hasUnsavedChanges = false;
+
+        drawer.classList.add('show');
+        backdrop.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeTaskDrawer() {
+        const drawer = document.getElementById('taskDrawer');
+        const backdrop = document.getElementById('taskDrawerBackdrop');
+
+        // Capturar valores de inputs de comentário abertos antes de salvar
+        captureOpenCommentInputs();
+
+        // Salvar antes de fechar
+        saveTaskFromDrawer();
+
+        drawer.classList.remove('show');
+        backdrop.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+
+    // Capturar valores de inputs de comentário que estão abertos
+    function captureOpenCommentInputs() {
+        const todosList = document.getElementById('todosList');
+        if (!todosList) return;
+
+        // Buscar todos os inputs de comentário abertos
+        const openInputs = todosList.querySelectorAll('.comment-input-wrapper input.comment-input');
+
+        openInputs.forEach(input => {
+            const value = input.value.trim();
+            const wrapper = input.closest('.comment-input-wrapper');
+            const container = wrapper.closest('.todo-comment-container');
+            const todoDiv = container.closest('.todo-item-wrapper');
+
+            if (todoDiv && value) {
+                // Atualizar o dataset com o valor digitado
+                todoDiv.dataset.todoComentario = value;
+                hasUnsavedChanges = true;
+
+                // Atualizar também o display visual
+                const display = container.querySelector('.todo-comment-display');
+                if (display) {
+                    display.querySelector('.comment-text').textContent = value;
+                    display.classList.remove('d-none');
+                }
+
+                const addBtn = container.querySelector('.add-comment-btn');
+                if (addBtn) {
+                    addBtn.classList.add('d-none');
+                }
+            }
+
+            // Remover o input wrapper
+            wrapper.remove();
+        });
+    }
+
+    // Fechar drawer ao pressionar ESC
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            closeTaskDrawer();
+        }
+    });
+
+    // Função para atualizar card em tempo real
+    function updateTaskCard(taskData) {
+        const taskCard = document.querySelector(`[data-task-id="${taskData.id}"]`);
+        if (!taskCard) return;
+
+        const cardBody = taskCard.querySelector('.card-body');
+
+        // Atualizar badge de notificação de to-dos pendentes
+        let existingBadge = taskCard.querySelector('.todo-notification-badge');
+        const pendingCount = taskData.pending_todos_count || 0;
+
+        if (pendingCount > 0) {
+            if (existingBadge) {
+                existingBadge.textContent = pendingCount;
+            } else {
+                const newBadge = document.createElement('span');
+                newBadge.className = 'todo-notification-badge';
+                newBadge.textContent = pendingCount;
+                taskCard.insertBefore(newBadge, taskCard.firstChild);
+            }
+        } else {
+            if (existingBadge) {
+                existingBadge.remove();
+            }
+        }
+
+        // Construir conteúdo do lado esquerdo
+        let leftContent = `<small class="d-block mb-1" style="color: #6c757d; font-size: 12px;">${taskData.project_client_name} - ${taskData.project_name}</small>`;
+
+        if (taskData.assigned_user_name) {
+            leftContent += `<small class="d-block mb-1" style="color: #0d6efd; font-size: 12px;"><i class="fas fa-user me-1"></i>${taskData.assigned_user_name}</small>`;
+        }
+
+        if (taskData.status === 'concluida' && taskData.completed_at) {
+            leftContent += `<small class="d-block" style="color: #00a86b; font-size: 12px;"><i class="fas fa-check me-1"></i>${taskData.completed_at}</small>`;
+        } else if (taskData.data_conclusao) {
+            leftContent += `<small class="d-block" style="color: #ffc107; font-size: 12px;"><i class="fas fa-calendar me-1"></i>${taskData.data_conclusao}</small>`;
+        }
+
+        // Construir conteúdo do lado direito (to-dos)
+        let rightContent = '';
+        if (pendingCount > 0) {
+            const plural = pendingCount > 1 ? 's' : '';
+            rightContent = `
+            <div class="todo-count-right" style="text-align: right; min-width: 90px;">
+                <span class="d-flex align-items-center justify-content-end" style="color: #25D366; font-size: 14px; font-weight: 600;">
+                    <i class="fas fa-list-check me-2" style="font-size: 15px;"></i>${pendingCount} to-do${plural}
+                </span>
+            </div>
+        `;
+        }
+
+        // Atualizar o conteúdo do card
+        cardBody.innerHTML = `
+        <div class="d-flex justify-content-between align-items-start mb-2">
+            <h6 class="card-title mb-0" style="font-weight: 600; font-size: 14px; flex: 1;">${taskData.titulo}</h6>
+        </div>
+        <div class="d-flex justify-content-between align-items-end">
+            <div class="flex-grow-1">${leftContent}</div>
+            ${rightContent}
+        </div>
+    `;
+    }
+
+    // Variável para controlar se há mudanças pendentes
+    let hasUnsavedChanges = false;
+
+    function setupDrawerAutoSave() {
+        const fields = [
+            document.getElementById('editTaskTitulo'),
+            document.getElementById('editTaskDescricao'),
+            document.getElementById('editTaskResponsavel'),
+            document.getElementById('editTaskStatus'),
+            document.getElementById('editTaskDataConclusao')
+        ];
+
+        fields.forEach(field => {
+            if (!field) return;
+
+            field.addEventListener('input', () => {
+                hasUnsavedChanges = true;
+                updateDrawerAutoSaveStatus('editando');
+            });
+
+            field.addEventListener('change', () => {
+                hasUnsavedChanges = true;
+                updateDrawerAutoSaveStatus('editando');
+            });
+        });
+    }
+
+    function updateDrawerAutoSaveStatus(status) {
+        const statusEl = document.getElementById('autoSaveStatus');
+        if (!statusEl) return;
+
+        if (status === 'editando') {
+            statusEl.innerHTML = '<i class="fas fa-pencil-alt me-1"></i>Editando...';
+            statusEl.className = 'text-muted small mb-2';
+        } else if (status === 'salvando') {
+            statusEl.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Salvando...';
+            statusEl.className = 'text-warning small mb-2';
+        } else if (status === 'salvo') {
+            statusEl.innerHTML = '<i class="fas fa-check me-1"></i>Salvo automaticamente';
+            statusEl.className = 'text-success small mb-2';
+
+            setTimeout(() => {
+                statusEl.innerHTML = '';
+            }, 3000);
+        } else if (status === 'erro') {
+            statusEl.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i>Erro ao salvar';
+            statusEl.className = 'text-danger small mb-2';
+        }
+    }
+
+    function saveTaskFromDrawer() {
+        const taskId = document.getElementById('editTaskId').value;
+        if (!taskId) return;
+
+        // Se não há mudanças pendentes, não salvar
+        if (!hasUnsavedChanges) return;
+
+        updateDrawerAutoSaveStatus('salvando');
+        hasUnsavedChanges = false;
+
+        const formData = {
+            titulo: document.getElementById('editTaskTitulo').value,
+            descricao: document.getElementById('editTaskDescricao').value,
+            assigned_user_id: document.getElementById('editTaskResponsavel').value || null,
+            status: document.getElementById('editTaskStatus').value,
+            data_conclusao: document.getElementById('editTaskDataConclusao').value || null,
+            todos: getCurrentTodos()
+        };
+
+        console.log("DEBUG KANBAN: Tentando salvar tarefa com payload:", JSON.stringify(formData));
+
+        fetch(`/api/tasks/${taskId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log("DEBUG KANBAN: Tarefa salva com sucesso.");
+                    updateDrawerAutoSaveStatus('salvo');
+
+                    // Recarregar to-dos do servidor para obter IDs reais
+                    fetch(`/tasks/${taskId}/data`)
+                        .then(response => response.json())
+                        .then(taskData => {
+                            if (taskData.success && taskData.task.todos) {
+                                loadTodos(taskData.task.todos);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Erro ao recarregar to-dos:', error);
+                        });
+
+                    // Atualizar card em tempo real
+                    const taskCard = document.querySelector(`[data-task-id="${taskId}"]`);
+                    if (taskCard) {
+                        const currentColumn = taskCard.closest('.kanban-column');
+                        const targetColumn = document.querySelector(`[data-status="${data.task.status}"]`);
+
+                        // Se mudou de coluna, mover o card
+                        if (currentColumn && targetColumn && currentColumn.dataset.status !== data.task.status) {
+                            targetColumn.appendChild(taskCard);
+                            updateColumnCounts();
+                        }
+
+                        // Atualizar o conteúdo do card
+                        updateTaskCard(data.task);
+                    }
+                } else {
+                    console.error("DEBUG KANBAN: O backend retornou erro. server message:", data.message);
+                    alert("Erro ao salvar: " + (data.message || "Motivo desconhecido"));
+                    updateDrawerAutoSaveStatus('erro');
+                }
+            })
+            .catch(error => {
+                console.error('DEBUG KANBAN: Erro de rede ou parse ao salvar tarefa. Payload:', formData, 'Erro:', error);
+                alert("Erro catastrófico ao salvar, verifique o console.");
+                updateDrawerAutoSaveStatus('erro');
+            });
+    }
+
+    // Funções para gerenciar to-do's
+    function loadTodos(todos) {
+        const todosList = document.getElementById('todosList');
+        todosList.innerHTML = '';
+
+        // Ordenar: não concluídas primeiro, concluídas por último
+        const sortedTodos = [...todos].sort((a, b) => {
+            if (a.completed === b.completed) return 0;
+            return a.completed ? 1 : -1;
+        });
+
+        sortedTodos.forEach(todo => {
+            const todoDiv = document.createElement('div');
+            todoDiv.className = 'todo-item-wrapper mb-3';
+
+            // Formatar data de vencimento com cores
+            const dueDateInfo = formatDueDate(todo.due_date);
+            const comentario = todo.comentario || '';
+
+            todoDiv.innerHTML = `
+            <div class="d-flex align-items-center">
+                <input type="checkbox" class="form-check-input me-2" ${todo.completed ? 'checked' : ''} onchange="toggleTodo(this, ${todo.id})">
+                <span class="todo-text ${todo.completed ? 'text-decoration-line-through text-muted' : ''}" 
+                      style="flex-grow: 1; cursor: pointer;" 
+                      data-todo-id="${todo.id}"
+                      onclick="enableTodoEdit(this)">${todo.texto}</span>
+                <div class="todo-date-picker position-relative" data-todo-id="${todo.id}">
+                    <span class="todo-date-display ${dueDateInfo.colorClass}" 
+                          onclick="toggleTodoDatePicker(this, ${todo.id})"
+                          style="cursor: pointer; font-size: 12px; padding: 2px 6px; border-radius: 4px;">
+                        <i class="fas fa-calendar-alt me-1"></i>${dueDateInfo.text}
+                    </span>
+                    <input type="date" 
+                           class="todo-date-input" 
+                           style="position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;"
+                           value="${todo.due_date || ''}"
+                           onchange="updateTodoDueDate(${todo.id}, this.value)">
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="removeTodo(this, ${todo.id})">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </div>
+            <div class="todo-comment-container mt-1 ms-4 ps-2" style="border-left: 2px solid #3d3d3d;">
+                <div class="todo-comment-display ${comentario ? '' : 'd-none'}" 
+                     data-todo-id="${todo.id}" 
+                     onclick="enableCommentEdit(this)"
+                     style="cursor: pointer; font-size: 12px; color: #9ca3af; padding: 4px 8px; background: rgba(255,255,255,0.03); border-radius: 4px;">
+                    <i class="fas fa-comment me-1" style="font-size: 10px;"></i><span class="comment-text">${comentario}</span>
+                </div>
+                <button type="button" class="btn btn-sm btn-link add-comment-btn ${comentario ? 'd-none' : ''}" 
+                        data-todo-id="${todo.id}"
+                        onclick="showCommentInput(this)"
+                        style="font-size: 11px; color: #6b7280; padding: 2px 0;">
+                    <i class="fas fa-plus me-1"></i>Adicionar comentário
+                </button>
+            </div>
+        `;
+            todoDiv.dataset.todoId = todo.id;
+            todoDiv.dataset.todoText = todo.texto;
+            todoDiv.dataset.todoCompleted = todo.completed;
+            todoDiv.dataset.todoDueDate = todo.due_date || '';
+            todoDiv.dataset.todoComentario = comentario;
+            todosList.appendChild(todoDiv);
+        });
+    }
+
+    // Função para formatar data de vencimento com lógica de cores e dia da semana
+    function formatDueDate(dueDateStr) {
+        if (!dueDateStr) {
+            return { text: '', colorClass: 'text-muted' };
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const dueDate = new Date(dueDateStr + 'T00:00:00');
+        const diffTime = dueDate - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        // Determinar cor
+        let colorClass = '';
+        if (diffDays < 0) {
+            colorClass = 'todo-date-overdue'; // Vermelho - atrasado
+        } else if (diffDays <= 1) {
+            colorClass = 'todo-date-soon'; // Verde - hoje ou amanhã
+        } else {
+            colorClass = 'todo-date-future'; // Cinza - futuro
+        }
+
+        // Formatar texto
+        let text = '';
+        const dayNames = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+
+        // Se estiver dentro de 7 dias, mostrar nome do dia
+        if (diffDays >= 0 && diffDays <= 6) {
+            if (diffDays === 0) {
+                text = 'hoje';
+            } else if (diffDays === 1) {
+                text = 'amanhã';
+            } else {
+                text = dayNames[dueDate.getDay()];
+            }
+        } else {
+            // Mostrar dd/mm
+            const day = String(dueDate.getDate()).padStart(2, '0');
+            const month = String(dueDate.getMonth() + 1).padStart(2, '0');
+            text = `${day}/${month}`;
+        }
+
+        return { text, colorClass };
+    }
+
+    // Função para abrir o datepicker do to-do
+    function toggleTodoDatePicker(element, todoId) {
+        const container = element.closest('.todo-date-picker');
+        const dateInput = container.querySelector('.todo-date-input');
+
+        // Forçar click no input de data nativo
+        dateInput.style.pointerEvents = 'auto';
+        dateInput.showPicker ? dateInput.showPicker() : dateInput.click();
+
+        // Ocultar novamente após selecionar
+        setTimeout(() => {
+            dateInput.style.pointerEvents = 'none';
+        }, 100);
+    }
+
+    // Função para atualizar data de vencimento do to-do
+    async function updateTodoDueDate(todoId, dateValue) {
+        try {
+            const response = await fetch(`/api/todos/${todoId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ due_date: dateValue || null })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Atualizar a exibição
+                const container = document.querySelector(`.todo-date-picker[data-todo-id="${todoId}"]`);
+                if (container) {
+                    const display = container.querySelector('.todo-date-display');
+                    const dueDateInfo = formatDueDate(dateValue);
+
+                    // Remover classes antigas
+                    display.classList.remove('todo-date-overdue', 'todo-date-soon', 'todo-date-future', 'text-muted');
+                    display.classList.add(dueDateInfo.colorClass);
+                    display.innerHTML = `<i class="fas fa-calendar-alt me-1"></i>${dueDateInfo.text}`;
+
+                    // Atualizar dataset
+                    const todoDiv = container.closest('[data-todo-id]');
+                    if (todoDiv) {
+                        todoDiv.dataset.todoDueDate = dateValue || '';
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao atualizar data:', error);
+        }
+    }
+
+    // Função para habilitar edição inline do to-do (estilo Trello)
+    function enableTodoEdit(span) {
+        if (span.querySelector('input')) return; // Já está editando
+
+        const todoId = span.dataset.todoId;
+        const currentText = span.textContent;
+
+        // Criar input de edição
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'form-control form-control-sm';
+        input.value = currentText;
+        input.style.flexGrow = '1';
+
+        // Substituir span por input
+        span.textContent = '';
+        span.appendChild(input);
+        input.focus();
+        input.select();
+
+        // Função para salvar
+        const saveTodo = async () => {
+            const newText = input.value.trim();
+
+            if (!newText) {
+                input.value = currentText; // Restaurar texto original se vazio
+                return;
+            }
+
+            if (newText === currentText) {
+                // Sem mudanças, apenas restaurar
+                span.textContent = currentText;
+                return;
+            }
+
+            // Salvar no backend
+            try {
+                const response = await fetch(`/api/todos/${todoId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ texto: newText })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    span.textContent = newText;
+                    // Atualizar dataset
+                    const todoDiv = span.closest('[data-todo-id]');
+                    if (todoDiv) {
+                        todoDiv.dataset.todoText = newText;
+                    }
+                } else {
+                    alert('Erro ao atualizar: ' + data.message);
+                    span.textContent = currentText;
+                }
+            } catch (error) {
+                console.error('Erro ao atualizar to-do:', error);
+                alert('Erro ao atualizar to-do');
+                span.textContent = currentText;
+            }
+        };
+
+        // Salvar ao pressionar Enter ou perder foco
+        input.addEventListener('blur', saveTodo);
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                input.blur();
+            }
+        });
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                span.textContent = currentText; // Cancelar edição
+            }
+        });
+    }
+
+    // Funções para gerenciar comentários dos to-dos
+    function showCommentInput(button) {
+        const todoId = button.dataset.todoId;
+        const container = button.closest('.todo-comment-container');
+
+        // Esconder botão
+        button.classList.add('d-none');
+
+        // Criar input de comentário
+        const inputDiv = document.createElement('div');
+        inputDiv.className = 'comment-input-wrapper';
+        inputDiv.innerHTML = `
+        <input type="text" 
+               class="form-control form-control-sm comment-input" 
+               placeholder="Digite um comentário..."
+               style="font-size: 12px; background: rgba(255,255,255,0.05); border: 1px solid #3d3d3d;">
+        <div class="mt-1">
+            <button type="button" class="btn btn-sm btn-success me-1" onclick="saveComment(this, ${todoId})">
+                <i class="fas fa-check"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="cancelComment(this)">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+        container.appendChild(inputDiv);
+        inputDiv.querySelector('input').focus();
+
+        // Salvar ao pressionar Enter
+        inputDiv.querySelector('input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                saveComment(inputDiv.querySelector('.btn-success'), todoId);
+            }
+        });
+        inputDiv.querySelector('input').addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                cancelComment(inputDiv.querySelector('.btn-outline-secondary'));
+            }
+        });
+    }
+
+    async function saveComment(button, todoId) {
+        const wrapper = button.closest('.comment-input-wrapper');
+        const input = wrapper.querySelector('input');
+        const comentario = input.value.trim();
+        const container = button.closest('.todo-comment-container');
+        const todoDiv = container.closest('.todo-item-wrapper');
+
+        if (!comentario) {
+            cancelComment(button);
+            return;
+        }
+
+        // Verificar se é um to-do novo (ainda não salvo no banco)
+        const isNewTodo = String(todoId).startsWith('new-');
+
+        if (isNewTodo) {
+            // Para to-dos novos, apenas atualizar o dataset localmente
+            // O comentário será salvo junto com a tarefa ao fechar o drawer
+            const display = container.querySelector('.todo-comment-display');
+            display.querySelector('.comment-text').textContent = comentario;
+            display.classList.remove('d-none');
+
+            container.querySelector('.add-comment-btn').classList.add('d-none');
+            wrapper.remove();
+
+            if (todoDiv) {
+                todoDiv.dataset.todoComentario = comentario;
+            }
+
+            // Marcar que há mudanças pendentes para salvar ao fechar
+            hasUnsavedChanges = true;
+            updateDrawerAutoSaveStatus('editando');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/todos/${todoId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ comentario: comentario })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Atualizar display do comentário
+                const display = container.querySelector('.todo-comment-display');
+                display.querySelector('.comment-text').textContent = comentario;
+                display.classList.remove('d-none');
+
+                // Esconder botão de adicionar
+                container.querySelector('.add-comment-btn').classList.add('d-none');
+
+                // Remover input
+                wrapper.remove();
+
+                // Atualizar dataset
+                if (todoDiv) {
+                    todoDiv.dataset.todoComentario = comentario;
+                }
+            } else {
+                alert('Erro ao salvar comentário');
+            }
+        } catch (error) {
+            console.error('Erro ao salvar comentário:', error);
+            alert('Erro ao salvar comentário');
+        }
+    }
+
+    function cancelComment(button) {
+        const wrapper = button.closest('.comment-input-wrapper');
+        const container = button.closest('.todo-comment-container');
+
+        // Mostrar botão de adicionar novamente
+        container.querySelector('.add-comment-btn').classList.remove('d-none');
+
+        // Remover input
+        wrapper.remove();
+    }
+
+    function enableCommentEdit(div) {
+        if (div.querySelector('input')) return; // Já está editando
+
+        const todoId = div.dataset.todoId;
+        const currentComment = div.querySelector('.comment-text').textContent;
+        const container = div.closest('.todo-comment-container');
+
+        // Esconder display
+        div.classList.add('d-none');
+
+        // Criar input de edição
+        const inputDiv = document.createElement('div');
+        inputDiv.className = 'comment-input-wrapper';
+        inputDiv.innerHTML = `
+        <input type="text" 
+               class="form-control form-control-sm comment-input" 
+               value="${currentComment}"
+               style="font-size: 12px; background: rgba(255,255,255,0.05); border: 1px solid #3d3d3d;">
+        <div class="mt-1">
+            <button type="button" class="btn btn-sm btn-success me-1" onclick="updateComment(this, ${todoId})">
+                <i class="fas fa-check"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-danger me-1" onclick="deleteComment(this, ${todoId})">
+                <i class="fas fa-trash"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="cancelCommentEdit(this)">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+        container.appendChild(inputDiv);
+        const inputEl = inputDiv.querySelector('input');
+        inputEl.focus();
+        inputEl.select();
+
+        inputEl.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                updateComment(inputDiv.querySelector('.btn-success'), todoId);
+            }
+        });
+        inputEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                cancelCommentEdit(inputDiv.querySelector('.btn-outline-secondary'));
+            }
+        });
+    }
+
+    async function updateComment(button, todoId) {
+        const wrapper = button.closest('.comment-input-wrapper');
+        const input = wrapper.querySelector('input');
+        const comentario = input.value.trim();
+        const container = button.closest('.todo-comment-container');
+        const todoDiv = container.closest('.todo-item-wrapper');
+        const display = container.querySelector('.todo-comment-display');
+        const addBtn = container.querySelector('.add-comment-btn');
+
+        // Verificar se é um to-do novo (ainda não salvo no banco)
+        const isNewTodo = String(todoId).startsWith('new-');
+
+        if (isNewTodo) {
+            // Para to-dos novos, apenas atualizar localmente
+            if (comentario) {
+                display.querySelector('.comment-text').textContent = comentario;
+                display.classList.remove('d-none');
+                addBtn.classList.add('d-none');
+            } else {
+                display.classList.add('d-none');
+                addBtn.classList.remove('d-none');
+            }
+
+            wrapper.remove();
+
+            if (todoDiv) {
+                todoDiv.dataset.todoComentario = comentario || '';
+            }
+
+            hasUnsavedChanges = true;
+            updateDrawerAutoSaveStatus('editando');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/todos/${todoId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ comentario: comentario || null })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                if (comentario) {
+                    display.querySelector('.comment-text').textContent = comentario;
+                    display.classList.remove('d-none');
+                    addBtn.classList.add('d-none');
+                } else {
+                    display.classList.add('d-none');
+                    addBtn.classList.remove('d-none');
+                }
+
+                wrapper.remove();
+
+                if (todoDiv) {
+                    todoDiv.dataset.todoComentario = comentario || '';
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao atualizar comentário:', error);
+        }
+    }
+
+    async function deleteComment(button, todoId) {
+        const wrapper = button.closest('.comment-input-wrapper');
+        const container = button.closest('.todo-comment-container');
+        const todoDiv = container.closest('.todo-item-wrapper');
+        const display = container.querySelector('.todo-comment-display');
+        const addBtn = container.querySelector('.add-comment-btn');
+
+        // Verificar se é um to-do novo (ainda não salvo no banco)
+        const isNewTodo = String(todoId).startsWith('new-');
+
+        if (isNewTodo) {
+            // Para to-dos novos, apenas atualizar localmente
+            display.classList.add('d-none');
+            addBtn.classList.remove('d-none');
+            wrapper.remove();
+
+            if (todoDiv) {
+                todoDiv.dataset.todoComentario = '';
+            }
+
+            hasUnsavedChanges = true;
+            updateDrawerAutoSaveStatus('editando');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/todos/${todoId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ comentario: null })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                display.classList.add('d-none');
+                addBtn.classList.remove('d-none');
+                wrapper.remove();
+
+                if (todoDiv) {
+                    todoDiv.dataset.todoComentario = '';
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao deletar comentário:', error);
+        }
+    }
+
+    function cancelCommentEdit(button) {
+        const wrapper = button.closest('.comment-input-wrapper');
+        const container = button.closest('.todo-comment-container');
+
+        // Mostrar display novamente
+        container.querySelector('.todo-comment-display').classList.remove('d-none');
+
+        // Remover input
+        wrapper.remove();
+    }
+
+    function addTodo(textVal = null, isCompleted = false, dateVal = null) {
+        const newTodoText = document.getElementById('newTodoText');
+        const text = textVal || newTodoText.value.trim();
+
+        if (text) {
+            const todosList = document.getElementById('todosList');
+            const todoDiv = document.createElement('div');
+            const tempId = 'new-' + Date.now();
+
+            // Se houver data, formatar para exibição inicial
+            let initialDateDisplay = '';
+            let dateColorClass = 'text-muted';
+
+            if (dateVal) {
+                const dateInfo = formatDueDate(dateVal);
+                initialDateDisplay = dateInfo.text;
+                dateColorClass = dateInfo.colorClass;
+            }
+
+            todoDiv.className = 'todo-item-wrapper mb-3';
+            todoDiv.innerHTML = `
+            <div class="d-flex align-items-center">
+                <input type="checkbox" class="form-check-input me-2" onchange="toggleTodo(this)" ${isCompleted ? 'checked' : ''}>
+                <span class="todo-text ${isCompleted ? 'text-decoration-line-through text-muted' : ''}" style="flex-grow: 1; cursor: pointer;" data-todo-id="${tempId}" onclick="enableTodoEdit(this)">${text}</span>
+                <div class="todo-date-picker position-relative" data-todo-id="${tempId}">
+                    <span class="todo-date-display ${dateColorClass}" 
+                          onclick="toggleTodoDatePicker(this, '${tempId}')"
+                          style="cursor: pointer; font-size: 12px; padding: 2px 6px; border-radius: 4px;">
+                        <i class="fas fa-calendar-alt me-1"></i>${initialDateDisplay}
+                    </span>
+                    <input type="date" 
+                           class="todo-date-input" 
+                           style="position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;"
+                           value="${dateVal || ''}"
+                           onchange="handleNewTodoDateChange(this, '${tempId}')">
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="removeTodo(this)">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </div>
+            <div class="todo-comment-container mt-1 ms-4 ps-2" style="border-left: 2px solid #3d3d3d;">
+                <div class="todo-comment-display d-none" 
+                     data-todo-id="${tempId}" 
+                     onclick="enableCommentEdit(this)"
+                     style="cursor: pointer; font-size: 12px; color: #9ca3af; padding: 4px 8px; background: rgba(255,255,255,0.03); border-radius: 4px;">
+                    <i class="fas fa-comment me-1" style="font-size: 10px;"></i><span class="comment-text"></span>
+                </div>
+                <button type="button" class="btn btn-sm btn-link add-comment-btn" 
+                        data-todo-id="${tempId}"
+                        onclick="showCommentInput(this)"
+                        style="font-size: 11px; color: #6b7280; padding: 2px 0;">
+                    <i class="fas fa-plus me-1"></i>Adicionar comentário
+                </button>
+            </div>
+        `;
+            todoDiv.dataset.todoId = tempId;
+            todoDiv.dataset.todoText = text;
+            todoDiv.dataset.todoCompleted = isCompleted;
+            todoDiv.dataset.todoDueDate = dateVal || '';
+            todoDiv.dataset.todoComentario = '';
+
+            todosList.appendChild(todoDiv);
+            newTodoText.value = '';
+
+            // Reordenar para manter não concluídas primeiro
+            reorderTodosInDOM();
+
+            // Marcar que há mudanças pendentes
+            hasUnsavedChanges = true;
+            updateDrawerAutoSaveStatus('editando');
+        }
+    }
+
+    // Função para lidar com mudança de data em to-do novo (ainda não salvo)
+    function handleNewTodoDateChange(input, todoId) {
+        const dateValue = input.value;
+        const container = input.closest('.todo-date-picker');
+        const display = container.querySelector('.todo-date-display');
+        const dueDateInfo = formatDueDate(dateValue);
+
+        // Atualizar exibição
+        display.classList.remove('todo-date-overdue', 'todo-date-soon', 'todo-date-future', 'text-muted');
+        display.classList.add(dueDateInfo.colorClass);
+        display.innerHTML = `<i class="fas fa-calendar-alt me-1"></i>${dueDateInfo.text}`;
+
+        // Atualizar dataset
+        const todoDiv = container.closest('[data-todo-id]');
+        if (todoDiv) {
+            todoDiv.dataset.todoDueDate = dateValue || '';
+        }
+
+        // Marcar que há mudanças pendentes
+        hasUnsavedChanges = true;
+        updateDrawerAutoSaveStatus('editando');
+    }
+
+    function toggleTodo(checkbox, todoId = null) {
+        const todoWrapper = checkbox.closest('.todo-item-wrapper');
+        const span = todoWrapper.querySelector('.todo-text');
+        const isCompleted = checkbox.checked;
+
+        if (isCompleted) {
+            span.classList.add('text-decoration-line-through', 'text-muted');
+        } else {
+            span.classList.remove('text-decoration-line-through', 'text-muted');
+        }
+
+        todoWrapper.dataset.todoCompleted = isCompleted.toString();
+
+        // Marcar que há mudanças pendentes
+        hasUnsavedChanges = true;
+        updateDrawerAutoSaveStatus('editando');
+
+        // Reordenar subtarefas: não concluídas primeiro
+        reorderTodosInDOM();
+    }
+
+    function reorderTodosInDOM() {
+        const todosList = document.getElementById('todosList');
+        const todoWrappers = Array.from(todosList.querySelectorAll('.todo-item-wrapper'));
+
+        // Ordenar: não concluídas primeiro
+        todoWrappers.sort((a, b) => {
+            const aCompleted = a.dataset.todoCompleted === 'true';
+            const bCompleted = b.dataset.todoCompleted === 'true';
+            if (aCompleted === bCompleted) return 0;
+            return aCompleted ? 1 : -1;
+        });
+
+        // Reinserir na ordem correta
+        todoWrappers.forEach(wrapper => todosList.appendChild(wrapper));
+    }
+
+    function removeTodo(button, todoId = null) {
+        const todoWrapper = button.closest('.todo-item-wrapper');
+        todoWrapper.remove();
+
+        // Marcar que há mudanças pendentes
+        hasUnsavedChanges = true;
+        updateDrawerAutoSaveStatus('editando');
+    }
+
+    function getCurrentTodos() {
+        const todosList = document.getElementById('todosList');
+        const todoWrappers = todosList.querySelectorAll('.todo-item-wrapper');
+        const todos = [];
+
+        todoWrappers.forEach(todoDiv => {
+            const todoId = todoDiv.dataset.todoId;
+            todos.push({
+                id: todoId.startsWith('new-') ? null : parseInt(todoId),
+                texto: todoDiv.dataset.todoText,
+                completed: todoDiv.dataset.todoCompleted === 'true',
+                due_date: todoDiv.dataset.todoDueDate || null,
+                comentario: todoDiv.dataset.todoComentario || null
+            });
+        });
+
+        return todos;
+    }
+
+    function updateColumnCounts() {
+        // Atualizar contadores das colunas
+        const columns = document.querySelectorAll('.kanban-column');
+        columns.forEach(column => {
+            const count = column.querySelectorAll('.task-card').length;
+            const badge = column.parentElement.querySelector('.badge');
+            if (badge) {
+                badge.textContent = count;
+            }
+        });
+    }
+
+    // Função para deletar tarefa
+    function deleteTask() {
+        const taskId = document.getElementById('editTaskId').value;
+        const taskTitle = document.getElementById('editTaskTitulo').value;
+
+        if (confirm(`Tem certeza que deseja deletar a tarefa "${taskTitle}"? Esta ação não pode ser desfeita.`)) {
+            fetch(`/api/tasks/${taskId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Fechar drawer
+                        closeTaskDrawer();
+
+                        // Remover o card da interface
+                        const taskCard = document.querySelector(`[data-task-id="${taskId}"]`);
+                        if (taskCard) {
+                            taskCard.remove();
+                            updateColumnCounts();
+                        }
+                    } else {
+                        alert('Erro ao deletar tarefa: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro ao deletar tarefa:', error);
+                    alert('Erro ao deletar tarefa');
+                });
+        }
+    }
+
+    // Função para processar transcrição
+    document.getElementById('transcriptionForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const projectId = document.getElementById('transcriptionProject').value;
+        const transcriptionText = document.getElementById('transcriptionText').value;
+
+        if (!projectId || !transcriptionText.trim()) {
+            alert('Por favor, selecione um projeto e insira uma transcrição.');
+            return;
+        }
+
+        const submitButton = this.querySelector('button[type="submit"]');
+        const originalText = submitButton.innerHTML;
+        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processando...';
+        submitButton.disabled = true;
+
+        fetch('/kanban/transcription', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                project_id: projectId,
+                transcription: transcriptionText
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('transcriptionModal'));
+                    modal.hide();
+
+                    // Limpar formulário
+                    document.getElementById('transcriptionProject').value = '';
+                    document.getElementById('transcriptionText').value = '';
+
+                    alert(`${data.tasks_created} tarefas foram geradas com sucesso!`);
+                    location.reload(); // Recarregar para mostrar as novas tarefas
+                } else {
+                    alert('Erro ao processar transcrição: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao processar transcrição:', error);
+                alert('Erro ao processar transcrição. Tente novamente.');
+            })
+            .finally(() => {
+                submitButton.innerHTML = originalText;
+                submitButton.disabled = false;
+            });
+    });
+
+    // Permitir adicionar to-do com Enter
+    document.addEventListener('keypress', function (e) {
+        if (e.target.id === 'newTodoText' && e.key === 'Enter') {
+            addTodo();
+        }
+    });
+
+    // Função para disparar tarefas filtradas
+    function dispatchFilteredTasks() {
+        const projectId = document.querySelector('select[name="project_id"]').value;
+        const clientId = document.querySelector('select[name="client_id"]').value;
+        const userId = document.querySelector('select[name="user_id"]').value;
+        const myTasks = document.querySelector('input[name="my_tasks"]').checked;
+
+        let confirmMessage = 'Deseja enviar emails de resumo de tarefas ';
+        if (userId) {
+            const userName = document.querySelector('select[name="user_id"] option:checked').text;
+            confirmMessage += `para ${userName}?`;
+        } else {
+            confirmMessage += 'para todos os usuários com tarefas atribuídas?';
+        }
+
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+
+        fetch('/api/disparar-tarefas', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                project_id: projectId || null,
+                client_id: clientId || null,
+                user_id: userId || null,
+                my_tasks: myTasks
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`✓ ${data.message}\n\nUsuários notificados:\n${data.usuarios.join('\n')}`);
+                } else {
+                    alert('⚠ ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao disparar tarefas:', error);
+                alert('Erro ao enviar emails. Tente novamente.');
+            });
+    }
+
+    // ============================================
+    // DRAG AND DROP FUNCTIONALITY
+    // ============================================
+
+    let draggedElement = null;
+
+    // Inicializar drag and drop quando a página carregar
+    document.addEventListener('DOMContentLoaded', function () {
+        initializeDragAndDrop();
+    });
+
+    function initializeDragAndDrop() {
+        const taskCards = document.querySelectorAll('.task-card-modern');
+        const columns = document.querySelectorAll('.kanban-column');
+
+        // Adicionar event listeners para cada card
+        taskCards.forEach(card => {
+            card.addEventListener('dragstart', handleDragStart);
+            card.addEventListener('dragend', handleDragEnd);
+        });
+
+        // Adicionar event listeners para cada coluna
+        columns.forEach(column => {
+            column.addEventListener('dragover', handleDragOver);
+            column.addEventListener('drop', handleDrop);
+            column.addEventListener('dragleave', handleDragLeave);
+            column.addEventListener('dragenter', handleDragEnter);
+        });
+    }
+
+    function handleDragStart(e) {
+        // Verificar se o elemento é válido
+        if (!e.target || !e.target.classList.contains('task-card-modern')) {
+            console.error('Erro: card não é um HTMLElement válido');
+            return;
+        }
+
+        draggedElement = e.target;
+        e.target.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', e.target.innerHTML);
+
+        // Prevenir que o onclick seja acionado
+        setTimeout(() => {
+            e.target.style.pointerEvents = 'none';
+        }, 0);
+    }
+
+    function handleDragEnd(e) {
+        if (!e.target) return;
+
+        e.target.classList.remove('dragging');
+        e.target.style.pointerEvents = 'auto';
+
+        // Remover visual de drag-over de todas as colunas
+        document.querySelectorAll('.kanban-column').forEach(column => {
+            column.classList.remove('drag-over');
+        });
+
+        draggedElement = null;
+    }
+
+    function handleDragOver(e) {
+        if (e.preventDefault) {
+            e.preventDefault();
+        }
+        e.dataTransfer.dropEffect = 'move';
+        return false;
+    }
+
+    function handleDragEnter(e) {
+        if (!e.currentTarget.classList.contains('kanban-column')) return;
+        e.currentTarget.classList.add('drag-over');
+    }
+
+    function handleDragLeave(e) {
+        if (!e.currentTarget.classList.contains('kanban-column')) return;
+
+        // Verificar se realmente saiu da coluna
+        const rect = e.currentTarget.getBoundingClientRect();
+        if (e.clientX <= rect.left || e.clientX >= rect.right ||
+            e.clientY <= rect.top || e.clientY >= rect.bottom) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+    }
+
+    function handleDrop(e) {
+        if (e.stopPropagation) {
+            e.stopPropagation();
+        }
+
+        if (!draggedElement) {
+            console.error('Erro: nenhum elemento sendo arrastado');
+            return false;
+        }
+
+        const targetColumn = e.currentTarget;
+        targetColumn.classList.remove('drag-over');
+
+        const newStatus = targetColumn.dataset.status;
+        const taskId = draggedElement.dataset.taskId;
+        const currentStatus = draggedElement.closest('.kanban-column').dataset.status;
+
+        // Verificar se mudou de coluna ou se está reordenando dentro da mesma coluna
+        if (newStatus === currentStatus) {
+            // Reordenar dentro da mesma coluna
+            const afterElement = getDragAfterElement(targetColumn, e.clientY);
+            if (afterElement == null) {
+                targetColumn.appendChild(draggedElement);
+            } else {
+                targetColumn.insertBefore(draggedElement, afterElement);
+            }
+
+            // Atualizar ordem no backend
+            updateColumnOrder(targetColumn);
+            return false;
+        }
+
+        // Atualizar visualmente primeiro
+        targetColumn.appendChild(draggedElement);
+
+        // Atualizar a cor da borda lateral do card
+        draggedElement.style.borderLeftColor = getBorderColorForStatus(newStatus);
+
+        // Atualizar o badge de status do card
+        updateCardStatusBadge(draggedElement, newStatus);
+
+        // Atualizar no backend
+        updateTaskStatus(taskId, newStatus);
+
+        // Atualizar contadores
+        updateColumnCounters();
+
+        // Atualizar ordem da nova coluna
+        updateColumnOrder(targetColumn);
+
+        return false;
+    }
+
+    function getDragAfterElement(column, y) {
+        const draggableElements = [...column.querySelectorAll('.task-card-modern:not(.dragging)')];
+
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else {
+                return closest;
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+
+    function updateColumnOrder(column) {
+        const cards = column.querySelectorAll('.task-card-modern');
+        const taskIds = Array.from(cards).map(card => parseInt(card.dataset.taskId));
+
+        if (taskIds.length === 0) return;
+
+        // Enviar nova ordem para o backend
+        fetch('/api/tasks/reorder', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                task_ids: taskIds
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    console.error('Erro ao atualizar ordem:', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao atualizar ordem:', error);
+            });
+    }
+
+    function getBorderColorForStatus(status) {
+        const colors = {
+            'pendente': '#6c757d',
+            'em_andamento': '#6554c0',
+            'concluida': '#00a86b'
+        };
+        return colors[status] || '#6c757d';
+    }
+
+    function updateCardStatusBadge(card, newStatus) {
+        const badge = card.querySelector('.badge');
+        if (badge) {
+            // Remover classes antigas
+            badge.classList.remove('bg-secondary', 'bg-success');
+            badge.style.backgroundColor = '';
+
+            // Atualizar texto e cor do badge
+            if (newStatus === 'pendente') {
+                badge.textContent = 'PENDENTE';
+                badge.classList.add('bg-secondary');
+            } else if (newStatus === 'em_andamento') {
+                badge.textContent = 'EM ANDAMENTO';
+                badge.style.backgroundColor = '#6554c0';
+            } else if (newStatus === 'concluida') {
+                badge.textContent = 'CONCLUÍDA';
+                badge.classList.add('bg-success');
+            }
+        }
+    }
+
+    function updateTaskStatus(taskId, newStatus) {
+        fetch(`/api/tasks/${taskId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                status: newStatus
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    console.error('Erro ao atualizar status da tarefa:', data.message);
+                    alert('Erro ao atualizar status da tarefa. Recarregando a página...');
+                    location.reload();
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao atualizar tarefa:', error);
+                alert('Erro ao atualizar tarefa. Recarregando a página...');
+                location.reload();
+            });
+    }
+
+    function updateColumnCounters() {
+        const columns = document.querySelectorAll('.kanban-column');
+
+        columns.forEach(column => {
+            const status = column.dataset.status;
+            const count = column.querySelectorAll('.task-card-modern').length;
+
+            // Encontrar o badge correspondente
+            let badgeClass = '';
+            if (status === 'pendente') badgeClass = 'kanban-badge-pendente';
+            else if (status === 'em_andamento') badgeClass = 'kanban-badge-andamento';
+            else if (status === 'concluida') badgeClass = 'kanban-badge-concluida';
+
+            const badge = document.querySelector(`.${badgeClass}`);
+            if (badge) {
+                badge.textContent = count;
+            }
+        });
+    }
+</script>
+
+<script>
+    // Script para Auto-Preenchimento do Modal de Nova Tarefa
+    document.addEventListener('DOMContentLoaded', function () {
+        const newTaskModal = document.getElementById('newTaskKanbanModal');
+        if (newTaskModal) {
+            newTaskModal.addEventListener('show.bs.modal', function (event) {
+                // 1. Identificar filtros ativos
+                // Verifica checkboxes marcados
+                const checkedProjects = document.querySelectorAll('input[name="project_id"]:checked');
+                const checkedUsers = document.querySelectorAll('input[name="user_id"]:checked');
+
+                // Elementos do formulário no modal
+                const modalProjectSelect = newTaskModal.querySelector('select[name="project_id"]');
+                const modalUserSelect = newTaskModal.querySelector('select[name="assigned_user_id"]');
+
+                // 2. Auto-selecionar Projeto
+                // Se houver exatamente UM projeto filtrado, seleciona ele
+                if (checkedProjects.length === 1) {
+                    const projectId = checkedProjects[0].value;
+                    modalProjectSelect.value = projectId;
+
+                    // Dispara evento de change se necessário (embora value= já funcione)
+                    modalProjectSelect.dispatchEvent(new Event('change'));
+
+                    // 3. Auto-selecionar Responsável baseado no Projeto
+                    // Tenta achar o responsável no atributo data do option selecionado
+                    const selectedOption = modalProjectSelect.options[modalProjectSelect.selectedIndex];
+                    const responsibleId = selectedOption.getAttribute('data-responsible-id');
+
+                    if (responsibleId) {
+                        modalUserSelect.value = responsibleId;
+                    }
+                }
+                // Se não tiver projeto único filtro, mas tiver usuário único filtrado
+                else if (checkedUsers.length === 1) {
+                    const userId = checkedUsers[0].value;
+                    modalUserSelect.value = userId;
+                }
+            });
+        }
+    });
+</script>
+
+<!-- Modal para Nova Tarefa no Kanban -->
+<div class="modal fade" id="newTaskKanbanModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content modern-modal">
+            <form method="POST" action="{{ url_for('new_task_kanban') }}">
+                <div class="modal-header border-0 pb-2">
+                    <h5 class="modal-title fw-semibold" style="color: #1a202c;">Nova Tarefa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body px-4 py-3">
+                    <!-- Título da Tarefa -->
+                    <div class="mb-3">
+                        <label class="form-label fw-normal" style="color: #4a5568; font-size: 14px;">Título da
+                            Tarefa</label>
+                        <input type="text" class="form-control modern-input" name="titulo" required>
+                    </div>
+
+                    <!-- Projeto e Usuário Responsável -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-normal" style="color: #4a5568; font-size: 14px;">Projeto</label>
+                            <select class="form-select modern-input" name="project_id" required>
+                                <option value="">Selecione um projeto</option>
+                                {% for project in projects %}
+                                <option value="{{ project.id }}" data-responsible-id="{{ project.responsible_id }}"
+                                    data-project-status="{{ project.status }}"
+                                    {% if project.id not in writable_project_ids %}disabled{% endif %}
+                                    {% if current_filters.project_id==project.id %}selected{% endif %}>
+                                    {{ project.client.nome }} - {{ project.nome }}{% if project.id not in writable_project_ids %} — bloqueado ({{ project.status.replace('_', ' ') }}){% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text text-muted small mt-1">Somente projetos em andamento podem receber novas demandas no Kanban.</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-normal" style="color: #4a5568; font-size: 14px;">Usuário
+                                Responsável</label>
+                            <select class="form-select modern-input" name="assigned_user_id">
+                                <option value="">Selecione um usuário</option>
+                                {% for user in all_users %}
+                                <option value="{{ user.id }}">{{ user.full_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Data de Conclusão e Status -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-normal" style="color: #4a5568; font-size: 14px;">Data de
+                                Conclusão</label>
+                            <input type="date" class="form-control modern-input" name="data_conclusao"
+                                placeholder="dd/mm/aaaa">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-normal" style="color: #4a5568; font-size: 14px;">Status</label>
+                            <select class="form-select modern-input" name="status" required>
+                                <option value="pendente" selected>Pendente</option>
+                                <option value="em_andamento">Em Andamento</option>
+                                <option value="concluida">Concluída</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Descrição -->
+                    <div class="mb-3">
+                        <label class="form-label fw-normal" style="color: #4a5568; font-size: 14px;">Descrição</label>
+                        <textarea class="form-control modern-input" name="descricao" rows="4"
+                            style="resize: none;"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-2 pb-4 px-4">
+                    <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal"
+                        style="color: #4a5568; border: 1px solid #e2e8f0;">Cancelar</button>
+                    <button type="submit" class="btn px-4"
+                        style="background-color: #6366f1; color: white; border: none;">Criar Tarefa</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Estilos customizados para Kanban moderno */
+    .kanban-column-header {
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 16px;
+    }
+
+    /* Cabeçalhos das colunas - Tema Escuro */
+    [data-theme="dark"] .kanban-header-pendente,
+    body:not([data-theme]) .kanban-header-pendente {
+        background-color: rgba(169, 169, 169, 0.15);
+        color: #e2e8f0;
+    }
+
+    [data-theme="dark"] .kanban-header-andamento,
+    body:not([data-theme]) .kanban-header-andamento {
+        background-color: rgba(101, 84, 192, 0.15);
+        color: #e2e8f0;
+    }
+
+    [data-theme="dark"] .kanban-header-concluida,
+    body:not([data-theme]) .kanban-header-concluida {
+        background-color: rgba(0, 168, 107, 0.15);
+        color: #e2e8f0;
+    }
+
+    /* Cabeçalhos das colunas - Tema Claro */
+    [data-theme="light"] .kanban-header-pendente {
+        background-color: rgba(169, 169, 169, 0.1);
+        color: #2d3748;
+    }
+
+    [data-theme="light"] .kanban-header-andamento {
+        background-color: rgba(101, 84, 192, 0.1);
+        color: #2d3748;
+    }
+
+    [data-theme="light"] .kanban-header-concluida {
+        background-color: rgba(0, 168, 107, 0.1);
+        color: #2d3748;
+    }
+
+    /* Badges - Tema Escuro */
+    [data-theme="dark"] .kanban-badge-pendente,
+    [data-theme="dark"] .kanban-badge-andamento,
+    [data-theme="dark"] .kanban-badge-concluida,
+    body:not([data-theme]) .kanban-badge-pendente,
+    body:not([data-theme]) .kanban-badge-andamento,
+    body:not([data-theme]) .kanban-badge-concluida {
+        background-color: rgba(255, 255, 255, 0.15);
+        color: #e2e8f0;
+        padding: 4px 12px;
+    }
+
+    /* Badges - Tema Claro */
+    [data-theme="light"] .kanban-badge-pendente,
+    [data-theme="light"] .kanban-badge-andamento,
+    [data-theme="light"] .kanban-badge-concluida {
+        background-color: rgba(0, 0, 0, 0.08);
+        color: #2d3748;
+        padding: 4px 12px;
+    }
+
+    /* Cards - Tema Escuro */
+    [data-theme="dark"] .task-card-modern,
+    body:not([data-theme]) .task-card-modern {
+        background-color: #2d3748;
+        border-color: #4a5568;
+    }
+
+    [data-theme="dark"] .task-card-modern .card-body,
+    body:not([data-theme]) .task-card-modern .card-body {
+        color: #e2e8f0;
+    }
+
+    /* Cards - Tema Claro */
+    [data-theme="light"] .task-card-modern {
+        background-color: #ffffff !important;
+        border-color: #e2e8f0 !important;
+    }
+
+    [data-theme="light"] .task-card-modern .card-body {
+        color: #2d3748 !important;
+    }
+
+    [data-theme="light"] .task-card-modern .card-title {
+        color: #1a202c !important;
+    }
+
+    [data-theme="light"] .task-card-modern .badge {
+        color: #ffffff !important;
+    }
+
+    /* Filtros - Tema Escuro */
+    [data-theme="dark"] .kanban-filter-select,
+    body:not([data-theme]) .kanban-filter-select {
+        background-color: #2d3748;
+        color: #e2e8f0;
+        border-color: #4a5568;
+    }
+
+    [data-theme="dark"] .kanban-filter-select option,
+    body:not([data-theme]) .kanban-filter-select option {
+        background-color: #2d3748;
+        color: #e2e8f0;
+    }
+
+    /* Filtros - Tema Claro */
+    [data-theme="light"] .kanban-filter-select {
+        background-color: #f7fafc;
+        color: #2d3748;
+        border-color: #cbd5e0;
+    }
+
+    [data-theme="light"] .kanban-filter-select option {
+        background-color: #ffffff;
+        color: #2d3748;
+    }
+
+    /* Colunas do Kanban - Tema Claro */
+    [data-theme="light"] .kanban-column {
+        background-color: transparent;
+    }
+
+    [data-theme="light"] .kanban-icon-circle i {
+        color: white !important;
+    }
+
+    /* Badge de notificação estilo WhatsApp */
+    .todo-notification-badge {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        background-color: #25D366;
+        color: white;
+        font-size: 12px;
+        font-weight: 700;
+        min-width: 22px;
+        height: 22px;
+        border-radius: 11px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 6px;
+        box-shadow: 0 2px 6px rgba(37, 211, 102, 0.4);
+        z-index: 10;
+    }
+
+    /* Animações e efeitos - Estilo Trello (simples e clean) */
+    .task-card-modern {
+        position: relative;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        cursor: grab;
+    }
+
+    .task-card-modern:active {
+        cursor: grabbing;
+    }
+
+    .task-card-modern:hover {
+        transform: translateY(-2px);
+    }
+
+    [data-theme="dark"] .task-card-modern:hover,
+    body:not([data-theme]) .task-card-modern:hover {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important;
+    }
+
+    [data-theme="light"] .task-card-modern:hover {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    /* Drag and drop - Simples como Trello */
+    .task-card-modern.dragging {
+        opacity: 0.5;
+        cursor: grabbing !important;
+        z-index: 1000;
+    }
+
+    .kanban-column {
+        transition: background-color 0.2s ease;
+    }
+
+    .kanban-column .task-card-modern {
+        transition: transform 0.2s ease,
+            box-shadow 0.2s ease,
+            opacity 0.2s ease;
+    }
+
+    .kanban-column.drag-over {
+        background-color: rgba(101, 84, 192, 0.05);
+    }
+
+    /* ============================================ */
+    /* DRAWER LATERAL - ESTILO ASANA */
+    /* ============================================ */
+
+    /* Backdrop */
+    .task-drawer-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1040;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .task-drawer-backdrop.show {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    /* Drawer Principal */
+    .task-drawer {
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 600px;
+        max-width: 90vw;
+        height: 100vh;
+        background-color: #1a1d23;
+        box-shadow: -2px 0 20px rgba(0, 0, 0, 0.5);
+        z-index: 1050;
+        transform: translateX(100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s linear 0.3s;
+        display: flex;
+        flex-direction: column;
+        visibility: hidden;
+    }
+
+    .task-drawer.show {
+        transform: translateX(0);
+        visibility: visible;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Header do Drawer */
+    .task-drawer-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+    }
+
+    .task-drawer-close {
+        background: none;
+        border: none;
+        color: #cbd5e0;
+        font-size: 20px;
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 4px;
+        transition: background-color 0.2s ease;
+    }
+
+    .task-drawer-close:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Conteúdo do Drawer */
+    .task-drawer-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0 24px 24px 24px;
+    }
+
+    /* Título da Tarefa - Grande e Clean */
+    .task-title-input {
+        width: 100%;
+        background: none;
+        border: none;
+        font-size: 24px;
+        font-weight: 600;
+        color: #e2e8f0;
+        padding: 16px 0;
+        outline: none;
+    }
+
+    .task-title-input::placeholder {
+        color: #718096;
+    }
+
+    /* Campos Clean (sem bordas visíveis) */
+    .task-field-clean {
+        padding: 12px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* Linhas de Campos (responsável, status, data) */
+    .task-field-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .task-field-label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #cbd5e0;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .task-field-label i {
+        width: 16px;
+    }
+
+    /* Selects Clean (sem bordas, apenas underline sutil) */
+    .task-select-clean {
+        background: none;
+        border: none;
+        color: #e2e8f0;
+        font-size: 14px;
+        padding: 4px 8px;
+        cursor: pointer;
+        outline: none;
+        border-bottom: 1px solid transparent;
+        transition: border-color 0.2s ease;
+    }
+
+    .task-select-clean:hover {
+        border-bottom-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .task-select-clean:focus {
+        border-bottom-color: #6366f1;
+    }
+
+    .task-select-clean option {
+        background-color: #2d3748;
+        color: #e2e8f0;
+    }
+
+    /* Date Picker Clean */
+    .task-date-clean {
+        background: none;
+        border: none;
+        color: #e2e8f0;
+        font-size: 14px;
+        padding: 4px 8px;
+        cursor: pointer;
+        outline: none;
+    }
+
+    .task-date-clean::-webkit-calendar-picker-indicator {
+        filter: invert(1);
+        cursor: pointer;
+    }
+
+    /* Divider */
+    .task-divider {
+        height: 1px;
+        background-color: rgba(255, 255, 255, 0.1);
+        margin: 24px 0;
+    }
+
+    /* Seções com Borda (Descrição, To-Dos) */
+    .task-section {
+        margin: 24px 0;
+    }
+
+    .task-section-label {
+        display: block;
+        color: #cbd5e0;
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Textarea Bordered (só para descrição) */
+    .task-textarea-bordered {
+        width: 100%;
+        background-color: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        color: #e2e8f0;
+        font-size: 14px;
+        padding: 12px;
+        resize: vertical;
+        min-height: 100px;
+        outline: none;
+        transition: border-color 0.2s ease, background-color 0.2s ease;
+    }
+
+    .task-textarea-bordered:focus {
+        border-color: #6366f1;
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .task-textarea-bordered::placeholder {
+        color: #718096;
+    }
+
+    /* Lista de To-Dos */
+    .task-todos-list {
+        background-color: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 12px;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    .task-add-todo {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 12px;
+    }
+
+    .task-add-todo-input {
+        flex: 1;
+        background-color: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 6px;
+        color: #e2e8f0;
+        font-size: 14px;
+        padding: 10px 12px;
+        outline: none;
+        transition: border-color 0.2s ease;
+    }
+
+    .task-add-todo-input:focus {
+        border-color: #6366f1;
+    }
+
+    .task-add-todo-input::placeholder {
+        color: #718096;
+    }
+
+    .task-add-todo-btn {
+        background-color: rgba(99, 102, 241, 0.1);
+        border: 1px solid #6366f1;
+        border-radius: 6px;
+        color: #6366f1;
+        padding: 10px 14px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .task-add-todo-btn:hover {
+        background-color: #6366f1;
+        color: white;
+    }
+
+    /* Ações do Drawer */
+    .task-drawer-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 24px;
+        padding-top: 24px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* ===== TEMA CLARO ===== */
+    [data-theme="light"] .task-drawer {
+        background-color: #ffffff;
+        box-shadow: -2px 0 20px rgba(0, 0, 0, 0.15);
+    }
+
+    [data-theme="light"] .task-drawer-header {
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    [data-theme="light"] .task-drawer-close {
+        color: #4a5568;
+    }
+
+    [data-theme="light"] .task-drawer-close:hover {
+        background-color: #f7fafc;
+    }
+
+    [data-theme="light"] .task-title-input {
+        color: #1a202c;
+    }
+
+    [data-theme="light"] .task-title-input::placeholder {
+        color: #a0aec0;
+    }
+
+    [data-theme="light"] .task-field-clean,
+    [data-theme="light"] .task-field-row {
+        border-bottom-color: #e2e8f0;
+    }
+
+    [data-theme="light"] .task-field-label {
+        color: #2d3748;
+    }
+
+    [data-theme="light"] .task-select-clean,
+    [data-theme="light"] .task-date-clean {
+        color: #2d3748;
+    }
+
+    [data-theme="light"] .task-select-clean option {
+        background-color: #ffffff;
+        color: #2d3748;
+    }
+
+    [data-theme="light"] .task-date-clean::-webkit-calendar-picker-indicator {
+        filter: invert(0);
+    }
+
+    [data-theme="light"] .task-divider {
+        background-color: #e2e8f0;
+    }
+
+    [data-theme="light"] .task-section-label {
+        color: #4a5568;
+    }
+
+    [data-theme="light"] .task-textarea-bordered {
+        background-color: #f7fafc;
+        border-color: #e2e8f0;
+        color: #2d3748;
+    }
+
+    [data-theme="light"] .task-textarea-bordered:focus {
+        border-color: #6366f1;
+        background-color: #ffffff;
+    }
+
+    [data-theme="light"] .task-textarea-bordered::placeholder {
+        color: #a0aec0;
+    }
+
+    [data-theme="light"] .task-todos-list {
+        background-color: #f7fafc;
+        border-color: #e2e8f0;
+    }
+
+    [data-theme="light"] .task-add-todo-input {
+        background-color: #ffffff;
+        border-color: #e2e8f0;
+        color: #2d3748;
+    }
+
+    [data-theme="light"] .task-add-todo-input::placeholder {
+        color: #a0aec0;
+    }
+
+    [data-theme="light"] .task-drawer-actions {
+        border-top-color: #e2e8f0;
+    }
+
+    /* ============================================ */
+    /* MODAL MODERNO - NOVA TAREFA */
+    /* ============================================ */
+
+    /* Tema Claro (Padrão) */
+    .modern-modal {
+        background-color: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+
+    .modern-modal .modal-title {
+        color: #1a202c;
+        font-size: 18px;
+    }
+
+    .modern-modal .btn-close {
+        opacity: 0.5;
+    }
+
+    .modern-modal .btn-close:hover {
+        opacity: 1;
+    }
+
+    .modern-input {
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        padding: 10px 14px;
+        font-size: 14px;
+        color: #2d3748;
+        background-color: #ffffff;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .modern-input:focus {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        outline: none;
+    }
+
+    .modern-input::placeholder {
+        color: #a0aec0;
+    }
+
+    /* Tema Escuro */
+    [data-theme="dark"] .modern-modal,
+    body:not([data-theme]) .modern-modal {
+        background-color: #2d3748;
+    }
+
+    [data-theme="dark"] .modern-modal .modal-title,
+    body:not([data-theme]) .modern-modal .modal-title {
+        color: #e2e8f0;
+    }
+
+    [data-theme="dark"] .modern-modal .form-label,
+    body:not([data-theme]) .modern-modal .form-label {
+        color: #cbd5e0 !important;
+    }
+
+    [data-theme="dark"] .modern-input,
+    body:not([data-theme]) .modern-input {
+        background-color: #1a202c;
+        border-color: #4a5568;
+        color: #e2e8f0;
+    }
+
+    [data-theme="dark"] .modern-input:focus,
+    body:not([data-theme]) .modern-input:focus {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    }
+
+    [data-theme="dark"] .modern-input::placeholder,
+    body:not([data-theme]) .modern-input::placeholder {
+        color: #718096;
+    }
+
+    [data-theme="dark"] .modern-modal .btn-close,
+    body:not([data-theme]) .modern-modal .btn-close {
+        filter: invert(1);
+    }
+
+    [data-theme="dark"] .modern-modal .modal-footer .btn-light,
+    body:not([data-theme]) .modern-modal .modal-footer .btn-light {
+        background-color: #4a5568;
+        color: #e2e8f0;
+        border: 1px solid #4a5568;
+    }
+
+    [data-theme="dark"] .modern-modal .modal-footer .btn-light:hover,
+    body:not([data-theme]) .modern-modal .modal-footer .btn-light:hover {
+        background-color: #718096;
+        border-color: #718096;
+    }
+
+    /* Estilos para data de vencimento dos to-dos */
+    .todo-date-picker {
+        display: inline-flex;
+        align-items: center;
+        margin-left: 8px;
+    }
+
+    .todo-date-display {
+        display: inline-flex;
+        align-items: center;
+        white-space: nowrap;
+        transition: all 0.2s ease;
+    }
+
+    .todo-date-display:hover {
+        opacity: 0.8;
+    }
+
+    /* Cores de data de vencimento - Tema Escuro */
+    [data-theme="dark"] .todo-date-overdue,
+    body:not([data-theme]) .todo-date-overdue {
+        color: #fc8181 !important;
+        background-color: rgba(252, 129, 129, 0.15);
+    }
+
+    [data-theme="dark"] .todo-date-soon,
+    body:not([data-theme]) .todo-date-soon {
+        color: #68d391 !important;
+        background-color: rgba(104, 211, 145, 0.15);
+    }
+
+    [data-theme="dark"] .todo-date-future,
+    body:not([data-theme]) .todo-date-future {
+        color: #a0aec0 !important;
+        background-color: rgba(160, 174, 192, 0.15);
+    }
+
+    /* Cores de data de vencimento - Tema Claro */
+    [data-theme="light"] .todo-date-overdue {
+        color: #e53e3e !important;
+        background-color: rgba(229, 62, 62, 0.1);
+    }
+
+    [data-theme="light"] .todo-date-soon {
+        color: #38a169 !important;
+        background-color: rgba(56, 161, 105, 0.1);
+    }
+
+    [data-theme="light"] .todo-date-future {
+        color: #718096 !important;
+        background-color: rgba(113, 128, 150, 0.1);
+    }
+</style>
+<!-- Modal Prompt IA para To-Dos -->
+<div class="modal fade" id="importTodoAiPromptModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title"><i class="fas fa-magic me-2"></i>Prompt para IA (To-Dos)</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3">Copie este prompt e envie para sua IA (ChatGPT, Claude, Gemini). Ela vai
+                    gerar um checklist.</p>
+
+                <div class="mb-3">
+                    <label class="form-label text-muted small">Período de Análise (Contexto)</label>
+                    <select id="todoPromptPeriod" class="form-select bg-dark text-light border-secondary"
+                        onchange="updateTodoPromptText()">
+                        <option value="">Todo o Histórico</option>
+                        <option value="hoje">Hoje</option>
+                        <option value="ontem">Ontem</option>
+                        <option value="7dias">Últimos 7 dias</option>
+                        <option value="15dias">Últimos 15 dias</option>
+                    </select>
+                </div>
+
+                <textarea id="todoAiPromptText"
+                    class="form-control bg-black text-info font-monospace border-secondary p-3" rows="12"
+                    readonly></textarea>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-primary" onclick="copyTodoPrompt()">
+                    <i class="fas fa-copy me-1"></i>Copiar Prompt
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Importar To-Dos -->
+<div class="modal fade" id="importTodoJsonModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title"><i class="fas fa-file-import me-2"></i>Importar To-Dos</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3">Cole aqui a resposta da IA (lista Markdown ou JSON) ou importe um arquivo
+                    .md.</p>
+                <div class="mb-3">
+                    <input type="file" id="todoMdFileInput" accept=".md,.txt" class="d-none"
+                        onchange="handleTodoMdFile(this)">
+                    <button type="button" class="btn btn-outline-info btn-sm"
+                        onclick="document.getElementById('todoMdFileInput').click()">
+                        <i class="fas fa-file-upload me-1"></i>Carregar Arquivo .md
+                    </button>
+                </div>
+                <textarea id="todoImportText" class="form-control bg-black text-light border-secondary p-3" rows="10"
+                    placeholder="- [ ] Tarefa 1&#10;- [ ] Tarefa 2..."></textarea>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="processTodoImport()">
+                    <i class="fas fa-check me-1"></i>Importar ITENS
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function handleTodoMdFile(input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            const text = e.target.result;
+            const textarea = document.getElementById('todoImportText');
+            textarea.value = text;
+            input.value = ''; // Reset
+
+            // Visual feedback
+            textarea.style.borderColor = '#28a745'; // Green border
+            setTimeout(() => {
+                textarea.style.borderColor = ''; // Reset border
+            }, 1000);
+        };
+        reader.readAsText(file);
+    }
+
+    function updateTodoPromptText() {
+        const period = document.getElementById('todoPromptPeriod').value;
+        let periodText = "";
+
+        if (period === 'hoje') periodText = "Considerar apenas alterações realizadas HOJE.";
+        else if (period === 'ontem') periodText = "Considerar alterações realizadas desde ONTEM.";
+        else if (period === '7dias') periodText = "Considerar histórico dos ÚLTIMOS 7 DIAS.";
+        else if (period === '15dias') periodText = "Considerar histórico dos ÚLTIMOS 15 DIAS.";
+
+        const prompt = `Atue como um Arquiteto de Software Sênior & Tech Lead.
+
+**OBJETIVO CRÍTICO:**
+Analisar o estado ATUAL do projeto, verificar tarefas já concluídas (via commits/arquivos) e criar um Plano de Implementação Atômico para esta tarefa.
+O resultado deve ser salvo em um arquivo .md dentro da pasta raiz do projeto. Siga estritamente o que é pedido neste prompt.
+
+${periodText ? `**PERÍODO DE ANÁLISE:**\n${periodText}\n` : ''}**Regras de Execução:**
+1. **ANÁLISE DE CONTEXTO (MANDATÓRIO):** Antes de planejar, analise a estrutura de arquivos e o histórico recente para entender o que JÁ FOI FEITO. Não proponha criar o que já existe.
+2. **Formato de Checklist Markdown (- [ ]):** Gere uma lista de verificação técnica para ser importada no Kanban.
+3. **DATAS:** Se houver uma data relevante (ex: data do commit ou "hoje"), adicione-a no final da linha no formato **[DD/MM/YYYY]**. Exemplo: "- [x] Fix login bug [12/02/2026]".
+4. **NÃO crie subtítulos (####, #####).** O conteúdo deve seguir estritamente o formato de checklist sem headers extras. Se criar subtítulos, o sistema não conseguirá processar o conteúdo.
+5. **Estrutura sugerida:**
+   - [ ] **Análise**: Verificar arquivos X, Y e Z para garantir integridade.
+   - [ ] **Backend**: Criar/Modificar rotas e models necessários.
+   - [ ] **Frontend**: Atualizar views e JS.
+   - [ ] **Verificação**: Testes manuais/automatizados.
+6. **TRADUÇÃO OBRIGATÓRIA:** Traduza SEMPRE todo o conteúdo, especialmente mensagens de commit em inglês, para Português. Mantenha apenas termos técnicos (Fix, Refactor, Feature) no original.
+7. **ARQUIVOS:** Ao sugerir criação de arquivos, considere sempre a RAIZ do projeto. Crie o arquivo .md dentro da pasta raiz do projeto.
+8. **Criação de Documentação:** Se a tarefa for sobre documentação, crie o arquivo .md correspondente com base no contexto do projeto.`;
+
+        document.getElementById('todoAiPromptText').value = prompt;
+    }
+
+    // Modal e Lógica para GitHub To-Dos
+    let githubTodosModalInstance = null;
+
+    function openGithubTodosModal() {
+        // Obter o ID da tarefa que está sendo editada no drawer
+        const taskId = document.getElementById('editTaskId').value;
+        if (!taskId) {
+            alert('Nenhuma tarefa selecionada.');
+            return;
+        }
+
+        // Resetar estado visual do modal
+        document.getElementById('githubTodosLoading').classList.add('d-none');
+        document.getElementById('githubTodosMessage').classList.add('d-none');
+        document.getElementById('btnGenerateGithubTodos').disabled = false;
+        document.getElementById('btnCancelGithubTodos').disabled = false;
+        document.getElementById('githubTodosPeriod').disabled = false;
+
+        const modalEl = document.getElementById('githubTodosModal');
+        githubTodosModalInstance = new bootstrap.Modal(modalEl);
+        githubTodosModalInstance.show();
+    }
+
+    function generateTodosFromGithub() {
+        const taskId = document.getElementById('editTaskId').value;
+        const period = document.getElementById('githubTodosPeriod').value;
+
+        // Mostrar loading
+        document.getElementById('githubTodosLoading').classList.remove('d-none');
+        const msgBox = document.getElementById('githubTodosMessage');
+        msgBox.classList.add('d-none');
+
+        // Desabilitar UI
+        document.getElementById('btnGenerateGithubTodos').disabled = true;
+        document.getElementById('btnCancelGithubTodos').disabled = true;
+        document.getElementById('githubTodosPeriod').disabled = true;
+
+        fetch(`/api/tasks/${taskId}/generate_todos_from_commits`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ period: period })
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('githubTodosLoading').classList.add('d-none');
+            
+            msgBox.classList.remove('d-none', 'alert-danger', 'alert-success');
+            if (data.success) {
+                msgBox.classList.add('alert-success');
+                msgBox.innerHTML = '<i class="fas fa-check-circle me-1"></i>' + data.message;
+                
+                // Sucesso: fecha o modal apos 1 seg e re-renderiza o taskDrawer para mostrar os novos To-Dos
+                setTimeout(() => {
+                    if (githubTodosModalInstance) {
+                        githubTodosModalInstance.hide();
+                    }
+                    editTask(taskId); // Refresh the task drawer
+                }, 1500);
+            } else {
+                msgBox.classList.add('alert-danger');
+                msgBox.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i>' + data.message;
+                
+                // Re-habilitar UI para tentar de novo
+                document.getElementById('btnGenerateGithubTodos').disabled = false;
+                document.getElementById('btnCancelGithubTodos').disabled = false;
+                document.getElementById('githubTodosPeriod').disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error(error);
+            document.getElementById('githubTodosLoading').classList.add('d-none');
+            msgBox.classList.remove('d-none', 'alert-success');
+            msgBox.classList.add('alert-danger');
+            msgBox.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i>Erro de comunicação com o servidor. Tente novamente.';
+            
+            document.getElementById('btnGenerateGithubTodos').disabled = false;
+            document.getElementById('btnCancelGithubTodos').disabled = false;
+            document.getElementById('githubTodosPeriod').disabled = false;
+        });
+    }
+
+    function openTodoPromptModal() {
+        // Reset period selection
+        document.getElementById('todoPromptPeriod').value = "";
+        updateTodoPromptText();
+        new bootstrap.Modal(document.getElementById('importTodoAiPromptModal')).show();
+    }
+
+    function copyTodoPrompt() {
+        const copyText = document.getElementById("todoAiPromptText");
+        copyText.select();
+        copyText.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(copyText.value).then(() => {
+            const btn = document.querySelector('#importTodoAiPromptModal .btn-primary');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check me-1"></i>Copiado!';
+            btn.classList.replace('btn-primary', 'btn-success');
+            setTimeout(() => {
+                btn.innerHTML = originalHTML;
+                btn.classList.replace('btn-success', 'btn-primary');
+            }, 2000);
+        });
+    }
+
+    function openTodoImportModal() {
+        document.getElementById('todoImportText').value = '';
+        new bootstrap.Modal(document.getElementById('importTodoJsonModal')).show();
+    }
+
+    function processTodoImport() {
+        const text = document.getElementById('todoImportText').value;
+        if (!text) return;
+
+        // Normalizar quebras de linha
+        const lines = text.split(/\r?\n/);
+        let count = 0;
+
+        lines.forEach(line => {
+            line = line.trim();
+            // Detectar formatos ESTRITOS: "- [ ] Texto", "- [x] Texto", "* [ ] Texto"
+            // O regex agora exige a presença de [ ] ou [x]
+            const match = line.match(/^[-*]\s*\[([ xX]?)\]\s*(.*)/);
+
+            if (match && match[2]) {
+                let cleanText = match[2].trim();
+                let dateVal = null;
+
+                // Tentar extrair data no formato [DD/MM/YYYY]
+                const dateMatch = cleanText.match(/\[(\d{2})\/(\d{2})\/(\d{4})\]$/);
+                if (dateMatch) {
+                    // Converter DD/MM/YYYY para YYYY-MM-DD
+                    const day = dateMatch[1];
+                    const month = dateMatch[2];
+                    const year = dateMatch[3];
+                    dateVal = `${year}-${month}-${day}`;
+
+                    // Remover a data do texto e limpar espaços finais
+                    cleanText = cleanText.replace(dateMatch[0], '').trim();
+                }
+
+                // Limpar "fru fru" (Markdown bold/italic excessivo)
+                cleanText = cleanText.replace(/\*\*/g, ''); // Remove negrito (**Texto**)
+                cleanText = cleanText.replace(/^\*\s*/, ''); // Remove * no início se sobrar
+
+                if (cleanText) {
+                    const isCompleted = match[1].toLowerCase() === 'x';
+                    addTodo(cleanText, isCompleted, dateVal);
+                    count++;
+                }
+            }
+        });
+
+        if (count > 0) {
+            // Fechar modal
+            const modalEl = document.getElementById('importTodoJsonModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            modal.hide();
+
+            // Feedback
+            // alert(`${count} to-dos importados com sucesso!`);
+
+            // Salvar automaticamente após importar
+            saveTaskFromDrawer();
+        } else {
+            alert('Nenhum to-do encontrado no texto. Use o formato de lista (- Item).');
+        }
+    }
+</script>
+</div>
+{% endblock %}    }
+</script>
+</div>
+{% endblock %}ateMatch[0], '').trim();
+                }
+
+                // Limpar "fru fru" (Markdown bold/italic excessivo)
+                cleanText = cleanText.replace(/\*\*/g, ''); // Remove negrito (**Texto**)
+                cleanText = cleanText.replace(/^\*\s*/, ''); // Remove * no início se sobrar
+
+                if (cleanText) {
+                    const isCompleted = match[1].toLowerCase() === 'x';
+                    addTodo(cleanText, isCompleted, dateVal);
+                    count++;
+                }
+            }
+        });
+
+        if (count > 0) {
+            // Fechar modal
+            const modalEl = document.getElementById('importTodoJsonModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            modal.hide();
+
+            // Feedback
+            // alert(`${count} to-dos importados com sucesso!`);
+
+            // Salvar automaticamente após importar
+            saveTaskFromDrawer();
+        } else {
+            alert('Nenhum to-do encontrado no texto. Use o formato de lista (- Item).');
+        }
+    }
+</script>
+</div>
+{% endblock %}

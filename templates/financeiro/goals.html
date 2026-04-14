@@ -2,105 +2,109 @@
 {% block title %}Metas de Caixa - Financeiro PJ{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="fas fa-bullseye me-2 text-primary"></i>Metas Financeiras e Provisão</h2>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newGoalModal">
-        <i class="fas fa-plus me-2"></i>Nova Meta
-    </button>
-</div>
-
-<div class="row mt-4" id="goalsGrid">
-    <div class="col-12 text-center text-muted">
-        <h5>Aguarde, carregando metas...</h5>
+<style>
+    .fin-goals-shell { display: grid; gap: 1.25rem; }
+    .fin-goals-hero,
+    .fin-goals-grid-shell {
+        border: 1px solid var(--fg-border) !important;
+        border-radius: 20px !important;
+        background: linear-gradient(180deg, rgba(23,29,37,.96), rgba(18,24,32,.92)) !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.03), var(--fg-shadow-card);
+    }
+    .fin-goals-hero { padding: 1.2rem 1.35rem; }
+    .fin-goals-shell .modal-content {
+        background: linear-gradient(180deg, rgba(23,29,37,.98), rgba(18,24,32,.96)) !important;
+        border-radius: 20px !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.03), var(--fg-shadow-modal) !important;
+        border: 1px solid var(--fg-border) !important;
+    }
+    .fin-goals-shell .modal-header,
+    .fin-goals-shell .modal-footer { border-color: var(--fg-border) !important; }
+    .fin-goals-shell .form-control,
+    .fin-goals-shell .form-select { min-height: 44px; }
+</style>
+<div class="fin-goals-shell">
+    <div class="d-flex justify-content-between align-items-center fin-goals-hero">
+        <h2><i class="fas fa-bullseye me-2 text-primary"></i>Metas Financeiras e Provisão</h2>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newGoalModal">
+            <i class="fas fa-plus me-2"></i>Nova Meta
+        </button>
     </div>
-</div>
 
-<!-- Modal Nova Meta -->
-<div class="modal fade" id="newGoalModal" tabindex="-1" aria-hidden="true" data-bs-theme="dark">
-    <div class="modal-dialog">
-        <div class="modal-content bg-dark text-white">
-            <div class="modal-header border-bottom border-secondary">
-                <h5 class="modal-title">Configurar Nova Meta</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                    aria-label="Close"></button>
+    <div class="card fin-goals-grid-shell">
+        <div class="card-body">
+            <div class="row mt-1" id="goalsGrid">
+                <div class="col-12 text-center text-muted">
+                    <h5>Aguarde, carregando metas...</h5>
+                </div>
             </div>
-            <div class="modal-body">
-                <form id="formGoal">
-                    <input type="hidden" id="goalId" value="">
-                    <div class="mb-3">
-                        <label class="form-label">Descrição da Meta</label>
-                        <input type="text" class="form-control bg-dark text-white border-secondary" id="goalNome"
-                            required placeholder="Ex: Fundo de Emergência 6 Meses">
-                    </div>
-                    <div class="row">
-                        <div class="col-6 mb-3">
-                            <label class="form-label">Valor Alvo (R$)</label>
-                            <input type="text" class="form-control bg-dark text-white border-secondary money-mask"
-                                id="goalAlvo" required value="R$ 0,00" onkeyup="mascaraMoeda(this, event)">
+        </div>
+    </div>
+
+    <div class="modal fade" id="newGoalModal" tabindex="-1" aria-hidden="true" data-bs-theme="dark">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark text-white">
+                <div class="modal-header border-bottom border-secondary">
+                    <h5 class="modal-title">Configurar Nova Meta</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formGoal">
+                        <input type="hidden" id="goalId" value="">
+                        <div class="mb-3">
+                            <label class="form-label">Descrição da Meta</label>
+                            <input type="text" class="form-control bg-dark text-white border-secondary" id="goalNome" required placeholder="Ex: Fundo de Emergência 6 Meses">
                         </div>
-                        <div class="col-6 mb-3">
-                            <label class="form-label">Cor Hexadecimal</label>
-                            <input type="color" class="form-control form-control-color bg-dark border-secondary w-100"
-                                id="goalCor" value="#10b981" title="Cor principal da meta">
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <label class="form-label">Valor Alvo (R$)</label>
+                                <input type="text" class="form-control bg-dark text-white border-secondary money-mask" id="goalAlvo" required value="R$ 0,00" onkeyup="mascaraMoeda(this, event)">
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label class="form-label">Cor Hexadecimal</label>
+                                <input type="color" class="form-control form-control-color bg-dark border-secondary w-100" id="goalCor" value="#10b981" title="Cor principal da meta">
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label class="form-label">Já Alcançado (R$)</label>
+                                <input type="text" class="form-control bg-dark text-white border-secondary money-mask" id="goalAtual" value="R$ 0,00" onkeyup="mascaraMoeda(this, event)">
+                            </div>
                         </div>
-                        <div class="col-6 mb-3">
-                            <label class="form-label">Já Alcançado (R$)</label>
-                            <input type="text" class="form-control bg-dark text-white border-secondary money-mask"
-                                id="goalAtual" value="R$ 0,00" onkeyup="mascaraMoeda(this, event)">
+                        <div class="mb-3">
+                            <label class="form-label">Prazo Ideal (Opcional)</label>
+                            <input type="date" class="form-control bg-dark text-white border-secondary" id="goalPrazo">
                         </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Prazo Ideal (Opcional)</label>
-                        <input type="date" class="form-control bg-dark text-white border-secondary" id="goalPrazo">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Ícone da Meta</label>
-                        <input type="hidden" id="goalIcone" value="fas fa-bullseye">
-                        <div class="d-flex align-items-center bg-dark border border-secondary rounded p-2"
-                            style="overflow-x: auto; white-space: nowrap; max-width: 100%; gap: 10px;"
-                            id="iconSelectorContainer">
-                            <!-- Lista de Ícones Populares -->
-                            <button type="button" class="btn btn-outline-secondary icon-btn active"
-                                data-icon="fas fa-bullseye"><i class="fas fa-bullseye"></i></button>
-                            <button type="button" class="btn btn-outline-secondary icon-btn"
-                                data-icon="fas fa-piggy-bank"><i class="fas fa-piggy-bank"></i></button>
-                            <button type="button" class="btn btn-outline-secondary icon-btn"
-                                data-icon="fas fa-chart-line"><i class="fas fa-chart-line"></i></button>
-                            <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="fas fa-home"><i
-                                    class="fas fa-home"></i></button>
-                            <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="fas fa-car"><i
-                                    class="fas fa-car"></i></button>
-                            <button type="button" class="btn btn-outline-secondary icon-btn"
-                                data-icon="fas fa-rocket"><i class="fas fa-rocket"></i></button>
-                            <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="fas fa-gem"><i
-                                    class="fas fa-gem"></i></button>
-                            <button type="button" class="btn btn-outline-secondary icon-btn"
-                                data-icon="fas fa-shield-alt"><i class="fas fa-shield-alt"></i></button>
-                            <button type="button" class="btn btn-outline-secondary icon-btn"
-                                data-icon="fas fa-hand-holding-usd"><i class="fas fa-hand-holding-usd"></i></button>
-                            <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="fas fa-gift"><i
-                                    class="fas fa-gift"></i></button>
-                            <button type="button" class="btn btn-outline-secondary icon-btn"
-                                data-icon="fas fa-money-bill-wave"><i class="fas fa-money-bill-wave"></i></button>
-                            <button type="button" class="btn btn-outline-secondary icon-btn"
-                                data-icon="fas fa-trophy"><i class="fas fa-trophy"></i></button>
+                        <div class="mb-3">
+                            <label class="form-label">Ícone da Meta</label>
+                            <input type="hidden" id="goalIcone" value="fas fa-bullseye">
+                            <div class="d-flex align-items-center bg-dark border border-secondary rounded p-2" style="overflow-x: auto; white-space: nowrap; max-width: 100%; gap: 10px;" id="iconSelectorContainer">
+                                <button type="button" class="btn btn-outline-secondary icon-btn active" data-icon="fas fa-bullseye"><i class="fas fa-bullseye"></i></button>
+                                <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="fas fa-piggy-bank"><i class="fas fa-piggy-bank"></i></button>
+                                <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="fas fa-chart-line"><i class="fas fa-chart-line"></i></button>
+                                <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="fas fa-home"><i class="fas fa-home"></i></button>
+                                <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="fas fa-car"><i class="fas fa-car"></i></button>
+                                <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="fas fa-rocket"><i class="fas fa-rocket"></i></button>
+                                <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="fas fa-gem"><i class="fas fa-gem"></i></button>
+                                <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="fas fa-shield-alt"><i class="fas fa-shield-alt"></i></button>
+                                <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="fas fa-hand-holding-usd"><i class="fas fa-hand-holding-usd"></i></button>
+                                <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="fas fa-gift"><i class="fas fa-gift"></i></button>
+                                <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="fas fa-money-bill-wave"><i class="fas fa-money-bill-wave"></i></button>
+                                <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="fas fa-trophy"><i class="fas fa-trophy"></i></button>
+                            </div>
                         </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer border-top border-secondary">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" onclick="saveGoal()">Salvar Meta</button>
+                    </form>
+                </div>
+                <div class="modal-footer border-top border-secondary">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="saveGoal()">Salvar Meta</button>
+                </div>
             </div>
         </div>
     </div>
 </div>
-
 {% endblock %}
 
 {% block scripts %}
 <script>
-    // JS Moeda
     String.prototype.reverse = function () {
         return this.split('').reverse().join('');
     };
@@ -173,7 +177,6 @@
                                     </div>
                                     <button class="btn btn-sm btn-outline-danger" onclick="deleteGoal(${g.id})" title="Apagar Meta"><i class="fas fa-trash"></i></button>
                                 </div>
-                                
                                 <div class="mt-4">
                                     <div class="d-flex justify-content-between small text-muted mb-1">
                                         <span>Progresso</span>
@@ -218,39 +221,14 @@
                 loadGoals();
                 document.getElementById('formGoal').reset();
                 document.getElementById('goalId').value = '';
-                document.getElementById('goalAlvo').value = 'R$ 0,00';
-                document.getElementById('goalAtual').value = 'R$ 0,00';
             } else {
                 alert(res.message);
             }
         });
     }
 
-    function editGoal(id, nome, alvo, atual, prazo, cor, icone) {
-        document.getElementById('goalId').value = id;
-        document.getElementById('goalNome').value = nome;
-        document.getElementById('goalAlvo').value = formatter.format(alvo);
-        document.getElementById('goalAtual').value = formatter.format(atual);
-        document.getElementById('goalPrazo').value = prazo;
-        document.getElementById('goalCor').value = cor;
-        document.getElementById('goalIcone').value = icone;
-
-        // Reset check visuals
-        document.querySelectorAll('.icon-btn').forEach(btn => {
-            if (btn.dataset.icon === icone) {
-                btn.classList.add('bg-primary');
-                btn.classList.remove('bg-dark');
-            } else {
-                btn.classList.add('bg-dark');
-                btn.classList.remove('bg-primary');
-            }
-        });
-
-        new bootstrap.Modal(document.getElementById('newGoalModal')).show();
-    }
-
     function deleteGoal(id) {
-        if (confirm('Apagar esta meta do painel?')) {
+        if (confirm('Deseja apagar esta Meta/Provisão?')) {
             fetch(`/api/financeiro/goals/${id}`, { method: 'DELETE' })
                 .then(res => res.json())
                 .then(res => {
@@ -258,14 +236,6 @@
                 });
         }
     }
-
-    // Modal Events and Selectors
-    document.getElementById('newGoalModal').addEventListener('hidden.bs.modal', function () {
-        document.getElementById('formGoal').reset();
-        document.getElementById('goalIcone').value = 'fas fa-bullseye';
-        document.querySelectorAll('.icon-btn').forEach(b => b.classList.remove('active'));
-        document.querySelector('.icon-btn[data-icon="fas fa-bullseye"]').classList.add('active');
-    });
 
     document.querySelectorAll('.icon-btn').forEach(btn => {
         btn.addEventListener('click', function () {

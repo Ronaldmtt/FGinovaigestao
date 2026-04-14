@@ -2,101 +2,104 @@
 {% block title %}Centros de Custo - Financeiro PJ{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="fas fa-tags me-2 text-primary"></i>Centros de Custo</h2>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newCostCenterModal">
-        <i class="fas fa-plus me-2"></i>Novo Centro de Custo
-    </button>
-</div>
+<style>
+    .fin-cc-shell { display: grid; gap: 1.25rem; }
+    .fin-cc-hero,
+    .fin-cc-table-card {
+        border: 1px solid var(--fg-border) !important;
+        border-radius: 20px !important;
+        background: linear-gradient(180deg, rgba(23,29,37,.96), rgba(18,24,32,.92)) !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.03), var(--fg-shadow-card);
+    }
+    .fin-cc-hero { padding: 1.2rem 1.35rem; }
+    .fin-cc-shell .modal-content {
+        background: linear-gradient(180deg, rgba(23,29,37,.98), rgba(18,24,32,.96)) !important;
+        border-radius: 20px !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.03), var(--fg-shadow-modal) !important;
+        border: 1px solid var(--fg-border) !important;
+    }
+    .fin-cc-shell .modal-header,
+    .fin-cc-shell .modal-footer { border-color: var(--fg-border) !important; }
+    .fin-cc-shell .form-control,
+    .fin-cc-shell .form-select { min-height: 44px; }
+    .fin-cc-shell .table tbody tr:hover { background: rgba(255,255,255,.03) !important; }
+</style>
+<div class="fin-cc-shell">
+    <div class="d-flex justify-content-between align-items-center fin-cc-hero">
+        <h2><i class="fas fa-tags me-2 text-primary"></i>Centros de Custo</h2>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newCostCenterModal">
+            <i class="fas fa-plus me-2"></i>Novo Centro de Custo
+        </button>
+    </div>
 
-<div class="card bg-dark text-white">
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-dark table-hover align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th>Identificação</th>
-                        <th>Cor/Ícone</th>
-                        <th>Status</th>
-                        <th class="text-end">Ações</th>
-                    </tr>
-                </thead>
-                <tbody id="costCentersTable">
-                    <tr>
-                        <td colspan="4" class="text-center text-muted">Carregando categorias...</td>
-                    </tr>
-                </tbody>
-            </table>
+    <div class="card fin-cc-table-card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Identificação</th>
+                            <th>Cor/Ícone</th>
+                            <th>Status</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="costCentersTable">
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">Carregando categorias...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Modal Novo Centro de Custo -->
-<div class="modal fade" id="newCostCenterModal" tabindex="-1" aria-hidden="true" data-bs-theme="dark">
-    <div class="modal-dialog">
-        <div class="modal-content bg-dark text-white">
-            <div class="modal-header border-bottom border-secondary">
-                <h5 class="modal-title">Novo Centro de Custo</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                    aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="formCostCenter">
-                    <input type="hidden" id="ccId">
-                    <div class="mb-3">
-                        <label class="form-label">Nome da Categoria</label>
-                        <input type="text" class="form-control bg-dark text-white border-secondary" id="ccNome" required
-                            placeholder="Ex: Marketing Digital">
-                    </div>
-                    <div class="row">
-                        <div class="col-6 mb-3">
-                            <label class="form-label">Cor Hexadecimal</label>
-                            <input type="color" class="form-control form-control-color bg-dark border-secondary w-100"
-                                id="ccCor" value="#6366f1" title="Escolha a cor do relatório">
+    <div class="modal fade" id="newCostCenterModal" tabindex="-1" aria-hidden="true" data-bs-theme="dark">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark text-white">
+                <div class="modal-header border-bottom border-secondary">
+                    <h5 class="modal-title">Novo Centro de Custo</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formCostCenter">
+                        <input type="hidden" id="ccId">
+                        <div class="mb-3">
+                            <label class="form-label">Nome da Categoria</label>
+                            <input type="text" class="form-control bg-dark text-white border-secondary" id="ccNome" required placeholder="Ex: Marketing Digital">
                         </div>
-                        <div class="col-6 mb-3">
-                            <label class="form-label">Ícone do Categoria</label>
-                            <input type="hidden" id="ccIcone" value="fas fa-tags">
-                            <div class="d-flex align-items-center bg-dark border border-secondary rounded p-2"
-                                style="overflow-x: auto; white-space: nowrap; max-width: 100%; gap: 10px;"
-                                id="iconSelectorContainer">
-                                <!-- Lista de Ícones Populares -->
-                                <button type="button" class="btn btn-outline-secondary icon-btn active"
-                                    data-icon="fas fa-tags"><i class="fas fa-tags"></i></button>
-                                <button type="button" class="btn btn-outline-secondary icon-btn"
-                                    data-icon="fas fa-home"><i class="fas fa-home"></i></button>
-                                <button type="button" class="btn btn-outline-secondary icon-btn"
-                                    data-icon="fas fa-car"><i class="fas fa-car"></i></button>
-                                <button type="button" class="btn btn-outline-secondary icon-btn"
-                                    data-icon="fas fa-plane"><i class="fas fa-plane"></i></button>
-                                <button type="button" class="btn btn-outline-secondary icon-btn"
-                                    data-icon="fas fa-utensils"><i class="fas fa-utensils"></i></button>
-                                <button type="button" class="btn btn-outline-secondary icon-btn"
-                                    data-icon="fas fa-shopping-cart"><i class="fas fa-shopping-cart"></i></button>
-                                <button type="button" class="btn btn-outline-secondary icon-btn"
-                                    data-icon="fas fa-laptop"><i class="fas fa-laptop"></i></button>
-                                <button type="button" class="btn btn-outline-secondary icon-btn"
-                                    data-icon="fas fa-building"><i class="fas fa-building"></i></button>
-                                <button type="button" class="btn btn-outline-secondary icon-btn"
-                                    data-icon="fas fa-graduation-cap"><i class="fas fa-graduation-cap"></i></button>
-                                <button type="button" class="btn btn-outline-secondary icon-btn"
-                                    data-icon="fas fa-heartbeat"><i class="fas fa-heartbeat"></i></button>
-                                <button type="button" class="btn btn-outline-secondary icon-btn"
-                                    data-icon="fas fa-bolt"><i class="fas fa-bolt"></i></button>
-                                <button type="button" class="btn btn-outline-secondary icon-btn"
-                                    data-icon="fas fa-tools"><i class="fas fa-tools"></i></button>
-                                <button type="button" class="btn btn-outline-secondary icon-btn"
-                                    data-icon="fas fa-chart-line"><i class="fas fa-chart-line"></i></button>
-                                <button type="button" class="btn btn-outline-secondary icon-btn"
-                                    data-icon="fas fa-box"><i class="fas fa-box"></i></button>
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <label class="form-label">Cor Hexadecimal</label>
+                                <input type="color" class="form-control form-control-color bg-dark border-secondary w-100" id="ccCor" value="#6366f1" title="Escolha a cor do relatório">
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label class="form-label">Ícone do Categoria</label>
+                                <input type="hidden" id="ccIcone" value="fas fa-tags">
+                                <div class="d-flex align-items-center bg-dark border border-secondary rounded p-2" style="overflow-x: auto; white-space: nowrap; max-width: 100%; gap: 10px;" id="iconSelectorContainer">
+                                    <button type="button" class="btn btn-outline-secondary icon-btn active" data-icon="fas fa-tags"><i class="fas fa-tags"></i></button>
+                                    <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="fas fa-home"><i class="fas fa-home"></i></button>
+                                    <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="fas fa-car"><i class="fas fa-car"></i></button>
+                                    <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="fas fa-plane"><i class="fas fa-plane"></i></button>
+                                    <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="fas fa-utensils"><i class="fas fa-utensils"></i></button>
+                                    <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="fas fa-shopping-cart"><i class="fas fa-shopping-cart"></i></button>
+                                    <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="fas fa-laptop"><i class="fas fa-laptop"></i></button>
+                                    <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="fas fa-building"><i class="fas fa-building"></i></button>
+                                    <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="fas fa-graduation-cap"><i class="fas fa-graduation-cap"></i></button>
+                                    <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="fas fa-heartbeat"><i class="fas fa-heartbeat"></i></button>
+                                    <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="fas fa-bolt"><i class="fas fa-bolt"></i></button>
+                                    <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="fas fa-tools"><i class="fas fa-tools"></i></button>
+                                    <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="fas fa-chart-line"><i class="fas fa-chart-line"></i></button>
+                                    <button type="button" class="btn btn-outline-secondary icon-btn" data-icon="fas fa-box"><i class="fas fa-box"></i></button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer border-top border-secondary">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" onclick="saveCostCenter()">Salvar</button>
+                    </form>
+                </div>
+                <div class="modal-footer border-top border-secondary">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="saveCostCenter()">Salvar</button>
+                </div>
             </div>
         </div>
     </div>
@@ -168,8 +171,6 @@
         document.getElementById('ccId').value = id;
         document.getElementById('ccNome').value = nome;
         document.getElementById('ccCor').value = cor;
-
-        // Atualiza UI de Ícone
         document.getElementById('ccIcone').value = icone;
         document.querySelectorAll('.icon-btn').forEach(b => b.classList.remove('active'));
         let found = false;
@@ -180,10 +181,8 @@
             }
         });
         if (!found) {
-            // Default fall-back
             document.querySelector('.icon-btn[data-icon="fas fa-tags"]').classList.add('active');
         }
-
         new bootstrap.Modal(document.getElementById('newCostCenterModal')).show();
     }
 
@@ -197,7 +196,6 @@
         }
     }
 
-    // Reset modal on close
     document.getElementById('newCostCenterModal').addEventListener('hidden.bs.modal', function () {
         document.getElementById('formCostCenter').reset();
         document.getElementById('ccId').value = '';
@@ -206,14 +204,10 @@
         document.querySelector('.icon-btn[data-icon="fas fa-tags"]').classList.add('active');
     });
 
-    // Seletor de Ícones Logic
     document.querySelectorAll('.icon-btn').forEach(btn => {
         btn.addEventListener('click', function () {
-            // Remove active from all
             document.querySelectorAll('.icon-btn').forEach(b => b.classList.remove('active'));
-            // Add active to clicked
             this.classList.add('active');
-            // Update hidden input
             document.getElementById('ccIcone').value = this.getAttribute('data-icon');
         });
     });

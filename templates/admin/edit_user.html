@@ -1,9 +1,21 @@
 {% extends "base.html" %}
 
-{% block title %}Editar Usuário - Sistema de Gerenciamento de Projetos</div>
-{% endblock %}
+{% block title %}Editar Usuário - Sistema de Gerenciamento de Projetos{% endblock %}
 
 {% block content %}
+<style>
+    .edit-user-shell { display:grid; gap:1.25rem; }
+    .edit-user-shell .card {
+        border:1px solid var(--fg-border)!important;
+        border-radius:20px!important;
+        background: linear-gradient(180deg, rgba(23,29,37,.96), rgba(18,24,32,.92))!important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.03), var(--fg-shadow-card);
+    }
+    .permission-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.55rem 1rem; }
+    .permission-grid .form-check { padding:.72rem .85rem; border:1px solid var(--fg-border); border-radius:14px; background:rgba(255,255,255,.025); }
+    @media (max-width:768px){ .permission-grid{ grid-template-columns:1fr; } }
+</style>
+<div class="edit-user-shell">
 <div class="row justify-content-center">
     <div class="col-md-8 col-lg-6">
         <div class="card">
@@ -24,117 +36,47 @@
                         <div class="col-md-6 mb-3">
                             {{ form.nome.label(class="form-label") }}
                             {{ form.nome(class="form-control") }}
-                            {% if form.nome.errors %}
-                            <div class="text-danger">
-                                {% for error in form.nome.errors %}
-                                <small>{{ error }}</small>
-                                {% endfor %}
-                            </div>
-                            {% endif %}
+                            {% if form.nome.errors %}<div class="text-danger">{% for error in form.nome.errors %}<small>{{ error }}</small>{% endfor %}</div>{% endif %}
                         </div>
-
                         <div class="col-md-6 mb-3">
                             {{ form.sobrenome.label(class="form-label") }}
                             {{ form.sobrenome(class="form-control") }}
-                            {% if form.sobrenome.errors %}
-                            <div class="text-danger">
-                                {% for error in form.sobrenome.errors %}
-                                <small>{{ error }}</small>
-                                {% endfor %}
-                            </div>
-                            {% endif %}
+                            {% if form.sobrenome.errors %}<div class="text-danger">{% for error in form.sobrenome.errors %}<small>{{ error }}</small>{% endfor %}</div>{% endif %}
                         </div>
                     </div>
 
                     <div class="mb-3">
                         {{ form.email.label(class="form-label") }}
                         {{ form.email(class="form-control") }}
-                        {% if form.email.errors %}
-                        <div class="text-danger">
-                            {% for error in form.email.errors %}
-                            <small>{{ error }}</small>
-                            {% endfor %}
-                        </div>
-                        {% endif %}
+                        {% if form.email.errors %}<div class="text-danger">{% for error in form.email.errors %}<small>{{ error }}</small>{% endfor %}</div>{% endif %}
                     </div>
 
                     <div class="mb-3">
                         {{ form.password.label(class="form-label") }}
-                        {{ form.password(class="form-control", placeholder="Deixe em branco para manter a senha atual")
-                        }}
+                        {{ form.password(class="form-control", placeholder="Deixe em branco para manter a senha atual") }}
                         <div class="form-text">Deixe em branco se não quiser alterar a senha</div>
-                        {% if form.password.errors %}
-                        <div class="text-danger">
-                            {% for error in form.password.errors %}
-                            <small>{{ error }}</small>
-                            {% endfor %}
-                        </div>
-                        {% endif %}
+                        {% if form.password.errors %}<div class="text-danger">{% for error in form.password.errors %}<small>{{ error }}</small>{% endfor %}</div>{% endif %}
                     </div>
 
                     <div class="mb-3 form-check">
                         {{ form.is_admin(class="form-check-input") }}
                         {{ form.is_admin.label(class="form-check-label") }}
-                        {% if form.is_admin.errors %}
-                        <div class="text-danger">
-                            {% for error in form.is_admin.errors %}
-                            <small>{{ error }}</small>
-                            {% endfor %}
-                        </div>
-                        {% endif %}
+                        {% if form.is_admin.errors %}<div class="text-danger">{% for error in form.is_admin.errors %}<small>{{ error }}</small>{% endfor %}</div>{% endif %}
                     </div>
 
                     <hr class="my-3">
                     <h6 class="mb-3">Permissões de Acesso</h6>
-
-                    <div class="mb-2 form-check">
-                        {{ form.acesso_clientes(class="form-check-input") }}
-                        {{ form.acesso_clientes.label(class="form-check-label") }}
-                    </div>
-
-                    <div class="mb-2 form-check">
-                        {{ form.acesso_projetos(class="form-check-input") }}
-                        {{ form.acesso_projetos.label(class="form-check-label") }}
-                    </div>
-
-                    <div class="mb-2 form-check">
-                        {{ form.acesso_tarefas(class="form-check-input") }}
-                        {{ form.acesso_tarefas.label(class="form-check-label") }}
-                    </div>
-
-                    <div class="mb-2 form-check">
-                        {{ form.acesso_kanban(class="form-check-input") }}
-                        {{ form.acesso_kanban.label(class="form-check-label") }}
-                    </div>
-
-                    <div class="mb-2 form-check">
-                        {{ form.acesso_crm(class="form-check-input") }}
-                        {{ form.acesso_crm.label(class="form-check-label") }}
-                    </div>
-
-                    <div class="mb-2 form-check">
-                        {{ form.acesso_usuarios(class="form-check-input") }}
-                        {{ form.acesso_usuarios.label(class="form-check-label") }}
-                    </div>
-
-                    <div class="mb-2 form-check">
-                        {{ form.acesso_financeiro(class="form-check-input") }}
-                        {{ form.acesso_financeiro.label(class="form-check-label") }}
-                    </div>
-
-                    <div class="mb-2 form-check">
-                        {{ form.acesso_reunioes(class="form-check-input") }}
-                        {{ form.acesso_reunioes.label(class="form-check-label") }}
-                    </div>
-
-                    <div class="mb-2 form-check">
-                        {{ form.acesso_relatorios(class="form-check-input") }}
-                        {{ form.acesso_relatorios.label(class="form-check-label") }}
-                    </div>
-
-                    <div class="mb-2 form-check">
-                        {{ form.acesso_api_sistema(class="form-check-input") }}
-                        {{ form.acesso_api_sistema.label(class="form-check-label") }}
+                    <div class="permission-grid">
+                        <div class="form-check">{{ form.acesso_clientes(class="form-check-input") }} {{ form.acesso_clientes.label(class="form-check-label") }}</div>
+                        <div class="form-check">{{ form.acesso_projetos(class="form-check-input") }} {{ form.acesso_projetos.label(class="form-check-label") }}</div>
+                        <div class="form-check">{{ form.acesso_tarefas(class="form-check-input") }} {{ form.acesso_tarefas.label(class="form-check-label") }}</div>
+                        <div class="form-check">{{ form.acesso_kanban(class="form-check-input") }} {{ form.acesso_kanban.label(class="form-check-label") }}</div>
+                        <div class="form-check">{{ form.acesso_crm(class="form-check-input") }} {{ form.acesso_crm.label(class="form-check-label") }}</div>
+                        <div class="form-check">{{ form.acesso_usuarios(class="form-check-input") }} {{ form.acesso_usuarios.label(class="form-check-label") }}</div>
+                        <div class="form-check">{{ form.acesso_financeiro(class="form-check-input") }} {{ form.acesso_financeiro.label(class="form-check-label") }}</div>
+                        <div class="form-check">{{ form.acesso_reunioes(class="form-check-input") }} {{ form.acesso_reunioes.label(class="form-check-label") }}</div>
+                        <div class="form-check">{{ form.acesso_relatorios(class="form-check-input") }} {{ form.acesso_relatorios.label(class="form-check-label") }}</div>
+                        <div class="form-check">{{ form.acesso_api_sistema(class="form-check-input") }} {{ form.acesso_api_sistema.label(class="form-check-label") }}</div>
                     </div>
 
                     <hr class="my-3">
@@ -142,48 +84,25 @@
                     <div class="mb-3 form-check">
                         {{ form.ativo(class="form-check-input") }}
                         {{ form.ativo.label(class="form-check-label") }}
-                        <div class="form-text">Usuários desativados não poderão ser selecionados em projetos, equipes e
-                            tarefas.</div>
+                        <div class="form-text">Usuários desativados não poderão ser selecionados em projetos, equipes e tarefas.</div>
                     </div>
 
                     <hr class="my-3">
                     <h6 class="mb-3">Configurações de Notificação</h6>
-
                     <div class="mb-3 form-check">
                         {{ form.receber_notificacoes(class="form-check-input") }}
                         {{ form.receber_notificacoes.label(class="form-check-label") }}
-                        <div class="form-text">Quando marcado, o usuário receberá emails sobre novas tarefas, mudanças
-                            de status e alterações de data.</div>
+                        <div class="form-text">Quando marcado, o usuário receberá emails sobre novas tarefas, mudanças de status e alterações de data.</div>
                     </div>
 
                     <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary flex-fill">
-                            <i class="fas fa-save me-1"></i>Salvar Alterações
-                        </button>
-                        <a href="{{ url_for('admin_users') }}" class="btn btn-secondary">
-                            <i class="fas fa-times me-1"></i>Cancelar
-                        </a>
+                        <button type="submit" class="btn btn-primary flex-fill"><i class="fas fa-save me-1"></i>Salvar Alterações</button>
+                        <a href="{{ url_for('admin_users') }}" class="btn btn-secondary"><i class="fas fa-times me-1"></i>Cancelar</a>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}eberá emails sobre novas tarefas, mudanças
-                            de status e alterações de data.</div>
-                    </div>
-
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary flex-fill">
-                            <i class="fas fa-save me-1"></i>Salvar Alterações
-                        </button>
-                        <a href="{{ url_for('admin_users') }}" class="btn btn-secondary">
-                            <i class="fas fa-times me-1"></i>Cancelar
-                        </a>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
 </div>
 {% endblock %}

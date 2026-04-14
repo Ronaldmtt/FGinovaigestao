@@ -371,6 +371,11 @@ def admin_edit_user(user_id):
         user.acesso_tarefas = form.acesso_tarefas.data
         user.acesso_kanban = form.acesso_kanban.data
         user.acesso_crm = form.acesso_crm.data
+        user.acesso_usuarios = form.acesso_usuarios.data
+        user.acesso_financeiro = form.acesso_financeiro.data
+        user.acesso_reunioes = form.acesso_reunioes.data
+        user.acesso_relatorios = form.acesso_relatorios.data
+        user.acesso_api_sistema = form.acesso_api_sistema.data
         user.receber_notificacoes = form.receber_notificacoes.data
         user.ativo = form.ativo.data
 

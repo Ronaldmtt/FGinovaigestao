@@ -614,20 +614,24 @@ def meeting_detail(meeting_id):
     results = {}
     if meeting.results_json:
         try:
-            results = json.loads(meeting.results_json)
+            parsed_results = json.loads(meeting.results_json)
+            results = parsed_results if isinstance(parsed_results, dict) else {}
         except Exception:
             results = {}
 
     fireflies_transcript = None
     if meeting.fireflies_transcript_id:
         try:
-            fireflies_transcript = get_transcript(meeting.fireflies_transcript_id)
+            transcript_payload = get_transcript(meeting.fireflies_transcript_id)
+            fireflies_transcript = transcript_payload if isinstance(transcript_payload, dict) else None
         except Exception as e:
             fireflies_error = str(e)
 
-    media_audio_url = (fireflies_transcript.get('audio_url') if fireflies_transcript else None) or meeting.audio_url
-    media_video_url = (fireflies_transcript.get('video_url') if fireflies_transcript else None) or meeting.video_url
+    media_audio_url = (fireflies_transcript.get('audio_url') if isinstance(fireflies_transcript, dict) else None) or meeting.audio_url
+    media_video_url = (fireflies_transcript.get('video_url') if isinstance(fireflies_transcript, dict) else None) or meeting.video_url
     fireflies_summary = (fireflies_transcript or {}).get('summary') or {}
+    if not isinstance(fireflies_summary, dict):
+        fireflies_summary = {}
     fireflies_action_groups = _parse_fireflies_action_items(fireflies_summary)
     fireflies_notes = _parse_fireflies_notes(fireflies_summary)
     transcript_blocks = _build_transcript_blocks(fireflies_transcript)
@@ -651,7 +655,8 @@ def meeting_detail(meeting_id):
         'meeting_detail.html',
         meeting=meeting,
         results=results,
-        fireflies_transcript=fireflies_transcript,
+        fireflies_transcript=fireflies_transcript or {},
+        fireflies_summary=fireflies_summary,
         fireflies_error=fireflies_error,
         fireflies_auto_synced=fireflies_auto_synced,
         calendar_synced=calendar_synced,

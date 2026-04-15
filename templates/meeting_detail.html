@@ -179,7 +179,7 @@
 
         <div>
             <h4 class="border-bottom pb-2 mb-3">Overview</h4>
-            {% set raw_overview = fireflies_transcript.summary.overview if fireflies_transcript and fireflies_transcript.summary and fireflies_transcript.summary.overview else '' %}
+            {% set raw_overview = fireflies_summary.overview if fireflies_summary and fireflies_summary.overview else '' %}
             {% set overview_lines = raw_overview.split('\n') if raw_overview else [] %}
             {% if overview_lines %}
                 <ul class="list-unstyled mb-0">
@@ -294,8 +294,8 @@
                                             {% endfor %}
                                         </div>
                                     {% endfor %}
-                                {% elif fireflies_transcript and fireflies_transcript.summary and fireflies_transcript.summary.overview %}
-                                    {% for line in fireflies_transcript.summary.overview.split('\n') if line|trim %}
+                                {% elif fireflies_summary and fireflies_summary.overview %}
+                                    {% for line in fireflies_summary.overview.split('\n') if line|trim %}
                                         <p class="mb-2">{{ line|trim|replace('- ', '', 1) }}</p>
                                     {% endfor %}
                                 {% else %}
@@ -324,9 +324,9 @@
                                     <ul class="mb-0 ps-3">
                                         {% for item in action_items %}<li class="mb-2">{{ item }}</li>{% endfor %}
                                     </ul>
-                                {% elif fireflies_transcript and fireflies_transcript.summary and fireflies_transcript.summary.bullet_gist %}
+                                {% elif fireflies_summary and fireflies_summary.bullet_gist %}
                                     <ul class="mb-0 ps-3">
-                                        {% for item in fireflies_transcript.summary.bullet_gist %}<li class="mb-2">{{ item }}</li>{% endfor %}
+                                        {% for item in fireflies_summary.bullet_gist %}<li class="mb-2">{{ item }}</li>{% endfor %}
                                     </ul>
                                 {% else %}
                                     <p class="text-muted mb-0">Nenhuma ação registrada.</p>
@@ -526,10 +526,10 @@
                             <div class="fw-semibold mb-2">{{ fireflies_transcript.title or 'Transcript' }}</div>
                             {% if fireflies_transcript.transcript_url %}<div class="mb-2"><a href="{{ fireflies_transcript.transcript_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-info btn-sm w-100">Abrir transcript</a></div>{% endif %}
                             {% if fireflies_transcript.meeting_link %}<div class="mb-2"><a href="{{ fireflies_transcript.meeting_link }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm w-100">Abrir meeting link</a></div>{% endif %}
-                            {% if fireflies_transcript.summary and fireflies_transcript.summary.overview %}
+                            {% if fireflies_summary and fireflies_summary.overview %}
                             <hr>
                             <div class="small text-muted mb-1">Overview</div>
-                            <div>{{ fireflies_transcript.summary.overview }}</div>
+                            <div>{{ fireflies_summary.overview }}</div>
                             {% endif %}
                         {% else %}
                             <p class="text-muted mb-0">Nenhum transcript Fireflies carregado para esta reunião.</p>

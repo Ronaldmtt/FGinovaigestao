@@ -592,8 +592,18 @@
         });
     }
 
+    function syncClientFromSelectedProject(clientSelect, projectSelect) {
+        if (!clientSelect || !projectSelect) return;
+        const selectedOption = projectSelect.options[projectSelect.selectedIndex];
+        const selectedClientId = selectedOption?.dataset?.clientId || '';
+        if (selectedClientId) {
+            clientSelect.value = selectedClientId;
+        }
+    }
+
     function wirePair(clientSelect, projectSelect) {
         if (!clientSelect || !projectSelect) return;
+        syncClientFromSelectedProject(clientSelect, projectSelect);
         clientSelect.addEventListener('change', () => filterProjectSelect(clientSelect, projectSelect));
         filterProjectSelect(clientSelect, projectSelect);
     }

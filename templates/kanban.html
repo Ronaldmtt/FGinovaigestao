@@ -11,7 +11,7 @@
     .kanban-column-container { border-radius:22px; overflow:visible; position:relative; }
     .kanban-column-header { border-radius:18px 18px 0 0!important; box-shadow: inset 0 1px 0 rgba(255,255,255,.04); position:relative; overflow:hidden; }
     .kanban-column { background: linear-gradient(180deg, rgba(18,24,32,.96), rgba(13,17,21,.94)) !important; border: 1px solid var(--fg-border) !important; border-top:none!important; border-radius:0 0 18px 18px!important; box-shadow: var(--fg-shadow-card); position:relative; overflow:visible; }
-    .task-card-modern { border-radius:18px!important; border:1px solid rgba(110,168,254,.34)!important; background: linear-gradient(180deg, rgba(23,29,37,.98), rgba(18,24,32,.94)) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.03), 0 14px 36px rgba(0,0,0,.22), 0 0 0 1px rgba(110,168,254,.12), 0 0 18px rgba(80,140,255,.14)!important; position: relative; isolation: isolate; overflow: hidden; animation: kanban-card-neon 2.6s ease-in-out infinite; }
+    .task-card-modern { border-radius:18px!important; border:1px solid rgba(110,168,254,.34)!important; background: linear-gradient(180deg, rgba(23,29,37,.98), rgba(18,24,32,.94)) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.03), 0 14px 36px rgba(0,0,0,.22), 0 0 0 1px rgba(110,168,254,.12), 0 0 18px rgba(80,140,255,.14)!important; position: relative; isolation: isolate; overflow: visible; animation: kanban-card-neon 2.6s ease-in-out infinite; }
     .task-card-modern::before { content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none; opacity:1; z-index:2; background: linear-gradient(135deg, rgba(88,166,255,.14), transparent 38%, transparent 62%, rgba(34,211,238,.10)); box-shadow: inset 0 0 0 1px rgba(125,211,252,.28), inset 0 0 24px rgba(59,130,246,.10); }
     .task-card-modern::after { content:''; position:absolute; inset:-1px; border-radius:inherit; pointer-events:none; z-index:1; box-shadow: 0 0 14px rgba(56,189,248,.18), 0 0 30px rgba(59,130,246,.10); opacity:.85; }
     .task-card-modern > * { position:relative; z-index:3; }
@@ -2716,21 +2716,24 @@
     /* Badge de notificação estilo WhatsApp */
     .todo-notification-badge {
         position: absolute;
-        top: -8px;
-        right: -8px;
-        background-color: #25D366;
+        top: -12px;
+        right: -12px;
+        background: linear-gradient(180deg, #25D366, #19b955);
         color: white;
         font-size: 12px;
-        font-weight: 700;
-        min-width: 22px;
-        height: 22px;
-        border-radius: 11px;
-        display: flex;
+        font-weight: 800;
+        min-width: 26px;
+        height: 26px;
+        border-radius: 999px;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        padding: 0 6px;
-        box-shadow: 0 2px 6px rgba(37, 211, 102, 0.4);
-        z-index: 10;
+        padding: 0 8px;
+        box-shadow: 0 4px 10px rgba(37, 211, 102, 0.42), 0 0 0 3px rgba(18,24,32,.96);
+        border: 1px solid rgba(255,255,255,.18);
+        z-index: 20;
+        white-space: nowrap;
+        overflow: visible;
     }
 
     /* Animações e efeitos - Estilo Trello (simples e clean) */

@@ -351,6 +351,8 @@ def generate_project_tasks_from_meeting_and_repo(project_name, meeting_context, 
         OBJETIVO:
         - entender o que a reunião pediu
         - entender o que o sistema/projeto faz hoje
+        - cruzar o que foi falado na reunião com o que já existe no repositório
+        - identificar gaps reais: ajustes, melhorias, verificações, adições e correções que ainda não aparecem implementadas no contexto técnico atual
         - transformar isso em tarefas reais de execução
         - cada tarefa deve ter subtarefas/to-dos práticos
         - cada tarefa deve trazer um comentário aberto explicando o que fazer e como fazer
@@ -359,9 +361,11 @@ def generate_project_tasks_from_meeting_and_repo(project_name, meeting_context, 
         REGRAS:
         - gere entre 3 e 8 tarefas, apenas se houver contexto suficiente
         - não invente funcionalidades fora do que reunião + repo sustentam
-        - prefira tarefas de implementação objetivas
+        - prefira tarefas de implementação, verificação e melhoria objetivas
+        - priorize o que parece faltar no sistema atual em relação ao que foi pedido na reunião
+        - se algo já aparenta existir no repositório, prefira tarefa de ajuste/validação em vez de recriar do zero
         - to-dos devem ser executáveis e específicos
-        - comentário deve explicar a intenção e o caminho técnico
+        - comentário deve explicar a intenção, o caminho técnico e o porquê daquela demanda nascer do cruzamento reunião + sistema atual
 
         Retorne APENAS JSON no formato:
         {{

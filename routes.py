@@ -16,11 +16,12 @@ import uuid
 import mimetypes
 import io # Added io for BytesIO
 import concurrent.futures # Added for parallel processing
+import re
 from app import app, ALLOWED_EXTENSIONS
 from extensions import db, mail
-from models import User, Client, Project, ProjectStatusHistory, Task, TodoItem, Contato, Comentario, FileCategory, ProjectFile, ProjectApiCredential, ProjectApiEndpoint, ProjectApiKey, SystemApiKey
+from models import User, Client, Project, ProjectStatusHistory, Task, TodoItem, Contato, Comentario, FileCategory, ProjectFile, ProjectApiCredential, ProjectApiEndpoint, ProjectApiKey, SystemApiKey, Meeting
 from forms import LoginForm, UserForm, EditUserForm, ClientForm, ProjectForm, TaskForm, TranscriptionTaskForm, ManualProjectForm, ManualTaskForm, ForgotPasswordForm, ResetPasswordForm, ChangePasswordForm, UserProfileForm, ImportDataForm
-from openai_service import process_project_transcription, generate_tasks_from_transcription, generate_project_report_summary, generate_client_report_from_tasks # Added generate_client_report_from_tasks
+from openai_service import process_project_transcription, generate_tasks_from_transcription, generate_project_report_summary, generate_client_report_from_tasks, generate_project_tasks_from_meeting_and_repo # Added generate_client_report_from_tasks
 from email_service import send_email, send_meeting_invite, send_notification_email, send_chamado_email
 
 # RPA Monitor - Logging
@@ -179,6 +180,26 @@ def build_project_repo_context(project, user=None, max_commits=10):
         return {'repo_path': None, 'context_text': '', 'latest_commit': None}
     latest_commit = fetch_latest_github_commit_info(project, user=user)
     context_lines = []
+
+    def _append_file_snippet(path, label=None):
+        try:
+            resp = github_request_with_fallback(
+                f'https://api.github.com/repos/{repo_path}/contents/{path}',
+                params={}, timeout=10, user=user or current_user
+            )
+            if resp.status_code != 200:
+                return
+            payload = resp.json() or {}
+            if isinstance(payload, dict) and payload.get('type') == 'file' and payload.get('content'):
+                import base64
+                decoded = base64.b64decode(payload.get('content', '')).decode('utf-8', errors='ignore').strip()
+                if decoded:
+                    snippet = '\n'.join(decoded.splitlines()[:80]).strip()
+                    if snippet:
+                        context_lines.append(f'{label or path}:\n{snippet[:3500]}')
+        except Exception:
+            pass
+
     try:
         commits_resp = github_request_with_fallback(
             f'https://api.github.com/repos/{repo_path}/commits',
@@ -196,6 +217,7 @@ def build_project_repo_context(project, user=None, max_commits=10):
     except Exception:
         pass
 
+    root_items = []
     try:
         contents_resp = github_request_with_fallback(
             f'https://api.github.com/repos/{repo_path}/contents',
@@ -203,15 +225,29 @@ def build_project_repo_context(project, user=None, max_commits=10):
         )
         if contents_resp.status_code == 200:
             contents = contents_resp.json() or []
-            names = [item.get('name') for item in contents[:20] if item.get('name')]
+            root_items = contents if isinstance(contents, list) else []
+            names = [item.get('name') for item in root_items[:25] if item.get('name')]
             if names:
                 context_lines.append('Arquivos/pastas raiz: ' + ', '.join(names))
     except Exception:
         pass
 
+    for candidate, label in [
+        ('README.md', 'README'),
+        ('readme.md', 'README'),
+        ('package.json', 'package.json'),
+        ('requirements.txt', 'requirements.txt'),
+        ('pyproject.toml', 'pyproject.toml'),
+        ('docker-compose.yml', 'docker-compose.yml'),
+        ('Dockerfile', 'Dockerfile'),
+    ]:
+        exists = any((item.get('name') or '') == candidate for item in root_items)
+        if exists:
+            _append_file_snippet(candidate, label)
+
     return {
         'repo_path': repo_path,
-        'context_text': '\n'.join(context_lines),
+        'context_text': '\n\n'.join(context_lines),
         'latest_commit': latest_commit,
     }
 
@@ -3265,6 +3301,83 @@ def get_projects_by_client(client_id):
     project_list = [{'id': p.id, 'nome': p.nome} for p in projects]
     return jsonify(project_list)
 
+def _parse_fireflies_action_items_local(summary):
+    raw = (summary or {}).get('action_items') if isinstance(summary, dict) else None
+    if not raw:
+        return []
+    groups = []
+    current = None
+    for line in str(raw).splitlines():
+        text = line.strip()
+        if not text:
+            continue
+        if text.startswith('**') and text.endswith('**'):
+            if current:
+                groups.append(current)
+            current = {'speaker': text.strip('* ').strip(), 'items': []}
+            continue
+        if current is None:
+            current = {'speaker': 'Geral', 'items': []}
+        current['items'].append(text)
+    if current:
+        groups.append(current)
+    return [g for g in groups if g.get('items')]
+
+
+def _parse_fireflies_notes_local(summary):
+    raw = (summary or {}).get('shorthand_bullet') if isinstance(summary, dict) else None
+    if not raw:
+        return []
+    notes = []
+    current = None
+    for line in str(raw).splitlines():
+        text = line.strip()
+        if not text:
+            continue
+        if '**' in text and '(' in text and ')' in text:
+            if current:
+                notes.append(current)
+            time_range = text[text.rfind('(')+1:text.rfind(')')].strip() if '(' in text and ')' in text else ''
+            title = re.sub(r'\s*\([^)]*\)\s*$', '', text).replace('**', '').strip()
+            current = {'title': title, 'time_range': time_range, 'lines': []}
+        else:
+            if current is None:
+                current = {'title': 'Notas', 'time_range': '', 'lines': []}
+            current['lines'].append(text)
+    if current:
+        notes.append(current)
+    return notes
+
+
+@app.route('/kanban/project/<int:project_id>/meetings', methods=['GET'])
+@login_required
+@requires_permission('acesso_tarefas')
+@requires_permission('acesso_kanban')
+def kanban_project_meetings(project_id):
+    project = Project.query.get_or_404(project_id)
+    if not current_user.is_admin and current_user.id != project.responsible_id and current_user not in project.team_members:
+        return jsonify({'success': False, 'message': 'Sem permissão para este projeto'}), 403
+
+    meetings = Meeting.query.filter(Meeting.project_id == project.id).order_by(Meeting.date_time.desc()).all()
+    items = []
+    for meeting in meetings:
+        has_transcript = bool((meeting.transcription_content or '').strip())
+        has_analysis = bool((meeting.analysis_summary or '').strip() or (meeting.results_json or '').strip())
+        items.append({
+            'id': meeting.id,
+            'title': meeting.title,
+            'date_time': meeting.date_time.isoformat() if meeting.date_time else None,
+            'status': meeting.status,
+            'analysis_status': meeting.analysis_status,
+            'has_transcript': has_transcript,
+            'has_analysis': has_analysis,
+            'fireflies_transcript_id': meeting.fireflies_transcript_id,
+            'label': f"{meeting.title} — {meeting.date_time.strftime('%d/%m/%Y %H:%M') if meeting.date_time else 'Sem data'}" + (" ✅" if has_transcript else " ⏳")
+        })
+
+    return jsonify({'success': True, 'meetings': items})
+
+
 @app.route('/kanban/transcription', methods=['POST'])
 @login_required
 @requires_permission('acesso_tarefas')
@@ -3274,6 +3387,7 @@ def kanban_transcription():
 
     try:
         project_id = data.get('project_id')
+        meeting_id = data.get('meeting_id')
         if not project_id:
             return jsonify({'success': False, 'message': 'Projeto não informado'})
 
@@ -3281,31 +3395,85 @@ def kanban_transcription():
         if not current_user.is_admin and current_user.id != project.responsible_id and current_user not in project.team_members:
             return jsonify({'success': False, 'message': 'Sem permissão para este projeto'}), 403
 
-        meeting = Meeting.query.filter(
-            Meeting.project_id == project.id,
-            db.or_(Meeting.transcription_content.isnot(None), Meeting.analysis_summary.isnot(None), Meeting.results_json.isnot(None))
-        ).order_by(Meeting.date_time.desc()).first()
+        meeting = None
+        if meeting_id:
+            meeting = Meeting.query.filter(Meeting.id == meeting_id, Meeting.project_id == project.id).first()
+            if not meeting:
+                return jsonify({'success': False, 'message': 'A reunião selecionada não pertence a este projeto.'}), 404
+        else:
+            meeting = Meeting.query.filter(
+                Meeting.project_id == project.id,
+                db.or_(Meeting.transcription_content.isnot(None), Meeting.analysis_summary.isnot(None), Meeting.results_json.isnot(None))
+            ).order_by(Meeting.date_time.desc()).first()
 
         transcription = (data.get('transcription') or '').strip()
         if not transcription and meeting:
             transcription = (meeting.transcription_content or '').strip()
 
         if not transcription:
-            return jsonify({'success': False, 'message': 'Nenhuma transcrição útil foi encontrada para este projeto. Vincule uma reunião ao projeto e gere a transcrição/análise primeiro.'})
+            return jsonify({'success': False, 'message': 'A reunião selecionada ainda não possui transcrição útil. Aguarde a transcrição/análise ou escolha outra reunião.'})
 
-        meeting_summary = meeting.analysis_summary if meeting else ''
-        meeting_results = ''
-        if meeting and meeting.results_json:
-            meeting_results = meeting.results_json
+        meeting_summary = (meeting.analysis_summary or '').strip() if meeting else ''
+        meeting_results = (meeting.results_json or '').strip() if meeting else ''
+        meeting_agenda = (meeting.agenda or '').strip() if meeting else ''
+        meeting_title = (meeting.title or '').strip() if meeting else ''
+
+        fireflies_overview = ''
+        fireflies_gist = []
+        fireflies_action_groups = []
+        fireflies_notes = []
+        if meeting and meeting.fireflies_transcript_id:
+            try:
+                from services.meetings_fireflies_service import get_transcript
+                fireflies_transcript = get_transcript(meeting.fireflies_transcript_id) or {}
+                ff_summary = fireflies_transcript.get('summary') or {}
+                fireflies_overview = (ff_summary.get('overview') or '').strip()
+                fireflies_gist = ff_summary.get('bullet_gist') or []
+                if isinstance(fireflies_gist, str):
+                    fireflies_gist = [line.strip('-• ').strip() for line in fireflies_gist.splitlines() if line.strip()]
+                fireflies_action_groups = _parse_fireflies_action_items_local(ff_summary)
+                fireflies_notes = _parse_fireflies_notes_local(ff_summary)
+            except Exception:
+                pass
+
+        action_lines = []
+        for group in fireflies_action_groups:
+            speaker = group.get('speaker') or 'Geral'
+            for item in (group.get('items') or []):
+                if item:
+                    action_lines.append(f'- {speaker}: {item}')
+
+        note_lines = []
+        for block in fireflies_notes:
+            title = block.get('title') or 'Notas'
+            time_range = f" ({block.get('time_range')})" if block.get('time_range') else ''
+            lines = '; '.join([line for line in (block.get('lines') or []) if line])
+            if lines:
+                note_lines.append(f'- {title}{time_range}: {lines}')
 
         repo_bundle = build_project_repo_context(project, user=current_user, max_commits=12)
         meeting_context = f"""
 Projeto: {project.nome}
-Transcrição:
+Reunião selecionada: {meeting_title or 'Sem título'}
+Data da reunião: {meeting.date_time.strftime('%d/%m/%Y %H:%M') if meeting and meeting.date_time else 'Sem data'}
+
+Agenda:
+{meeting_agenda or 'Sem agenda disponível.'}
+
+Transcrição completa:
 {transcription}
 
-Resumo/Análise:
-{meeting_summary or 'Sem resumo disponível.'}
+Resumo / análise consolidada:
+{meeting_summary or fireflies_overview or 'Sem resumo disponível.'}
+
+Bullet gist / pontos principais:
+{chr(10).join(['- ' + item for item in fireflies_gist]) if fireflies_gist else 'Sem bullet gist disponível.'}
+
+Notas da reunião:
+{chr(10).join(note_lines) if note_lines else 'Sem notas estruturadas disponíveis.'}
+
+Afazeres / action items:
+{chr(10).join(action_lines) if action_lines else 'Sem afazeres estruturados disponíveis.'}
 
 Resultados estruturados:
 {meeting_results or 'Sem resultados estruturados.'}
@@ -3319,33 +3487,34 @@ Resultados estruturados:
 
         tasks_payload = generated.get('tasks') if isinstance(generated, dict) else []
         if not tasks_payload:
-            return jsonify({'success': False, 'message': 'A IA não encontrou contexto suficiente para gerar tarefas acionáveis.'})
+            return jsonify({'success': False, 'message': 'A IA não encontrou contexto suficiente para gerar tarefas acionáveis a partir da reunião e do repositório.'})
 
         tasks_created = 0
         todos_created = 0
         for task_data in tasks_payload:
             due_days = int(task_data.get('due_days') or 0)
             due_date = datetime.utcnow().date() + timedelta(days=due_days) if due_days > 0 else None
+            descricao_base = (task_data.get('descricao') or '').strip()
+            comentario_base = (task_data.get('comentario') or '').strip()
             task = Task(
                 titulo=(task_data.get('titulo') or 'Tarefa gerada por IA').strip(),
-                descricao=(task_data.get('descricao') or '').strip(),
+                descricao=(descricao_base + ('\n\n' if descricao_base and comentario_base else '') + comentario_base).strip(),
                 project_id=project.id,
                 status='pendente',
-                due_date=due_date
+                data_conclusao=due_date
             )
             db.session.add(task)
             db.session.flush()
             tasks_created += 1
 
-            comentario_base = (task_data.get('comentario') or '').strip()
             for todo_data in (task_data.get('todos') or []):
                 todo_due_days = int(todo_data.get('due_days') or 0)
                 todo_due_date = datetime.utcnow().date() + timedelta(days=todo_due_days) if todo_due_days > 0 else None
-                todo = Todo(
+                todo = TodoItem(
                     texto=(todo_data.get('texto') or 'Executar item').strip(),
                     completed=False,
                     due_date=todo_due_date,
-                    comentario=((todo_data.get('comentario') or comentario_base or 'Gerado a partir de transcrição + análise do repositório Git.')).strip(),
+                    comentario=((todo_data.get('comentario') or comentario_base or 'Gerado a partir de reunião + transcrição + análise do repositório Git.')).strip(),
                     task_id=task.id
                 )
                 db.session.add(todo)
@@ -3353,13 +3522,14 @@ Resultados estruturados:
 
         db.session.commit()
 
-        rpa_log.info(f"IA gerou {tasks_created} tarefas e {todos_created} to-dos para o projeto '{project.nome}' via transcrição + Git", regiao="ia")
+        rpa_log.info(f"IA gerou {tasks_created} tarefas e {todos_created} to-dos para o projeto '{project.nome}' via reunião + transcrição + Git", regiao="ia")
 
         return jsonify({
             'success': True,
             'message': f'{tasks_created} tarefas e {todos_created} to-dos foram gerados com sucesso!',
             'tasks_created': tasks_created,
             'todos_created': todos_created,
+            'meeting_id': meeting.id if meeting else None,
             'latest_commit_sha': (repo_bundle.get('latest_commit') or {}).get('sha')
         })
 
@@ -3369,7 +3539,7 @@ Resultados estruturados:
         rpa_log.error(f"Erro ao gerar tarefas por IA via Kanban: {str(e)}", exc=e, regiao="ia")
         return jsonify({
             'success': False,
-            'message': 'Erro ao processar a transcrição. Tente novamente mais tarde.'
+            'message': 'Erro ao processar a reunião/transcrição. Tente novamente mais tarde.'
         })
 
 # Rotas para redefinição de senha

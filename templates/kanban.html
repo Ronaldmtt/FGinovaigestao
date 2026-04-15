@@ -854,7 +854,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="transcriptionModalLabel">
-                    <i class="fas fa-microphone me-2"></i>Incluir Transcrição
+                    <i class="fas fa-microphone me-2"></i>Gerar Tarefas pela Reunião
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -871,12 +871,20 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="transcriptionText" class="form-label">Transcrição</label>
-                        <textarea class="form-control" id="transcriptionText" rows="8"
-                            placeholder="Cole aqui a transcrição da reunião ou discussão do projeto..."
-                            required></textarea>
-                        <div class="form-text">A IA analisará esta transcrição e gerará tarefas automaticamente para o
-                            projeto selecionado.</div>
+                        <label for="transcriptionMeeting" class="form-label">Selecionar Reunião</label>
+                        <select class="form-select" id="transcriptionMeeting" required disabled>
+                            <option value="">Selecione um projeto primeiro</option>
+                        </select>
+                        <div class="form-text">Escolha qual reunião vinculada ao projeto será usada como base para a IA cruzar transcrição, resumo, notas, afazeres e o repositório Git.</div>
+                    </div>
+
+                    <div id="transcriptionMeetingHelp" class="alert alert-info d-none mb-3"></div>
+
+                    <div class="mb-0">
+                        <label for="transcriptionText" class="form-label">Transcrição manual complementar (opcional)</label>
+                        <textarea class="form-control" id="transcriptionText" rows="6"
+                            placeholder="Se quiser complementar ou sobrescrever o texto principal da reunião, cole aqui..."></textarea>
+                        <div class="form-text">Se você deixar em branco, o sistema usa automaticamente a transcrição da reunião selecionada.</div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -2002,21 +2010,95 @@
         }
     }
 
-    // Função para processar transcrição
+    async function loadProjectMeetingsForTranscription(projectId) {
+        const meetingSelect = document.getElementById('transcriptionMeeting');
+        const helpBox = document.getElementById('transcriptionMeetingHelp');
+
+        meetingSelect.innerHTML = '<option value="">Carregando reuniões...</option>';
+        meetingSelect.disabled = true;
+        helpBox.classList.add('d-none');
+        helpBox.innerHTML = '';
+
+        if (!projectId) {
+            meetingSelect.innerHTML = '<option value="">Selecione um projeto primeiro</option>';
+            return;
+        }
+
+        try {
+            const response = await fetch(`/kanban/project/${projectId}/meetings`);
+            const data = await response.json();
+            if (!data.success) {
+                throw new Error(data.message || 'Não foi possível carregar as reuniões');
+            }
+
+            const meetings = data.meetings || [];
+            if (!meetings.length) {
+                meetingSelect.innerHTML = '<option value="">Nenhuma reunião encontrada para este projeto</option>';
+                helpBox.classList.remove('d-none');
+                helpBox.classList.remove('alert-info');
+                helpBox.classList.add('alert-warning');
+                helpBox.innerHTML = 'Esse projeto ainda não tem reunião vinculada. Primeiro vincule/crie a reunião e aguarde a transcrição.';
+                return;
+            }
+
+            meetingSelect.innerHTML = '<option value="">Selecione a reunião</option>';
+            meetings.forEach(meeting => {
+                const option = document.createElement('option');
+                option.value = meeting.id;
+                option.textContent = meeting.label;
+                option.dataset.hasTranscript = meeting.has_transcript ? '1' : '0';
+                option.dataset.hasAnalysis = meeting.has_analysis ? '1' : '0';
+                meetingSelect.appendChild(option);
+            });
+            meetingSelect.disabled = false;
+        } catch (error) {
+            console.error('Erro ao carregar reuniões:', error);
+            meetingSelect.innerHTML = '<option value="">Erro ao carregar reuniões</option>';
+            helpBox.classList.remove('d-none');
+            helpBox.classList.remove('alert-info');
+            helpBox.classList.add('alert-danger');
+            helpBox.innerHTML = 'Não foi possível carregar as reuniões desse projeto agora.';
+        }
+    }
+
+    document.getElementById('transcriptionProject').addEventListener('change', function () {
+        loadProjectMeetingsForTranscription(this.value);
+    });
+
+    document.getElementById('transcriptionMeeting').addEventListener('change', function () {
+        const helpBox = document.getElementById('transcriptionMeetingHelp');
+        const selected = this.options[this.selectedIndex];
+        if (!selected || !selected.value) {
+            helpBox.classList.add('d-none');
+            helpBox.innerHTML = '';
+            return;
+        }
+
+        const hasTranscript = selected.dataset.hasTranscript === '1';
+        const hasAnalysis = selected.dataset.hasAnalysis === '1';
+        helpBox.className = 'alert mb-3 ' + (hasTranscript ? 'alert-success' : 'alert-warning');
+        helpBox.classList.remove('d-none');
+        helpBox.innerHTML = hasTranscript
+            ? `Reunião pronta para geração. Transcrição: <strong>ok</strong> | Análise/resumo: <strong>${hasAnalysis ? 'ok' : 'parcial'}</strong>.`
+            : 'Essa reunião ainda não tem transcrição útil salva. Se quiser, complemente manualmente abaixo ou aguarde a sincronização.';
+    });
+
+    // Função para processar reunião/transcrição
     document.getElementById('transcriptionForm').addEventListener('submit', function (e) {
         e.preventDefault();
 
         const projectId = document.getElementById('transcriptionProject').value;
+        const meetingId = document.getElementById('transcriptionMeeting').value;
         const transcriptionText = document.getElementById('transcriptionText').value;
 
-        if (!projectId || !transcriptionText.trim()) {
-            alert('Por favor, selecione um projeto e insira uma transcrição.');
+        if (!projectId || !meetingId) {
+            alert('Por favor, selecione um projeto e uma reunião.');
             return;
         }
 
         const submitButton = this.querySelector('button[type="submit"]');
         const originalText = submitButton.innerHTML;
-        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processando...';
+        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Analisando reunião + repositório...';
         submitButton.disabled = true;
 
         fetch('/kanban/transcription', {
@@ -2026,6 +2108,7 @@
             },
             body: JSON.stringify({
                 project_id: projectId,
+                meeting_id: meetingId,
                 transcription: transcriptionText
             })
         })
@@ -2035,19 +2118,21 @@
                     const modal = bootstrap.Modal.getInstance(document.getElementById('transcriptionModal'));
                     modal.hide();
 
-                    // Limpar formulário
                     document.getElementById('transcriptionProject').value = '';
+                    document.getElementById('transcriptionMeeting').innerHTML = '<option value="">Selecione um projeto primeiro</option>';
+                    document.getElementById('transcriptionMeeting').disabled = true;
                     document.getElementById('transcriptionText').value = '';
+                    document.getElementById('transcriptionMeetingHelp').classList.add('d-none');
 
-                    alert(`${data.tasks_created} tarefas foram geradas com sucesso!`);
-                    location.reload(); // Recarregar para mostrar as novas tarefas
+                    alert(`${data.tasks_created} tarefas e ${data.todos_created} to-dos foram gerados com sucesso!`);
+                    location.reload();
                 } else {
-                    alert('Erro ao processar transcrição: ' + data.message);
+                    alert('Erro ao processar reunião/transcrição: ' + data.message);
                 }
             })
             .catch(error => {
-                console.error('Erro ao processar transcrição:', error);
-                alert('Erro ao processar transcrição. Tente novamente.');
+                console.error('Erro ao processar reunião/transcrição:', error);
+                alert('Erro ao processar reunião/transcrição. Tente novamente.');
             })
             .finally(() => {
                 submitButton.innerHTML = originalText;

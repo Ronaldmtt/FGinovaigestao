@@ -148,6 +148,46 @@ def _parse_fireflies_notes(summary):
     return notes
 
 
+def _ensure_list(value):
+    if isinstance(value, list):
+        return value
+    if isinstance(value, tuple):
+        return list(value)
+    if value in (None, '', False):
+        return []
+    return [value]
+
+
+def _normalize_analysis_items(items):
+    normalized = []
+    for item in _ensure_list(items):
+        if isinstance(item, dict):
+            normalized.append({
+                'item': str(item.get('item') or item.get('titulo') or item.get('title') or item.get('texto') or 'Item').strip(),
+                'addressed': bool(item.get('addressed')),
+                'context': str(item.get('context') or item.get('comentario') or item.get('description') or '').strip(),
+            })
+        else:
+            text = str(item).strip()
+            if text:
+                normalized.append({'item': text, 'addressed': False, 'context': ''})
+    return normalized
+
+
+def _normalize_text_items(items):
+    normalized = []
+    for item in _ensure_list(items):
+        if isinstance(item, dict):
+            text = str(item.get('item') or item.get('titulo') or item.get('title') or item.get('texto') or item.get('name') or '').strip()
+            if text:
+                normalized.append(text)
+        else:
+            text = str(item).strip()
+            if text:
+                normalized.append(text)
+    return normalized
+
+
 def _build_transcript_blocks(fireflies_transcript):
     sentences = (fireflies_transcript or {}).get('sentences') or []
     if not sentences:
@@ -618,6 +658,14 @@ def meeting_detail(meeting_id):
             results = parsed_results if isinstance(parsed_results, dict) else {}
         except Exception:
             results = {}
+
+    results['agenda_items'] = _normalize_analysis_items(results.get('agenda_items'))
+    results['unaddressed_items'] = _normalize_analysis_items(results.get('unaddressed_items'))
+    results['additional_topics'] = _normalize_text_items(results.get('additional_topics'))
+    results['insights'] = _normalize_text_items(results.get('insights'))
+    results['next_steps'] = _normalize_text_items(results.get('next_steps'))
+    results['action_items'] = _normalize_text_items(results.get('action_items'))
+    results['directions'] = _normalize_text_items(results.get('directions'))
 
     fireflies_transcript = None
     if meeting.fireflies_transcript_id:

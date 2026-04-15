@@ -8,12 +8,35 @@
     .kanban-hero, .kanban-filter-shell { border:1px solid var(--fg-border)!important; border-radius:20px!important; background: linear-gradient(180deg, rgba(23,29,37,.96), rgba(18,24,32,.92))!important; box-shadow: inset 0 1px 0 rgba(255,255,255,.03), var(--fg-shadow-card); }
     .kanban-hero { padding:1.2rem 1.35rem; }
     .kanban-filter-shell { padding:1rem 1.1rem; }
-    .kanban-column-container { border-radius:22px; overflow:hidden; }
-    .kanban-column-header { border-radius:18px 18px 0 0!important; box-shadow: inset 0 1px 0 rgba(255,255,255,.04); }
-    .kanban-column { background: linear-gradient(180deg, rgba(18,24,32,.96), rgba(13,17,21,.94)) !important; border: 1px solid var(--fg-border) !important; border-top:none!important; border-radius:0 0 18px 18px!important; box-shadow: var(--fg-shadow-card); }
-    .task-card-modern { border-radius:18px!important; border:1px solid var(--fg-border)!important; background: linear-gradient(180deg, rgba(23,29,37,.98), rgba(18,24,32,.94)) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.03), 0 14px 36px rgba(0,0,0,.22)!important; }
-    .task-card-modern:hover { transform: translateY(-3px)!important; box-shadow: inset 0 1px 0 rgba(255,255,255,.03), 0 18px 42px rgba(0,0,0,.28)!important; }
+    .kanban-column-container { border-radius:22px; overflow:visible; position:relative; }
+    .kanban-column-header { border-radius:18px 18px 0 0!important; box-shadow: inset 0 1px 0 rgba(255,255,255,.04); position:relative; overflow:hidden; }
+    .kanban-column { background: linear-gradient(180deg, rgba(18,24,32,.96), rgba(13,17,21,.94)) !important; border: 1px solid var(--fg-border) !important; border-top:none!important; border-radius:0 0 18px 18px!important; box-shadow: var(--fg-shadow-card); position:relative; overflow:visible; }
+    .task-card-modern { border-radius:18px!important; border:1px solid rgba(110,168,254,.34)!important; background: linear-gradient(180deg, rgba(23,29,37,.98), rgba(18,24,32,.94)) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.03), 0 14px 36px rgba(0,0,0,.22), 0 0 0 1px rgba(110,168,254,.12), 0 0 18px rgba(80,140,255,.14)!important; position: relative; isolation: isolate; overflow: hidden; animation: kanban-card-neon 2.6s ease-in-out infinite; }
+    .task-card-modern::before { content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none; opacity:1; z-index:2; background: linear-gradient(135deg, rgba(88,166,255,.14), transparent 38%, transparent 62%, rgba(34,211,238,.10)); box-shadow: inset 0 0 0 1px rgba(125,211,252,.28), inset 0 0 24px rgba(59,130,246,.10); }
+    .task-card-modern::after { content:''; position:absolute; inset:-1px; border-radius:inherit; pointer-events:none; z-index:1; box-shadow: 0 0 14px rgba(56,189,248,.18), 0 0 30px rgba(59,130,246,.10); opacity:.85; }
+    .task-card-modern > * { position:relative; z-index:3; }
+    .task-card-modern:hover { transform: translateY(-3px)!important; box-shadow: inset 0 1px 0 rgba(255,255,255,.03), 0 18px 42px rgba(0,0,0,.28), 0 0 0 1px rgba(110,168,254,.22), 0 0 24px rgba(56,189,248,.22), 0 0 44px rgba(59,130,246,.12)!important; }
     .task-drawer { background: linear-gradient(180deg, rgba(18,24,32,.985), rgba(12,16,20,.985)) !important; border-left: 1px solid var(--fg-border) !important; box-shadow: var(--fg-shadow-modal)!important; }
+
+    @keyframes kanban-card-neon {
+        0%, 100% {
+            border-color: rgba(96,165,250,.34);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.03), 0 14px 36px rgba(0,0,0,.22), 0 0 0 1px rgba(110,168,254,.10), 0 0 14px rgba(56,189,248,.10);
+        }
+        50% {
+            border-color: rgba(125,211,252,.74);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 18px 42px rgba(0,0,0,.26), 0 0 0 1px rgba(125,211,252,.22), 0 0 26px rgba(56,189,248,.22), 0 0 46px rgba(59,130,246,.12);
+        }
+    }
+
+    @keyframes kanban-column-neon {
+        0%, 100% {
+            box-shadow: 0 0 0 1px rgba(88,166,255,.08), 0 14px 34px rgba(0,0,0,.20), 0 0 18px rgba(56,189,248,.06);
+        }
+        50% {
+            box-shadow: 0 0 0 1px rgba(125,211,252,.18), 0 18px 42px rgba(0,0,0,.24), 0 0 28px rgba(56,189,248,.12);
+        }
+    }
 </style>
 <div class="kanban-shell">
 <div class="row mb-4">
@@ -203,31 +226,29 @@
 
                 .glow-purple {
                     animation: blink-purple 1s infinite ease-in-out !important;
+                    border: 1px solid #6f42c1 !important;
                 }
 
                 .glow-red {
                     animation: blink-red 1s infinite ease-in-out !important;
+                    border: 1px solid #dc3545 !important;
                 }
 
                 .glow-orange {
-                    box-shadow: 0 0 10px rgba(255, 193, 7, 0.6) !important;
+                    animation: blink-orange 1s infinite ease-in-out !important;
                     border: 1px solid #ffc107 !important;
-                    background-color: rgba(255, 193, 7, 0.1) !important;
-                    animation: none !important;
                 }
 
                 .glow-green {
-                    box-shadow: 0 0 10px rgba(78, 201, 145, 0.6) !important;
+                    animation: blink-green 1s infinite ease-in-out !important;
                     border: 1px solid #4ec991 !important;
-                    background-color: rgba(78, 201, 145, 0.1) !important;
-                    animation: none !important;
                 }
 
                 .glow-complete {
-                    box-shadow: 0 0 10px rgba(13, 202, 240, 0.6) !important;
+                    box-shadow: 0 0 10px rgba(13, 202, 240, 0.6) !important, 0 0 22px rgba(13, 202, 240, 0.24) !important;
                     border: 1px solid #0dcaf0 !important;
                     background-color: rgba(13, 202, 240, 0.1) !important;
-                    animation: none !important;
+                    animation: blink-green 1.4s infinite ease-in-out !important;
                 }
             </style>
 
@@ -2479,20 +2500,27 @@
     /* Cabeçalhos das colunas - Tema Escuro */
     [data-theme="dark"] .kanban-header-pendente,
     body:not([data-theme]) .kanban-header-pendente {
-        background-color: rgba(169, 169, 169, 0.15);
+        background: linear-gradient(180deg, rgba(148, 163, 184, 0.18), rgba(71, 85, 105, 0.12));
         color: #e2e8f0;
+        border: 1px solid rgba(148, 163, 184, 0.30);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 0 18px rgba(148,163,184,.10);
     }
 
     [data-theme="dark"] .kanban-header-andamento,
     body:not([data-theme]) .kanban-header-andamento {
-        background-color: rgba(101, 84, 192, 0.15);
+        background: linear-gradient(180deg, rgba(101, 84, 192, 0.26), rgba(67, 56, 202, 0.14));
         color: #e2e8f0;
+        border: 1px solid rgba(129, 140, 248, 0.38);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 0 18px rgba(129,140,248,.16);
+        animation: blink-purple 1.6s infinite ease-in-out;
     }
 
     [data-theme="dark"] .kanban-header-concluida,
     body:not([data-theme]) .kanban-header-concluida {
-        background-color: rgba(0, 168, 107, 0.15);
+        background: linear-gradient(180deg, rgba(0, 168, 107, 0.22), rgba(16, 185, 129, 0.12));
         color: #e2e8f0;
+        border: 1px solid rgba(52, 211, 153, 0.34);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 0 18px rgba(52,211,153,.12);
     }
 
     /* Cabeçalhos das colunas - Tema Claro */
@@ -2536,7 +2564,7 @@
     [data-theme="dark"] .task-card-modern,
     body:not([data-theme]) .task-card-modern {
         background-color: #2d3748;
-        border-color: #4a5568;
+        border-color: rgba(96, 165, 250, 0.36);
     }
 
     [data-theme="dark"] .task-card-modern .card-body,
@@ -2634,7 +2662,7 @@
 
     [data-theme="dark"] .task-card-modern:hover,
     body:not([data-theme]) .task-card-modern:hover {
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.03), 0 18px 42px rgba(0,0,0,.28), 0 0 0 1px rgba(110,168,254,.22), 0 0 24px rgba(56,189,248,.22), 0 0 44px rgba(59,130,246,.12) !important;
     }
 
     [data-theme="light"] .task-card-modern:hover {
@@ -2650,6 +2678,7 @@
 
     .kanban-column {
         transition: background-color 0.2s ease;
+        animation: kanban-column-neon 3.2s ease-in-out infinite;
     }
 
     .kanban-column .task-card-modern {

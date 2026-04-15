@@ -1479,13 +1479,15 @@ def get_github_data(id):
     if repo_path.endswith('.git'):
         repo_path = repo_path[:-4]
 
-    headers = None
-
     try:
         import requests
 
         # 1. Obter info do repositório
-        repo_resp = github_request_with_fallback(f'https://api.github.com/repos/{repo_path}', timeout=10)
+        repo_resp = github_request_with_fallback(
+            f'https://api.github.com/repos/{repo_path}',
+            timeout=10,
+            user=current_user
+        )
 
         if repo_resp.status_code == 404:
             return jsonify({'success': False, 'message': 'Repositório não encontrado. Verifique o nome/caminho ou se você configurou o seu Personal Access Token na página de Perfil.'})
@@ -1503,7 +1505,12 @@ def get_github_data(id):
 
         def safe_get(url, params=None):
             try:
-                resp = requests.get(url, headers=headers, params=params, timeout=10)
+                resp = github_request_with_fallback(
+                    url,
+                    params=params,
+                    timeout=10,
+                    user=current_user
+                )
                 if resp.status_code == 200:
                     return resp.json()
             except Exception:

@@ -699,8 +699,7 @@ def meeting_detail(meeting_id):
     if '--- AGENDA ---' in edit_description:
         edit_description = edit_description.split('--- AGENDA ---', 1)[0].strip()
 
-    return render_template(
-        'meeting_detail.html',
+    template_context = dict(
         meeting=meeting,
         results=results,
         fireflies_transcript=fireflies_transcript or {},
@@ -720,6 +719,16 @@ def meeting_detail(meeting_id):
         edit_description=edit_description,
         now_utc=datetime.utcnow(),
     )
+
+    try:
+        return render_template('meeting_detail.html', **template_context)
+    except Exception as e:
+        fallback_error = str(e)
+        return render_template(
+            'meeting_detail_fallback.html',
+            **template_context,
+            render_error=fallback_error,
+        )
 
 
 @meetings_bp.route('/api/meetings/create', methods=['POST'])

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Reunião - {{ meeting.title }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <a href="{{ url_for('meetings_bp.meetings_hub', tab='list') }}" class="btn btn-sm btn-outline-secondary mb-3">
+        <i class="fas fa-arrow-left me-1"></i> Voltar para reuniões
+    </a>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                <div>
+                    <h2 class="mb-1">{{ meeting.title }}</h2>
+                    <div class="text-muted small">
+                        {% if meeting.date_time %}{{ meeting.date_time.strftime('%d/%m/%Y às %H:%M') }}{% endif %}
+                        {% if meeting.project %}<span class="mx-2">|</span>Projeto: {{ meeting.project.nome }}{% endif %}
+                        {% if meeting.meeting_source %}<span class="mx-2">|</span>Origem: {{ meeting.meeting_source }}{% endif %}
+                    </div>
+                </div>
+                <span class="badge bg-warning text-dark">Fallback seguro</span>
+            </div>
+            <div class="alert alert-warning mt-3 mb-0">
+                A visualização avançada desta reunião falhou e foi aberto o modo seguro.
+                <div class="small mt-2"><strong>Erro:</strong> {{ render_error }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header"><strong>Resumo / análise</strong></div>
+                <div class="card-body">
+                    {% set summary_text = results.get('meeting_summary') or meeting.analysis_summary or fireflies_summary.get('overview') %}
+                    {% if summary_text %}
+                        <div style="white-space: pre-wrap;">{{ summary_text }}</div>
+                    {% else %}
+                        <p class="text-muted mb-0">Sem resumo disponível.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header"><strong>Ações e próximos passos</strong></div>
+                <div class="card-body">
+                    {% set action_list = results.get('action_items', []) %}
+                    {% set next_steps = results.get('next_steps', []) %}
+                    {% if action_list or next_steps %}
+                        <ul class="mb-0 ps-3">
+                            {% for item in action_list %}<li class="mb-2">{{ item }}</li>{% endfor %}
+                            {% for item in next_steps %}<li class="mb-2">{{ item }}</li>{% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted mb-0">Sem ações estruturadas disponíveis.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mt-4">
+        <div class="card-header"><strong>Transcrição</strong></div>
+        <div class="card-body">
+            {% if transcript_blocks %}
+                <div style="max-height: 520px; overflow-y: auto;">
+                    {% for block in transcript_blocks %}
+                        <div class="border rounded p-2 mb-2">
+                            <div class="small text-muted mb-1"><strong>{{ block.speaker }}</strong> • {{ block.time }}</div>
+                            <div>{{ block.text }}</div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% elif meeting.transcription_content %}
+                <div style="white-space: pre-wrap; max-height: 520px; overflow-y: auto;">{{ meeting.transcription_content }}</div>
+            {% else %}
+                <p class="text-muted mb-0">Nenhuma transcrição armazenada.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

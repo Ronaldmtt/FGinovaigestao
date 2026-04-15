@@ -224,27 +224,27 @@
                     }
                 }
 
-                .glow-purple {
+                .task-card-modern.glow-purple {
                     animation: blink-purple 1s infinite ease-in-out !important;
                     border: 1px solid #6f42c1 !important;
                 }
 
-                .glow-red {
+                .task-card-modern.glow-red {
                     animation: blink-red 1s infinite ease-in-out !important;
                     border: 1px solid #dc3545 !important;
                 }
 
-                .glow-orange {
+                .task-card-modern.glow-orange {
                     animation: blink-orange 1s infinite ease-in-out !important;
                     border: 1px solid #ffc107 !important;
                 }
 
-                .glow-green {
+                .task-card-modern.glow-green {
                     animation: blink-green 1s infinite ease-in-out !important;
                     border: 1px solid #4ec991 !important;
                 }
 
-                .glow-complete {
+                .task-card-modern.glow-complete {
                     box-shadow: 0 0 10px rgba(13, 202, 240, 0.6) !important, 0 0 22px rgba(13, 202, 240, 0.24) !important;
                     border: 1px solid #0dcaf0 !important;
                     background-color: rgba(13, 202, 240, 0.1) !important;
@@ -2597,7 +2597,6 @@
         color: #e2e8f0;
         border: 1px solid rgba(129, 140, 248, 0.38);
         box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 0 18px rgba(129,140,248,.16);
-        animation: blink-purple 1.6s infinite ease-in-out;
     }
 
     [data-theme="dark"] .kanban-header-concluida,
@@ -2763,13 +2762,29 @@
 
     .kanban-column {
         transition: background-color 0.2s ease;
-        animation: kanban-column-neon 3.2s ease-in-out infinite;
+        animation: none;
     }
 
     .kanban-column .task-card-modern {
         transition: transform 0.2s ease,
             box-shadow 0.2s ease,
             opacity 0.2s ease;
+    }
+
+    .task-card-modern.glow-purple,
+    .task-card-modern.glow-red,
+    .task-card-modern.glow-orange,
+    .task-card-modern.glow-green,
+    .task-card-modern.glow-complete {
+        will-change: box-shadow, border-color, transform, opacity;
+    }
+
+    .task-card-modern.glow-purple::after,
+    .task-card-modern.glow-red::after,
+    .task-card-modern.glow-orange::after,
+    .task-card-modern.glow-green::after,
+    .task-card-modern.glow-complete::after {
+        opacity: 1;
     }
 
     .kanban-column.drag-over {

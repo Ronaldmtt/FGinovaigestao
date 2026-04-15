@@ -252,6 +252,38 @@
             transform: translateY(-1px);
         }
 
+        .form-select,
+        select.form-select,
+        select,
+        option,
+        optgroup {
+            background-color: var(--fg-elevated) !important;
+            color: var(--fg-text-strong) !important;
+        }
+
+        .form-select,
+        select.form-select,
+        select {
+            border-color: var(--fg-border) !important;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.03), 0 0 0 1px rgba(96,165,250,.04) !important;
+        }
+
+        .form-select:focus,
+        select.form-select:focus,
+        select:focus {
+            background-color: var(--fg-panel) !important;
+            color: var(--fg-text-strong) !important;
+            border-color: rgba(96,165,250,.45) !important;
+            box-shadow: 0 0 0 0.2rem rgba(96,165,250,.14), inset 0 1px 0 rgba(255,255,255,.03) !important;
+        }
+
+        option:hover,
+        option:checked,
+        option:focus {
+            background: linear-gradient(180deg, rgba(96,165,250,.28), rgba(59,130,246,.18)) !important;
+            color: #f8fbff !important;
+        }
+
         .top-bar .text-muted,
         .top-bar .small {
             color: var(--fg-text-muted) !important;

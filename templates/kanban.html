@@ -195,15 +195,15 @@
 
                     0%,
                     100% {
-                        box-shadow: 0 0 5px rgba(220, 53, 69, 0.2);
-                        border-color: rgba(220, 53, 69, 0.5);
-                        background-color: rgba(220, 53, 69, 0.05);
+                        box-shadow: inset 0 0 22px rgba(220, 53, 69, 0.12), 0 0 10px rgba(220, 53, 69, 0.18), 0 0 22px rgba(220, 53, 69, 0.08);
+                        border-color: rgba(220, 53, 69, 0.58);
+                        background-color: rgba(220, 53, 69, 0.06);
                     }
 
                     50% {
-                        box-shadow: 0 0 30px rgba(220, 53, 69, 0.9), 0 0 50px rgba(220, 53, 69, 0.5);
-                        border-color: #dc3545;
-                        background-color: rgba(220, 53, 69, 0.15);
+                        box-shadow: inset 0 0 44px rgba(220, 53, 69, 0.22), inset 0 0 88px rgba(220, 53, 69, 0.10), 0 0 22px rgba(220, 53, 69, 0.80), 0 0 52px rgba(220, 53, 69, 0.34);
+                        border-color: #ff5d73;
+                        background-color: rgba(220, 53, 69, 0.18);
                     }
                 }
 
@@ -211,23 +211,25 @@
 
                     0%,
                     100% {
-                        box-shadow: 0 0 5px rgba(111, 66, 193, 0.2);
-                        border-color: rgba(111, 66, 193, 0.5);
-                        background-color: rgba(111, 66, 193, 0.05);
+                        box-shadow: inset 0 0 22px rgba(111, 66, 193, 0.12), 0 0 10px rgba(111, 66, 193, 0.18), 0 0 22px rgba(111, 66, 193, 0.08);
+                        border-color: rgba(111, 66, 193, 0.58);
+                        background-color: rgba(111, 66, 193, 0.06);
                     }
 
                     50% {
-                        box-shadow: 0 0 20px rgba(111, 66, 193, 0.8), 0 0 40px rgba(111, 66, 193, 0.4);
-                        border-color: #6f42c1;
-                        background-color: rgba(111, 66, 193, 0.15);
+                        box-shadow: inset 0 0 44px rgba(111, 66, 193, 0.22), inset 0 0 88px rgba(111, 66, 193, 0.10), 0 0 22px rgba(157, 107, 255, 0.78), 0 0 48px rgba(111, 66, 193, 0.30);
+                        border-color: #b388ff;
+                        background-color: rgba(111, 66, 193, 0.18);
                     }
                 }
 
                 @keyframes innerPulseGreen { 0%,100% { opacity:.22; } 50% { opacity:.58; } }
                 @keyframes innerPulseOrange { 0%,100% { opacity:.22; } 50% { opacity:.56; } }
-                @keyframes innerPulseRed { 0%,100% { opacity:.20; } 50% { opacity:.62; } }
-                @keyframes innerPulsePurple { 0%,100% { opacity:.20; } 50% { opacity:.60; } }
+                @keyframes innerPulseRed { 0%,100% { opacity:.28; } 50% { opacity:.92; } }
+                @keyframes innerPulsePurple { 0%,100% { opacity:.26; } 50% { opacity:.88; } }
                 @keyframes innerPulseBlue { 0%,100% { opacity:.22; } 50% { opacity:.56; } }
+                @keyframes edgePulseRed { 0%,100% { opacity:.50; box-shadow: 0 0 14px rgba(220,53,69,.26), 0 0 30px rgba(220,53,69,.10); } 50% { opacity:1; box-shadow: 0 0 26px rgba(255,93,115,.60), 0 0 56px rgba(220,53,69,.22); } }
+                @keyframes edgePulsePurple { 0%,100% { opacity:.50; box-shadow: 0 0 14px rgba(111,66,193,.26), 0 0 30px rgba(111,66,193,.10); } 50% { opacity:1; box-shadow: 0 0 26px rgba(157,107,255,.58), 0 0 56px rgba(111,66,193,.20); } }
 
                 .task-card-modern.glow-green {
                     box-shadow: inset 0 0 44px rgba(78, 201, 145, 0.24), inset 0 0 90px rgba(78, 201, 145, 0.10), 0 0 16px rgba(78, 201, 145, 0.60), 0 0 38px rgba(78, 201, 145, 0.22) !important;
@@ -258,25 +260,35 @@
                 .task-card-modern.glow-red {
                     border-color: #ff5d73 !important;
                     box-shadow: inset 0 0 36px rgba(220, 53, 69, 0.22), inset 0 0 84px rgba(220, 53, 69, 0.08), 0 0 16px rgba(220, 53, 69, 0.55), 0 0 36px rgba(220, 53, 69, 0.18) !important;
-                    animation: blink-red 1s infinite ease-in-out !important;
+                    animation: blink-red .82s infinite ease-in-out !important;
                 }
 
                 .task-card-modern.glow-red::before {
                     opacity:.95 !important;
-                    background: radial-gradient(circle at top left, rgba(220, 53, 69, 0.40) 0%, rgba(220, 53, 69, 0.18) 22%, rgba(220, 53, 69, 0.00) 54%), radial-gradient(circle at top right, rgba(220, 53, 69, 0.34) 0%, rgba(220, 53, 69, 0.14) 20%, rgba(220, 53, 69, 0.00) 52%), radial-gradient(circle at bottom left, rgba(220, 53, 69, 0.34) 0%, rgba(220, 53, 69, 0.14) 20%, rgba(220, 53, 69, 0.00) 52%), radial-gradient(circle at bottom right, rgba(220, 53, 69, 0.40) 0%, rgba(220, 53, 69, 0.18) 22%, rgba(220, 53, 69, 0.00) 54%);
-                    animation: innerPulseRed 1s infinite ease-in-out !important;
+                    background: radial-gradient(circle at top left, rgba(220, 53, 69, 0.44) 0%, rgba(220, 53, 69, 0.22) 22%, rgba(220, 53, 69, 0.00) 54%), radial-gradient(circle at top right, rgba(220, 53, 69, 0.38) 0%, rgba(220, 53, 69, 0.18) 20%, rgba(220, 53, 69, 0.00) 52%), radial-gradient(circle at bottom left, rgba(220, 53, 69, 0.38) 0%, rgba(220, 53, 69, 0.18) 20%, rgba(220, 53, 69, 0.00) 52%), radial-gradient(circle at bottom right, rgba(220, 53, 69, 0.44) 0%, rgba(220, 53, 69, 0.22) 22%, rgba(220, 53, 69, 0.00) 54%);
+                    animation: innerPulseRed .82s infinite ease-in-out !important;
+                }
+
+                .task-card-modern.glow-red::after {
+                    opacity: .8 !important;
+                    animation: edgePulseRed .82s infinite ease-in-out !important;
                 }
 
                 .task-card-modern.glow-purple {
                     border-color: #9d6bff !important;
                     box-shadow: inset 0 0 36px rgba(111, 66, 193, 0.22), inset 0 0 84px rgba(111, 66, 193, 0.08), 0 0 16px rgba(111, 66, 193, 0.55), 0 0 36px rgba(111, 66, 193, 0.18) !important;
-                    animation: blink-purple 1s infinite ease-in-out !important;
+                    animation: blink-purple .82s infinite ease-in-out !important;
                 }
 
                 .task-card-modern.glow-purple::before {
                     opacity: .95 !important;
-                    background: radial-gradient(circle at top left, rgba(111, 66, 193, 0.40) 0%, rgba(111, 66, 193, 0.18) 22%, rgba(111, 66, 193, 0.00) 54%), radial-gradient(circle at top right, rgba(111, 66, 193, 0.34) 0%, rgba(111, 66, 193, 0.14) 20%, rgba(111, 66, 193, 0.00) 52%), radial-gradient(circle at bottom left, rgba(111, 66, 193, 0.34) 0%, rgba(111, 66, 193, 0.14) 20%, rgba(111, 66, 193, 0.00) 52%), radial-gradient(circle at bottom right, rgba(111, 66, 193, 0.40) 0%, rgba(111, 66, 193, 0.18) 22%, rgba(111, 66, 193, 0.00) 54%);
-                    animation: innerPulsePurple 1s infinite ease-in-out !important;
+                    background: radial-gradient(circle at top left, rgba(111, 66, 193, 0.44) 0%, rgba(111, 66, 193, 0.22) 22%, rgba(111, 66, 193, 0.00) 54%), radial-gradient(circle at top right, rgba(111, 66, 193, 0.38) 0%, rgba(111, 66, 193, 0.18) 20%, rgba(111, 66, 193, 0.00) 52%), radial-gradient(circle at bottom left, rgba(111, 66, 193, 0.38) 0%, rgba(111, 66, 193, 0.18) 20%, rgba(111, 66, 193, 0.00) 52%), radial-gradient(circle at bottom right, rgba(111, 66, 193, 0.44) 0%, rgba(111, 66, 193, 0.22) 22%, rgba(111, 66, 193, 0.00) 54%);
+                    animation: innerPulsePurple .82s infinite ease-in-out !important;
+                }
+
+                .task-card-modern.glow-purple::after {
+                    opacity: .8 !important;
+                    animation: edgePulsePurple .82s infinite ease-in-out !important;
                 }
 
                 .task-card-modern.glow-complete {

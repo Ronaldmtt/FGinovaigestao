@@ -246,6 +246,10 @@ class Crm2Lead(db.Model):
     telefone = db.Column(db.String(50), nullable=True)
     observacoes = db.Column(db.Text, nullable=True)
     estagio = db.Column(db.String(100), nullable=False, default='Lead')
+    fonte = db.Column(db.String(100), nullable=True)
+    external_lead_id = db.Column(db.String(255), nullable=True)
+    external_payload_json = db.Column(db.Text, nullable=True)
+    last_site_sync_at = db.Column(db.DateTime, nullable=True)
     data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
     data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

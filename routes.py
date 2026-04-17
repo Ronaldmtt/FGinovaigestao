@@ -5,7 +5,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
 from functools import wraps
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import joinedload, selectinload
 import httpx
 import secrets
@@ -5884,6 +5884,9 @@ def generate_pdf():
 # ============================================
 
 CRM2_STAGES = ['Captação', 'Bloco 1', 'Bloco 2', 'Proposta', 'Contrato', 'Cliente']
+SITE_LEADS_API_URL = os.getenv('SITE_LEADS_API_URL', 'http://127.0.0.1:5000/api/export-leads')
+SITE_LEADS_API_KEY = os.getenv('SITE_LEADS_API_KEY', 'inovai_integration_key_777')
+SITE_LEADS_TIMEOUT_SECONDS = float(os.getenv('SITE_LEADS_TIMEOUT_SECONDS', '20'))
 
 @app.route('/crm2/leads', methods=['GET', 'POST'])
 @login_required
@@ -5912,6 +5915,146 @@ def crm2_leads():
     return render_template('crm2/leads.html', leads=leads)
 
 
+def _normalize_site_lead_payload(raw):
+    if not isinstance(raw, dict):
+        return None
+
+    def pick(*keys):
+        for key in keys:
+            value = raw.get(key)
+            if value not in (None, ''):
+                return str(value).strip()
+        return ''
+
+    nome_empresa = pick('empresa', 'company', 'nome_empresa', 'business_name', 'site_name')
+    nome_contato = pick('nome', 'nome_contato', 'contact_name', 'lead_name', 'responsavel')
+    email = pick('email', 'email_contato', 'contact_email')
+    telefone = pick('telefone', 'phone', 'celular', 'whatsapp')
+    external_lead_id = pick('id', 'lead_id', 'external_id', 'uuid')
+
+    if not nome_empresa:
+        nome_empresa = nome_contato or 'Lead do Site'
+    if not nome_contato:
+        nome_contato = nome_empresa or 'Lead do Site'
+
+    if not any([nome_empresa, nome_contato, email, telefone]):
+        return None
+
+    return {
+        'nome_empresa': nome_empresa,
+        'nome_contato': nome_contato,
+        'email': email,
+        'telefone': telefone,
+        'external_lead_id': external_lead_id,
+        'payload': raw,
+    }
+
+
+def _find_existing_site_lead(Crm2Lead, normalized):
+    external_id = (normalized.get('external_lead_id') or '').strip()
+    if external_id:
+        existing = Crm2Lead.query.filter_by(fonte='site', external_lead_id=external_id).first()
+        if existing:
+            return existing
+
+    filters = []
+    if normalized.get('email'):
+        filters.append(func.lower(Crm2Lead.email) == normalized['email'].lower())
+    if normalized.get('telefone'):
+        filters.append(Crm2Lead.telefone == normalized['telefone'])
+
+    if filters:
+        existing = Crm2Lead.query.filter(or_(*filters)).order_by(Crm2Lead.id.asc()).first()
+        if existing:
+            return existing
+
+    return Crm2Lead.query.filter(
+        func.lower(Crm2Lead.nome_empresa) == normalized['nome_empresa'].lower(),
+        func.lower(Crm2Lead.nome_contato) == normalized['nome_contato'].lower(),
+    ).first()
+
+
+def sync_site_leads_to_crm2():
+    from models import Crm2Lead
+
+    headers = {
+        'x-api-key': SITE_LEADS_API_KEY,
+        'Content-Type': 'application/json'
+    }
+    response = requests.get(SITE_LEADS_API_URL, headers=headers, timeout=SITE_LEADS_TIMEOUT_SECONDS)
+    response.raise_for_status()
+
+    payload = response.json() or {}
+    raw_leads = payload.get('leads') if isinstance(payload, dict) else payload
+    if not isinstance(raw_leads, list):
+        raise ValueError('Resposta da API de leads inválida: esperado array em leads')
+
+    created = 0
+    updated = 0
+    skipped = 0
+    synced_items = []
+
+    for raw in raw_leads:
+        normalized = _normalize_site_lead_payload(raw)
+        if not normalized:
+            skipped += 1
+            continue
+
+        existing = _find_existing_site_lead(Crm2Lead, normalized)
+        obs_padrao = 'Lead sincronizado automaticamente do site. Não foi criado manualmente no sistema.'
+        now = datetime.utcnow()
+
+        if existing:
+            changed = False
+            if normalized.get('email') and not existing.email:
+                existing.email = normalized['email']
+                changed = True
+            if normalized.get('telefone') and not existing.telefone:
+                existing.telefone = normalized['telefone']
+                changed = True
+            if normalized.get('external_lead_id') and not existing.external_lead_id:
+                existing.external_lead_id = normalized['external_lead_id']
+                changed = True
+            if not existing.fonte:
+                existing.fonte = 'site'
+                changed = True
+            existing.external_payload_json = json.dumps(normalized['payload'], ensure_ascii=False)
+            existing.last_site_sync_at = now
+            if not (existing.observacoes or '').strip():
+                existing.observacoes = obs_padrao
+                changed = True
+            if changed:
+                updated += 1
+            else:
+                skipped += 1
+            synced_items.append(existing)
+            continue
+
+        novo = Crm2Lead(
+            nome_empresa=normalized['nome_empresa'],
+            nome_contato=normalized['nome_contato'],
+            email=normalized.get('email') or None,
+            telefone=normalized.get('telefone') or None,
+            observacoes=obs_padrao,
+            estagio='Captação',
+            fonte='site',
+            external_lead_id=normalized.get('external_lead_id') or None,
+            external_payload_json=json.dumps(normalized['payload'], ensure_ascii=False),
+            last_site_sync_at=now,
+        )
+        db.session.add(novo)
+        synced_items.append(novo)
+        created += 1
+
+    db.session.commit()
+    return {
+        'created': created,
+        'updated': updated,
+        'skipped': skipped,
+        'total_received': len(raw_leads),
+    }
+
+
 @app.route('/crm2/pipeline')
 @login_required
 def crm2_pipeline():
@@ -5931,6 +6074,33 @@ def crm2_pipeline():
                          contatos_por_estagio=contatos_por_estagio,
                          estagios=CRM2_STAGES,
                          leads_disponiveis=leads_disponiveis)
+
+
+@app.route('/api/crm2/sync-site-leads', methods=['POST'])
+@login_required
+def crm2_sync_site_leads():
+    if not current_user.is_admin and not current_user.acesso_crm:
+        return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+
+    try:
+        result = sync_site_leads_to_crm2()
+        rpa_log.info(
+            f"Sincronização de leads do site concluída por {current_user.email}: "
+            f"criados={result['created']} atualizados={result['updated']} ignorados={result['skipped']}",
+            regiao="crm"
+        )
+        return jsonify({
+            'success': True,
+            'message': (
+                f"Sincronização concluída. {result['created']} criado(s), "
+                f"{result['updated']} atualizado(s), {result['skipped']} ignorado(s)."
+            ),
+            **result
+        })
+    except Exception as e:
+        db.session.rollback()
+        rpa_log.error(f"Erro ao sincronizar leads do site: {e}", regiao="crm")
+        return jsonify({'success': False, 'message': f'Erro ao sincronizar leads do site: {e}'}), 500
 
 
 @app.route('/crm2/pipeline/add-lead', methods=['POST'])

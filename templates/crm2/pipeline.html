@@ -266,9 +266,14 @@
                 <span class="pipeline-column-count">{{ contatos_por_estagio[estagio]|length }}</span>
             </div>
             {% if estagio == 'Captação' %}
-            <button class="btn-add-lead-pipeline" onclick="openAddLeadModal()" title="Adicionar Lead">
-                <i class="fas fa-plus me-1"></i>Lead
-            </button>
+            <div class="d-flex align-items-center gap-1">
+                <button class="btn-add-lead-pipeline" onclick="syncSiteLeads(this)" title="Sincronizar leads do site">
+                    <i class="fas fa-rotate me-1"></i>Sincronizar site
+                </button>
+                <button class="btn-add-lead-pipeline" onclick="openAddLeadModal()" title="Adicionar Lead">
+                    <i class="fas fa-plus me-1"></i>Lead
+                </button>
+            </div>
             {% endif %}
         </div>
         <div class="pipeline-column-body" data-stage="{{ estagio }}" ondragover="handleDragOver(event)"
@@ -343,6 +348,31 @@
 
     // Drag & Drop
     let draggedLeadId = null;
+
+    async function syncSiteLeads(btn) {
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Sincronizando...';
+        try {
+            const response = await fetch('/api/crm2/sync-site-leads', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await response.json();
+            if (!data.success) {
+                alert('Erro: ' + data.message);
+                return;
+            }
+            alert(data.message);
+            location.reload();
+        } catch (error) {
+            console.error('Erro ao sincronizar leads do site:', error);
+            alert('Erro ao sincronizar leads do site.');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+    }
 
     function handleDragStart(event, leadId) {
         draggedLeadId = leadId;

@@ -272,6 +272,21 @@ with app.app_context():
         db.session.rollback()
         print(f"Migracao Falhou/Ignorada (github_token): {e}")
 
+    crm_contact_queries = [
+        'ALTER TABLE contatos ADD COLUMN fonte VARCHAR(100)',
+        'ALTER TABLE contatos ADD COLUMN external_lead_id VARCHAR(255)',
+        'ALTER TABLE contatos ADD COLUMN external_payload_json TEXT',
+        'ALTER TABLE contatos ADD COLUMN last_site_sync_at TIMESTAMP'
+    ]
+    for q in crm_contact_queries:
+        try:
+            db.session.execute(text(q))
+            db.session.commit()
+            print(f"Migracao Executada: {q}")
+        except Exception as e:
+            db.session.rollback()
+            print(f"Migracao Falhou/Ignorada ({q}): {e}")
+
     crm2_lead_queries = [
         'ALTER TABLE crm2_leads ADD COLUMN fonte VARCHAR(100)',
         'ALTER TABLE crm2_leads ADD COLUMN external_lead_id VARCHAR(255)',

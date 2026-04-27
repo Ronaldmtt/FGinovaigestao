@@ -87,7 +87,7 @@ function Run-Git {
 function Invoke-OptionalCommand {
   param([string]$Name, [string]$Command)
   if ([string]::IsNullOrWhiteSpace($Command)) { return }
-  Write-Log "Executando $Name: $Command"
+  Write-Log "Executando ${Name}: $Command"
   cmd.exe /c $Command 2>&1 | ForEach-Object { Write-Log "${Name}: $_" }
   if ($LASTEXITCODE -ne 0) { throw "$Name falhou com código $LASTEXITCODE" }
 }
@@ -101,7 +101,7 @@ function Test-Healthcheck {
 
   for ($i = 1; $i -le $Attempts; $i++) {
     try {
-      Write-Log "Healthcheck tentativa $i/$Attempts: $Url"
+      Write-Log "Healthcheck tentativa $i/${Attempts}: $Url"
       $res = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 10
       if ($res.StatusCode -ge 200 -and $res.StatusCode -lt 500) {
         Write-Log "Healthcheck OK: HTTP $($res.StatusCode)"
@@ -126,7 +126,7 @@ function Wait-ServiceState {
   $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
   do {
     $svc = Get-Service -Name $Name -ErrorAction Stop
-    Write-Log "Serviço $Name status atual: $($svc.Status); aguardando $DesiredStatus"
+    Write-Log "Serviço ${Name} status atual: $($svc.Status); aguardando $DesiredStatus"
     if ($svc.Status.ToString() -eq $DesiredStatus) {
       return
     }
@@ -134,14 +134,14 @@ function Wait-ServiceState {
   } while ((Get-Date) -lt $deadline)
 
   $final = (Get-Service -Name $Name -ErrorAction Stop).Status
-  throw "Timeout aguardando serviço $Name ficar $DesiredStatus. Status final: $final"
+  throw "Timeout aguardando serviço ${Name} ficar ${DesiredStatus}. Status final: $final"
 }
 
 function Restart-NssmServiceSafely {
   param([string]$Name)
 
   $svc = Get-Service -Name $Name -ErrorAction Stop
-  Write-Log "Status inicial do serviço $Name: $($svc.Status)"
+  Write-Log "Status inicial do serviço ${Name}: $($svc.Status)"
 
   if ($svc.Status -eq 'StopPending') {
     Write-Log "Serviço já está parando; aguardando parar."
@@ -153,7 +153,7 @@ function Restart-NssmServiceSafely {
 
   $svc = Get-Service -Name $Name -ErrorAction Stop
   if ($svc.Status -eq 'Running') {
-    Write-Log "Parando serviço NSSM: $Name"
+    Write-Log "Parando serviço NSSM: ${Name}"
     & nssm stop $Name 2>&1 | ForEach-Object { Write-Log "nssm stop: $_" }
     $stopCode = $LASTEXITCODE
     if ($stopCode -ne 0) {
@@ -161,10 +161,10 @@ function Restart-NssmServiceSafely {
     }
     Wait-ServiceState -Name $Name -DesiredStatus "Stopped" -TimeoutSeconds 120
   } elseif ($svc.Status -ne 'Stopped') {
-    throw "Serviço $Name está em status inesperado antes do start: $($svc.Status)"
+    throw "Serviço ${Name} está em status inesperado antes do start: $($svc.Status)"
   }
 
-  Write-Log "Iniciando serviço NSSM: $Name"
+  Write-Log "Iniciando serviço NSSM: ${Name}"
   & nssm start $Name 2>&1 | ForEach-Object { Write-Log "nssm start: $_" }
   $startCode = $LASTEXITCODE
   if ($startCode -ne 0) {

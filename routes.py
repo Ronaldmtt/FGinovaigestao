@@ -174,6 +174,56 @@ def fetch_latest_github_commit_info(project, user=None):
         return None
 
 
+def build_github_project_alarm(project, user=None):
+    """Define o badge GitHub da lista de projetos a partir de commits reais.
+
+    Verde: botão/rotina de GitHub já foi usado hoje e não há commit posterior.
+    Amarelo: existe commit de hoje no GitHub ainda não analisado pelo botão.
+    Cinza: não houve commit novo hoje, ou não foi possível checar.
+    """
+    if not project or project.status != 'em_andamento' or not getattr(project, 'has_github', False):
+        return {
+            'visible': False,
+            'state': 'idle',
+            'text': '',
+            'updated_today': False,
+            'latest_commit': None,
+        }
+
+    generated_at = getattr(project, 'github_todos_generated_at', None)
+    updated_today = bool(generated_at and generated_at.date() == datetime.utcnow().date())
+    latest_commit = fetch_latest_github_commit_info(project, user=user)
+    latest_date = latest_commit.get('date') if latest_commit else None
+
+    latest_is_today = bool(latest_date and latest_date.date() == datetime.utcnow().date())
+
+    if latest_is_today and (not generated_at or latest_date > generated_at):
+        return {
+            'visible': True,
+            'state': 'pending',
+            'text': 'Novo commit no GitHub',
+            'updated_today': False,
+            'latest_commit': latest_commit,
+        }
+
+    if generated_at:
+        return {
+            'visible': True,
+            'state': 'ok' if updated_today else 'idle',
+            'text': 'GitHub atualizado hoje' if updated_today else 'Sem commits novos hoje',
+            'updated_today': updated_today,
+            'latest_commit': latest_commit,
+        }
+
+    return {
+        'visible': True,
+        'state': 'idle',
+        'text': 'Sem commits novos hoje',
+        'updated_today': False,
+        'latest_commit': latest_commit,
+    }
+
+
 def build_project_repo_context(project, user=None, max_commits=10):
     repo_path = extract_github_repo_path(getattr(project, 'github_repo', None))
     if not repo_path:
@@ -880,31 +930,8 @@ def projects():
             else:
                 glow_class = 'glow-purple' # Atrasado
 
-        today_date = datetime.utcnow().date()
-        kanban_tasks_in_progress = [
-            task for task in project.tasks
-            if task.status == 'em_andamento'
-        ]
-
+        github_alarm = build_github_project_alarm(project, user=current_user)
         github_generated_at = getattr(project, 'github_todos_generated_at', None)
-        github_updated_today = bool(
-            project.status == 'em_andamento'
-            and github_generated_at
-            and github_generated_at.date() == today_date
-        )
-        github_alarm_visible = project.status == 'em_andamento'
-        github_alarm_state = 'idle'
-        github_alarm_text = ''
-        if github_alarm_visible:
-            if github_updated_today:
-                github_alarm_state = 'ok'
-                github_alarm_text = 'GitHub atualizado hoje'
-            elif kanban_tasks_in_progress:
-                github_alarm_state = 'pending'
-                github_alarm_text = 'Hoje sem atualização GitHub'
-            else:
-                github_alarm_state = 'idle'
-                github_alarm_text = 'Sem tarefa aberta no Kanban'
 
         projects_data.append({
             'id': project.id,
@@ -926,11 +953,12 @@ def projects():
             'can_edit': current_user.is_admin or current_user.id == project.responsible_id,
             'created_at': project.created_at,
             'can_edit': current_user.is_admin or current_user.id == project.responsible_id,
-            'github_alarm_visible': github_alarm_visible,
-            'github_updated_today': github_updated_today,
+            'github_alarm_visible': github_alarm['visible'],
+            'github_updated_today': github_alarm['updated_today'],
             'github_generated_at': github_generated_at,
-            'github_alarm_state': github_alarm_state,
-            'github_alarm_text': github_alarm_text,
+            'github_alarm_state': github_alarm['state'],
+            'github_alarm_text': github_alarm['text'],
+            'github_latest_commit': github_alarm['latest_commit'],
             'project': project,
             'rpa_identifier': project.rpa_identifier,
             'rpa_status': None,
@@ -979,28 +1007,8 @@ def projects():
                 elif pct < 0.9: c_glow = 'glow-orange'
                 elif pct <= 1.0: c_glow = 'glow-red'
                 else:           c_glow = 'glow-purple'
-            c_kanban_tasks_in_progress = [
-                task for task in c.tasks
-                if task.status == 'em_andamento'
-            ]
             c_github_generated_at = getattr(c, 'github_todos_generated_at', None)
-            c_github_updated_today = bool(
-                c.status == 'em_andamento'
-                and c_github_generated_at
-                and c_github_generated_at.date() == today_date
-            )
-            c_github_alarm_state = 'idle'
-            c_github_alarm_text = ''
-            if c.status == 'em_andamento':
-                if c_github_updated_today:
-                    c_github_alarm_state = 'ok'
-                    c_github_alarm_text = 'GitHub atualizado hoje'
-                elif c_kanban_tasks_in_progress:
-                    c_github_alarm_state = 'pending'
-                    c_github_alarm_text = 'Hoje sem atualização GitHub'
-                else:
-                    c_github_alarm_state = 'idle'
-                    c_github_alarm_text = 'Sem tarefa aberta no Kanban'
+            c_github_alarm = build_github_project_alarm(c, user=current_user)
 
             children_list.append({
                 'id':             c.id,
@@ -1018,9 +1026,12 @@ def projects():
                 'client':         project.client.nome if project.client else '-',
                 'data_inicio':    c.data_inicio.strftime('%d/%m/%Y') if c.data_inicio else '',
                 'data_fim':       c.data_fim.strftime('%d/%m/%Y') if c.data_fim else '',
-                'github_alarm_visible': c.status == 'em_andamento',
-                'github_updated_today': c_github_updated_today,
+                'github_alarm_visible': c_github_alarm['visible'],
+                'github_updated_today': c_github_alarm['updated_today'],
                 'github_generated_at': c_github_generated_at,
+                'github_alarm_state': c_github_alarm['state'],
+                'github_alarm_text': c_github_alarm['text'],
+                'github_latest_commit': c_github_alarm['latest_commit'],
                 # Badges de infra
                 'has_github':     c.has_github if hasattr(c, 'has_github') else False,
                 'has_env':        c.has_env    if hasattr(c, 'has_env')    else None,

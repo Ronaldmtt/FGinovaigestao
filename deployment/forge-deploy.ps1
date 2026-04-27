@@ -209,11 +209,19 @@ try {
     throw "Branch atual é '$currentBranch', mas deploy espera '$Branch'. Não vou fazer pull/restart."
   }
 
-  $dirty = (& git status --porcelain)
-  if ($dirty) {
-    Write-Log "Working tree possui alterações locais. Abortando para não sobrescrever nada:" "ERROR"
-    $dirty | ForEach-Object { Write-Log $_ "ERROR" }
+  # Só alterações em arquivos rastreados devem bloquear deploy.
+  # Arquivos untracked de runtime/upload/cache devem ser ignorados pelo .gitignore.
+  $trackedDirty = (& git status --porcelain --untracked-files=no)
+  if ($trackedDirty) {
+    Write-Log "Working tree possui alterações locais em arquivos rastreados. Abortando para não sobrescrever nada:" "ERROR"
+    $trackedDirty | ForEach-Object { Write-Log $_ "ERROR" }
     exit 2
+  }
+
+  $untracked = (& git ls-files --others --exclude-standard)
+  if ($untracked) {
+    Write-Log "Arquivos locais não rastreados ignorados pelo deploy:"
+    $untracked | ForEach-Object { Write-Log "untracked: $_" }
   }
 
   Run-Git fetch $Remote $Branch | Out-Null

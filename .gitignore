@@ -135,3 +135,8 @@ database.db
 forge-deploy.env
 deployment/*.lock
 deployment/logs/
+
+# Local runtime/uploads generated in production
+uploads/
+query
+run_waitress.py

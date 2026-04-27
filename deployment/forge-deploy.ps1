@@ -75,12 +75,20 @@ function Get-Cfg {
   return $Default
 }
 
+function Quote-ProcessArgument {
+  param([string]$Value)
+  if ($null -eq $Value) { return '""' }
+  if ($Value -notmatch '[\s"]') { return $Value }
+  return '"' + ($Value -replace '"', '\"') + '"'
+}
+
 function Run-Git {
   param([Parameter(ValueFromRemainingArguments=$true)][string[]]$Args)
 
   $psi = New-Object System.Diagnostics.ProcessStartInfo
   $psi.FileName = "git"
-  foreach ($arg in $Args) { [void]$psi.ArgumentList.Add($arg) }
+  # Compatível com Windows PowerShell antigo/.NET Framework, onde ProcessStartInfo.ArgumentList não existe.
+  $psi.Arguments = ($Args | ForEach-Object { Quote-ProcessArgument $_ }) -join " "
   $psi.RedirectStandardOutput = $true
   $psi.RedirectStandardError = $true
   $psi.UseShellExecute = $false

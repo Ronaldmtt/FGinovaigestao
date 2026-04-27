@@ -100,6 +100,13 @@ with app.app_context():
         db.create_all()
     except Exception as e:
         print(f"Aviso: db.create_all() falhou. As tabelas podem precisar ser criadas manualmente ou faltam tipos personalizados no banco local (ex: pgvector). Erro: {e}")
+
+    try:
+        models.FinClientContract.__table__.create(db.engine, checkfirst=True)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        print(f"Migracao Falhou/Ignorada (fin_client_contracts): {e}")
     
     # [Auto-Migration] Add comprovante_url to fin_transactions if missing
     try:

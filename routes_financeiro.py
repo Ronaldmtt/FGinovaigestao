@@ -6,7 +6,7 @@ import uuid
 from calendar import monthrange
 from werkzeug.utils import secure_filename
 from sqlalchemy import func
-from models import db, FinCostCenter, FinAccount, FinTransaction, FinGoal, FinSupplier, Client
+from models import db, FinCostCenter, FinAccount, FinTransaction, FinGoal, FinSupplier, FinClientContract, Client
 
 def register_finance_routes(app):
     
@@ -21,6 +21,19 @@ def register_finance_routes(app):
         month = month_index % 12 + 1
         day = min(base_date.day, monthrange(year, month)[1])
         return dt.date(year, month, day)
+
+    def parse_money(value, default=0.0):
+        if value is None:
+            return default
+        raw = str(value).strip().replace('R$', '').replace(' ', '')
+        if not raw:
+            return default
+        if ',' in raw:
+            raw = raw.replace('.', '').replace(',', '.')
+        try:
+            return float(raw)
+        except (TypeError, ValueError):
+            return default
 
     # ==========================
     # VIEWS (HTML)
@@ -73,6 +86,13 @@ def register_finance_routes(app):
         denied = finance_access_denied()
         if denied: return denied
         return render_template('financeiro/suppliers.html')
+
+    @app.route('/financeiro/clientes')
+    @login_required
+    def finance_clients():
+        denied = finance_access_denied()
+        if denied: return denied
+        return render_template('financeiro/clients.html')
 
     # ==========================
     # REST API - SUPPLIERS
@@ -127,6 +147,121 @@ def register_finance_routes(app):
         if denied: return denied
         clientes = Client.query.all()
         return jsonify([{'id': c.id, 'nome': getattr(c, 'nome', f'Cliente #{c.id}')} for c in clientes])
+
+    @app.route('/api/financeiro/client-contracts', methods=['GET', 'POST'])
+    @login_required
+    def api_finance_client_contracts():
+        denied = finance_access_denied(is_api=True)
+        if denied: return denied
+
+        if request.method == 'GET':
+            contracts = FinClientContract.query.filter_by(is_active=True).order_by(FinClientContract.created_at.desc()).all()
+            return jsonify([{
+                'id': c.id,
+                'client_id': c.client_id,
+                'client_name': c.client.nome if c.client else f'Cliente #{c.client_id}',
+                'account_name': c.account.nome if c.account else '-',
+                'cost_center_name': c.cost_center.nome if c.cost_center else '-',
+                'contract_file_url': c.contract_file_url,
+                'valor_mensal': c.valor_mensal,
+                'primeiro_vencimento': c.primeiro_vencimento.isoformat() if c.primeiro_vencimento else None,
+                'quantidade_titulos': c.quantidade_titulos,
+                'prazo_observacao': c.prazo_observacao,
+                'titles_generated': bool(c.titles_generated),
+                'installment_group': c.installment_group,
+                'created_at': c.created_at.isoformat() if c.created_at else None,
+            } for c in contracts])
+
+        data = request.form
+        client_id = data.get('client_id', type=int)
+        account_id = data.get('account_id', type=int)
+        cost_center_id = data.get('cost_center_id', type=int)
+        valor_mensal = parse_money(data.get('valor_mensal'))
+        try:
+            quantidade_titulos = max(int(data.get('quantidade_titulos') or 1), 1)
+        except (TypeError, ValueError):
+            quantidade_titulos = 1
+        quantidade_titulos = min(quantidade_titulos, 120)
+        primeiro_vencimento_raw = (data.get('primeiro_vencimento') or '').strip()
+        gerar_titulos = str(data.get('gerar_titulos', '')).strip().lower() in ['1', 'true', 'on', 'yes', 'sim']
+
+        if not client_id:
+            return jsonify({'success': False, 'message': 'Selecione um cliente.'}), 400
+        if gerar_titulos and (not account_id or valor_mensal <= 0 or not primeiro_vencimento_raw):
+            return jsonify({'success': False, 'message': 'Para gerar títulos, informe conta, valor mensal e primeiro vencimento.'}), 400
+
+        primeiro_vencimento = None
+        if primeiro_vencimento_raw:
+            try:
+                primeiro_vencimento = dt.datetime.strptime(primeiro_vencimento_raw, '%Y-%m-%d').date()
+            except ValueError:
+                return jsonify({'success': False, 'message': 'Data de vencimento inválida.'}), 400
+
+        contract_filename = None
+        file = request.files.get('contract_file')
+        if file and file.filename:
+            filename = secure_filename(file.filename)
+            filename = f"fin_contract_{client_id}_{int(dt.datetime.utcnow().timestamp())}_{filename}"
+            from flask import current_app
+            filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+            contract_filename = filename
+
+        installment_group = str(uuid.uuid4()) if gerar_titulos else None
+        contract = FinClientContract(
+            client_id=client_id,
+            account_id=account_id or None,
+            cost_center_id=cost_center_id or None,
+            contract_file_url=contract_filename,
+            valor_mensal=valor_mensal if valor_mensal > 0 else None,
+            primeiro_vencimento=primeiro_vencimento,
+            quantidade_titulos=quantidade_titulos if gerar_titulos else None,
+            prazo_observacao=(data.get('prazo_observacao') or '').strip() or None,
+            titles_generated=gerar_titulos,
+            installment_group=installment_group,
+            created_by_id=current_user.id,
+        )
+        db.session.add(contract)
+
+        generated_count = 0
+        if gerar_titulos:
+            client = Client.query.get(client_id)
+            client_name = client.nome if client else f'Cliente #{client_id}'
+            for idx in range(quantidade_titulos):
+                due_date = add_months(primeiro_vencimento, idx)
+                trans = FinTransaction(
+                    tipo='income',
+                    valor=valor_mensal,
+                    data=due_date,
+                    descricao=f'Contrato {client_name} ({idx + 1}/{quantidade_titulos})',
+                    is_realized=False,
+                    installment_group=installment_group,
+                    installment_number=idx + 1,
+                    installment_total=quantidade_titulos,
+                    account_id=account_id,
+                    cost_center_id=cost_center_id or None,
+                    user_id=current_user.id,
+                    comprovante_url=contract_filename if idx == 0 else None,
+                    client_id=client_id,
+                )
+                db.session.add(trans)
+                generated_count += 1
+
+        db.session.commit()
+        message = 'Cliente financeiro cadastrado.'
+        if generated_count:
+            message = f'Cliente financeiro cadastrado e {generated_count} título(s) criado(s).'
+        return jsonify({'success': True, 'message': message, 'id': contract.id, 'generated_titles': generated_count})
+
+    @app.route('/api/financeiro/client-contracts/<int:contract_id>', methods=['DELETE'])
+    @login_required
+    def api_finance_client_contract_detail(contract_id):
+        denied = finance_access_denied(is_api=True)
+        if denied: return denied
+        contract = FinClientContract.query.get_or_404(contract_id)
+        contract.is_active = False
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Cliente financeiro arquivado.'})
 
     # ==========================
     # REST API - COST CENTERS

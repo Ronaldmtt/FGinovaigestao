@@ -828,6 +828,28 @@ class FinSupplier(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+class FinClientContract(db.Model):
+    __tablename__ = 'fin_client_contracts'
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False, index=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('fin_accounts.id'), nullable=True)
+    cost_center_id = db.Column(db.Integer, db.ForeignKey('fin_cost_centers.id'), nullable=True)
+    contract_file_url = db.Column(db.String(255), nullable=True)
+    valor_mensal = db.Column(db.Float, nullable=True)
+    primeiro_vencimento = db.Column(db.Date, nullable=True)
+    quantidade_titulos = db.Column(db.Integer, nullable=True)
+    prazo_observacao = db.Column(db.String(255), nullable=True)
+    titles_generated = db.Column(db.Boolean, default=False)
+    installment_group = db.Column(db.String(36), nullable=True, index=True)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+
+    client = db.relationship('Client', backref='finance_contracts')
+    account = db.relationship('FinAccount', backref='client_contracts')
+    cost_center = db.relationship('FinCostCenter', backref='client_contracts')
+    creator = db.relationship('User', foreign_keys=[created_by_id])
+
 # ==========================================
 # Módulo de Reuniões (Meetings Hub)
 # ==========================================

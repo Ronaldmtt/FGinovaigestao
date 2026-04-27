@@ -130,3 +130,8 @@ dmypy.json
 # Custom
 database.db
 *.db
+
+# Forge/OpenClaw local deploy runtime files
+forge-deploy.env
+deployment/*.lock
+deployment/logs/

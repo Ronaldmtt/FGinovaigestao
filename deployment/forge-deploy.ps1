@@ -77,11 +77,27 @@ function Get-Cfg {
 
 function Run-Git {
   param([Parameter(ValueFromRemainingArguments=$true)][string[]]$Args)
-  $output = & git @Args 2>&1
-  $code = $LASTEXITCODE
-  if ($output) { $output | ForEach-Object { Write-Log "git $($Args -join ' '): $_" } }
+
+  $psi = New-Object System.Diagnostics.ProcessStartInfo
+  $psi.FileName = "git"
+  foreach ($arg in $Args) { [void]$psi.ArgumentList.Add($arg) }
+  $psi.RedirectStandardOutput = $true
+  $psi.RedirectStandardError = $true
+  $psi.UseShellExecute = $false
+  $psi.CreateNoWindow = $true
+
+  $proc = New-Object System.Diagnostics.Process
+  $proc.StartInfo = $psi
+  [void]$proc.Start()
+  $stdout = $proc.StandardOutput.ReadToEnd()
+  $stderr = $proc.StandardError.ReadToEnd()
+  $proc.WaitForExit()
+  $code = $proc.ExitCode
+
+  if ($stdout) { $stdout.TrimEnd().Split("`n") | ForEach-Object { if ($_.Trim()) { Write-Log "git $($Args -join ' ') stdout: $($_.TrimEnd())" } } }
+  if ($stderr) { $stderr.TrimEnd().Split("`n") | ForEach-Object { if ($_.Trim()) { Write-Log "git $($Args -join ' ') stderr: $($_.TrimEnd())" } } }
   if ($code -ne 0) { throw "git $($Args -join ' ') falhou com código $code" }
-  return $output
+  return $stdout
 }
 
 function Invoke-OptionalCommand {

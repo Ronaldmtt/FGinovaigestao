@@ -12,6 +12,9 @@
     .meeting-entry { border:1px solid var(--fg-border); border-radius:16px; background:rgba(255,255,255,.025); box-shadow: inset 0 1px 0 rgba(255,255,255,.02); }
     .nav-pills .nav-link { background:rgba(255,255,255,.03); border:1px solid var(--fg-border); color:var(--fg-text-muted); border-radius:999px; font-weight:600; }
     .nav-pills .nav-link.active { background:rgba(30,215,96,.14); color:#dfffea; border-color:rgba(30,215,96,.22); }
+    .meeting-recurrence-card { border:1px solid var(--fg-border); border-radius:16px; background:rgba(255,255,255,.025); padding:1rem; }
+    .meeting-recurrence-options { display:none; }
+    .meeting-recurrence-card.is-enabled .meeting-recurrence-options { display:block; }
 </style>
 <div class="meetings-shell">
 <div class="d-flex justify-content-between align-items-center mb-0 meetings-hero">
@@ -335,6 +338,36 @@
                         <div class="col-md-6"><label class="form-label">Hora início</label><input type="time" name="start_time" class="form-control" required></div>
                         <div class="col-md-6"><label class="form-label">Data fim</label><input type="date" name="end_date" class="form-control" required></div>
                         <div class="col-md-6"><label class="form-label">Hora fim</label><input type="time" name="end_time" class="form-control" required></div>
+                        <div class="col-12">
+                            <div class="meeting-recurrence-card">
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input js-recurrence-toggle" type="checkbox" role="switch" name="recurrence_enabled" value="1">
+                                    <label class="form-check-label fw-semibold">Deseja que esta reunião seja recorrente?</label>
+                                </div>
+                                <div class="form-text mb-3">Ex.: toda segunda-feira às 14h, a partir da data selecionada. Você também pode adicionar mais dias da semana.</div>
+                                <div class="meeting-recurrence-options">
+                                    <div class="row g-3">
+                                        <div class="col-md-4">
+                                            <label class="form-label">Quantas vezes repetir?</label>
+                                            <input type="number" class="form-control" name="recurrence_count" min="1" max="52" value="4">
+                                            <div class="form-text">Máximo de 52 ocorrências.</div>
+                                        </div>
+                                        <div class="col-md-8">
+                                            <label class="form-label">Dias da semana</label>
+                                            <div class="d-flex flex-wrap gap-2">
+                                                <label class="form-check form-check-inline"><input class="form-check-input js-recurrence-weekday" type="checkbox" name="recurrence_weekdays" value="MO" data-weekday="1"> Segunda</label>
+                                                <label class="form-check form-check-inline"><input class="form-check-input js-recurrence-weekday" type="checkbox" name="recurrence_weekdays" value="TU" data-weekday="2"> Terça</label>
+                                                <label class="form-check form-check-inline"><input class="form-check-input js-recurrence-weekday" type="checkbox" name="recurrence_weekdays" value="WE" data-weekday="3"> Quarta</label>
+                                                <label class="form-check form-check-inline"><input class="form-check-input js-recurrence-weekday" type="checkbox" name="recurrence_weekdays" value="TH" data-weekday="4"> Quinta</label>
+                                                <label class="form-check form-check-inline"><input class="form-check-input js-recurrence-weekday" type="checkbox" name="recurrence_weekdays" value="FR" data-weekday="5"> Sexta</label>
+                                                <label class="form-check form-check-inline"><input class="form-check-input js-recurrence-weekday" type="checkbox" name="recurrence_weekdays" value="SA" data-weekday="6"> Sábado</label>
+                                                <label class="form-check form-check-inline"><input class="form-check-input js-recurrence-weekday" type="checkbox" name="recurrence_weekdays" value="SU" data-weekday="0"> Domingo</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="mt-3">
                         <label class="form-label">Participantes externos</label>
@@ -412,6 +445,36 @@
                         <div class="col-md-6"><label class="form-label">Hora início</label><input type="time" name="start_time" class="form-control" required></div>
                         <div class="col-md-6"><label class="form-label">Data fim</label><input type="date" name="end_date" class="form-control" required></div>
                         <div class="col-md-6"><label class="form-label">Hora fim</label><input type="time" name="end_time" class="form-control" required></div>
+                        <div class="col-12">
+                            <div class="meeting-recurrence-card">
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input js-recurrence-toggle" type="checkbox" role="switch" name="recurrence_enabled" value="1">
+                                    <label class="form-check-label fw-semibold">Deseja que esta reunião seja recorrente?</label>
+                                </div>
+                                <div class="form-text mb-3">Ex.: toda segunda-feira às 14h, a partir da data selecionada. Você também pode adicionar mais dias da semana.</div>
+                                <div class="meeting-recurrence-options">
+                                    <div class="row g-3">
+                                        <div class="col-md-4">
+                                            <label class="form-label">Quantas vezes repetir?</label>
+                                            <input type="number" class="form-control" name="recurrence_count" min="1" max="52" value="4">
+                                            <div class="form-text">Máximo de 52 ocorrências.</div>
+                                        </div>
+                                        <div class="col-md-8">
+                                            <label class="form-label">Dias da semana</label>
+                                            <div class="d-flex flex-wrap gap-2">
+                                                <label class="form-check form-check-inline"><input class="form-check-input js-recurrence-weekday" type="checkbox" name="recurrence_weekdays" value="MO" data-weekday="1"> Segunda</label>
+                                                <label class="form-check form-check-inline"><input class="form-check-input js-recurrence-weekday" type="checkbox" name="recurrence_weekdays" value="TU" data-weekday="2"> Terça</label>
+                                                <label class="form-check form-check-inline"><input class="form-check-input js-recurrence-weekday" type="checkbox" name="recurrence_weekdays" value="WE" data-weekday="3"> Quarta</label>
+                                                <label class="form-check form-check-inline"><input class="form-check-input js-recurrence-weekday" type="checkbox" name="recurrence_weekdays" value="TH" data-weekday="4"> Quinta</label>
+                                                <label class="form-check form-check-inline"><input class="form-check-input js-recurrence-weekday" type="checkbox" name="recurrence_weekdays" value="FR" data-weekday="5"> Sexta</label>
+                                                <label class="form-check form-check-inline"><input class="form-check-input js-recurrence-weekday" type="checkbox" name="recurrence_weekdays" value="SA" data-weekday="6"> Sábado</label>
+                                                <label class="form-check form-check-inline"><input class="form-check-input js-recurrence-weekday" type="checkbox" name="recurrence_weekdays" value="SU" data-weekday="0"> Domingo</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="mt-3">
                         <label class="form-label">Participantes externos</label>
@@ -615,12 +678,45 @@
         });
     }
 
+    function setupMeetingRecurrence() {
+        document.querySelectorAll('.meeting-recurrence-card').forEach(card => {
+            const toggle = card.querySelector('.js-recurrence-toggle');
+            const form = card.closest('form');
+            const startDate = form?.querySelector('input[name="start_date"], input[name="meeting_date"]');
+            const weekdays = Array.from(card.querySelectorAll('.js-recurrence-weekday'));
+            if (!toggle) return;
+
+            function syncVisibility() {
+                card.classList.toggle('is-enabled', toggle.checked);
+                if (toggle.checked) {
+                    ensureStartWeekdaySelected();
+                }
+            }
+
+            function ensureStartWeekdaySelected() {
+                if (!startDate?.value || weekdays.some(input => input.checked)) return;
+                const day = String(new Date(`${startDate.value}T12:00:00`).getDay());
+                const match = weekdays.find(input => input.dataset.weekday === day);
+                if (match) match.checked = true;
+            }
+
+            toggle.addEventListener('change', syncVisibility);
+            startDate?.addEventListener('change', () => {
+                if (!toggle.checked) return;
+                weekdays.forEach(input => { input.checked = false; });
+                ensureStartWeekdaySelected();
+            });
+            syncVisibility();
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         wirePair(document.querySelector('select[name="client_id"].js-client-filter'), document.querySelector('select[name="project_id"].js-project-filter'));
         wirePair(document.querySelector('select[data-target="agenda-project-select"]'), document.querySelector('#agenda-project-select'));
         wirePair(document.querySelector('select[data-target="agenda-calendar-project-select"]'), document.querySelector('#agenda-calendar-project-select'));
         setupAttendeeChipWidgets();
         setupInternalParticipants();
+        setupMeetingRecurrence();
     });
 })();
 </script>

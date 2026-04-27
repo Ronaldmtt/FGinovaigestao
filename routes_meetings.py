@@ -1,7 +1,7 @@
 import json
 import os
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
@@ -409,6 +409,77 @@ def _build_meeting_description(description, agenda):
     return description
 
 
+WEEKDAY_TO_RRULE = {
+    0: 'MO',
+    1: 'TU',
+    2: 'WE',
+    3: 'TH',
+    4: 'FR',
+    5: 'SA',
+    6: 'SU',
+}
+
+RRULE_TO_LABEL = {
+    'MO': 'segunda-feira',
+    'TU': 'terça-feira',
+    'WE': 'quarta-feira',
+    'TH': 'quinta-feira',
+    'FR': 'sexta-feira',
+    'SA': 'sábado',
+    'SU': 'domingo',
+}
+
+
+def _parse_meeting_recurrence(form, start_dt):
+    """Lê a configuração de recorrência dos formulários de reunião."""
+    enabled = form.get('recurrence_enabled') == '1'
+    if not enabled:
+        return None, None
+
+    try:
+        count = int(form.get('recurrence_count') or 1)
+    except (TypeError, ValueError):
+        count = 1
+
+    if count < 1:
+        count = 1
+    if count > 52:
+        count = 52
+
+    weekdays = [day for day in form.getlist('recurrence_weekdays') if day in RRULE_TO_LABEL]
+    if not weekdays:
+        weekdays = [WEEKDAY_TO_RRULE[start_dt.weekday()]]
+
+    recurrence = {
+        'type': 'WEEKLY',
+        'interval': 1,
+        'count': count,
+        'weekdays': weekdays,
+    }
+
+    day_labels = ', '.join(RRULE_TO_LABEL[day] for day in weekdays)
+    summary = f'Recorrência semanal em {day_labels}, {count} ocorrência(s) no total.'
+    return recurrence, summary
+
+
+def _build_internal_recurrence_datetimes(start_dt, count, weekdays):
+    """Gera datas locais para reuniões internas recorrentes sem depender do Google."""
+    target_weekdays = {day for day in weekdays if day in RRULE_TO_LABEL}
+    if not target_weekdays:
+        target_weekdays = {WEEKDAY_TO_RRULE[start_dt.weekday()]}
+
+    occurrences = []
+    cursor = start_dt
+    max_days = max(7 * count * max(len(target_weekdays), 1), 370)
+    for _ in range(max_days):
+        if WEEKDAY_TO_RRULE[cursor.weekday()] in target_weekdays and cursor >= start_dt:
+            occurrences.append(cursor)
+            if len(occurrences) >= count:
+                break
+        cursor += timedelta(days=1)
+    return occurrences or [start_dt]
+
+
 def _extract_non_internal_attendees(meeting, attendee_emails):
     internal_emails = {u.email.strip().lower() for u in User.query.filter(User.ativo == True).all() if u.email}
     ignored = {HUB_EMAIL.lower()}
@@ -752,39 +823,67 @@ def create_meeting():
         flash('Formato de data/hora inválido.', 'error')
         return redirect(url_for('meetings_bp.meetings_hub', tab='list'))
 
+    recurrence, recurrence_summary = _parse_meeting_recurrence(request.form, dt)
+    occurrence_datetimes = [dt]
+    if recurrence:
+        occurrence_datetimes = _build_internal_recurrence_datetimes(
+            dt,
+            recurrence['count'],
+            recurrence['weekdays'],
+        )
+
     raw_provider_payload = None
+    end_delta = None
     if end_time:
         try:
             end_dt = datetime.strptime(f'{meeting_date} {end_time}', '%Y-%m-%d %H:%M')
-            raw_provider_payload = json.dumps({'end': {'dateTime': end_dt.isoformat()}})
+            end_delta = end_dt - dt
         except ValueError:
             flash('Hora de término inválida.', 'error')
             return redirect(url_for('meetings_bp.meetings_hub', tab='list'))
 
-    new_meeting = Meeting(
-        title=title,
-        date_time=dt,
-        project_id=project_id if project_id else None,
-        created_by_id=current_user.id,
-        meeting_source='internal',
-        analysis_status='pending',
-        agenda=agenda or None,
-        raw_provider_payload=raw_provider_payload,
-    )
-
+    participant_users = []
     if participant_ids:
         for p_id in participant_ids:
             user = User.query.get(p_id)
             if user:
+                participant_users.append(user)
+
+    meetings_created = []
+    for occurrence_dt in occurrence_datetimes:
+        occurrence_payload = {}
+        if end_delta:
+            occurrence_payload['end'] = {'dateTime': (occurrence_dt + end_delta).isoformat()}
+        if recurrence:
+            occurrence_payload['recurrence'] = recurrence
+            occurrence_payload['recurrence_summary'] = recurrence_summary
+
+        new_meeting = Meeting(
+            title=title,
+            date_time=occurrence_dt,
+            project_id=project_id if project_id else None,
+            created_by_id=current_user.id,
+            meeting_source='internal',
+            analysis_status='pending',
+            agenda=agenda or None,
+            raw_provider_payload=json.dumps(occurrence_payload) if occurrence_payload else raw_provider_payload,
+        )
+
+        for user in participant_users:
+            if user not in new_meeting.participants:
                 new_meeting.participants.append(user)
 
-    if current_user not in new_meeting.participants:
-        new_meeting.participants.append(current_user)
+        if current_user not in new_meeting.participants:
+            new_meeting.participants.append(current_user)
 
-    db.session.add(new_meeting)
+        db.session.add(new_meeting)
+        meetings_created.append(new_meeting)
     db.session.commit()
 
-    flash('Reunião agendada com sucesso!', 'success')
+    if recurrence:
+        flash(f'{len(meetings_created)} reunião(ões) recorrente(s) agendada(s) com sucesso. {recurrence_summary}', 'success')
+    else:
+        flash('Reunião agendada com sucesso!', 'success')
     return redirect(url_for('meetings_bp.meetings_hub', tab='list'))
 
 
@@ -907,6 +1006,7 @@ def create_calendar_meeting():
 
     start_dt = datetime.strptime(f'{start_date} {start_time}', '%Y-%m-%d %H:%M')
     end_dt = datetime.strptime(f'{end_date} {end_time}', '%Y-%m-%d %H:%M')
+    recurrence, recurrence_summary = _parse_meeting_recurrence(request.form, start_dt)
     attendees = _parse_attendee_emails(attendees_raw)
     if current_user.email and current_user.email not in attendees:
         attendees.append(current_user.email)
@@ -921,7 +1021,15 @@ def create_calendar_meeting():
         full_description = f"{full_description}\n\n--- AGENDA ---\n{agenda}".strip()
 
     try:
-        event = create_google_calendar_event(service, title, full_description, start_dt, end_dt, attendees=attendees)
+        event = create_google_calendar_event(
+            service,
+            title,
+            full_description,
+            start_dt,
+            end_dt,
+            attendees=attendees,
+            recurrence=recurrence,
+        )
     except Exception as e:
         flash(f'Falha ao criar evento no Google Calendar: {e}', 'danger')
         return redirect(url_for('meetings_bp.meetings_hub', tab='agendas'))
@@ -950,7 +1058,8 @@ def create_calendar_meeting():
     db.session.commit()
 
     origem = 'a conta compartilhada do hub' if credentials_source == 'shared' else 'uma conta Google de fallback'
-    flash(f'Evento criado no Google Calendar com sucesso usando {origem}. O hub e o criador foram adicionados automaticamente como convidados.', 'success')
+    recurrence_message = f' {recurrence_summary}' if recurrence_summary else ''
+    flash(f'Evento criado no Google Calendar com sucesso usando {origem}. O hub e o criador foram adicionados automaticamente como convidados.{recurrence_message}', 'success')
     return redirect(url_for('meetings_bp.meeting_detail', meeting_id=meeting.id))
 
 

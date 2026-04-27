@@ -116,6 +116,63 @@ function Test-Healthcheck {
   throw "Healthcheck falhou após $Attempts tentativa(s)."
 }
 
+function Wait-ServiceState {
+  param(
+    [string]$Name,
+    [string]$DesiredStatus,
+    [int]$TimeoutSeconds = 90
+  )
+
+  $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+  do {
+    $svc = Get-Service -Name $Name -ErrorAction Stop
+    Write-Log "Serviço $Name status atual: $($svc.Status); aguardando $DesiredStatus"
+    if ($svc.Status.ToString() -eq $DesiredStatus) {
+      return
+    }
+    Start-Sleep -Seconds 3
+  } while ((Get-Date) -lt $deadline)
+
+  $final = (Get-Service -Name $Name -ErrorAction Stop).Status
+  throw "Timeout aguardando serviço $Name ficar $DesiredStatus. Status final: $final"
+}
+
+function Restart-NssmServiceSafely {
+  param([string]$Name)
+
+  $svc = Get-Service -Name $Name -ErrorAction Stop
+  Write-Log "Status inicial do serviço $Name: $($svc.Status)"
+
+  if ($svc.Status -eq 'StopPending') {
+    Write-Log "Serviço já está parando; aguardando parar."
+    Wait-ServiceState -Name $Name -DesiredStatus "Stopped" -TimeoutSeconds 120
+  } elseif ($svc.Status -eq 'StartPending') {
+    Write-Log "Serviço já está iniciando; aguardando ficar Running antes de reiniciar."
+    Wait-ServiceState -Name $Name -DesiredStatus "Running" -TimeoutSeconds 120
+  }
+
+  $svc = Get-Service -Name $Name -ErrorAction Stop
+  if ($svc.Status -eq 'Running') {
+    Write-Log "Parando serviço NSSM: $Name"
+    & nssm stop $Name 2>&1 | ForEach-Object { Write-Log "nssm stop: $_" }
+    $stopCode = $LASTEXITCODE
+    if ($stopCode -ne 0) {
+      Write-Log "nssm stop retornou código $stopCode; vou checar o status antes de abortar." "WARN"
+    }
+    Wait-ServiceState -Name $Name -DesiredStatus "Stopped" -TimeoutSeconds 120
+  } elseif ($svc.Status -ne 'Stopped') {
+    throw "Serviço $Name está em status inesperado antes do start: $($svc.Status)"
+  }
+
+  Write-Log "Iniciando serviço NSSM: $Name"
+  & nssm start $Name 2>&1 | ForEach-Object { Write-Log "nssm start: $_" }
+  $startCode = $LASTEXITCODE
+  if ($startCode -ne 0) {
+    Write-Log "nssm start retornou código $startCode; vou checar o status antes de abortar." "WARN"
+  }
+  Wait-ServiceState -Name $Name -DesiredStatus "Running" -TimeoutSeconds 120
+}
+
 # Lock simples para evitar deploy simultâneo.
 $lockStream = $null
 try {
@@ -188,9 +245,8 @@ try {
 
   switch ($ServiceManager) {
     "nssm" {
-      Write-Log "Reiniciando serviço NSSM: $ServiceName"
-      & nssm restart $ServiceName 2>&1 | ForEach-Object { Write-Log "nssm: $_" }
-      if ($LASTEXITCODE -ne 0) { throw "nssm restart $ServiceName falhou com código $LASTEXITCODE" }
+      Write-Log "Reiniciando serviço NSSM com espera segura: $ServiceName"
+      Restart-NssmServiceSafely -Name $ServiceName
     }
     "none" {
       Write-Log "SERVICE_MANAGER=none; atualização aplicada sem restart." "WARN"

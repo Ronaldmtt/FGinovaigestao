@@ -31,17 +31,24 @@ forge-deploy.env.example          # Exemplo de configuração local
 README_DEPLOY_FORGE.md            # Esta documentação
 ```
 
-O arquivo real `forge-deploy.env` deve ser criado na máquina Windows copiando o exemplo:
+O arquivo `forge-deploy.env` é **opcional**.
 
-```powershell
-Copy-Item .\forge-deploy.env.example .\forge-deploy.env
-```
+Para o FGInovaigestao, o script já possui defaults seguros:
 
-Depois ajuste se necessário.
+- branch `main`;
+- serviço NSSM `GestaoInova`;
+- sem build/migration por padrão;
+- sem healthcheck por padrão.
+
+Portanto, **não crie outro `.env` se não precisar customizar o deploy**.
+
+Importante: o `.env` existente do GestaoInova é da aplicação e deve continuar intocado. Não misture segredos/configuração da aplicação com configuração de deploy.
 
 ---
 
 ## Configuração padrão para este projeto
+
+Esses são os defaults internos do script; não é necessário criar arquivo novo para usá-los:
 
 ```env
 PROJECT_NAME=FGInovaigestao
@@ -165,9 +172,10 @@ Ou deixe vazio para apenas `git pull` + `nssm restart GestaoInova` quando houver
 
 Para começar com segurança:
 
-1. copiar `forge-deploy.env.example` para `forge-deploy.env` na máquina Windows;
-2. rodar o script manualmente;
-3. confirmar que, sem commit novo, ele não reinicia;
-4. fazer um commit pequeno de teste;
-5. rodar novamente e confirmar pull + restart;
-6. só depois criar a tarefa recorrente no Agendador.
+1. rodar o script manualmente sem criar nenhum `.env` novo;
+2. confirmar que, sem commit novo, ele não reinicia;
+3. fazer um commit pequeno de teste;
+4. rodar novamente e confirmar pull + restart;
+5. só depois criar a tarefa recorrente no Agendador.
+
+Só crie `forge-deploy.env` se precisar mudar branch, serviço, build, migration ou healthcheck.

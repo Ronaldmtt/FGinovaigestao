@@ -61,6 +61,12 @@ PROJECT_STATUS_LABELS = {
     'cancelado': 'Cancelado'
 }
 
+TASK_STATUS_LABELS = {
+    'pendente': 'Pendente',
+    'em_andamento': 'Em andamento',
+    'concluida': 'Concluída',
+}
+
 
 def parse_github_tokens(raw_value):
     if not raw_value:
@@ -5563,7 +5569,158 @@ def reports():
 
     return render_template('reports.html', projects=projects, clients=clients, users=users)
 
-    return render_template('reports.html', projects=projects, clients=clients, users=users)
+
+def _serialize_internal_control_project(project):
+    tasks = list(project.tasks or [])
+    open_tasks = [task for task in tasks if task.status != 'concluida']
+    pending_tasks = [task for task in tasks if task.status == 'pendente']
+    in_progress_tasks = [task for task in tasks if task.status == 'em_andamento']
+    completed_tasks = [task for task in tasks if task.status == 'concluida']
+
+    open_todos = []
+    completed_todos_count = 0
+    total_todos_count = 0
+    open_task_details = []
+
+    for task in tasks:
+        for todo in task.todos or []:
+            total_todos_count += 1
+            if todo.completed:
+                completed_todos_count += 1
+
+    for task in sorted(open_tasks, key=lambda t: (t.ordem or 0, t.created_at or datetime.min)):
+        task_open_todos = []
+        for todo in task.todos or []:
+            if todo.completed:
+                continue
+            todo_payload = {
+                'id': todo.id,
+                'texto': todo.texto,
+                'comentario': todo.comentario,
+                'due_date': todo.due_date.isoformat() if todo.due_date else None,
+                'due_date_label': todo.due_date.strftime('%d/%m/%Y') if todo.due_date else None,
+            }
+            task_open_todos.append(todo_payload)
+            open_todos.append(todo_payload)
+
+        open_task_details.append({
+            'id': task.id,
+            'titulo': task.titulo,
+            'status': task.status,
+            'status_label': TASK_STATUS_LABELS.get(task.status, task.status or '-'),
+            'assigned_user': task.assigned_user.full_name if task.assigned_user else 'Sem responsável',
+            'data_conclusao': task.data_conclusao.isoformat() if task.data_conclusao else None,
+            'data_conclusao_label': task.data_conclusao.strftime('%d/%m/%Y') if task.data_conclusao else None,
+            'todos_abertos': task_open_todos,
+        })
+
+    latest_status = project.status_history[0] if project.status_history else None
+    status_history = serialize_project_status_history(project)[:6]
+
+    return {
+        'id': project.id,
+        'nome': project.nome,
+        'client_name': project.client.nome if project.client else '-',
+        'responsible_id': project.responsible_id,
+        'responsible_name': project.responsible.full_name if project.responsible else 'Sem responsável',
+        'status': project.status,
+        'status_label': get_project_status_label(project.status),
+        'status_reason': latest_status.note if latest_status and latest_status.note else None,
+        'progress_percent': project.progress_percent or 0,
+        'created_at_label': project.created_at.strftime('%d/%m/%Y') if project.created_at else '-',
+        'data_inicio_label': project.data_inicio.strftime('%d/%m/%Y') if project.data_inicio else '-',
+        'data_fim_label': project.data_fim.strftime('%d/%m/%Y') if project.data_fim else '-',
+        'prazo_label': project.prazo.strftime('%d/%m/%Y') if project.prazo else '-',
+        'github_repo': project.github_repo,
+        'dominio': project.dominio,
+        'team_members': [member.full_name for member in project.team_members],
+        'counts': {
+            'tasks_total': len(tasks),
+            'tasks_open': len(open_tasks),
+            'tasks_pending': len(pending_tasks),
+            'tasks_in_progress': len(in_progress_tasks),
+            'tasks_completed': len(completed_tasks),
+            'todos_total': total_todos_count,
+            'todos_open': len(open_todos),
+            'todos_completed': completed_todos_count,
+        },
+        'open_tasks': open_task_details,
+        'status_history': status_history,
+    }
+
+
+@app.route('/reports/internal-control-data')
+@login_required
+def reports_internal_control_data():
+    responsible_id = request.args.get('responsible_id', type=int)
+
+    query = Project.query.options(
+        joinedload(Project.client),
+        joinedload(Project.responsible),
+        selectinload(Project.team_members),
+        selectinload(Project.status_history).joinedload(ProjectStatusHistory.changed_by),
+        selectinload(Project.tasks).joinedload(Task.assigned_user),
+        selectinload(Project.tasks).selectinload(Task.todos),
+    ).join(Client)
+
+    if current_user.is_admin:
+        users = User.query.filter_by(is_admin=False, ativo=True).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
+    else:
+        query = query.filter(
+            (Project.responsible_id == current_user.id) |
+            (Project.team_members.contains(current_user))
+        )
+        users = [current_user]
+
+    if responsible_id:
+        query = query.filter(Project.responsible_id == responsible_id)
+
+    projects = query.outerjoin(User, Project.responsible_id == User.id).order_by(
+        func.lower(User.nome),
+        func.lower(Client.nome),
+        func.lower(Project.nome)
+    ).all()
+
+    grouped = {}
+    totals = {
+        'projects': 0,
+        'tasks_open': 0,
+        'tasks_pending': 0,
+        'todos_open': 0,
+        'delayed_projects': 0,
+    }
+    today = datetime.utcnow().date()
+
+    for project in projects:
+        item = _serialize_internal_control_project(project)
+        responsible_key = str(project.responsible_id or 'none')
+        if responsible_key not in grouped:
+            grouped[responsible_key] = {
+                'responsible_id': project.responsible_id,
+                'responsible_name': item['responsible_name'],
+                'projects': [],
+                'totals': {'projects': 0, 'tasks_open': 0, 'tasks_pending': 0, 'todos_open': 0}
+            }
+
+        grouped[responsible_key]['projects'].append(item)
+        grouped[responsible_key]['totals']['projects'] += 1
+        grouped[responsible_key]['totals']['tasks_open'] += item['counts']['tasks_open']
+        grouped[responsible_key]['totals']['tasks_pending'] += item['counts']['tasks_pending']
+        grouped[responsible_key]['totals']['todos_open'] += item['counts']['todos_open']
+
+        totals['projects'] += 1
+        totals['tasks_open'] += item['counts']['tasks_open']
+        totals['tasks_pending'] += item['counts']['tasks_pending']
+        totals['todos_open'] += item['counts']['todos_open']
+        if project.data_fim and project.data_fim < today and project.status not in ('concluido', 'cancelado'):
+            totals['delayed_projects'] += 1
+
+    return jsonify({
+        'success': True,
+        'users': [{'id': user.id, 'name': user.full_name} for user in users],
+        'totals': totals,
+        'groups': sorted(grouped.values(), key=lambda g: g['responsible_name'].lower()),
+    })
 
 def process_single_project_report(project_data):
     """

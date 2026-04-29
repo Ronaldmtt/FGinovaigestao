@@ -3,172 +3,382 @@
 {% block title %}Relatórios de Projetos{% endblock %}
 
 {% block content %}
+<style>
+    .report-tabs .nav-link { color: var(--bs-secondary-color); }
+    .report-tabs .nav-link.active { color: #fff; background: rgba(13,110,253,.18); border-color: rgba(13,110,253,.35); }
+    .control-summary-card { border: 1px solid rgba(255,255,255,.08); background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); }
+    .internal-project-row { border: 1px solid rgba(255,255,255,.08); border-radius: 14px; background: rgba(255,255,255,.025); }
+    .internal-project-row + .internal-project-row { margin-top: .75rem; }
+    .internal-project-detail { border-top: 1px solid rgba(255,255,255,.08); background: rgba(0,0,0,.12); }
+    .status-pill { border: 1px solid rgba(255,255,255,.12); }
+    .tiny-label { font-size: .72rem; letter-spacing: .04em; text-transform: uppercase; color: var(--bs-secondary-color); }
+</style>
+
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h2 class="mb-1"><i class="fas fa-file-pdf me-2"></i>Relatórios de Projetos</h2>
-        <p class="text-muted mb-0">Selecione os projetos e gere relatórios executivos com síntese via IA.</p>
+        <h2 class="mb-1"><i class="fas fa-chart-line me-2"></i>Relatórios de Projetos</h2>
+        <p class="text-muted mb-0">Relatórios executivos e visão interna para acompanhamento real das demandas.</p>
     </div>
-    <div class="d-flex gap-2">
-        <div class="form-check d-flex align-items-center me-3">
-            <input class="form-check-input me-2" type="checkbox" id="selectAll" onclick="toggleSelectAll()">
-            <label class="form-check-label user-select-none" for="selectAll" style="cursor: pointer;">
-                Selecionar Todos
-            </label>
-        </div>
-        <button onclick="generateReport()" class="btn btn-primary" id="btnGenerate" disabled>
-            <i class="fas fa-magic me-2"></i>Gerar Relatório PDF
-            <span class="badge bg-white text-primary ms-1" id="selectedCount">0</span>
+</div>
+
+<ul class="nav nav-tabs report-tabs mb-4" id="reportsTab" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="controle-tab" data-bs-toggle="tab" data-bs-target="#controle-pane" type="button" role="tab">
+            <i class="fas fa-clipboard-check me-2"></i>Controle
         </button>
-    </div>
-</div>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="executivo-tab" data-bs-toggle="tab" data-bs-target="#executivo-pane" type="button" role="tab">
+            <i class="fas fa-file-pdf me-2"></i>Executivo PDF
+        </button>
+    </li>
+</ul>
 
-<div class="card mb-4 border-0 shadow-sm" style="background-color: var(--bs-card-bg);">
-    <div class="card-body">
-        <div class="row g-3">
-            <div class="col-md-4">
-                <label class="form-label small text-muted text-uppercase fw-bold">Cliente</label>
-                <select class="form-select" id="clientFilter" onchange="filterProjects()">
-                    <option value="">Todos os Clientes</option>
-                    {% for client in clients %}
-                    <option value="{{ client.id }}">{{ client.nome }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-md-4">
-                <label class="form-label small text-muted text-uppercase fw-bold">Responsável</label>
-                <select class="form-select" id="userFilter" onchange="filterProjects()">
-                    <option value="">Todos os Responsáveis</option>
-                    {% for user in users %}
-                    <option value="{{ user.id }}">{{ user.full_name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-md-4">
-                <label class="form-label small text-muted text-uppercase fw-bold">Projeto</label>
-                <select class="form-select" id="projectFilter" onchange="filterProjects()">
-                    <option value="">Todos os Projetos</option>
-                    {% for project in projects %}
-                    <option value="{{ project.id }}">{{ project.nome }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div id="projectsContainer" class="row g-3">
-    {% for project in projects %}
-    {% set has_data = project.descricao_resumida and project.problema_oportunidade and project.objetivos %}
-    <div class="col-md-3 project-card-wrapper" data-client-id="{{ project.client_id }}"
-        data-responsible-id="{{ project.responsible_id }}" data-project-id="{{ project.id }}"
-        data-has-data="{{ 'true' if has_data else 'false' }}">
-
-        <div class="card h-100 border-0 shadow-sm position-relative {{ 'border-start border-success border-4' if has_data else 'border-start border-warning border-4' }}"
-            style="background-color: var(--bs-card-bg); cursor: pointer;" onclick="toggleCardSelection(this, event)">
-
-            <!-- Checkbox overlay -->
-            <div class="position-absolute top-0 end-0 p-2">
-                <input class="form-check-input project-checkbox" type="checkbox" value="{{ project.id }}" {{ 'disabled'
-                    if not has_data else '' }} idx="{{ project.id }}" onclick="event.stopPropagation(); updateCount();">
-            </div>
-
-            <div class="card-body p-3">
-                <div class="d-flex justify-content-between align-items-start mb-2 pe-4">
-                    <h6 class="card-title mb-0 text-truncate" title="{{ project.nome }}">{{ project.nome }}</h6>
-                    {% if has_data %}
-                    <i class="fas fa-check-circle text-success" title="Pronto para relatório"></i>
-                    {% else %}
-                    <i class="fas fa-exclamation-circle text-warning"
-                        title="Dados incompletos (Descrição, Problema ou Objetivos)"></i>
-                    {% endif %}
-                </div>
-                <small class="text-muted d-block mb-2 text-truncate">{{ project.client.nome }}</small>
-
-                <div class="d-flex align-items-center mb-2">
-                    <div class="avatar-circle-sm me-2"
-                        style="width: 20px; height: 20px; background-color: #6554c0; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px;">
-                        {{ project.responsible.nome[0] if project.responsible else '?' }}
+<div class="tab-content" id="reportsTabContent">
+    <div class="tab-pane fade show active" id="controle-pane" role="tabpanel" aria-labelledby="controle-tab">
+        <div class="card mb-4 border-0 shadow-sm" style="background-color: var(--bs-card-bg);">
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-5">
+                        <label class="form-label small text-muted text-uppercase fw-bold">Responsável / Programador</label>
+                        <select class="form-select" id="internalResponsibleFilter">
+                            <option value="">Todos os responsáveis</option>
+                        </select>
                     </div>
-                    <small class="text-muted">{{ project.responsible.full_name if project.responsible else 'Sem
-                        responsável' }}</small>
+                    <div class="col-md-3">
+                        <button class="btn btn-primary w-100" onclick="loadInternalControlReport()">
+                            <i class="fas fa-sync-alt me-2"></i>Atualizar relatório
+                        </button>
+                    </div>
+                    <div class="col-md-4 text-md-end text-muted small">
+                        <i class="fas fa-info-circle me-1"></i>Use o botão “+” para abrir detalhes de tarefas, to-dos e histórico de status.
+                    </div>
                 </div>
-
-                {% if not has_data %}
-                <div class="mt-2 text-danger" style="font-size: 0.75rem;">
-                    Pendentes:
-                    {{ 'Descrição' if not project.descricao_resumida }}
-                    {{ ',' if not project.descricao_resumida and (not project.problema_oportunidade or not
-                    project.objetivos) }}
-                    {{ 'Problema' if not project.problema_oportunidade }}
-                    {{ ',' if not project.problema_oportunidade and not project.objetivos }}
-                    {{ 'Objetivos' if not project.objetivos }}
-                </div>
-                {% endif %}
             </div>
         </div>
+
+        <div class="row g-3 mb-4" id="internalSummary">
+            <div class="col-md-3"><div class="card control-summary-card"><div class="card-body"><div class="tiny-label">Projetos</div><h3 class="mb-0" id="sumProjects">-</h3></div></div></div>
+            <div class="col-md-3"><div class="card control-summary-card"><div class="card-body"><div class="tiny-label">Tarefas abertas</div><h3 class="mb-0 text-warning" id="sumOpenTasks">-</h3></div></div></div>
+            <div class="col-md-3"><div class="card control-summary-card"><div class="card-body"><div class="tiny-label">Tarefas pendentes</div><h3 class="mb-0 text-danger" id="sumPendingTasks">-</h3></div></div></div>
+            <div class="col-md-3"><div class="card control-summary-card"><div class="card-body"><div class="tiny-label">To-dos em aberto</div><h3 class="mb-0 text-info" id="sumOpenTodos">-</h3></div></div></div>
+        </div>
+
+        <div id="internalReportLoading" class="text-center py-5 d-none">
+            <div class="spinner-border text-primary mb-3" role="status"></div>
+            <div class="text-muted">Carregando controle interno...</div>
+        </div>
+
+        <div id="internalReportContainer"></div>
+
+        <div id="internalReportEmpty" class="text-center py-5 d-none">
+            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">Nenhum projeto encontrado para esse responsável.</h5>
+        </div>
     </div>
-    {% endfor %}
+
+    <div class="tab-pane fade" id="executivo-pane" role="tabpanel" aria-labelledby="executivo-tab">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h4 class="mb-1"><i class="fas fa-file-pdf me-2"></i>Relatório Executivo PDF</h4>
+                <p class="text-muted mb-0">Selecione os projetos e gere relatórios executivos com síntese via IA.</p>
+            </div>
+            <div class="d-flex gap-2">
+                <div class="form-check d-flex align-items-center me-3">
+                    <input class="form-check-input me-2" type="checkbox" id="selectAll" onclick="toggleSelectAll()">
+                    <label class="form-check-label user-select-none" for="selectAll" style="cursor: pointer;">Selecionar Todos</label>
+                </div>
+                <button onclick="generateReport()" class="btn btn-primary" id="btnGenerate" disabled>
+                    <i class="fas fa-magic me-2"></i>Gerar Relatório PDF
+                    <span class="badge bg-white text-primary ms-1" id="selectedCount">0</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="card mb-4 border-0 shadow-sm" style="background-color: var(--bs-card-bg);">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label small text-muted text-uppercase fw-bold">Cliente</label>
+                        <select class="form-select" id="clientFilter" onchange="filterProjects()">
+                            <option value="">Todos os Clientes</option>
+                            {% for client in clients %}
+                            <option value="{{ client.id }}">{{ client.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small text-muted text-uppercase fw-bold">Responsável</label>
+                        <select class="form-select" id="userFilter" onchange="filterProjects()">
+                            <option value="">Todos os Responsáveis</option>
+                            {% for user in users %}
+                            <option value="{{ user.id }}">{{ user.full_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small text-muted text-uppercase fw-bold">Projeto</label>
+                        <select class="form-select" id="projectFilter" onchange="filterProjects()">
+                            <option value="">Todos os Projetos</option>
+                            {% for project in projects %}
+                            <option value="{{ project.id }}">{{ project.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="projectsContainer" class="row g-3">
+            {% for project in projects %}
+            {% set has_data = project.descricao_resumida and project.problema_oportunidade and project.objetivos %}
+            <div class="col-md-3 project-card-wrapper" data-client-id="{{ project.client_id }}" data-responsible-id="{{ project.responsible_id }}" data-project-id="{{ project.id }}" data-has-data="{{ 'true' if has_data else 'false' }}">
+                <div class="card h-100 border-0 shadow-sm position-relative {{ 'border-start border-success border-4' if has_data else 'border-start border-warning border-4' }}" style="background-color: var(--bs-card-bg); cursor: pointer;" onclick="toggleCardSelection(this, event)">
+                    <div class="position-absolute top-0 end-0 p-2">
+                        <input class="form-check-input project-checkbox" type="checkbox" value="{{ project.id }}" {{ 'disabled' if not has_data else '' }} idx="{{ project.id }}" onclick="event.stopPropagation(); updateCount();">
+                    </div>
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2 pe-4">
+                            <h6 class="card-title mb-0 text-truncate" title="{{ project.nome }}">{{ project.nome }}</h6>
+                            {% if has_data %}<i class="fas fa-check-circle text-success" title="Pronto para relatório"></i>{% else %}<i class="fas fa-exclamation-circle text-warning" title="Dados incompletos"></i>{% endif %}
+                        </div>
+                        <small class="text-muted d-block mb-2 text-truncate">{{ project.client.nome }}</small>
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="avatar-circle-sm me-2" style="width: 20px; height: 20px; background-color: #6554c0; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px;">
+                                {{ project.responsible.nome[0] if project.responsible else '?' }}
+                            </div>
+                            <small class="text-muted">{{ project.responsible.full_name if project.responsible else 'Sem responsável' }}</small>
+                        </div>
+                        {% if not has_data %}
+                        <div class="mt-2 text-danger" style="font-size: 0.75rem;">Dados incompletos para PDF executivo</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div id="noResults" class="text-center py-5 d-none">
+            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">Nenhum projeto encontrado</h5>
+        </div>
+    </div>
 </div>
 
-<div id="noResults" class="text-center py-5 d-none">
-    <i class="fas fa-search fa-3x text-muted mb-3"></i>
-    <h5 class="text-muted">Nenhum projeto encontrado</h5>
-</div>
-
-<!-- Loading Overlay -->
-<div id="loadingOverlay"
-    class="position-fixed top-0 start-0 w-100 h-100 d-none justify-content-center align-items-center"
-    style="background: rgba(0,0,0,0.8); z-index: 9999; backdrop-filter: blur(5px);">
+<div id="loadingOverlay" class="position-fixed top-0 start-0 w-100 h-100 d-none justify-content-center align-items-center" style="background: rgba(0,0,0,0.8); z-index: 9999; backdrop-filter: blur(5px);">
     <div class="text-center text-white">
         <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
         <h4>Gerando Relatório com IA</h4>
-        <p class="text-white-50">Sintetizando informações dos projetos selecionados...<br>Isso pode levar alguns
-            segundos.</p>
+        <p class="text-white-50">Sintetizando informações dos projetos selecionados...<br>Isso pode levar alguns segundos.</p>
     </div>
 </div>
 
 <script>
+    const statusBadgeClass = {
+        em_andamento: 'bg-primary',
+        em_teste: 'bg-info text-dark',
+        concluido: 'bg-success',
+        pausado: 'bg-warning text-dark',
+        cancelado: 'bg-danger'
+    };
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function setText(id, value) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = value;
+    }
+
+    async function loadInternalControlReport() {
+        const responsibleId = document.getElementById('internalResponsibleFilter').value;
+        const loading = document.getElementById('internalReportLoading');
+        const container = document.getElementById('internalReportContainer');
+        const empty = document.getElementById('internalReportEmpty');
+
+        loading.classList.remove('d-none');
+        container.innerHTML = '';
+        empty.classList.add('d-none');
+
+        try {
+            const params = new URLSearchParams();
+            if (responsibleId) params.set('responsible_id', responsibleId);
+            const resp = await fetch(`/reports/internal-control-data?${params.toString()}`);
+            if (!resp.ok) throw new Error('Falha ao carregar relatório interno');
+            const data = await resp.json();
+
+            hydrateResponsibleFilter(data.users || [], responsibleId);
+            setText('sumProjects', data.totals?.projects ?? 0);
+            setText('sumOpenTasks', data.totals?.tasks_open ?? 0);
+            setText('sumPendingTasks', data.totals?.tasks_pending ?? 0);
+            setText('sumOpenTodos', data.totals?.todos_open ?? 0);
+
+            if (!data.groups || data.groups.length === 0) {
+                empty.classList.remove('d-none');
+                return;
+            }
+
+            container.innerHTML = data.groups.map(renderResponsibleGroup).join('');
+        } catch (err) {
+            console.error(err);
+            container.innerHTML = `<div class="alert alert-danger">Não foi possível carregar o relatório de controle.</div>`;
+        } finally {
+            loading.classList.add('d-none');
+        }
+    }
+
+    function hydrateResponsibleFilter(users, selectedValue) {
+        const select = document.getElementById('internalResponsibleFilter');
+        if (select.dataset.loaded === 'true') return;
+        select.innerHTML = '<option value="">Todos os responsáveis</option>';
+        users.forEach(user => {
+            select.innerHTML += `<option value="${user.id}" ${String(user.id) === String(selectedValue) ? 'selected' : ''}>${escapeHtml(user.name)}</option>`;
+        });
+        select.dataset.loaded = 'true';
+    }
+
+    function renderResponsibleGroup(group) {
+        return `
+            <div class="card border-0 shadow-sm mb-4" style="background-color: var(--bs-card-bg);">
+                <div class="card-header d-flex justify-content-between align-items-center bg-transparent border-secondary">
+                    <div>
+                        <h5 class="mb-0"><i class="fas fa-user-cog me-2 text-primary"></i>${escapeHtml(group.responsible_name)}</h5>
+                        <small class="text-muted">${group.totals.projects} projeto(s), ${group.totals.tasks_open} tarefa(s) aberta(s), ${group.totals.todos_open} to-do(s) em aberto</small>
+                    </div>
+                </div>
+                <div class="card-body">
+                    ${group.projects.map(renderInternalProject).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    function renderInternalProject(project) {
+        const detailId = `project-detail-${project.id}`;
+        const badgeClass = statusBadgeClass[project.status] || 'bg-secondary';
+        const reason = project.status_reason ? `<div class="small text-muted mt-1"><strong>Motivo/status:</strong> ${escapeHtml(project.status_reason)}</div>` : '';
+        return `
+            <div class="internal-project-row">
+                <div class="p-3">
+                    <div class="d-flex align-items-start gap-3">
+                        <button class="btn btn-sm btn-outline-primary flex-shrink-0" type="button" onclick="toggleInternalDetail('${detailId}', this)" aria-label="Expandir projeto">+</button>
+                        <div class="flex-grow-1">
+                            <div class="d-flex flex-wrap justify-content-between gap-2">
+                                <div>
+                                    <h6 class="mb-1">${escapeHtml(project.nome)}</h6>
+                                    <div class="small text-muted">Cliente: ${escapeHtml(project.client_name)} • Prazo: ${escapeHtml(project.data_fim_label || project.prazo_label || '-')}</div>
+                                    ${reason}
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge ${badgeClass} status-pill">${escapeHtml(project.status_label)}</span>
+                                    <div class="small text-muted mt-2">Progresso: ${project.progress_percent || 0}%</div>
+                                </div>
+                            </div>
+                            <div class="row g-2 mt-3">
+                                <div class="col-md-3"><span class="badge bg-secondary w-100">${project.counts.tasks_total} tarefas</span></div>
+                                <div class="col-md-3"><span class="badge bg-warning text-dark w-100">${project.counts.tasks_open} abertas</span></div>
+                                <div class="col-md-3"><span class="badge bg-danger w-100">${project.counts.tasks_pending} pendentes</span></div>
+                                <div class="col-md-3"><span class="badge bg-info text-dark w-100">${project.counts.todos_open} to-dos abertos</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="${detailId}" class="internal-project-detail p-3 d-none">
+                    ${renderProjectDetail(project)}
+                </div>
+            </div>
+        `;
+    }
+
+    function renderProjectDetail(project) {
+        const team = project.team_members?.length ? project.team_members.map(escapeHtml).join(', ') : 'Sem equipe vinculada';
+        const openTasks = project.open_tasks?.length
+            ? project.open_tasks.map(renderOpenTask).join('')
+            : '<div class="text-success small"><i class="fas fa-check-circle me-1"></i>Nenhuma tarefa aberta neste projeto.</div>';
+        const history = project.status_history?.length
+            ? project.status_history.map(item => `
+                <li class="mb-2">
+                    <span class="text-muted">${escapeHtml(item.changed_at_label)}</span> —
+                    <strong>${escapeHtml(item.new_status_label)}</strong>
+                    <span class="text-muted">por ${escapeHtml(item.changed_by || 'Sistema')}</span>
+                    ${item.note ? `<br><span class="text-muted">Motivo: ${escapeHtml(item.note)}</span>` : ''}
+                </li>
+            `).join('')
+            : '<li class="text-muted">Sem histórico registrado.</li>';
+
+        return `
+            <div class="row g-4">
+                <div class="col-lg-7">
+                    <div class="tiny-label mb-2">Tarefas abertas e to-dos pendentes</div>
+                    ${openTasks}
+                </div>
+                <div class="col-lg-5">
+                    <div class="tiny-label mb-2">Contexto de gestão</div>
+                    <div class="small mb-3">
+                        <div><strong>Responsável:</strong> ${escapeHtml(project.responsible_name)}</div>
+                        <div><strong>Equipe:</strong> ${team}</div>
+                        <div><strong>Início:</strong> ${escapeHtml(project.data_inicio_label || '-')} • <strong>Fim:</strong> ${escapeHtml(project.data_fim_label || '-')}</div>
+                        ${project.github_repo ? `<div><strong>GitHub:</strong> ${escapeHtml(project.github_repo)}</div>` : ''}
+                        ${project.dominio ? `<div><strong>Domínio:</strong> ${escapeHtml(project.dominio)}</div>` : ''}
+                    </div>
+                    <div class="tiny-label mb-2">Histórico de status</div>
+                    <ul class="small ps-3 mb-0">${history}</ul>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderOpenTask(task) {
+        const todos = task.todos_abertos?.length
+            ? `<ul class="small mb-0 mt-2">${task.todos_abertos.map(todo => `<li>${escapeHtml(todo.texto)}${todo.due_date_label ? ` <span class="text-muted">(${escapeHtml(todo.due_date_label)})</span>` : ''}${todo.comentario ? `<br><span class="text-muted">${escapeHtml(todo.comentario)}</span>` : ''}</li>`).join('')}</ul>`
+            : '<div class="small text-muted mt-2">Sem to-dos abertos nessa tarefa.</div>';
+        return `
+            <div class="border rounded p-2 mb-2" style="border-color: rgba(255,255,255,.1) !important;">
+                <div class="d-flex justify-content-between gap-2">
+                    <strong>${escapeHtml(task.titulo)}</strong>
+                    <span class="badge bg-secondary">${escapeHtml(task.status_label)}</span>
+                </div>
+                <div class="small text-muted">Responsável da tarefa: ${escapeHtml(task.assigned_user)}${task.data_conclusao_label ? ` • Prazo: ${escapeHtml(task.data_conclusao_label)}` : ''}</div>
+                ${todos}
+            </div>
+        `;
+    }
+
+    function toggleInternalDetail(id, btn) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const isHidden = el.classList.toggle('d-none');
+        btn.textContent = isHidden ? '+' : '−';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadInternalControlReport();
+        const select = document.getElementById('internalResponsibleFilter');
+        if (select) select.addEventListener('change', loadInternalControlReport);
+    });
+
     function filterProjects() {
         const clientId = document.getElementById('clientFilter').value;
         const userId = document.getElementById('userFilter').value;
         const projectId = document.getElementById('projectFilter').value;
-
         const wrappers = document.querySelectorAll('.project-card-wrapper');
         let visibleCount = 0;
-
         wrappers.forEach(wrapper => {
-            const cardClientId = wrapper.dataset.clientId;
-            const cardUserId = wrapper.dataset.responsibleId;
-            const cardProjectId = wrapper.dataset.projectId;
-
-            let show = true;
-
-            if (clientId && cardClientId !== clientId) show = false;
-            if (userId && cardUserId !== userId) show = false;
-            if (projectId && cardProjectId !== projectId) show = false;
-
-            if (show) {
-                wrapper.classList.remove('d-none');
-                visibleCount++;
-            } else {
-                wrapper.classList.add('d-none');
-            }
+            const show = (!clientId || wrapper.dataset.clientId === clientId) && (!userId || wrapper.dataset.responsibleId === userId) && (!projectId || wrapper.dataset.projectId === projectId);
+            wrapper.classList.toggle('d-none', !show);
+            if (show) visibleCount++;
         });
-
-        const noResults = document.getElementById('noResults');
-        if (visibleCount === 0) {
-            noResults.classList.remove('d-none');
-        } else {
-            noResults.classList.add('d-none');
-        }
-
-        // Reset select all when filtering
+        document.getElementById('noResults').classList.toggle('d-none', visibleCount !== 0);
         document.getElementById('selectAll').checked = false;
-        // Keep selections? Maybe clear to avoid confusion. Let's keep them but uncheck visual "select all"
     }
 
     function toggleCardSelection(cardElement, event) {
-        // Find checkbox inside the card
         const checkbox = cardElement.querySelector('.project-checkbox');
         if (checkbox && !checkbox.disabled) {
             checkbox.checked = !checkbox.checked;
@@ -179,45 +389,31 @@
     function toggleSelectAll() {
         const selectAll = document.getElementById('selectAll');
         const checkboxes = document.querySelectorAll('.project-card-wrapper:not(.d-none) .project-checkbox:not(:disabled)');
-
-        checkboxes.forEach(cb => {
-            cb.checked = selectAll.checked;
-        });
+        checkboxes.forEach(cb => { cb.checked = selectAll.checked; });
         updateCount();
     }
 
     function updateCount() {
-        const checkboxes = document.querySelectorAll('.project-checkbox:checked');
-        const count = checkboxes.length;
+        const count = document.querySelectorAll('.project-checkbox:checked').length;
         document.getElementById('selectedCount').textContent = count;
         document.getElementById('btnGenerate').disabled = count === 0;
     }
 
     async function generateReport() {
-        const checkboxes = document.querySelectorAll('.project-checkbox:checked');
-        const projectIds = Array.from(checkboxes).map(cb => cb.value);
-
+        const projectIds = Array.from(document.querySelectorAll('.project-checkbox:checked')).map(cb => cb.value);
         if (projectIds.length === 0) return;
-
         const overlay = document.getElementById('loadingOverlay');
         const btn = document.getElementById('btnGenerate');
-
         try {
             overlay.classList.remove('d-none');
             overlay.classList.add('d-flex');
             btn.disabled = true;
-
             const response = await fetch('/reports/generate_pdf', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ project_ids: projectIds })
             });
-
             if (!response.ok) throw new Error('Erro ao gerar relatório');
-
-            // Download blob
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -227,7 +423,6 @@
             a.click();
             window.URL.revokeObjectURL(url);
             a.remove();
-
         } catch (error) {
             console.error(error);
             alert('Erro ao gerar relatório. Tente novamente.');

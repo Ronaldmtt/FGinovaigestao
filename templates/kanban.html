@@ -581,7 +581,7 @@
             <div class="kanban-column" data-status="pendente" style="min-height: 400px;">
                 {% for task in task_columns.pendente %}
                 {% set pending_todos_count = task.todos|selectattr('completed', 'false')|list|length %}
-                <div class="task-card-modern card mb-3" data-task-id="{{ task.id }}" draggable="true"
+                <div id="task-{{ task.id }}" class="task-card-modern card mb-3" data-task-id="{{ task.id }}" draggable="true"
                     onclick="editTask({{ task.id }})"
                     style="cursor: pointer; border-left: 4px solid #6c757d; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                     {% if pending_todos_count > 0 %}
@@ -659,7 +659,7 @@
                 {% if days_remaining <= 0 %} {% set glow_class='glow-purple' %} {% elif days_remaining==1 %} {% set
                     glow_class='glow-red' %} {% elif days_remaining==2 %} {% set glow_class='glow-orange' %} {% else %}
                     {% set glow_class='glow-green' %} {% endif %} {% endif %} <div
-                    class="task-card-modern card mb-3 {{ glow_class }}" data-task-id="{{ task.id }}" draggable="true"
+                    id="task-{{ task.id }}" class="task-card-modern card mb-3 {{ glow_class }}" data-task-id="{{ task.id }}" draggable="true"
                     onclick="editTask({{ task.id }})"
                     style="cursor: pointer; border-left: 4px solid #6554c0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                     {% if pending_todos_count > 0 %}
@@ -729,7 +729,7 @@
         <div class="kanban-column" data-status="concluida" style="min-height: 400px;">
             {% for task in task_columns.concluida %}
             {% set pending_todos_count = task.todos|selectattr('completed', 'false')|list|length %}
-            <div class="task-card-modern card mb-3 glow-complete" data-task-id="{{ task.id }}" draggable="true"
+            <div id="task-{{ task.id }}" class="task-card-modern card mb-3 glow-complete" data-task-id="{{ task.id }}" draggable="true"
                 onclick="editTask({{ task.id }})"
                 style="cursor: pointer; border-left: 4px solid #00a86b; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                 {% if pending_todos_count > 0 %}

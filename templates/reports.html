@@ -8,6 +8,8 @@
     .report-tabs .nav-link.active { color: #fff; background: rgba(13,110,253,.18); border-color: rgba(13,110,253,.35); }
     .control-summary-card { border: 1px solid rgba(255,255,255,.08); background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); }
     .internal-project-row { border: 1px solid rgba(255,255,255,.08); border-radius: 14px; background: rgba(255,255,255,.025); }
+    .internal-task-link { color: inherit; text-decoration: none; display: block; transition: transform .15s ease, border-color .15s ease, background .15s ease; }
+    .internal-task-link:hover { color: inherit; transform: translateY(-1px); background: rgba(13,110,253,.08); border-color: rgba(13,110,253,.35) !important; }
     .internal-project-row + .internal-project-row { margin-top: .75rem; }
     .internal-project-detail { border-top: 1px solid rgba(255,255,255,.08); background: rgba(0,0,0,.12); }
     .status-pill { border: 1px solid rgba(255,255,255,.12); }
@@ -350,7 +352,7 @@
     function renderProjectDetail(project) {
         const team = project.team_members?.length ? project.team_members.map(escapeHtml).join(', ') : 'Sem equipe vinculada';
         const openTasks = project.open_tasks?.length
-            ? project.open_tasks.map(renderOpenTask).join('')
+            ? project.open_tasks.map(task => renderOpenTask(task, project)).join('')
             : '<div class="text-success small"><i class="fas fa-check-circle me-1"></i>Nenhuma tarefa aberta neste projeto.</div>';
         const history = project.status_history?.length
             ? project.status_history.map(item => `
@@ -385,19 +387,21 @@
         `;
     }
 
-    function renderOpenTask(task) {
+    function renderOpenTask(task, project) {
         const todos = task.todos_abertos?.length
             ? `<ul class="small mb-0 mt-2">${task.todos_abertos.map(todo => `<li>${escapeHtml(todo.texto)}${todo.due_date_label ? ` <span class="text-muted">(${escapeHtml(todo.due_date_label)})</span>` : ''}${todo.comentario ? `<br><span class="text-muted">${escapeHtml(todo.comentario)}</span>` : ''}</li>`).join('')}</ul>`
             : '<div class="small text-muted mt-2">Sem to-dos abertos nessa tarefa.</div>';
+        const kanbanUrl = `/kanban?project_id=${encodeURIComponent(project.id)}#task-${encodeURIComponent(task.id)}`;
         return `
-            <div class="border rounded p-2 mb-2" style="border-color: rgba(255,255,255,.1) !important;">
+            <a class="internal-task-link border rounded p-2 mb-2" style="border-color: rgba(255,255,255,.1) !important;" href="${kanbanUrl}" title="Abrir esta tarefa no Kanban">
                 <div class="d-flex justify-content-between gap-2">
                     <strong>${escapeHtml(task.titulo)}</strong>
                     <span class="badge bg-secondary">${escapeHtml(task.status_label)}</span>
                 </div>
                 <div class="small text-muted">Responsável da tarefa: ${escapeHtml(task.assigned_user)}${task.data_conclusao_label ? ` • Prazo: ${escapeHtml(task.data_conclusao_label)}` : ''}</div>
+                <div class="small text-primary mt-1"><i class="fas fa-external-link-alt me-1"></i>Abrir no Kanban</div>
                 ${todos}
-            </div>
+            </a>
         `;
     }
 

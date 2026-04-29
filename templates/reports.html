@@ -11,6 +11,17 @@
     .internal-project-row + .internal-project-row { margin-top: .75rem; }
     .internal-project-detail { border-top: 1px solid rgba(255,255,255,.08); background: rgba(0,0,0,.12); }
     .status-pill { border: 1px solid rgba(255,255,255,.12); }
+    .internal-status-filters { display:flex; gap:.55rem; flex-wrap:wrap; margin-bottom:1rem; }
+    .internal-status-filter { display:inline-flex; align-items:center; gap:.35rem; padding:.52rem .8rem; border-radius:999px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.03); color:var(--bs-secondary-color); font-size:.86rem; font-weight:600; }
+    .internal-status-filter:hover { color:#fff; border-color:rgba(13,110,253,.45); }
+    .internal-status-filter.active { background:rgba(13,110,253,.18); color:#fff; border-color:rgba(13,110,253,.45); }
+    .progress-container-card { display:flex; align-items:center; gap:.55rem; min-width:150px; }
+    .progress-bar-custom { flex:1; height:8px; background:rgba(255,255,255,.08); border-radius:999px; overflow:hidden; }
+    .progress-fill { height:100%; border-radius:999px; transition:width .2s ease; }
+    .progress-danger { background:linear-gradient(90deg,#dc3545,#ff6b7a); }
+    .progress-warning { background:linear-gradient(90deg,#ffc107,#ffda6a); }
+    .progress-success { background:linear-gradient(90deg,#198754,#2bd576); }
+    .progress-text { font-size:.8rem; color:var(--bs-secondary-color); min-width:36px; text-align:right; }
     .tiny-label { font-size: .72rem; letter-spacing: .04em; text-transform: uppercase; color: var(--bs-secondary-color); }
 </style>
 
@@ -51,7 +62,7 @@
                         </button>
                     </div>
                     <div class="col-md-4 text-md-end text-muted small">
-                        <i class="fas fa-info-circle me-1"></i>Use o botão “+” para abrir detalhes de tarefas, to-dos e histórico de status.
+                        <i class="fas fa-info-circle me-1"></i>Use “+” no responsável para abrir/fechar projetos e “+” no projeto para ver detalhes.
                     </div>
                 </div>
             </div>
@@ -244,27 +255,64 @@
     }
 
     function renderResponsibleGroup(group) {
+        const groupId = `responsible-group-${group.responsible_id || 'none'}`;
         return `
             <div class="card border-0 shadow-sm mb-4" style="background-color: var(--bs-card-bg);">
                 <div class="card-header d-flex justify-content-between align-items-center bg-transparent border-secondary">
-                    <div>
-                        <h5 class="mb-0"><i class="fas fa-user-cog me-2 text-primary"></i>${escapeHtml(group.responsible_name)}</h5>
-                        <small class="text-muted">${group.totals.projects} projeto(s), ${group.totals.tasks_open} tarefa(s) aberta(s), ${group.totals.todos_open} to-do(s) em aberto</small>
+                    <div class="d-flex align-items-start gap-3">
+                        <button class="btn btn-sm btn-outline-primary flex-shrink-0" type="button" onclick="toggleResponsibleGroup('${groupId}', this)" aria-label="Abrir projetos do responsável">+</button>
+                        <div>
+                            <h5 class="mb-0"><i class="fas fa-user-cog me-2 text-primary"></i>${escapeHtml(group.responsible_name)}</h5>
+                            <small class="text-muted">${group.totals.projects} projeto(s), ${group.totals.tasks_open} tarefa(s) aberta(s), ${group.totals.todos_open} to-do(s) em aberto</small>
+                        </div>
                     </div>
                 </div>
-                <div class="card-body">
-                    ${group.projects.map(renderInternalProject).join('')}
+                <div class="card-body d-none" id="${groupId}">
+                    ${renderStatusFilters(groupId, group.projects)}
+                    <div class="internal-projects-list">
+                        ${group.projects.map(project => renderInternalProject(project, groupId)).join('')}
+                    </div>
+                    <div class="internal-group-empty text-center text-muted py-4 d-none">
+                        Nenhum projeto desse responsável para o status selecionado.
+                    </div>
                 </div>
             </div>
         `;
     }
 
-    function renderInternalProject(project) {
+    function renderStatusFilters(groupId, projects) {
+        const filters = [
+            ['all', 'Todos'],
+            ['em_andamento', 'Em Andamento'],
+            ['em_teste', 'Em Teste'],
+            ['concluido', 'Concluídos'],
+            ['pausado', 'Pausado'],
+            ['cancelado', 'Cancelados']
+        ];
+        const countByStatus = projects.reduce((acc, project) => {
+            acc[project.status] = (acc[project.status] || 0) + 1;
+            acc.all = (acc.all || 0) + 1;
+            return acc;
+        }, { all: 0 });
+        return `
+            <div class="internal-status-filters" data-group-id="${groupId}">
+                ${filters.map(([status, label]) => `
+                    <button type="button" class="internal-status-filter ${status === 'all' ? 'active' : ''}" onclick="filterInternalGroup('${groupId}', '${status}', this)">
+                        ${label} <span class="badge bg-secondary">${countByStatus[status] || 0}</span>
+                    </button>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    function renderInternalProject(project, groupId) {
         const detailId = `project-detail-${project.id}`;
         const badgeClass = statusBadgeClass[project.status] || 'bg-secondary';
+        const progress = Number(project.progress_percent || 0);
+        const progressColor = project.progress_color || (progress <= 25 ? 'progress-danger' : progress <= 75 ? 'progress-warning' : 'progress-success');
         const reason = project.status_reason ? `<div class="small text-muted mt-1"><strong>Motivo/status:</strong> ${escapeHtml(project.status_reason)}</div>` : '';
         return `
-            <div class="internal-project-row">
+            <div class="internal-project-row" data-group-id="${groupId}" data-status="${escapeHtml(project.status)}">
                 <div class="p-3">
                     <div class="d-flex align-items-start gap-3">
                         <button class="btn btn-sm btn-outline-primary flex-shrink-0" type="button" onclick="toggleInternalDetail('${detailId}', this)" aria-label="Expandir projeto">+</button>
@@ -277,7 +325,10 @@
                                 </div>
                                 <div class="text-end">
                                     <span class="badge ${badgeClass} status-pill">${escapeHtml(project.status_label)}</span>
-                                    <div class="small text-muted mt-2">Progresso: ${project.progress_percent || 0}%</div>
+                                    <div class="progress-container-card mt-2">
+                                        <div class="progress-bar-custom"><div class="progress-fill ${progressColor}" style="width:${Math.max(0, Math.min(progress, 100))}%;"></div></div>
+                                        <span class="progress-text">${progress}%</span>
+                                    </div>
                                 </div>
                             </div>
                             <div class="row g-2 mt-3">
@@ -355,6 +406,31 @@
         if (!el) return;
         const isHidden = el.classList.toggle('d-none');
         btn.textContent = isHidden ? '+' : '−';
+    }
+
+    function toggleResponsibleGroup(id, btn) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const isHidden = el.classList.toggle('d-none');
+        btn.textContent = isHidden ? '+' : '−';
+    }
+
+    function filterInternalGroup(groupId, status, btn) {
+        const group = document.getElementById(groupId);
+        if (!group) return;
+
+        group.querySelectorAll('.internal-status-filter').forEach(item => item.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+
+        let visibleCount = 0;
+        group.querySelectorAll('.internal-project-row').forEach(row => {
+            const shouldShow = status === 'all' || row.dataset.status === status;
+            row.classList.toggle('d-none', !shouldShow);
+            if (shouldShow) visibleCount++;
+        });
+
+        const empty = group.querySelector('.internal-group-empty');
+        if (empty) empty.classList.toggle('d-none', visibleCount !== 0);
     }
 
     document.addEventListener('DOMContentLoaded', () => {

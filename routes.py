@@ -5570,12 +5570,30 @@ def reports():
     return render_template('reports.html', projects=projects, clients=clients, users=users)
 
 
+def _compute_project_progress_from_tasks(project):
+    tasks = list(project.tasks or [])
+    if tasks:
+        total_tasks = len(tasks)
+        completed_tasks = sum(1 for task in tasks if task.status == 'concluida')
+        return int((completed_tasks / total_tasks) * 100) if total_tasks > 0 else 0
+    return project.progress_percent or 0
+
+
+def _project_progress_color(progress):
+    if progress <= 25:
+        return 'progress-danger'
+    if progress <= 75:
+        return 'progress-warning'
+    return 'progress-success'
+
+
 def _serialize_internal_control_project(project):
     tasks = list(project.tasks or [])
     open_tasks = [task for task in tasks if task.status != 'concluida']
     pending_tasks = [task for task in tasks if task.status == 'pendente']
     in_progress_tasks = [task for task in tasks if task.status == 'em_andamento']
     completed_tasks = [task for task in tasks if task.status == 'concluida']
+    computed_progress = _compute_project_progress_from_tasks(project)
 
     open_todos = []
     completed_todos_count = 0
@@ -5626,7 +5644,8 @@ def _serialize_internal_control_project(project):
         'status': project.status,
         'status_label': get_project_status_label(project.status),
         'status_reason': latest_status.note if latest_status and latest_status.note else None,
-        'progress_percent': project.progress_percent or 0,
+        'progress_percent': computed_progress,
+        'progress_color': _project_progress_color(computed_progress),
         'created_at_label': project.created_at.strftime('%d/%m/%Y') if project.created_at else '-',
         'data_inicio_label': project.data_inicio.strftime('%d/%m/%Y') if project.data_inicio else '-',
         'data_fim_label': project.data_fim.strftime('%d/%m/%Y') if project.data_fim else '-',

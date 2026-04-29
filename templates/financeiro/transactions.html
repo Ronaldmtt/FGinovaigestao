@@ -226,6 +226,20 @@
 
     const formatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function safeColor(value, fallback = '#6c757d') {
+        const color = String(value ?? '').trim();
+        return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(color) ? color : fallback;
+    }
+
     function loadTransactions() {
         const tbody = document.getElementById('transactionsTable');
         const params = new URLSearchParams();
@@ -249,9 +263,16 @@
                     const isIncome = t.tipo === 'income';
                     const trData = t.data.split('-').reverse().join('/');
 
+                    const descricao = escapeHtml(t.descricao);
+                    const centroCusto = escapeHtml(t.centro_custo || 'Sem categoria');
+                    const corCentroCusto = safeColor(t.cor_cc);
+                    const conta = escapeHtml(t.conta || '-');
+                    const cliente = t.cliente ? escapeHtml(t.cliente) : '';
+                    const fornecedor = t.fornecedor ? escapeHtml(t.fornecedor) : '';
+
                     let fileLink = '';
                     if (t.comprovante_url) {
-                        fileLink = `<a href="/uploads/financeiro/${t.comprovante_url}" target="_blank" class="btn btn-sm btn-outline-info me-1" title="Ver Comprovante"><i class="fas fa-paperclip"></i></a>`;
+                        fileLink = `<a href="/uploads/financeiro/${encodeURIComponent(t.comprovante_url)}" target="_blank" class="btn btn-sm btn-outline-info me-1" title="Ver Comprovante"><i class="fas fa-paperclip"></i></a>`;
                     }
 
                     const statusBadge = t.is_realized
@@ -265,15 +286,15 @@
                         <tr>
                             <td>${trData}</td>
                             <td>
-                                <strong>${t.descricao}</strong>
+                                <strong>${descricao}</strong>
                                 ${installmentInfo}
-                                ${t.cliente ? `<br><small class="text-success"><i class="fas fa-user-tag me-1"></i>${t.cliente}</small>` : ''}
-                                ${t.fornecedor ? `<br><small class="text-danger"><i class="fas fa-truck-loading me-1"></i>${t.fornecedor}</small>` : ''}
+                                ${cliente ? `<br><small class="text-success"><i class="fas fa-user-tag me-1"></i>${cliente}</small>` : ''}
+                                ${fornecedor ? `<br><small class="text-danger"><i class="fas fa-truck-loading me-1"></i>${fornecedor}</small>` : ''}
                             </td>
                             <td>
-                                <span class="badge" style="background-color: ${t.cor_cc}">${t.centro_custo}</span>
+                                <span class="badge" style="background-color: ${corCentroCusto}">${centroCusto}</span>
                             </td>
-                            <td><i class="fas fa-wallet me-2 opacity-50"></i>${t.conta}</td>
+                            <td><i class="fas fa-wallet me-2 opacity-50"></i>${conta}</td>
                             <td class="text-end ${isIncome ? 'text-success' : 'text-danger'} font-monospace">
                                 ${isIncome ? '+' : '-'} ${formatter.format(t.valor)}
                             </td>

@@ -52,19 +52,36 @@
         <div class="card mb-4 border-0 shadow-sm" style="background-color: var(--bs-card-bg);">
             <div class="card-body">
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-5">
+                    <div class="col-md-3">
                         <label class="form-label small text-muted text-uppercase fw-bold">Responsável / Programador</label>
                         <select class="form-select" id="internalResponsibleFilter">
                             <option value="">Todos os responsáveis</option>
                         </select>
                     </div>
                     <div class="col-md-3">
+                        <label class="form-label small text-muted text-uppercase fw-bold">Projeto</label>
+                        <select class="form-select" id="internalProjectFilter">
+                            <option value="">Todos os projetos</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small text-muted text-uppercase fw-bold">Status</label>
+                        <select class="form-select" id="internalStatusFilter">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
                         <button class="btn btn-primary w-100" onclick="loadInternalControlReport()">
                             <i class="fas fa-sync-alt me-2"></i>Atualizar relatório
                         </button>
                     </div>
-                    <div class="col-md-4 text-md-end text-muted small">
-                        <i class="fas fa-info-circle me-1"></i>Use “+” no responsável para abrir/fechar projetos e “+” no projeto para ver detalhes.
+                    <div class="col-md-2">
+                        <button class="btn btn-outline-danger w-100" onclick="exportInternalControlPdf()">
+                            <i class="fas fa-file-pdf me-2"></i>Exportar PDF
+                        </button>
+                    </div>
+                    <div class="col-12 text-muted small">
+                        <i class="fas fa-info-circle me-1"></i>Filtre por responsável, projeto ou status; o PDF respeita exatamente a seleção atual e organiza tudo por responsável e projeto.
                     </div>
                 </div>
             </div>
@@ -211,6 +228,8 @@
 
     async function loadInternalControlReport() {
         const responsibleId = document.getElementById('internalResponsibleFilter').value;
+        const projectId = document.getElementById('internalProjectFilter').value;
+        const status = document.getElementById('internalStatusFilter').value;
         const loading = document.getElementById('internalReportLoading');
         const container = document.getElementById('internalReportContainer');
         const empty = document.getElementById('internalReportEmpty');
@@ -222,11 +241,15 @@
         try {
             const params = new URLSearchParams();
             if (responsibleId) params.set('responsible_id', responsibleId);
+            if (projectId) params.set('project_id', projectId);
+            if (status) params.set('status', status);
             const resp = await fetch(`/reports/internal-control-data?${params.toString()}`);
             if (!resp.ok) throw new Error('Falha ao carregar relatório interno');
             const data = await resp.json();
 
             hydrateResponsibleFilter(data.users || [], responsibleId);
+            hydrateProjectFilter(data.projects || [], projectId);
+            hydrateStatusFilter(data.statuses || [], status);
             setText('sumProjects', data.totals?.projects ?? 0);
             setText('sumOpenTasks', data.totals?.tasks_open ?? 0);
             setText('sumPendingTasks', data.totals?.tasks_pending ?? 0);
@@ -254,6 +277,44 @@
             select.innerHTML += `<option value="${user.id}" ${String(user.id) === String(selectedValue) ? 'selected' : ''}>${escapeHtml(user.name)}</option>`;
         });
         select.dataset.loaded = 'true';
+    }
+
+    function hydrateProjectFilter(projects, selectedValue) {
+        const select = document.getElementById('internalProjectFilter');
+        const selectedStillAvailable = projects.some(project => String(project.id) === String(selectedValue));
+        select.innerHTML = '<option value="">Todos os projetos</option>';
+        projects.forEach(project => {
+            const label = `${project.name} — ${project.client_name || '-'}`;
+            select.innerHTML += `<option value="${project.id}" ${String(project.id) === String(selectedValue) ? 'selected' : ''}>${escapeHtml(label)}</option>`;
+        });
+        if (selectedValue && !selectedStillAvailable) select.value = '';
+    }
+
+    function hydrateStatusFilter(statuses, selectedValue) {
+        const select = document.getElementById('internalStatusFilter');
+        if (select.dataset.loaded === 'true') return;
+        select.innerHTML = '<option value="">Todos</option>';
+        statuses.forEach(status => {
+            select.innerHTML += `<option value="${status.id}" ${String(status.id) === String(selectedValue) ? 'selected' : ''}>${escapeHtml(status.name)}</option>`;
+        });
+        select.dataset.loaded = 'true';
+    }
+
+    function buildInternalControlParams() {
+        const params = new URLSearchParams();
+        const responsibleId = document.getElementById('internalResponsibleFilter').value;
+        const projectId = document.getElementById('internalProjectFilter').value;
+        const status = document.getElementById('internalStatusFilter').value;
+        if (responsibleId) params.set('responsible_id', responsibleId);
+        if (projectId) params.set('project_id', projectId);
+        if (status) params.set('status', status);
+        return params;
+    }
+
+    function exportInternalControlPdf() {
+        const params = buildInternalControlParams();
+        const url = `/reports/internal-control-pdf${params.toString() ? `?${params.toString()}` : ''}`;
+        window.location.href = url;
     }
 
     function renderResponsibleGroup(group) {
@@ -439,8 +500,16 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         loadInternalControlReport();
-        const select = document.getElementById('internalResponsibleFilter');
-        if (select) select.addEventListener('change', loadInternalControlReport);
+        const responsibleSelect = document.getElementById('internalResponsibleFilter');
+        if (responsibleSelect) responsibleSelect.addEventListener('change', () => {
+            const projectSelect = document.getElementById('internalProjectFilter');
+            if (projectSelect) projectSelect.value = '';
+            loadInternalControlReport();
+        });
+        ['internalProjectFilter', 'internalStatusFilter'].forEach(id => {
+            const select = document.getElementById(id);
+            if (select) select.addEventListener('change', loadInternalControlReport);
+        });
     });
 
     function filterProjects() {

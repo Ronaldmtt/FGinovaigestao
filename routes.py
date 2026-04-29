@@ -5672,6 +5672,22 @@ def _serialize_internal_control_project(project):
 @login_required
 def reports_internal_control_data():
     responsible_id = request.args.get('responsible_id', type=int)
+    project_id = request.args.get('project_id', type=int)
+    status_filter = (request.args.get('status') or '').strip()
+
+    payload = _build_internal_control_payload(
+        responsible_id=responsible_id,
+        project_id=project_id,
+        status_filter=status_filter,
+    )
+    return jsonify(payload)
+
+
+def _build_internal_control_payload(responsible_id=None, project_id=None, status_filter=None):
+    status_filter = (status_filter or '').strip()
+    valid_statuses = set(PROJECT_STATUS_LABELS.keys())
+    if status_filter and status_filter not in valid_statuses:
+        status_filter = None
 
     query = Project.query.options(
         joinedload(Project.client),
@@ -5693,6 +5709,10 @@ def reports_internal_control_data():
 
     if responsible_id:
         query = query.filter(Project.responsible_id == responsible_id)
+    if project_id:
+        query = query.filter(Project.id == project_id)
+    if status_filter:
+        query = query.filter(Project.status == status_filter)
 
     projects = query.outerjoin(User, Project.responsible_id == User.id).order_by(
         func.lower(User.nome),
@@ -5734,12 +5754,175 @@ def reports_internal_control_data():
         if project.data_fim and project.data_fim < today and project.status not in ('concluido', 'cancelado'):
             totals['delayed_projects'] += 1
 
-    return jsonify({
+    project_options = [
+        {
+            'id': project.id,
+            'name': project.nome,
+            'client_name': project.client.nome if project.client else '-',
+            'responsible_id': project.responsible_id,
+            'status': project.status,
+        }
+        for project in projects
+    ]
+
+    return {
         'success': True,
         'users': [{'id': user.id, 'name': user.full_name} for user in users],
+        'projects': project_options,
+        'statuses': [{'id': key, 'name': value} for key, value in PROJECT_STATUS_LABELS.items()],
+        'filters': {
+            'responsible_id': responsible_id,
+            'project_id': project_id,
+            'status': status_filter,
+        },
         'totals': totals,
         'groups': sorted(grouped.values(), key=lambda g: g['responsible_name'].lower()),
-    })
+    }
+
+
+@app.route('/reports/internal-control-pdf')
+@login_required
+def reports_internal_control_pdf():
+    responsible_id = request.args.get('responsible_id', type=int)
+    project_id = request.args.get('project_id', type=int)
+    status_filter = (request.args.get('status') or '').strip()
+    payload = _build_internal_control_payload(responsible_id=responsible_id, project_id=project_id, status_filter=status_filter)
+
+    from xml.sax.saxutils import escape as xml_escape
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+
+    def safe(value):
+        text = '-' if value in (None, '') else str(value)
+        return xml_escape(text)
+
+    def bullet_lines(items, empty_text='Nenhum registro.'):
+        if not items:
+            return [Paragraph(f'<i>{safe(empty_text)}</i>', body_style)]
+        return [Paragraph(f'- {safe(item)}', small_style) for item in items]
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=32, leftMargin=32, topMargin=42, bottomMargin=36)
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle('InternalTitle', parent=styles['Heading1'], fontSize=17, leading=21, textColor=colors.HexColor('#1f3b64'), spaceAfter=10)
+    subtitle_style = ParagraphStyle('InternalSubtitle', parent=styles['Heading2'], fontSize=13, leading=16, textColor=colors.HexColor('#2f5f9f'), spaceBefore=12, spaceAfter=8)
+    project_style = ParagraphStyle('InternalProject', parent=styles['Heading3'], fontSize=11.5, leading=14, textColor=colors.HexColor('#263238'), spaceBefore=8, spaceAfter=5)
+    body_style = ParagraphStyle('InternalBody', parent=styles['Normal'], fontSize=9, leading=12, spaceAfter=4)
+    small_style = ParagraphStyle('InternalSmall', parent=styles['Normal'], fontSize=8, leading=10, leftIndent=8, spaceAfter=2)
+
+    elements = [
+        Paragraph('Relatório de Controle Interno', title_style),
+        Paragraph(f'Gerado em {datetime.now().strftime("%d/%m/%Y %H:%M")}', body_style),
+        Spacer(1, 8),
+    ]
+
+    totals = payload.get('totals', {})
+    summary_data = [
+        ['Projetos', 'Tarefas abertas', 'Tarefas pendentes', 'To-dos abertos', 'Projetos atrasados'],
+        [
+            str(totals.get('projects', 0)),
+            str(totals.get('tasks_open', 0)),
+            str(totals.get('tasks_pending', 0)),
+            str(totals.get('todos_open', 0)),
+            str(totals.get('delayed_projects', 0)),
+        ]
+    ]
+    summary_table = Table(summary_data, colWidths=[92, 102, 108, 96, 104])
+    summary_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1f3b64')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 8),
+        ('BACKGROUND', (0, 1), (-1, 1), colors.HexColor('#f3f6fb')),
+        ('GRID', (0, 0), (-1, -1), 0.25, colors.HexColor('#cbd5e1')),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+    ]))
+    elements.append(summary_table)
+    elements.append(Spacer(1, 10))
+
+    groups = payload.get('groups') or []
+    if not groups:
+        elements.append(Paragraph('Nenhum projeto encontrado para os filtros selecionados.', body_style))
+    for group_index, group in enumerate(groups):
+        if group_index:
+            elements.append(PageBreak())
+        elements.append(Paragraph(f'Responsável: {safe(group.get("responsible_name"))}', subtitle_style))
+        gt = group.get('totals', {})
+        elements.append(Paragraph(
+            f"{gt.get('projects', 0)} projeto(s) - {gt.get('tasks_open', 0)} tarefa(s) aberta(s) - "
+            f"{gt.get('tasks_pending', 0)} pendente(s) - {gt.get('todos_open', 0)} to-do(s) aberto(s)",
+            body_style
+        ))
+
+        for project in group.get('projects', []):
+            counts = project.get('counts', {})
+            team = ', '.join(project.get('team_members') or []) or 'Sem equipe vinculada'
+            project_block = [
+                Paragraph(f"{safe(project.get('nome'))}", project_style),
+                Paragraph(
+                    f"<b>Cliente:</b> {safe(project.get('client_name'))} &nbsp;&nbsp; "
+                    f"<b>Status:</b> {safe(project.get('status_label'))} &nbsp;&nbsp; "
+                    f"<b>Progresso:</b> {safe(project.get('progress_percent'))}%",
+                    body_style
+                ),
+                Paragraph(
+                    f"<b>Início:</b> {safe(project.get('data_inicio_label'))} &nbsp;&nbsp; "
+                    f"<b>Fim:</b> {safe(project.get('data_fim_label'))} &nbsp;&nbsp; "
+                    f"<b>Prazo:</b> {safe(project.get('prazo_label'))}",
+                    body_style
+                ),
+                Paragraph(f"<b>Equipe:</b> {safe(team)}", body_style),
+                Paragraph(
+                    f"<b>Tarefas:</b> {counts.get('tasks_total', 0)} total, {counts.get('tasks_open', 0)} aberta(s), "
+                    f"{counts.get('tasks_pending', 0)} pendente(s), {counts.get('tasks_in_progress', 0)} em andamento, "
+                    f"{counts.get('tasks_completed', 0)} concluída(s). <b>To-dos:</b> {counts.get('todos_open', 0)} aberto(s) de {counts.get('todos_total', 0)}.",
+                    body_style
+                ),
+            ]
+            if project.get('status_reason'):
+                project_block.append(Paragraph(f"<b>Motivo/observação do status:</b> {safe(project.get('status_reason'))}", body_style))
+            if project.get('github_repo'):
+                project_block.append(Paragraph(f"<b>GitHub:</b> {safe(project.get('github_repo'))}", body_style))
+            if project.get('dominio'):
+                project_block.append(Paragraph(f"<b>Domínio:</b> {safe(project.get('dominio'))}", body_style))
+
+            project_block.append(Paragraph('<b>Tarefas abertas e to-dos pendentes</b>', body_style))
+            if project.get('open_tasks'):
+                for task in project.get('open_tasks', []):
+                    project_block.append(Paragraph(
+                        f"- <b>{safe(task.get('titulo'))}</b> — {safe(task.get('status_label'))}; responsável: {safe(task.get('assigned_user'))}"
+                        f"{(' prazo: ' + safe(task.get('data_conclusao_label'))) if task.get('data_conclusao_label') else ''}",
+                        small_style
+                    ))
+                    for todo in task.get('todos_abertos') or []:
+                        project_block.append(Paragraph(
+                            f"   - {safe(todo.get('texto'))}{(' — ' + safe(todo.get('due_date_label'))) if todo.get('due_date_label') else ''}"
+                            f"{(' — ' + safe(todo.get('comentario'))) if todo.get('comentario') else ''}",
+                            small_style
+                        ))
+            else:
+                project_block.extend(bullet_lines([], 'Nenhuma tarefa aberta neste projeto.'))
+
+            if project.get('status_history'):
+                project_block.append(Paragraph('<b>Histórico recente de status</b>', body_style))
+                for item in project.get('status_history', [])[:6]:
+                    note = f" — Motivo: {safe(item.get('note'))}" if item.get('note') else ''
+                    project_block.append(Paragraph(
+                        f"- {safe(item.get('changed_at_label'))}: {safe(item.get('new_status_label'))} por {safe(item.get('changed_by') or 'Sistema')}{note}",
+                        small_style
+                    ))
+
+            elements.extend(project_block)
+            elements.append(Spacer(1, 8))
+
+    doc.build(elements)
+    buffer.seek(0)
+    filename = f"controle_interno_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
+    return send_file(buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
 
 def process_single_project_report(project_data):
     """

@@ -333,14 +333,18 @@ def generate_client_report_from_tasks(project_name, tasks, completed_todos=None,
 def generate_project_tasks_from_meeting_and_repo(project_name, meeting_context, repo_context=""):
     """
     Gera tarefas e to-dos a partir da combinação entre reunião/transcrição e contexto técnico do repositório.
+
+    Esta geração alimenta diretamente o Kanban. Por isso, a saída precisa ser útil como plano de
+    execução, não apenas como resumo da reunião: quando a reunião concentra um fluxo grande, a IA
+    deve preferir uma tarefa-mãe com uma sequência longa, ordenada e rica de to-dos.
     """
     try:
         prompt = f"""
-        Você é um gerente técnico e product owner senior.
+        Você é um gerente técnico, product owner senior e arquiteto de automações RPA/IA.
 
-        Seu trabalho é gerar tarefas acionáveis para o projeto \"{project_name}\" com base em duas fontes:
-        1. Contexto da reunião/transcrição
-        2. Contexto técnico do repositório Git
+        Seu trabalho é gerar um plano acionável para o projeto \"{project_name}\" com base em duas fontes:
+        1. Contexto completo da reunião/transcrição/análise/notas/action items
+        2. Contexto técnico do repositório Git e do sistema existente
 
         CONTEXTO DA REUNIÃO:
         {meeting_context}
@@ -348,36 +352,59 @@ def generate_project_tasks_from_meeting_and_repo(project_name, meeting_context, 
         CONTEXTO TÉCNICO DO REPOSITÓRIO:
         {repo_context or 'Sem contexto adicional de repositório.'}
 
-        OBJETIVO:
-        - entender o que a reunião pediu
-        - entender o que o sistema/projeto faz hoje
-        - cruzar o que foi falado na reunião com o que já existe no repositório
-        - identificar gaps reais: ajustes, melhorias, verificações, adições e correções que ainda não aparecem implementadas no contexto técnico atual
-        - transformar isso em tarefas reais de execução
-        - cada tarefa deve ter subtarefas/to-dos práticos
-        - cada tarefa deve trazer um comentário aberto explicando o que fazer e como fazer
-        - sugerir prazo quando houver sinal suficiente no contexto
+        OBJETIVO DA GERAÇÃO:
+        - entender profundamente o fluxo real pedido na reunião, mesmo se a transcrição tiver falas atribuídas ao participante errado;
+        - inferir responsabilidades pelo contexto, não apenas pelo nome do speaker;
+        - cruzar reunião, notas, próximos passos, action items e repositório;
+        - transformar o conteúdo em um plano de execução técnico e operacional, com ordem clara do que fazer primeiro;
+        - evitar tarefas rasas como "desenvolver robô" sem decomposição;
+        - registrar decisões, dependências, validações e critérios de aceite dentro dos to-dos;
+        - produzir to-dos suficientemente detalhados para um desenvolvedor começar sem precisar reler toda a reunião.
 
-        REGRAS:
-        - gere entre 3 e 8 tarefas, apenas se houver contexto suficiente
-        - não invente funcionalidades fora do que reunião + repo sustentam
-        - prefira tarefas de implementação, verificação e melhoria objetivas
-        - priorize o que parece faltar no sistema atual em relação ao que foi pedido na reunião
-        - se algo já aparenta existir no repositório, prefira tarefa de ajuste/validação em vez de recriar do zero
-        - to-dos devem ser executáveis e específicos
-        - comentário deve explicar a intenção, o caminho técnico e o porquê daquela demanda nascer do cruzamento reunião + sistema atual
+        ESTRATÉGIA DE SAÍDA:
+        - PREFIRA gerar 1 tarefa-mãe grande quando a reunião descreve um fluxo único ou uma frente principal de implementação.
+        - Só gere 2 ou 3 tarefas se houver frentes realmente independentes que possam andar separadas.
+        - Nunca fragmente artificialmente em muitas tarefas pequenas.
+        - Cada tarefa deve ter entre 10 e 25 to-dos, em ordem cronológica/lógica de execução.
+        - Os to-dos devem começar com prefixo numérico para preservar a ordem no Kanban: "01 — ...", "02 — ...".
+        - O campo "texto" do to-do deve ser curto o bastante para o Kanban (máximo 280 caracteres), mas específico.
+        - O campo "comentario" deve ser rico: explicar contexto da reunião, caminho técnico, dependências, dados esperados, critério de aceite e risco quando existir.
+        - Use "due_days" progressivo: itens de diagnóstico/acesso primeiro, implementação depois, validação/homologação por último.
 
-        Retorne APENAS JSON no formato:
+        PROFUNDIDADE MÍNIMA ESPERADA:
+        Para cada frente aplicável ao contexto, avalie se precisa virar to-do:
+        1. confirmar acessos, credenciais, certificados, permissões e limitações de login;
+        2. mapear fluxo manual exato, URLs, telas, filtros, campos, exceções e variações por usuário;
+        3. modelar dados necessários no sistema, inclusive status, origem, beneficiário, CPF/CNPJ, valores, honorários, descontos, datas e documentos;
+        4. implementar busca/consulta inicial no tribunal ou fonte externa;
+        5. diferenciar prévia x definitivo e desenhar rotina de promoção/atualização;
+        6. extrair e armazenar documentos, ofícios, comprovantes e metadados relevantes;
+        7. calcular ou conferir valores líquidos, deduções, honorários, prioridades e regras específicas;
+        8. criar rotina periódica de revisita/monitoramento com logs, retries e alertas;
+        9. expor dados em interface/filtros/relatórios para o usuário final;
+        10. criar testes, massa de validação, critérios de aceite e roteiro de homologação com cliente;
+        11. documentar parâmetros configuráveis para futuras buscas específicas;
+        12. preparar entrega incremental, demo parcial e próximos alinhamentos.
+
+        REGRAS DE QUALIDADE:
+        - Não invente funcionalidades fora do que reunião + repo sustentam, mas extraia todas as implicações práticas do que foi dito.
+        - Se algo já aparenta existir no repositório, gere to-do de ajuste, integração, endurecimento ou validação, não recriação do zero.
+        - A descrição da tarefa deve ser executiva e completa, explicando o resultado esperado da frente.
+        - O comentário da tarefa deve resumir por que aquela frente nasceu da reunião e como ela deve ser executada tecnicamente.
+        - A saída deve deixar claro o que começa primeiro, o que depende de acesso do cliente e o que só vem depois de validação.
+        - Não use markdown pesado; texto puro é melhor para o Kanban.
+
+        Retorne APENAS JSON válido no formato:
         {{
           "tasks": [
             {{
               "titulo": "...",
               "descricao": "...",
               "comentario": "...",
-              "due_days": 3,
+              "due_days": 10,
               "todos": [
-                {{"texto": "...", "comentario": "...", "due_days": 2}},
-                {{"texto": "...", "comentario": "...", "due_days": 4}}
+                {{"texto": "01 — ...", "comentario": "...", "due_days": 1}},
+                {{"texto": "02 — ...", "comentario": "...", "due_days": 2}}
               ]
             }}
           ]

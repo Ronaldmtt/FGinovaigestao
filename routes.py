@@ -3506,15 +3506,28 @@ Resultados estruturados:
         if not tasks_payload:
             return jsonify({'success': False, 'message': 'A IA não encontrou contexto suficiente para gerar tarefas acionáveis a partir da reunião e do repositório.'})
 
+        def _safe_due_days(value):
+            try:
+                return max(0, int(value or 0))
+            except (TypeError, ValueError):
+                return 0
+
+        def _normalize_todo_text(value, fallback_index):
+            text = (value or '').strip() or f'{fallback_index:02d} — Executar item'
+            if not text[:2].isdigit():
+                text = f'{fallback_index:02d} — {text}'
+            # TodoItem.texto tem limite de 300 caracteres; manter margem para evitar erro em produção.
+            return text[:280].rstrip()
+
         tasks_created = 0
         todos_created = 0
         for task_data in tasks_payload:
-            due_days = int(task_data.get('due_days') or 0)
+            due_days = _safe_due_days(task_data.get('due_days'))
             due_date = datetime.utcnow().date() + timedelta(days=due_days) if due_days > 0 else None
             descricao_base = (task_data.get('descricao') or '').strip()
             comentario_base = (task_data.get('comentario') or '').strip()
             task = Task(
-                titulo=(task_data.get('titulo') or 'Tarefa gerada por IA').strip(),
+                titulo=((task_data.get('titulo') or 'Plano de execução gerado por IA').strip())[:200],
                 descricao=(descricao_base + ('\n\n' if descricao_base and comentario_base else '') + comentario_base).strip(),
                 project_id=project.id,
                 status='pendente',
@@ -3524,11 +3537,12 @@ Resultados estruturados:
             db.session.flush()
             tasks_created += 1
 
-            for todo_data in (task_data.get('todos') or []):
-                todo_due_days = int(todo_data.get('due_days') or 0)
+            raw_todos = task_data.get('todos') or []
+            for todo_index, todo_data in enumerate(raw_todos, start=1):
+                todo_due_days = _safe_due_days(todo_data.get('due_days'))
                 todo_due_date = datetime.utcnow().date() + timedelta(days=todo_due_days) if todo_due_days > 0 else None
                 todo = TodoItem(
-                    texto=(todo_data.get('texto') or 'Executar item').strip(),
+                    texto=_normalize_todo_text(todo_data.get('texto'), todo_index),
                     completed=False,
                     due_date=todo_due_date,
                     comentario=((todo_data.get('comentario') or comentario_base or 'Gerado a partir de reunião + transcrição + análise do repositório Git.')).strip(),

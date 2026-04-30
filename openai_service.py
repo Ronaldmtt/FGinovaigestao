@@ -431,7 +431,61 @@ def generate_project_tasks_from_meeting_and_repo(project_name, meeting_context, 
             temperature=0.35
         )
         content = response.choices[0].message.content
-        return json.loads(content) if content else {"tasks": []}
+        parsed = json.loads(content) if content else {"tasks": []}
+
+        def _needs_depth_revision(payload):
+            tasks = payload.get("tasks") if isinstance(payload, dict) else []
+            if not tasks:
+                return False
+            rich_context = len((meeting_context or "").strip()) >= 3000
+            if not rich_context:
+                return False
+            for task in tasks:
+                todos = task.get("todos") or []
+                if len(todos) < 18:
+                    return True
+                short_comments = [td for td in todos if len((td.get("comentario") or "").strip()) < 350]
+                if len(short_comments) > max(2, len(todos) // 5):
+                    return True
+            return False
+
+        if _needs_depth_revision(parsed):
+            revision_prompt = f"""
+            A primeira geração ficou rasa para uma reunião rica. Reescreva e aprofunde o JSON abaixo.
+
+            PROJETO: {project_name}
+
+            REGRAS INEGOCIÁVEIS PARA A REVISÃO:
+            - Mantenha no máximo 1 a 3 tarefas, preferindo 1 tarefa-mãe quando o fluxo for uma frente principal.
+            - Cada tarefa deve ter entre 18 e 25 to-dos em ordem lógica, começando por "01 —", "02 —" etc.
+            - Cada comentário de to-do deve ser auto-suficiente, com 4+ frases e 450 a 1200 caracteres quando houver contexto suficiente.
+            - Nenhum to-do pode ser genérico. Cada item precisa dizer o que analisar, implementar/ajustar, validar e qual evidência/entrega produzir.
+            - Cubra descoberta, análise do repositório, gap analysis, modelagem, implementação, integração, UX/relatórios, logs/erros, testes, documentação, homologação e pós-feedback quando aplicável.
+            - Use o contexto abaixo para enriquecer com detalhes reais; não invente fora do contexto.
+            - Retorne APENAS JSON válido no mesmo formato.
+
+            CONTEXTO DA REUNIÃO:
+            {meeting_context}
+
+            CONTEXTO DO REPOSITÓRIO:
+            {repo_context or 'Sem contexto adicional de repositório.'}
+
+            JSON RASO A SER REESCRITO:
+            {json.dumps(parsed, ensure_ascii=False)}
+            """
+            revision_response = openai.chat.completions.create(
+                model="gpt-4o",
+                messages=[{"role": "user", "content": revision_prompt}],
+                response_format={"type": "json_object"},
+                temperature=0.25
+            )
+            revision_content = revision_response.choices[0].message.content
+            if revision_content:
+                revised = json.loads(revision_content)
+                if isinstance(revised, dict) and revised.get("tasks"):
+                    return revised
+
+        return parsed
     except Exception as e:
         print(f"Erro ao gerar tarefas a partir de reunião + repo: {e}")
         return {"tasks": []}

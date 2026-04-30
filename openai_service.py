@@ -340,11 +340,11 @@ def generate_project_tasks_from_meeting_and_repo(project_name, meeting_context, 
     """
     try:
         prompt = f"""
-        Você é um gerente técnico, product owner senior e arquiteto de automações RPA/IA.
+        Você é um gerente técnico, product owner senior e arquiteto de soluções digitais.
 
         Seu trabalho é gerar um plano acionável para o projeto \"{project_name}\" com base em duas fontes:
         1. Contexto completo da reunião/transcrição/análise/notas/action items
-        2. Contexto técnico do repositório Git e do sistema existente
+        2. Contexto técnico do repositório Git, produto, sistema ou operação existente
 
         CONTEXTO DA REUNIÃO:
         {meeting_context}
@@ -356,10 +356,10 @@ def generate_project_tasks_from_meeting_and_repo(project_name, meeting_context, 
         - entender profundamente o fluxo real pedido na reunião, mesmo se a transcrição tiver falas atribuídas ao participante errado;
         - inferir responsabilidades pelo contexto, não apenas pelo nome do speaker;
         - cruzar reunião, notas, próximos passos, action items e repositório;
-        - transformar o conteúdo em um plano de execução técnico e operacional, com ordem clara do que fazer primeiro;
-        - evitar tarefas rasas como "desenvolver robô" sem decomposição;
+        - transformar o conteúdo em um plano de execução técnico, operacional, comercial ou de produto, conforme o tipo do projeto;
+        - evitar tarefas rasas como "implementar melhoria", "ajustar sistema" ou "desenvolver funcionalidade" sem decomposição;
         - registrar decisões, dependências, validações e critérios de aceite dentro dos to-dos;
-        - produzir to-dos suficientemente detalhados para um desenvolvedor começar sem precisar reler toda a reunião.
+        - produzir to-dos suficientemente detalhados para uma pessoa executora começar sem precisar reler toda a reunião.
 
         ESTRATÉGIA DE SAÍDA:
         - PREFIRA gerar 1 tarefa-mãe grande quando a reunião descreve um fluxo único ou uma frente principal de implementação.
@@ -372,19 +372,29 @@ def generate_project_tasks_from_meeting_and_repo(project_name, meeting_context, 
         - Use "due_days" progressivo: itens de diagnóstico/acesso primeiro, implementação depois, validação/homologação por último.
 
         PROFUNDIDADE MÍNIMA ESPERADA:
-        Para cada frente aplicável ao contexto, avalie se precisa virar to-do:
-        1. confirmar acessos, credenciais, certificados, permissões e limitações de login;
-        2. mapear fluxo manual exato, URLs, telas, filtros, campos, exceções e variações por usuário;
-        3. modelar dados necessários no sistema, inclusive status, origem, beneficiário, CPF/CNPJ, valores, honorários, descontos, datas e documentos;
-        4. implementar busca/consulta inicial no tribunal ou fonte externa;
-        5. diferenciar prévia x definitivo e desenhar rotina de promoção/atualização;
-        6. extrair e armazenar documentos, ofícios, comprovantes e metadados relevantes;
-        7. calcular ou conferir valores líquidos, deduções, honorários, prioridades e regras específicas;
-        8. criar rotina periódica de revisita/monitoramento com logs, retries e alertas;
-        9. expor dados em interface/filtros/relatórios para o usuário final;
-        10. criar testes, massa de validação, critérios de aceite e roteiro de homologação com cliente;
-        11. documentar parâmetros configuráveis para futuras buscas específicas;
-        12. preparar entrega incremental, demo parcial e próximos alinhamentos.
+        Primeiro identifique o tipo dominante do projeto/reunião: software, automação/RPA, dados/BI, IA, financeiro, jurídico, CRM/comercial, marketing, operação interna, infraestrutura, atendimento, produto ou outro. Depois adapte os to-dos ao domínio identificado.
+
+        Para qualquer domínio, avalie se precisa virar to-do:
+        1. esclarecer objetivo, resultado esperado, usuários impactados e definição de sucesso;
+        2. mapear fluxo atual, dor operacional, entradas, saídas, telas, documentos, integrações, pessoas e exceções;
+        3. confirmar acessos, credenciais, permissões, ambientes, fontes de dados, arquivos, APIs e responsáveis;
+        4. levantar dados/campos/regras necessários, incluindo status, responsáveis, prazos, valores, documentos, etapas, métricas ou entidades específicas do domínio;
+        5. comparar o que a reunião pediu com o que o repositório/sistema já aparenta ter, separando criação, ajuste, integração, validação e remoção de lacunas;
+        6. desenhar arquitetura, fluxo de navegação, modelo de dados, integrações, automações, relatórios ou processos conforme a frente exigir;
+        7. implementar backend, frontend, automação, análise, configuração, importação/exportação, relatórios ou rotinas operacionais aplicáveis ao projeto;
+        8. prever tratamento de erro, logs, auditoria, permissões, segurança, retries, performance e casos de borda;
+        9. organizar validações com massa real, exemplos da reunião, critérios objetivos de aceite e roteiro de homologação;
+        10. definir ordem de entrega incremental: diagnóstico, base técnica, primeira versão funcional, refinamentos, testes, demonstração e ajustes pós-feedback;
+        11. documentar decisões, parâmetros configuráveis, limitações conhecidas, como operar a solução e próximos alinhamentos;
+        12. atribuir dependências externas e responsabilidades quando a reunião indicar quem deve enviar informações, validar, aprovar ou executar.
+
+        Exemplos de adaptação por domínio, sem limitar a saída:
+        - Projeto de software: modelagem, rotas, telas, permissões, migrações, testes, UX e deploy.
+        - Projeto de dados/BI: origem dos dados, ETL, qualidade, métricas, dashboards, filtros e validação com stakeholders.
+        - Projeto de IA: coleta de exemplos, prompt/modelo, avaliação, fallback, auditoria, custo e revisão humana.
+        - Projeto financeiro/operacional: regras de cálculo, conciliação, aprovações, relatórios, trilha de auditoria e exceções.
+        - Projeto comercial/CRM/marketing: funil, segmentação, templates, automações, métricas, governança e cadência de execução.
+        - Projeto jurídico/documental: documentos, partes, prazos, regras de negócio, extração, validação e rastreabilidade.
 
         REGRAS DE QUALIDADE:
         - Não invente funcionalidades fora do que reunião + repo sustentam, mas extraia todas as implicações práticas do que foi dito.

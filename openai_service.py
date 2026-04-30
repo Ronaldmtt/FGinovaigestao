@@ -452,6 +452,33 @@ def generate_project_tasks_from_meeting_and_repo(project_name, meeting_context, 
                 ("Gerar brief técnico para execução assistida por IA", "Preparar um prompt ou brief técnico reaproveitável para que outro agente de IA ou desenvolvedor consiga executar ajustes futuros com segurança. O brief deve conter objetivo, contexto da reunião, arquivos ou módulos prováveis, dados envolvidos, critérios de aceite, restrições e cuidados para não duplicar funcionalidades existentes. Também deve orientar o executor a inspecionar o repositório antes de alterar código e a reportar testes, diffs e pendências. A entrega esperada é um texto copiável que acelere novas iterações sem perder contexto."),
             ]
 
+            def _enrich_todo_comment(todo_text, comment, index):
+                base = (comment or '').strip()
+                lower = f"{todo_text} {base}".lower()
+                if len(base) >= 420:
+                    return base
+
+                if any(word in lower for word in ['repositório', 'repositorio', 'código', 'codigo', 'estrutura']):
+                    suffix = "Ao executar, identifique arquivos, modelos, rotas, serviços, telas e integrações que já tratam esse assunto, separando reaproveitamento de criação nova. Registre evidências objetivas do que foi encontrado, incluindo caminhos prováveis de alteração e riscos de duplicidade. O aceite deste item exige um diagnóstico claro do estado atual e uma recomendação do próximo passo técnico."
+                elif any(word in lower for word in ['acesso', 'credencial', 'login', 'permiss']):
+                    suffix = "Liste quais acessos, perfis, ambientes, certificados, usuários ou permissões são necessários e quem deve fornecê-los. Diferencie bloqueios reais de premissas que podem ser simuladas em desenvolvimento para não parar a execução. O aceite exige uma matriz simples de dependências, responsável, status e alternativa temporária quando existir."
+                elif any(word in lower for word in ['mapear', 'fluxo', 'processo', 'entrada', 'saída', 'saida']):
+                    suffix = "Descreva o fluxo ponta a ponta com entradas, saídas, exceções, responsáveis, documentos/telas envolvidos e pontos de decisão. Inclua pelo menos um exemplo real ou representativo para validar se o mapeamento cobre o caso principal e os desvios esperados. O aceite exige um fluxo que possa ser usado diretamente como referência de implementação e teste."
+                elif any(word in lower for word in ['implementar', 'desenvolver', 'backend', 'frontend', 'integra', 'rotina']):
+                    suffix = "Antes de codar, confirme qual parte já existe e qual lacuna precisa ser preenchida, evitando recriar funcionalidade pronta. Defina contratos de dados, pontos de integração, tratamento de erro e impacto em telas, banco ou serviços relacionados. O aceite exige implementação integrada, sem quebrar o fluxo atual, com evidência de teste ou validação funcional."
+                elif any(word in lower for word in ['teste', 'validar', 'homolog', 'aceite']):
+                    suffix = "Monte cenários de validação com dados reais ou exemplos da reunião, cobrindo caminho feliz, exceções e casos de borda. Para cada cenário, informe entrada, passos, resultado esperado, evidência coletada e responsável pela aprovação. O aceite exige que falhas encontradas sejam registradas com causa provável, impacto e encaminhamento."
+                elif any(word in lower for word in ['document', 'treinamento', 'brief', 'prompt']):
+                    suffix = "Organize o material para que outra pessoa consiga operar, revisar ou continuar a frente sem depender de explicação verbal. Inclua objetivo, escopo, decisões tomadas, parâmetros configuráveis, limitações conhecidas e próximos refinamentos. O aceite exige documentação prática, copiável quando for prompt/brief, e alinhada ao que foi realmente implementado ou decidido."
+                elif any(word in lower for word in ['log', 'erro', 'auditoria', 'segurança', 'seguranca', 'monitor']):
+                    suffix = "Mapeie quais falhas precisam ficar visíveis para operação e quais detalhes devem ficar apenas em log técnico. Defina mensagens, rastreabilidade, retries, alertas e cuidados para não expor dados sensíveis. O aceite exige que a equipe consiga diagnosticar problemas comuns sem depender de acesso direto ao código ou ao banco."
+                else:
+                    suffix = "Conecte este item explicitamente ao objetivo da reunião e ao estado atual do projeto antes de executar. Registre decisões, dependências, dados/telas/arquivos avaliados e evidências do resultado produzido. O aceite exige uma entrega verificável, com critério objetivo e indicação clara do próximo passo caso surja bloqueio ou necessidade de validação externa."
+
+                if base:
+                    return f"{base.rstrip('.')} . {suffix}"
+                return suffix
+
             for task in tasks:
                 todos = task.get("todos") or []
                 if not isinstance(todos, list):
@@ -477,10 +504,7 @@ def generate_project_tasks_from_meeting_and_repo(project_name, meeting_context, 
                     elif not texto:
                         todo["texto"] = f"{index:02d} — Executar etapa planejada"
                     comentario = (todo.get("comentario") or "").strip()
-                    if len(comentario) < 450:
-                        todo["comentario"] = (
-                            comentario.rstrip('.') + ". " if comentario else ""
-                        ) + "Antes de concluir este item, revisar o contexto da reunião e o estado atual do repositório para evitar duplicidade ou implementação fora do escopo. Registrar decisões tomadas, dependências encontradas, dados/telas/arquivos avaliados e qualquer bloqueio que exija confirmação externa. Validar a entrega com critério objetivo, preferencialmente usando massa real ou exemplo representativo mencionado na reunião. Deixar evidência clara do resultado produzido para que a próxima etapa consiga continuar sem reabrir toda a análise."
+                    todo["comentario"] = _enrich_todo_comment(todo.get("texto"), comentario, index)
                 task["todos"] = todos
             payload["tasks"] = tasks
             return payload

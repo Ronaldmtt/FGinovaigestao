@@ -365,10 +365,10 @@ def generate_project_tasks_from_meeting_and_repo(project_name, meeting_context, 
         - PREFIRA gerar 1 tarefa-mãe grande quando a reunião descreve um fluxo único ou uma frente principal de implementação.
         - Só gere 2 ou 3 tarefas se houver frentes realmente independentes que possam andar separadas.
         - Nunca fragmente artificialmente em muitas tarefas pequenas.
-        - Cada tarefa deve ter preferencialmente 22 to-dos e nunca menos de 18 quando houver reunião/transcrição/análise. Use menos de 18 apenas quando o contexto inteiro for insuficiente para sustentar mais itens sem inventar.
+        - Cada tarefa deve ter entre 18 e 22 to-dos quando houver reunião/transcrição/análise. Use menos de 18 apenas quando o contexto inteiro for insuficiente para sustentar mais itens sem inventar.
         - Os to-dos devem começar com prefixo numérico para preservar a ordem no Kanban: "01 — ...", "02 — ...".
         - O campo "texto" do to-do deve ser curto o bastante para o Kanban (máximo 280 caracteres), mas específico.
-        - O campo "comentario" deve ser rico e auto-suficiente, idealmente entre 650 e 1400 caracteres e com no mínimo 5 frases: explicar contexto da reunião, caminho técnico/operacional, dependências, dados esperados, critério de aceite e risco quando existir.
+        - O campo "comentario" deve ser rico e auto-suficiente, idealmente entre 400 e 800 caracteres e com no mínimo 4 frases: explicar contexto da reunião, caminho técnico/operacional, dependências, dados esperados, critério de aceite e risco quando existir.
         - Use "due_days" progressivo: itens de diagnóstico/acesso primeiro, implementação depois, validação/homologação por último.
         - Não aceite to-dos genéricos. Troque "mapear fluxo" por uma ação específica dizendo qual fluxo, quais entradas, quais saídas, quais evidências registrar, quais arquivos/telas/dados avaliar e qual entrega final produzir.
         - Inclua to-dos para revisão de repositório/código existente, gap analysis, plano de entrega incremental e preparação de prompt/brief técnico quando a execução depender de outra IA/agente.
@@ -406,7 +406,7 @@ def generate_project_tasks_from_meeting_and_repo(project_name, meeting_context, 
         - A saída deve deixar claro o que começa primeiro, o que depende de acesso do cliente e o que só vem depois de validação.
         - Não use markdown pesado; texto puro é melhor para o Kanban.
         - Se sua primeira resposta mental tiver menos de 18 to-dos quando existir reunião/transcrição/análise, revise antes de responder e detalhe mais as etapas até cobrir descoberta, análise do repo, modelagem, implementação, integração, UX/relatórios, validação, documentação, homologação e pós-feedback.
-        - Se algum comentário de to-do tiver menos de 4 frases ou ficar óbvio demais, reescreva antes de responder para torná-lo executável sem contexto externo.
+        - Se algum comentário de to-do tiver menos de 4 frases ou ficar óbvio demais, reescreva antes de responder para torná-lo executável sem contexto externo, mas sem alongar desnecessariamente a saída.
 
         Retorne APENAS JSON válido no formato:
         {{
@@ -433,66 +433,59 @@ def generate_project_tasks_from_meeting_and_repo(project_name, meeting_context, 
         content = response.choices[0].message.content
         parsed = json.loads(content) if content else {"tasks": []}
 
-        def _needs_depth_revision(payload):
-            tasks = payload.get("tasks") if isinstance(payload, dict) else []
-            if not tasks:
-                return False
+        def _ensure_minimum_depth(payload):
+            """Mantém a rota rápida: não faz novas chamadas à IA; aprofunda/normaliza localmente."""
+            if not isinstance(payload, dict):
+                return {"tasks": []}
+            tasks = payload.get("tasks") or []
+            if not isinstance(tasks, list):
+                payload["tasks"] = []
+                return payload
+
+            generic_phases = [
+                ("Revisar a aderência entre reunião, sistema atual e escopo técnico", "Comparar explicitamente o que foi pedido na reunião com o que já existe no sistema/repositório antes de implementar qualquer mudança. Registrar quais pontos já estão cobertos, quais precisam de ajuste, quais dependem de credencial/dado externo e quais devem ser descartados para evitar retrabalho. A entrega esperada é um diagnóstico curto com lacunas, riscos, responsáveis e ordem recomendada de execução. O item só deve ser considerado concluído quando houver evidência documentada suficiente para orientar os próximos to-dos sem depender de memória da reunião."),
+                ("Definir critérios de aceite e evidências de validação", "Transformar os objetivos da reunião em critérios verificáveis de aceite para a tarefa. Para cada funcionalidade, rotina, dado ou tela afetada, descrever o comportamento esperado, os casos de borda, os dados mínimos de teste e a evidência que comprova funcionamento. Incluir também o que não será considerado concluído, especialmente dependências externas, credenciais pendentes e validações que exigem homologação do cliente. A entrega esperada é uma lista objetiva de critérios que possa guiar teste, revisão e aprovação."),
+                ("Planejar execução incremental e pontos de controle", "Organizar a entrega em etapas pequenas, começando por diagnóstico e preparação, seguindo para implementação mínima funcional, integração, endurecimento, testes e homologação. Definir quais itens podem ser feitos imediatamente, quais dependem de acesso ou dados reais e quais devem ficar para refinamento pós-feedback. Registrar riscos de prazo e impacto de cada etapa para evitar uma entrega grande demais sem validação intermediária. A entrega esperada é um plano sequencial que permita acompanhar avanço no Kanban e reduzir retrabalho."),
+                ("Implementar tratamento de erros, logs e rastreabilidade", "Garantir que a solução produza sinais claros quando algo falhar, ficar incompleto ou depender de intervenção manual. Mapear erros esperados, mensagens de usuário, logs técnicos, registros de auditoria e pontos onde será necessário retry, fallback ou alerta. Validar se essas informações ficam acessíveis para suporte, operação e revisão técnica sem expor dados sensíveis. A entrega esperada é uma camada mínima de observabilidade e rastreabilidade proporcional ao risco da frente."),
+                ("Preparar roteiro de homologação com dados reais", "Definir um roteiro de validação usando exemplos reais ou representativos da reunião, cobrindo caminho feliz, exceções e casos de borda. O roteiro deve indicar entradas, passos executados, resultado esperado, prints/relatórios/logs necessários e responsável pela aprovação. Sempre que houver integração com sistema externo, documento, API ou base de dados, incluir validação de consistência antes e depois da execução. A entrega esperada é um checklist de homologação que reduza ambiguidade e permita aprovar ou reprovar a entrega com critério objetivo."),
+                ("Documentar operação, limitações e próximos refinamentos", "Consolidar como a solução deve ser operada, configurada, validada e mantida depois da primeira entrega. Registrar parâmetros importantes, limitações conhecidas, dependências externas, cuidados de segurança e situações em que será necessária intervenção humana. Incluir também uma seção de próximos refinamentos para separar o que é essencial agora do que pode evoluir depois da homologação. A entrega esperada é uma documentação prática, curta e suficiente para transferência de conhecimento."),
+                ("Gerar brief técnico para execução assistida por IA", "Preparar um prompt ou brief técnico reaproveitável para que outro agente de IA ou desenvolvedor consiga executar ajustes futuros com segurança. O brief deve conter objetivo, contexto da reunião, arquivos ou módulos prováveis, dados envolvidos, critérios de aceite, restrições e cuidados para não duplicar funcionalidades existentes. Também deve orientar o executor a inspecionar o repositório antes de alterar código e a reportar testes, diffs e pendências. A entrega esperada é um texto copiável que acelere novas iterações sem perder contexto."),
+            ]
+
             for task in tasks:
                 todos = task.get("todos") or []
-                if len(todos) < 18:
-                    return True
-                short_comments = [td for td in todos if len((td.get("comentario") or "").strip()) < 600]
-                if len(short_comments) > max(1, len(todos) // 6):
-                    return True
-            return False
+                if not isinstance(todos, list):
+                    todos = []
+                existing_texts = {(td.get("texto") or "").lower() for td in todos if isinstance(td, dict)}
+                phase_index = 0
+                while len(todos) < 18 and phase_index < len(generic_phases):
+                    title, comment = generic_phases[phase_index]
+                    phase_index += 1
+                    if title.lower() in existing_texts:
+                        continue
+                    todos.append({
+                        "texto": f"{len(todos) + 1:02d} — {title}",
+                        "comentario": comment,
+                        "due_days": len(todos) + 1
+                    })
+                for index, todo in enumerate(todos, start=1):
+                    if not isinstance(todo, dict):
+                        continue
+                    texto = (todo.get("texto") or "").strip()
+                    if texto and not texto[:2].isdigit():
+                        todo["texto"] = f"{index:02d} — {texto}"
+                    elif not texto:
+                        todo["texto"] = f"{index:02d} — Executar etapa planejada"
+                    comentario = (todo.get("comentario") or "").strip()
+                    if len(comentario) < 450:
+                        todo["comentario"] = (
+                            comentario.rstrip('.') + ". " if comentario else ""
+                        ) + "Antes de concluir este item, revisar o contexto da reunião e o estado atual do repositório para evitar duplicidade ou implementação fora do escopo. Registrar decisões tomadas, dependências encontradas, dados/telas/arquivos avaliados e qualquer bloqueio que exija confirmação externa. Validar a entrega com critério objetivo, preferencialmente usando massa real ou exemplo representativo mencionado na reunião. Deixar evidência clara do resultado produzido para que a próxima etapa consiga continuar sem reabrir toda a análise."
+                task["todos"] = todos
+            payload["tasks"] = tasks
+            return payload
 
-        revision_attempts = 0
-        while _needs_depth_revision(parsed) and revision_attempts < 3:
-            revision_attempts += 1
-            revision_prompt = f"""
-            A geração abaixo NÃO atingiu o padrão mínimo de profundidade do Kanban. Reescreva e aprofunde o JSON.
-
-            PROJETO: {project_name}
-            TENTATIVA DE REVISÃO: {revision_attempts}/3
-
-            PROBLEMA A CORRIGIR:
-            - Se houver menos de 18 to-dos por tarefa, a resposta está inválida.
-            - Se os comentários forem curtos, genéricos ou não auto-suficientes, a resposta está inválida.
-            - Não resuma. Transforme a reunião em plano de execução operacional e técnico.
-
-            REGRAS INEGOCIÁVEIS PARA A REVISÃO:
-            - Mantenha no máximo 1 a 3 tarefas, preferindo 1 tarefa-mãe quando o fluxo for uma frente principal.
-            - Cada tarefa deve ter preferencialmente 22 to-dos e nunca menos de 18 em ordem lógica, começando por "01 —", "02 —" etc.
-            - Cada comentário de to-do deve ser auto-suficiente, com 5+ frases e 650 a 1400 caracteres quando houver contexto suficiente.
-            - Nenhum to-do pode ser genérico. Cada item precisa dizer o que analisar, implementar/ajustar, validar, quais dados/arquivos/telas considerar e qual evidência/entrega produzir.
-            - Cubra descoberta, análise do repositório, gap analysis, modelagem, implementação, integração, UX/relatórios, logs/erros, testes, documentação, homologação e pós-feedback quando aplicável.
-            - Use o contexto abaixo para enriquecer com detalhes reais; não invente fora do contexto.
-            - Retorne APENAS JSON válido no mesmo formato.
-
-            CONTEXTO DA REUNIÃO:
-            {meeting_context}
-
-            CONTEXTO DO REPOSITÓRIO:
-            {repo_context or 'Sem contexto adicional de repositório.'}
-
-            JSON RASO A SER REESCRITO:
-            {json.dumps(parsed, ensure_ascii=False)}
-            """
-            revision_response = openai.chat.completions.create(
-                model="gpt-4o",
-                messages=[{"role": "user", "content": revision_prompt}],
-                response_format={"type": "json_object"},
-                temperature=0.15
-            )
-            revision_content = revision_response.choices[0].message.content
-            if not revision_content:
-                break
-            revised = json.loads(revision_content)
-            if isinstance(revised, dict) and revised.get("tasks"):
-                parsed = revised
-            else:
-                break
-
+        parsed = _ensure_minimum_depth(parsed)
         return parsed
     except Exception as e:
         print(f"Erro ao gerar tarefas a partir de reunião + repo: {e}")

@@ -1328,10 +1328,17 @@
         const todosList = document.getElementById('todosList');
         todosList.innerHTML = '';
 
-        // Ordenar: não concluídas primeiro, concluídas por último
+        const getTodoNumericOrder = (todo) => {
+            const match = (todo.texto || '').match(/^\s*(\d+)/);
+            return match ? parseInt(match[1], 10) : 9999;
+        };
+
+        // Ordenar: não concluídas primeiro, e dentro do grupo respeitar prefixos 01, 02, 03...
         const sortedTodos = [...todos].sort((a, b) => {
-            if (a.completed === b.completed) return 0;
-            return a.completed ? 1 : -1;
+            if (a.completed !== b.completed) return a.completed ? 1 : -1;
+            const orderDiff = getTodoNumericOrder(a) - getTodoNumericOrder(b);
+            if (orderDiff !== 0) return orderDiff;
+            return (a.id || 0) - (b.id || 0);
         });
 
         sortedTodos.forEach(todo => {

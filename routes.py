@@ -1925,14 +1925,19 @@ def get_task_data(task_id):
         'nome': u.full_name
     } for u in users]
 
-    # Buscar to-dos da tarefa
+    def _todo_order_key(todo):
+        match = re.match(r'^\s*(\d+)', todo.texto or '')
+        return (int(match.group(1)) if match else 9999, todo.id or 0)
+
+    # Buscar to-dos da tarefa respeitando prefixos numéricos gerados pela IA (01, 02, 03...)
+    ordered_todos = sorted(task.todos, key=_todo_order_key)
     todos_list = [{
         'id': todo.id,
         'texto': todo.texto,
         'completed': todo.completed,
         'due_date': todo.due_date.isoformat() if todo.due_date else None,
         'comentario': todo.comentario
-    } for todo in task.todos]
+    } for todo in ordered_todos]
 
     task_data = {
         'id': task.id,

@@ -1361,6 +1361,9 @@
                            value="${todo.due_date || ''}"
                            onchange="updateTodoDueDate(${todo.id}, this.value)">
                 </div>
+                <button type="button" class="btn btn-sm btn-outline-info ms-2" onclick="generateTodoExecutionPrompt(${todo.id})" title="Gerar prompt de execução para IA">
+                    <i class="fas fa-wand-magic-sparkles"></i>
+                </button>
                 <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="removeTodo(this, ${todo.id})">
                     <i class="fas fa-trash-alt"></i>
                 </button>
@@ -2014,6 +2017,70 @@
         });
 
         return todos;
+    }
+
+    let todoExecutionPromptModalInstance = null;
+
+    function generateTodoExecutionPrompt(todoId) {
+        if (!todoId || String(todoId).startsWith('new-')) {
+            alert('Salve a tarefa antes de gerar prompt para este to-do.');
+            return;
+        }
+
+        const modalEl = document.getElementById('todoExecutionPromptModal');
+        const loading = document.getElementById('todoExecutionPromptLoading');
+        const errorBox = document.getElementById('todoExecutionPromptError');
+        const resultBox = document.getElementById('todoExecutionPromptResult');
+        const textarea = document.getElementById('todoExecutionPromptText');
+        const copyBtn = document.getElementById('btnCopyTodoExecutionPrompt');
+
+        loading.classList.remove('d-none');
+        errorBox.classList.add('d-none');
+        resultBox.classList.add('d-none');
+        textarea.value = '';
+        copyBtn.disabled = true;
+
+        todoExecutionPromptModalInstance = new bootstrap.Modal(modalEl);
+        todoExecutionPromptModalInstance.show();
+
+        fetch(`/api/todos/${todoId}/execution-prompt`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+            .then(response => response.json())
+            .then(data => {
+                loading.classList.add('d-none');
+                if (data.success) {
+                    textarea.value = data.prompt || '';
+                    resultBox.classList.remove('d-none');
+                    copyBtn.disabled = false;
+                } else {
+                    errorBox.textContent = data.message || 'Não foi possível gerar o prompt.';
+                    errorBox.classList.remove('d-none');
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao gerar prompt do to-do:', error);
+                loading.classList.add('d-none');
+                errorBox.textContent = 'Erro de comunicação ao gerar o prompt.';
+                errorBox.classList.remove('d-none');
+            });
+    }
+
+    function copyTodoExecutionPrompt() {
+        const textarea = document.getElementById('todoExecutionPromptText');
+        textarea.select();
+        textarea.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(textarea.value).then(() => {
+            const btn = document.getElementById('btnCopyTodoExecutionPrompt');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check me-1"></i>Copiado!';
+            btn.classList.replace('btn-primary', 'btn-success');
+            setTimeout(() => {
+                btn.innerHTML = originalHTML;
+                btn.classList.replace('btn-success', 'btn-primary');
+            }, 2000);
+        });
     }
 
     function updateColumnCounts() {
@@ -3398,6 +3465,33 @@
 </div>
 
 <!-- Modal Importar To-Dos -->
+<div class="modal fade" id="todoExecutionPromptModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title"><i class="fas fa-wand-magic-sparkles me-2"></i>Prompt de execução do to-do</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="todoExecutionPromptLoading" class="alert alert-info">
+                    <i class="fas fa-spinner fa-spin me-2"></i>Analisando tarefa, to-do e contexto Git do projeto para montar o prompt...
+                </div>
+                <div id="todoExecutionPromptError" class="alert alert-danger d-none"></div>
+                <div id="todoExecutionPromptResult" class="d-none">
+                    <p class="text-muted small mb-2">Copie este prompt e envie para a IA/agente que vai executar o ajuste no projeto.</p>
+                    <textarea id="todoExecutionPromptText" class="form-control bg-black text-light border-secondary p-3" rows="16" readonly></textarea>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                <button type="button" id="btnCopyTodoExecutionPrompt" class="btn btn-primary" onclick="copyTodoExecutionPrompt()" disabled>
+                    <i class="fas fa-copy me-1"></i>Copiar prompt
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="importTodoJsonModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content bg-dark text-light">

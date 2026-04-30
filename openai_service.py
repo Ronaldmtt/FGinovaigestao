@@ -365,11 +365,13 @@ def generate_project_tasks_from_meeting_and_repo(project_name, meeting_context, 
         - PREFIRA gerar 1 tarefa-mãe grande quando a reunião descreve um fluxo único ou uma frente principal de implementação.
         - Só gere 2 ou 3 tarefas se houver frentes realmente independentes que possam andar separadas.
         - Nunca fragmente artificialmente em muitas tarefas pequenas.
-        - Cada tarefa deve ter entre 10 e 25 to-dos, em ordem cronológica/lógica de execução.
+        - Cada tarefa deve ter entre 18 e 25 to-dos quando houver transcrição/análise substancial; use menos apenas se a reunião for realmente curta ou pobre em contexto.
         - Os to-dos devem começar com prefixo numérico para preservar a ordem no Kanban: "01 — ...", "02 — ...".
         - O campo "texto" do to-do deve ser curto o bastante para o Kanban (máximo 280 caracteres), mas específico.
-        - O campo "comentario" deve ser rico: explicar contexto da reunião, caminho técnico, dependências, dados esperados, critério de aceite e risco quando existir.
+        - O campo "comentario" deve ser rico e auto-suficiente, idealmente entre 450 e 1200 caracteres e com no mínimo 4 frases: explicar contexto da reunião, caminho técnico/operacional, dependências, dados esperados, critério de aceite e risco quando existir.
         - Use "due_days" progressivo: itens de diagnóstico/acesso primeiro, implementação depois, validação/homologação por último.
+        - Não aceite to-dos genéricos. Troque "mapear fluxo" por uma ação específica dizendo qual fluxo, quais entradas, quais saídas, quais evidências registrar, quais arquivos/telas/dados avaliar e qual entrega final produzir.
+        - Inclua to-dos para revisão de repositório/código existente, gap analysis, plano de entrega incremental e preparação de prompt/brief técnico quando a execução depender de outra IA/agente.
 
         PROFUNDIDADE MÍNIMA ESPERADA:
         Primeiro identifique o tipo dominante do projeto/reunião: software, automação/RPA, dados/BI, IA, financeiro, jurídico, CRM/comercial, marketing, operação interna, infraestrutura, atendimento, produto ou outro. Depois adapte os to-dos ao domínio identificado.
@@ -403,6 +405,8 @@ def generate_project_tasks_from_meeting_and_repo(project_name, meeting_context, 
         - O comentário da tarefa deve resumir por que aquela frente nasceu da reunião e como ela deve ser executada tecnicamente.
         - A saída deve deixar claro o que começa primeiro, o que depende de acesso do cliente e o que só vem depois de validação.
         - Não use markdown pesado; texto puro é melhor para o Kanban.
+        - Se sua primeira resposta mental tiver menos de 18 to-dos para uma reunião rica, revise antes de responder e detalhe mais as etapas até cobrir descoberta, análise do repo, modelagem, implementação, integração, UX/relatórios, validação, documentação, homologação e pós-feedback.
+        - Se algum comentário de to-do tiver menos de 4 frases ou ficar óbvio demais, reescreva antes de responder para torná-lo executável sem contexto externo.
 
         Retorne APENAS JSON válido no formato:
         {{
@@ -431,6 +435,52 @@ def generate_project_tasks_from_meeting_and_repo(project_name, meeting_context, 
     except Exception as e:
         print(f"Erro ao gerar tarefas a partir de reunião + repo: {e}")
         return {"tasks": []}
+
+
+def generate_todo_execution_prompt(project_name, task_title, task_description, todo_text, todo_comment="", repo_context=""):
+    """
+    Gera um prompt copiável para executar um to-do específico com apoio de IA/agente de código.
+    O prompt deve orientar análise do repositório antes de qualquer alteração.
+    """
+    try:
+        prompt = f"""
+        Você é um tech lead escrevendo um prompt de execução para outro agente de IA/código.
+
+        Gere um prompt em português, direto e completo, para executar o to-do abaixo dentro do projeto "{project_name}".
+        O prompt será copiado pelo usuário e enviado para uma IA/agente que terá acesso ao repositório do projeto.
+
+        TAREFA PAI:
+        Título: {task_title or 'Sem título'}
+        Descrição/contexto: {task_description or 'Sem descrição disponível.'}
+
+        TO-DO ESPECÍFICO:
+        Texto: {todo_text or 'Sem texto'}
+        Comentário/contexto: {todo_comment or 'Sem comentário adicional.'}
+
+        CONTEXTO DO REPOSITÓRIO/GIT:
+        {repo_context or 'Sem contexto de repositório disponível. Instrua a IA executora a inspecionar o repositório antes de agir.'}
+
+        REGRAS PARA O PROMPT GERADO:
+        - Comece mandando a IA analisar o repositório completo antes de editar: estrutura, README, dependências, modelos, rotas, serviços, templates, testes e commits recentes.
+        - Explique o objetivo do to-do, o contexto da tarefa pai e o resultado esperado.
+        - Peça para identificar o que já existe e evitar recriar funcionalidade duplicada.
+        - Liste arquivos/módulos prováveis a investigar quando o contexto permitir, mas diga para confirmar no repo real.
+        - Defina passos de execução claros: investigação, implementação/ajuste, testes, validação manual e documentação.
+        - Inclua critérios de aceite objetivos e riscos/casos de borda.
+        - Peça para apresentar diff/resumo final, testes executados e próximos passos.
+        - Não peça commit/push automaticamente; isso depende de autorização do usuário.
+        - Retorne APENAS o prompt final pronto para copiar, sem JSON e sem comentários fora do prompt.
+        """
+        response = openai.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.25
+        )
+        content = response.choices[0].message.content
+        return (content or '').strip()
+    except Exception as e:
+        print(f"Erro ao gerar prompt de execução do to-do: {e}")
+        return ""
 
 
 def generate_kanban_todos_from_commits(commits_text, project_name, existing_todos_text="", repo_context="", batch_hint=""):
@@ -547,4 +597,3 @@ def generate_kanban_todos_from_commits(commits_text, project_name, existing_todo
     except Exception as e:
         print(f"Erro ao gerar To-Dos via commits: {e}")
         return []
-

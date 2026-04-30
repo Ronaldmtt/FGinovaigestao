@@ -3210,6 +3210,52 @@ def api_update_todo(todo_id):
         rpa_log.error(f"Erro ao atualizar to-do: {str(e)}", exc=e, regiao="tarefas")
         return jsonify({'success': False, 'message': f'Erro ao atualizar: {str(e)}'}), 500
 
+
+@app.route('/api/todos/<int:todo_id>/execution-prompt', methods=['POST'])
+@login_required
+@requires_permission('acesso_tarefas')
+@requires_permission('acesso_kanban')
+def api_generate_todo_execution_prompt(todo_id):
+    """Gera um prompt copiável para executar um to-do específico com IA/agente de código."""
+    try:
+        todo = TodoItem.query.get_or_404(todo_id)
+        task = todo.task
+        project = task.project if task else None
+
+        if not project:
+            return jsonify({'success': False, 'message': 'Projeto da tarefa não encontrado.'}), 404
+
+        if not current_user.is_admin and current_user.id != project.responsible_id and current_user not in project.team_members:
+            return jsonify({'success': False, 'message': 'Sem permissão para este projeto.'}), 403
+
+        repo_bundle = build_project_repo_context(project, user=current_user, max_commits=25)
+
+        from openai_service import generate_todo_execution_prompt
+        prompt = generate_todo_execution_prompt(
+            project_name=project.nome,
+            task_title=task.titulo,
+            task_description=task.descricao,
+            todo_text=todo.texto,
+            todo_comment=todo.comentario,
+            repo_context=repo_bundle.get('context_text', '')
+        )
+
+        if not prompt:
+            return jsonify({'success': False, 'message': 'Não foi possível gerar o prompt de execução agora.'})
+
+        return jsonify({
+            'success': True,
+            'prompt': prompt,
+            'todo_id': todo.id,
+            'task_id': task.id,
+            'project_id': project.id,
+            'repo_path': repo_bundle.get('repo_path')
+        })
+    except Exception as e:
+        print(f"Erro ao gerar prompt de execução do to-do: {e}")
+        rpa_log.error(f"Erro ao gerar prompt de execução do to-do: {str(e)}", exc=e, regiao="ia")
+        return jsonify({'success': False, 'message': 'Erro ao gerar prompt de execução.'}), 500
+
 @app.route('/api/tasks/<int:task_id>/dispatch', methods=['POST'])
 @login_required
 def dispatch_task(task_id):

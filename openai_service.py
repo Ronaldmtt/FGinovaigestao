@@ -365,10 +365,10 @@ def generate_project_tasks_from_meeting_and_repo(project_name, meeting_context, 
         - PREFIRA gerar 1 tarefa-mãe grande quando a reunião descreve um fluxo único ou uma frente principal de implementação.
         - Só gere 2 ou 3 tarefas se houver frentes realmente independentes que possam andar separadas.
         - Nunca fragmente artificialmente em muitas tarefas pequenas.
-        - Cada tarefa deve ter entre 18 e 25 to-dos quando houver transcrição/análise substancial; use menos apenas se a reunião for realmente curta ou pobre em contexto.
+        - Cada tarefa deve ter preferencialmente 22 to-dos e nunca menos de 18 quando houver reunião/transcrição/análise. Use menos de 18 apenas quando o contexto inteiro for insuficiente para sustentar mais itens sem inventar.
         - Os to-dos devem começar com prefixo numérico para preservar a ordem no Kanban: "01 — ...", "02 — ...".
         - O campo "texto" do to-do deve ser curto o bastante para o Kanban (máximo 280 caracteres), mas específico.
-        - O campo "comentario" deve ser rico e auto-suficiente, idealmente entre 450 e 1200 caracteres e com no mínimo 4 frases: explicar contexto da reunião, caminho técnico/operacional, dependências, dados esperados, critério de aceite e risco quando existir.
+        - O campo "comentario" deve ser rico e auto-suficiente, idealmente entre 650 e 1400 caracteres e com no mínimo 5 frases: explicar contexto da reunião, caminho técnico/operacional, dependências, dados esperados, critério de aceite e risco quando existir.
         - Use "due_days" progressivo: itens de diagnóstico/acesso primeiro, implementação depois, validação/homologação por último.
         - Não aceite to-dos genéricos. Troque "mapear fluxo" por uma ação específica dizendo qual fluxo, quais entradas, quais saídas, quais evidências registrar, quais arquivos/telas/dados avaliar e qual entrega final produzir.
         - Inclua to-dos para revisão de repositório/código existente, gap analysis, plano de entrega incremental e preparação de prompt/brief técnico quando a execução depender de outra IA/agente.
@@ -405,7 +405,7 @@ def generate_project_tasks_from_meeting_and_repo(project_name, meeting_context, 
         - O comentário da tarefa deve resumir por que aquela frente nasceu da reunião e como ela deve ser executada tecnicamente.
         - A saída deve deixar claro o que começa primeiro, o que depende de acesso do cliente e o que só vem depois de validação.
         - Não use markdown pesado; texto puro é melhor para o Kanban.
-        - Se sua primeira resposta mental tiver menos de 18 to-dos para uma reunião rica, revise antes de responder e detalhe mais as etapas até cobrir descoberta, análise do repo, modelagem, implementação, integração, UX/relatórios, validação, documentação, homologação e pós-feedback.
+        - Se sua primeira resposta mental tiver menos de 18 to-dos quando existir reunião/transcrição/análise, revise antes de responder e detalhe mais as etapas até cobrir descoberta, análise do repo, modelagem, implementação, integração, UX/relatórios, validação, documentação, homologação e pós-feedback.
         - Se algum comentário de to-do tiver menos de 4 frases ou ficar óbvio demais, reescreva antes de responder para torná-lo executável sem contexto externo.
 
         Retorne APENAS JSON válido no formato:
@@ -437,29 +437,34 @@ def generate_project_tasks_from_meeting_and_repo(project_name, meeting_context, 
             tasks = payload.get("tasks") if isinstance(payload, dict) else []
             if not tasks:
                 return False
-            rich_context = len((meeting_context or "").strip()) >= 3000
-            if not rich_context:
-                return False
             for task in tasks:
                 todos = task.get("todos") or []
                 if len(todos) < 18:
                     return True
-                short_comments = [td for td in todos if len((td.get("comentario") or "").strip()) < 350]
-                if len(short_comments) > max(2, len(todos) // 5):
+                short_comments = [td for td in todos if len((td.get("comentario") or "").strip()) < 600]
+                if len(short_comments) > max(1, len(todos) // 6):
                     return True
             return False
 
-        if _needs_depth_revision(parsed):
+        revision_attempts = 0
+        while _needs_depth_revision(parsed) and revision_attempts < 3:
+            revision_attempts += 1
             revision_prompt = f"""
-            A primeira geração ficou rasa para uma reunião rica. Reescreva e aprofunde o JSON abaixo.
+            A geração abaixo NÃO atingiu o padrão mínimo de profundidade do Kanban. Reescreva e aprofunde o JSON.
 
             PROJETO: {project_name}
+            TENTATIVA DE REVISÃO: {revision_attempts}/3
+
+            PROBLEMA A CORRIGIR:
+            - Se houver menos de 18 to-dos por tarefa, a resposta está inválida.
+            - Se os comentários forem curtos, genéricos ou não auto-suficientes, a resposta está inválida.
+            - Não resuma. Transforme a reunião em plano de execução operacional e técnico.
 
             REGRAS INEGOCIÁVEIS PARA A REVISÃO:
             - Mantenha no máximo 1 a 3 tarefas, preferindo 1 tarefa-mãe quando o fluxo for uma frente principal.
-            - Cada tarefa deve ter entre 18 e 25 to-dos em ordem lógica, começando por "01 —", "02 —" etc.
-            - Cada comentário de to-do deve ser auto-suficiente, com 4+ frases e 450 a 1200 caracteres quando houver contexto suficiente.
-            - Nenhum to-do pode ser genérico. Cada item precisa dizer o que analisar, implementar/ajustar, validar e qual evidência/entrega produzir.
+            - Cada tarefa deve ter preferencialmente 22 to-dos e nunca menos de 18 em ordem lógica, começando por "01 —", "02 —" etc.
+            - Cada comentário de to-do deve ser auto-suficiente, com 5+ frases e 650 a 1400 caracteres quando houver contexto suficiente.
+            - Nenhum to-do pode ser genérico. Cada item precisa dizer o que analisar, implementar/ajustar, validar, quais dados/arquivos/telas considerar e qual evidência/entrega produzir.
             - Cubra descoberta, análise do repositório, gap analysis, modelagem, implementação, integração, UX/relatórios, logs/erros, testes, documentação, homologação e pós-feedback quando aplicável.
             - Use o contexto abaixo para enriquecer com detalhes reais; não invente fora do contexto.
             - Retorne APENAS JSON válido no mesmo formato.
@@ -477,13 +482,16 @@ def generate_project_tasks_from_meeting_and_repo(project_name, meeting_context, 
                 model="gpt-4o",
                 messages=[{"role": "user", "content": revision_prompt}],
                 response_format={"type": "json_object"},
-                temperature=0.25
+                temperature=0.15
             )
             revision_content = revision_response.choices[0].message.content
-            if revision_content:
-                revised = json.loads(revision_content)
-                if isinstance(revised, dict) and revised.get("tasks"):
-                    return revised
+            if not revision_content:
+                break
+            revised = json.loads(revision_content)
+            if isinstance(revised, dict) and revised.get("tasks"):
+                parsed = revised
+            else:
+                break
 
         return parsed
     except Exception as e:

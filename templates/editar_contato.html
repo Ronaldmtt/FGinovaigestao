@@ -46,6 +46,17 @@
                             {% endfor %}
                         </select>
                     </div>
+
+                    <div class="mb-3">
+                        <label for="fonte" class="form-label">Canal de Captação</label>
+                        <select class="form-select bg-dark text-light border-secondary" id="fonte" name="fonte">
+                            <option value="">Não informado</option>
+                            {% for source in lead_sources %}
+                            <option value="{{ source.nome }}" {% if source.nome == contato.fonte %}selected{% endif %}>{{ source.nome }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text text-muted">Cadastre novos canais na aba CRM, em “Canais de captação”.</div>
+                    </div>
                     
                     <div class="mb-3">
                         <label for="observacoes" class="form-label">Observações</label>

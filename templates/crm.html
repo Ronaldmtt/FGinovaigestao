@@ -16,6 +16,8 @@
     .pipeline-cards { background: rgba(18,24,32,.9) !important; border-color: var(--fg-border) !important; }
     .pipeline-card { background: linear-gradient(180deg, rgba(23,29,37,.98), rgba(18,24,32,.94)) !important; border-color: var(--fg-border) !important; border-radius: 16px !important; }
     .add-column-box { border-radius: 18px !important; }
+    .lead-source-pill { display:inline-flex; align-items:center; gap:.35rem; padding:.25rem .65rem; border-radius:999px; background:rgba(13,110,253,.14); color:#9ec5fe; font-size:.82rem; font-weight:600; margin:.15rem; }
+    .lead-source-pill button { border:0; background:transparent; color:inherit; padding:0; line-height:1; }
 </style>
 <div class="crm-shell">
 <div class="row mb-4">
@@ -33,6 +35,33 @@
         </div>
         <div class="alert alert-dark border-secondary">
             <i class="fas fa-info-circle"></i> Total de contatos: <strong>{{ total_contatos }}</strong>
+        </div>
+        <div class="card bg-dark text-light border-secondary mb-3">
+            <div class="card-header border-secondary d-flex justify-content-between align-items-center" data-bs-toggle="collapse" data-bs-target="#leadSourcesBox" style="cursor:pointer;">
+                <span><i class="fas fa-bullhorn me-2"></i>Canais de captação</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="collapse" id="leadSourcesBox">
+                <div class="card-body">
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control bg-dark text-light border-secondary" id="newLeadSourceName" placeholder="Ex.: Indicação, Email, Evento, Parceiro">
+                        <button class="btn btn-outline-primary" type="button" onclick="createLeadSource()">
+                            <i class="fas fa-plus me-1"></i>Adicionar canal
+                        </button>
+                    </div>
+                    <div id="leadSourcesList">
+                        {% for source in lead_sources %}
+                        <span class="lead-source-pill" data-source-id="{{ source.id }}">
+                            {{ source.nome }}
+                            <button type="button" onclick='deleteLeadSource({{ source.id }}, {{ source.nome|tojson }})' title="Remover canal">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </span>
+                        {% endfor %}
+                    </div>
+                    <small class="text-muted d-block mt-2">Esses canais aparecem no dropdown “Canal de Captação” ao criar ou editar um contato.</small>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -74,6 +103,11 @@
                     <div class="mb-2">
                         <i class="fas fa-phone"></i> {{ contato.telefone }}
                     </div>
+                    {% if contato.fonte %}
+                    <div class="mb-2">
+                        <i class="fas fa-bullhorn"></i> {{ contato.fonte }}
+                    </div>
+                    {% endif %}
                     {% if contato.comentarios %}
                     <div class="text-muted small">
                         <i class="fas fa-comment-dots"></i> {{ contato.comentarios|length }} comentário(s)
@@ -682,6 +716,56 @@ function syncSiteLeads(btn) {
     .finally(() => {
         btn.disabled = false;
         btn.innerHTML = originalHtml;
+    });
+}
+
+function createLeadSource() {
+    const input = document.getElementById('newLeadSourceName');
+    const nome = input.value.trim();
+    if (!nome) {
+        alert('Informe o nome do canal de captação.');
+        return;
+    }
+
+    fetch('/api/crm/lead-sources', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            alert(data.message || 'Erro ao adicionar canal');
+            return;
+        }
+        location.reload();
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao adicionar canal de captação');
+    });
+}
+
+function deleteLeadSource(sourceId, sourceName) {
+    if (!confirm(`Remover o canal "${sourceName}" da lista? Contatos já cadastrados mantêm o texto salvo.`)) {
+        return;
+    }
+
+    fetch(`/api/crm/lead-sources/${sourceId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            alert(data.message || 'Erro ao remover canal');
+            return;
+        }
+        location.reload();
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao remover canal de captação');
     });
 }
 </script>

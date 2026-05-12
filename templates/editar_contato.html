@@ -46,6 +46,23 @@
                             {% endfor %}
                         </select>
                     </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="fonte" class="form-label">Canal de Captação</label>
+                            <select class="form-select bg-dark text-light border-secondary" id="fonte" name="fonte">
+                                <option value="">Não informado</option>
+                                {% for source in lead_sources %}
+                                <option value="{{ source }}" {% if source == contato.fonte %}selected{% endif %}>{{ source }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="fonte_nova" class="form-label">Novo Canal</label>
+                            <input type="text" class="form-control bg-dark text-light border-secondary" id="fonte_nova" name="fonte_nova" placeholder="Ex.: parceiro, campanha, feira...">
+                            <small class="text-muted">Se preencher, substitui o dropdown e aparece nas próximas opções.</small>
+                        </div>
+                    </div>
                     
                     <div class="mb-3">
                         <label for="observacoes" class="form-label">Observações</label>

@@ -74,6 +74,11 @@
                     <div class="mb-2">
                         <i class="fas fa-phone"></i> {{ contato.telefone }}
                     </div>
+                    {% if contato.fonte %}
+                    <div class="mb-2">
+                        <i class="fas fa-bullhorn"></i> {{ contato.fonte }}
+                    </div>
+                    {% endif %}
                     {% if contato.comentarios %}
                     <div class="text-muted small">
                         <i class="fas fa-comment-dots"></i> {{ contato.comentarios|length }} comentário(s)

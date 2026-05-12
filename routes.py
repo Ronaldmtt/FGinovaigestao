@@ -4233,6 +4233,39 @@ def init_crm_stages():
 
         db.session.commit()
 
+CRM_DEFAULT_LEAD_SOURCES = ['Indicação', 'Email', 'Site', 'WhatsApp', 'Telefone', 'Evento', 'Outro']
+
+
+def get_crm_lead_sources():
+    """Retorna canais de captação sem criar tabela nova.
+
+    O CRM principal já possui `Contato.fonte`; usamos valores padrão + valores
+    já salvos em contatos para alimentar o dropdown com segurança.
+    """
+    saved_sources = [
+        row[0] for row in db.session.query(Contato.fonte)
+        .filter(Contato.fonte.isnot(None), Contato.fonte != '')
+        .distinct()
+        .all()
+        if row[0]
+    ]
+    seen = set()
+    sources = []
+    for name in CRM_DEFAULT_LEAD_SOURCES + sorted(saved_sources, key=lambda value: value.lower()):
+        key = name.strip().lower()
+        if key and key not in seen:
+            seen.add(key)
+            sources.append(name.strip())
+    return sources
+
+
+def get_crm_lead_source_from_form():
+    fonte_nova = (request.form.get('fonte_nova') or '').strip()
+    if fonte_nova:
+        return fonte_nova[:100]
+    fonte = (request.form.get('fonte') or '').strip()
+    return fonte[:100] if fonte else None
+
 @app.route('/crm')
 @login_required
 def crm():
@@ -4246,6 +4279,7 @@ def crm():
     # Buscar estágios do banco
     from models import CrmStage
     estagios = CrmStage.query.order_by(CrmStage.ordem).all()
+    lead_sources = get_crm_lead_sources()
 
     contatos_por_estagio = {}
     for estagio in estagios:
@@ -4256,6 +4290,7 @@ def crm():
     return render_template('crm.html',
                          contatos_por_estagio=contatos_por_estagio,
                          estagios=estagios,
+                         lead_sources=lead_sources,
                          total_contatos=total_contatos)
 
 @app.route('/api/crm/sync-site-leads', methods=['POST'])
@@ -4299,6 +4334,7 @@ def novo_contato():
             email=request.form['email'],
             telefone=request.form['telefone'],
             observacoes=request.form.get('observacoes', ''),
+            fonte=get_crm_lead_source_from_form(),
             estagio=request.form.get('estagio', 'Captação')
         )
         db.session.add(contato)
@@ -4309,7 +4345,7 @@ def novo_contato():
 
     from models import CrmStage
     estagios = CrmStage.query.order_by(CrmStage.ordem).all()
-    return render_template('novo_contato.html', estagios=estagios)
+    return render_template('novo_contato.html', estagios=estagios, lead_sources=get_crm_lead_sources())
 
 @app.route('/crm/contato/<int:id>')
 @login_required
@@ -4338,6 +4374,7 @@ def editar_contato(id):
         contato.email = request.form['email']
         contato.telefone = request.form['telefone']
         contato.observacoes = request.form.get('observacoes', '')
+        contato.fonte = get_crm_lead_source_from_form()
         contato.estagio = request.form['estagio']
         contato.data_atualizacao = datetime.utcnow()
 
@@ -4348,7 +4385,7 @@ def editar_contato(id):
 
     from models import CrmStage
     estagios = CrmStage.query.order_by(CrmStage.ordem).all()
-    return render_template('editar_contato.html', contato=contato, estagios=estagios)
+    return render_template('editar_contato.html', contato=contato, estagios=estagios, lead_sources=get_crm_lead_sources())
 
 @app.route('/crm/contato/<int:id>/deletar', methods=['POST'])
 @login_required

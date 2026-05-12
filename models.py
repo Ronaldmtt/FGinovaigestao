@@ -239,19 +239,6 @@ class CrmStage(db.Model):
         return f'<CrmStage {self.nome}>'
 
 
-class CrmLeadSource(db.Model):
-    """Canal de captação para contatos/leads do CRM principal."""
-    __tablename__ = 'crm_lead_sources'
-
-    id = db.Column(db.Integer, primary_key=True)
-    nome = db.Column(db.String(100), nullable=False, unique=True)
-    ativo = db.Column(db.Boolean, default=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    def __repr__(self):
-        return f'<CrmLeadSource {self.nome}>'
-
-
 class Crm2Lead(db.Model):
     __tablename__ = 'crm2_leads'
     

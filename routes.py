@@ -4233,37 +4233,6 @@ def init_crm_stages():
 
         db.session.commit()
 
-CRM_DEFAULT_LEAD_SOURCES = ['Indicação', 'Email', 'Site', 'WhatsApp', 'Telefone', 'Evento', 'Outro']
-
-
-def init_crm_lead_sources():
-    """Inicializar canais de captação do CRM principal se não existirem."""
-    from models import CrmLeadSource
-
-    for source_name in CRM_DEFAULT_LEAD_SOURCES:
-        exists = CrmLeadSource.query.filter(func.lower(CrmLeadSource.nome) == source_name.lower()).first()
-        if not exists:
-            db.session.add(CrmLeadSource(nome=source_name))
-    db.session.commit()
-
-
-def get_crm_lead_sources():
-    from models import CrmLeadSource
-    init_crm_lead_sources()
-    return CrmLeadSource.query.filter_by(ativo=True).order_by(CrmLeadSource.nome.asc()).all()
-
-
-def validate_crm_lead_source(source_name):
-    from models import CrmLeadSource
-    source_name = (source_name or '').strip()
-    if not source_name:
-        return None
-    exists = CrmLeadSource.query.filter(
-        func.lower(CrmLeadSource.nome) == source_name.lower(),
-        CrmLeadSource.ativo.is_(True)
-    ).first()
-    return source_name if exists else False
-
 @app.route('/crm')
 @login_required
 def crm():
@@ -4273,12 +4242,10 @@ def crm():
 
     # Inicializar estágios se necessário
     init_crm_stages()
-    init_crm_lead_sources()
 
     # Buscar estágios do banco
     from models import CrmStage
     estagios = CrmStage.query.order_by(CrmStage.ordem).all()
-    lead_sources = get_crm_lead_sources()
 
     contatos_por_estagio = {}
     for estagio in estagios:
@@ -4289,7 +4256,6 @@ def crm():
     return render_template('crm.html',
                          contatos_por_estagio=contatos_por_estagio,
                          estagios=estagios,
-                         lead_sources=lead_sources,
                          total_contatos=total_contatos)
 
 @app.route('/api/crm/sync-site-leads', methods=['POST'])
@@ -4327,17 +4293,12 @@ def novo_contato():
         return redirect(url_for('dashboard'))
 
     if request.method == 'POST':
-        fonte = validate_crm_lead_source(request.form.get('fonte'))
-        if fonte is False:
-            flash('Canal de captação inválido. Cadastre o canal antes de usar.', 'danger')
-            return redirect(url_for('novo_contato'))
         contato = Contato(
             nome_empresa=request.form['nome_empresa'],
             nome_contato=request.form['nome_contato'],
             email=request.form['email'],
             telefone=request.form['telefone'],
             observacoes=request.form.get('observacoes', ''),
-            fonte=fonte,
             estagio=request.form.get('estagio', 'Captação')
         )
         db.session.add(contato)
@@ -4348,7 +4309,7 @@ def novo_contato():
 
     from models import CrmStage
     estagios = CrmStage.query.order_by(CrmStage.ordem).all()
-    return render_template('novo_contato.html', estagios=estagios, lead_sources=get_crm_lead_sources())
+    return render_template('novo_contato.html', estagios=estagios)
 
 @app.route('/crm/contato/<int:id>')
 @login_required
@@ -4372,16 +4333,11 @@ def editar_contato(id):
     contato = Contato.query.get_or_404(id)
 
     if request.method == 'POST':
-        fonte = validate_crm_lead_source(request.form.get('fonte'))
-        if fonte is False:
-            flash('Canal de captação inválido. Cadastre o canal antes de usar.', 'danger')
-            return redirect(url_for('editar_contato', id=id))
         contato.nome_empresa = request.form['nome_empresa']
         contato.nome_contato = request.form['nome_contato']
         contato.email = request.form['email']
         contato.telefone = request.form['telefone']
         contato.observacoes = request.form.get('observacoes', '')
-        contato.fonte = fonte
         contato.estagio = request.form['estagio']
         contato.data_atualizacao = datetime.utcnow()
 
@@ -4392,7 +4348,7 @@ def editar_contato(id):
 
     from models import CrmStage
     estagios = CrmStage.query.order_by(CrmStage.ordem).all()
-    return render_template('editar_contato.html', contato=contato, estagios=estagios, lead_sources=get_crm_lead_sources())
+    return render_template('editar_contato.html', contato=contato, estagios=estagios)
 
 @app.route('/crm/contato/<int:id>/deletar', methods=['POST'])
 @login_required
@@ -4451,49 +4407,6 @@ def adicionar_comentario(id):
     return redirect(url_for('ver_contato', id=id))
 
 # ==================== CRM STAGE API ROUTES ====================
-
-@app.route('/api/crm/lead-sources', methods=['POST'])
-@login_required
-def api_add_crm_lead_source():
-    """Adicionar novo canal de captação do CRM."""
-    if not current_user.is_admin and not current_user.acesso_crm:
-        return jsonify({'success': False, 'error': 'Sem permissão'}), 403
-
-    from models import CrmLeadSource
-    data = request.get_json(silent=True) or {}
-    nome = (data.get('nome') or '').strip()
-
-    if not nome:
-        return jsonify({'success': False, 'message': 'Nome não pode ser vazio'}), 400
-
-    existing = CrmLeadSource.query.filter(func.lower(CrmLeadSource.nome) == nome.lower()).first()
-    if existing:
-        if not existing.ativo:
-            existing.ativo = True
-            db.session.commit()
-            return jsonify({'success': True, 'message': 'Canal reativado com sucesso!', 'source': {'id': existing.id, 'nome': existing.nome}})
-        return jsonify({'success': False, 'message': 'Já existe um canal com este nome'}), 400
-
-    source = CrmLeadSource(nome=nome)
-    db.session.add(source)
-    db.session.commit()
-
-    return jsonify({'success': True, 'message': 'Canal adicionado com sucesso!', 'source': {'id': source.id, 'nome': source.nome}})
-
-
-@app.route('/api/crm/lead-sources/<int:source_id>', methods=['DELETE'])
-@login_required
-def api_delete_crm_lead_source(source_id):
-    """Remover canal de captação da lista, mantendo texto em leads antigos."""
-    if not current_user.is_admin and not current_user.acesso_crm:
-        return jsonify({'success': False, 'error': 'Sem permissão'}), 403
-
-    from models import CrmLeadSource
-    source = CrmLeadSource.query.get_or_404(source_id)
-    source.ativo = False
-    db.session.commit()
-
-    return jsonify({'success': True, 'message': 'Canal removido com sucesso!'})
 
 @app.route('/api/crm/stages', methods=['POST'])
 @login_required

@@ -37,13 +37,6 @@
                         <p><i class="fas fa-phone"></i> {{ contato.telefone }}</p>
                     </div>
                     <div class="col-md-6">
-                        <h6 class="text-muted">Canal de Captação</h6>
-                        <p><i class="fas fa-bullhorn"></i> {{ contato.fonte or 'Não informado' }}</p>
-                    </div>
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-md-6">
                         <h6 class="text-muted">Estágio Atual</h6>
                         <select class="form-select bg-dark text-light border-secondary" id="estagioSelect">
                             {% for estagio in estagios %}

@@ -94,7 +94,7 @@ def load_user(user_id):
 with app.app_context():
     # Import models to ensure tables are created
     import models
-    from sqlalchemy import text, func # Para scripts customizados DDL
+    from sqlalchemy import text # Para scripts customizados DDL
     
     try:
         db.create_all()
@@ -293,18 +293,6 @@ with app.app_context():
         except Exception as e:
             db.session.rollback()
             print(f"Migracao Falhou/Ignorada ({q}): {e}")
-
-    try:
-        models.CrmLeadSource.__table__.create(db.engine, checkfirst=True)
-        default_crm_lead_sources = ['Indicação', 'Email', 'Site', 'WhatsApp', 'Telefone', 'Evento', 'Outro']
-        for source_name in default_crm_lead_sources:
-            exists = models.CrmLeadSource.query.filter(func.lower(models.CrmLeadSource.nome) == source_name.lower()).first()
-            if not exists:
-                db.session.add(models.CrmLeadSource(nome=source_name))
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        print(f"Migracao Falhou/Ignorada (crm_lead_sources): {e}")
 
     crm2_lead_queries = [
         'ALTER TABLE crm2_leads ADD COLUMN fonte VARCHAR(100)',

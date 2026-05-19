@@ -164,19 +164,14 @@
                                                     style="font-size:.6rem;"></i>
                                             </div>
                                             {% endif %}
-                                            <div class="d-flex align-items-center bg-dark rounded px-1"
-                                                style="height:20px;" title="RPA: {{ p.rpa_status if p.rpa_identifier else 'Não Configurado' }}">
+                                            <div class="d-flex align-items-center bg-dark rounded px-1 rpa-status-badge"
+                                                style="height:20px;" title="RPA: {{ 'Carregando...' if p.rpa_identifier else 'Não Configurado' }}"
+                                                {% if p.rpa_identifier %}data-rpa-project-id="{{ p.id }}"{% endif %}>
                                                 <i class="fas fa-robot text-light" style="font-size:.8rem;"></i>
                                                 {% if p.rpa_identifier %}
-                                                    {% if p.rpa_status == 'online' %}
-                                                    <i class="fas fa-check-circle text-success ms-1" style="font-size:.6rem;"></i>
-                                                    {% elif p.rpa_status == 'warning_7d' %}
-                                                    <i class="fas fa-exclamation-triangle text-warning ms-1" style="font-size:.6rem;"></i>
-                                                    {% else %}
-                                                    <i class="fas fa-times-circle text-danger ms-1" style="font-size:.6rem;"></i>
-                                                    {% endif %}
+                                                <i class="fas fa-circle-notch fa-spin text-secondary ms-1 rpa-status-icon" style="font-size:.6rem;"></i>
                                                 {% else %}
-                                                <i class="fas fa-question-circle text-secondary ms-1" style="font-size:.6rem;"></i>
+                                                <i class="fas fa-question-circle text-secondary ms-1 rpa-status-icon" style="font-size:.6rem;"></i>
                                                 {% endif %}
                                             </div>
                                         </div>
@@ -286,14 +281,15 @@
                                                     style="font-size:.6rem;"></i>
                                             </div>
                                             {% endif %}
-                                            <div class="d-flex align-items-center bg-dark rounded px-1"
-                                                style="height:20px;" title="RPA">
+                                            <div class="d-flex align-items-center bg-dark rounded px-1 rpa-status-badge"
+                                                style="height:20px;" title="RPA: {{ 'Carregando...' if c.rpa_identifier else 'Não Configurado' }}"
+                                                {% if c.rpa_identifier %}data-rpa-project-id="{{ c.id }}"{% endif %}>
                                                 <i class="fas fa-robot text-light" style="font-size:.8rem;"></i>
-                                                {% if c.rpa_identifier %}<i
-                                                    class="fas fa-check-circle text-success ms-1"
-                                                    style="font-size:.6rem;"></i>{% else %}<i
-                                                    class="fas fa-question-circle text-secondary ms-1"
-                                                    style="font-size:.6rem;"></i>{% endif %}
+                                                {% if c.rpa_identifier %}
+                                                <i class="fas fa-circle-notch fa-spin text-secondary ms-1 rpa-status-icon" style="font-size:.6rem;"></i>
+                                                {% else %}
+                                                <i class="fas fa-question-circle text-secondary ms-1 rpa-status-icon" style="font-size:.6rem;"></i>
+                                                {% endif %}
                                             </div>
                                         </div>
                                     </div>
@@ -424,20 +420,14 @@
                                     {% endif %}
                                 </div>
                                 {% endif %}
-                                <div class="d-flex align-items-center bg-dark rounded px-1" style="height: 20px;"
-                                    title="RPA: {{ p.rpa_status if p.rpa_identifier else 'Não Configurado' }}">
+                                <div class="d-flex align-items-center bg-dark rounded px-1 rpa-status-badge" style="height: 20px;"
+                                    title="RPA: {{ 'Carregando...' if p.rpa_identifier else 'Não Configurado' }}"
+                                    {% if p.rpa_identifier %}data-rpa-project-id="{{ p.id }}"{% endif %}>
                                     <i class="fas fa-robot text-light" style="font-size: 0.8rem;"></i>
                                     {% if p.rpa_identifier %}
-                                    {% if p.rpa_status == 'online' %}
-                                    <i class="fas fa-check-circle text-success ms-1" style="font-size: 0.6rem;"></i>
-                                    {% elif p.rpa_status == 'warning_7d' %}
-                                    <i class="fas fa-exclamation-triangle text-warning ms-1"
-                                        style="font-size: 0.6rem;"></i>
+                                    <i class="fas fa-circle-notch fa-spin text-secondary ms-1 rpa-status-icon" style="font-size: 0.6rem;"></i>
                                     {% else %}
-                                    <i class="fas fa-times-circle text-danger ms-1" style="font-size: 0.6rem;"></i>
-                                    {% endif %}
-                                    {% else %}
-                                    <i class="fas fa-question-circle text-secondary ms-1" style="font-size: 0.6rem;"
+                                    <i class="fas fa-question-circle text-secondary ms-1 rpa-status-icon" style="font-size: 0.6rem;"
                                         title="Sem ID configurado"></i>
                                     {% endif %}
                                 </div>
@@ -1886,6 +1876,31 @@
             const initialSlide = parseInt(clip.dataset.initialSlide || '0', 10);
             csgIdx[pid] = Math.max(0, Math.min(initialSlide, total - 1));
             csgApply(pid, total);
+        });
+
+        document.querySelectorAll('[data-rpa-project-id]').forEach(function (badge) {
+            const icon = badge.querySelector('.rpa-status-icon');
+            const projectId = badge.dataset.rpaProjectId;
+            fetch(`/api/projects/${projectId}/rpa-status`)
+                .then(response => response.json())
+                .then(data => {
+                    const status = data.status || 'offline';
+                    badge.title = `RPA: ${data.label || status}`;
+                    if (!icon) return;
+                    icon.className = 'fas ms-1 rpa-status-icon';
+                    icon.style.fontSize = icon.style.fontSize || '.6rem';
+                    if (status === 'online') {
+                        icon.classList.add('fa-check-circle', 'text-success');
+                    } else if (status === 'warning_7d') {
+                        icon.classList.add('fa-exclamation-triangle', 'text-warning');
+                    } else {
+                        icon.classList.add('fa-times-circle', 'text-danger');
+                    }
+                })
+                .catch(() => {
+                    badge.title = 'RPA: offline';
+                    if (icon) icon.className = 'fas fa-times-circle text-danger ms-1 rpa-status-icon';
+                });
         });
     });
 </script>

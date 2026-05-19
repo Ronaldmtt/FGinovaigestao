@@ -1051,6 +1051,34 @@ def projects():
                              'status': status_filter
                          })
 
+
+@app.route('/api/projects/<int:id>/rpa-status')
+@login_required
+@requires_permission('acesso_projetos')
+def project_rpa_status(id):
+    project = Project.query.get_or_404(id)
+    if not current_user.is_admin and current_user.id != project.responsible_id and current_user not in project.team_members:
+        return jsonify({'success': False, 'message': 'Sem permissão'}), 403
+
+    if not project.rpa_identifier:
+        return jsonify({'success': True, 'status': None, 'label': 'Não Configurado'})
+
+    try:
+        headers = {'X-API-Key': os.environ.get('RPA_MONITOR_API_KEY', 'bizart-integration-secret-key-2025')}
+        base_url = os.environ.get('RPA_MONITOR_URL', 'http://localhost:2000').rstrip('/')
+        resp = requests.get(
+            f'{base_url}/integration/status/{project.rpa_identifier}',
+            headers=headers,
+            timeout=2
+        )
+        if resp.status_code == 200:
+            status = resp.json().get('display_status', 'offline')
+        else:
+            status = 'offline'
+        return jsonify({'success': True, 'status': status, 'label': status})
+    except Exception:
+        return jsonify({'success': True, 'status': 'offline', 'label': 'offline'})
+
 @app.route('/projects/new', methods=['GET', 'POST'])
 @login_required
 @requires_permission('acesso_projetos')

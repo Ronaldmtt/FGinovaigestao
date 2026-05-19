@@ -2661,7 +2661,7 @@
                                 <option value="{{ project.id }}" data-responsible-id="{{ project.responsible_id }}"
                                     data-project-status="{{ project.status }}"
                                     {% if project.id not in writable_project_ids %}disabled{% endif %}
-                                    {% if current_filters.project_id==project.id %}selected{% endif %}>
+                                    {% if project.id in current_filters.project_id %}selected{% endif %}>
                                     {{ project.client.nome }} - {{ project.nome }}{% if project.id not in writable_project_ids %} — bloqueado ({{ project.status.replace('_', ' ') }}){% endif %}
                                 </option>
                                 {% endfor %}

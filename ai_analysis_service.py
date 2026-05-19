@@ -1,16 +1,15 @@
 """
-AI Analysis Service — Análise de transcrições usando OpenAI.
+AI Analysis Service — Análise de transcrições usando DeepSeek.
 Gera overview, itens da pauta, notas e ações sugeridas.
 """
-import os
+from ai_provider import get_ai_client, get_ai_model, has_ai_api_key, missing_ai_key_message
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+AI_MODEL = get_ai_model()
 
 
 def analisar_transcricao(transcription_text):
     """
-    Gera análise estruturada de uma transcrição de reunião usando OpenAI.
+    Gera análise estruturada de uma transcrição de reunião usando DeepSeek.
     
     Args:
         transcription_text: str - Texto completo da transcrição
@@ -18,8 +17,8 @@ def analisar_transcricao(transcription_text):
     Returns:
         str - Análise formatada em markdown, ou None se falhar
     """
-    if not OPENAI_API_KEY:
-        print("[ai_analysis] OPENAI_API_KEY não configurada")
+    if not has_ai_api_key():
+        print(f"[ai_analysis] {missing_ai_key_message()}")
         return None
     
     if not transcription_text or len(transcription_text.strip()) < 50:
@@ -27,8 +26,7 @@ def analisar_transcricao(transcription_text):
         return None
     
     try:
-        from openai import OpenAI
-        client = OpenAI(api_key=OPENAI_API_KEY)
+        client = get_ai_client()
         
         prompt = (
             "Você é um analista sênior de negócios. Analise a transcrição da reunião abaixo e gere um relatório "
@@ -46,7 +44,7 @@ def analisar_transcricao(transcription_text):
         )
         
         response = client.chat.completions.create(
-            model=OPENAI_MODEL,
+            model=AI_MODEL,
             messages=[
                 {"role": "system", "content": "Você é um analista sênior. Responda em português do Brasil. Use formato markdown."},
                 {"role": "user", "content": prompt}
@@ -81,8 +79,8 @@ def gerar_proposta_ia(lead_nome, lead_empresa, observacoes, reunioes_data):
         dict - Campos da proposta {titulo, descricao, escopo, valor_sugerido, prazo, cronograma, justificativa}
         ou None se falhar
     """
-    if not OPENAI_API_KEY:
-        print("[ai_analysis] OPENAI_API_KEY não configurada")
+    if not has_ai_api_key():
+        print(f"[ai_analysis] {missing_ai_key_message()}")
         return None
     
     # Montar contexto completo
@@ -104,8 +102,7 @@ def gerar_proposta_ia(lead_nome, lead_empresa, observacoes, reunioes_data):
     
     try:
         import json
-        from openai import OpenAI
-        client = OpenAI(api_key=OPENAI_API_KEY)
+        client = get_ai_client()
         
         prompt = (
             "Com base em todo o histórico de reuniões e informações desse lead abaixo, "
@@ -124,7 +121,7 @@ def gerar_proposta_ia(lead_nome, lead_empresa, observacoes, reunioes_data):
         )
         
         response = client.chat.completions.create(
-            model=OPENAI_MODEL,
+            model=AI_MODEL,
             messages=[
                 {"role": "system", "content": "Você é um consultor de negócios sênior. Gere propostas em português do Brasil. Responda APENAS em JSON válido."},
                 {"role": "user", "content": prompt}
@@ -167,11 +164,11 @@ def gerar_proposta_ia(lead_nome, lead_empresa, observacoes, reunioes_data):
 
 def gerar_contrato_ia(lead_nome, lead_empresa, proposta_data):
     """
-    Analisa a proposta e gera seções de contrato profissional via OpenAI.
+    Analisa a proposta e gera seções de contrato profissional via DeepSeek.
     Retorna: { titulo: str, sections: [{type:'title'|'description', content:str}] }
     """
-    if not OPENAI_API_KEY:
-        print("[ai_analysis] OPENAI_API_KEY não configurada")
+    if not has_ai_api_key():
+        print(f"[ai_analysis] {missing_ai_key_message()}")
         return None
     
     proposta_context = (
@@ -188,8 +185,7 @@ def gerar_contrato_ia(lead_nome, lead_empresa, proposta_data):
     
     try:
         import json
-        from openai import OpenAI
-        client = OpenAI(api_key=OPENAI_API_KEY)
+        client = get_ai_client()
         
         prompt = (
             "Com base na proposta comercial abaixo, gere um CONTRATO PROFISSIONAL estruturado.\n"
@@ -215,7 +211,7 @@ def gerar_contrato_ia(lead_nome, lead_empresa, proposta_data):
         )
         
         response = client.chat.completions.create(
-            model=OPENAI_MODEL,
+            model=AI_MODEL,
             messages=[
                 {"role": "system", "content": "Você é um advogado corporativo sênior. Gere contratos profissionais em português do Brasil. Responda APENAS em JSON válido."},
                 {"role": "user", "content": prompt}

@@ -125,7 +125,7 @@
 
             {% if p.children %}
             {# ===== GRUPO COM SLIDER (pai + filhos) ===== #}
-            <div class="csg-clip" id="csg_{{ p.id }}">
+            <div class="csg-clip" id="csg_{{ p.id }}" data-initial-slide="{{ p.initial_slide|default(0) }}">
                 <div class="csg-track" id="cst_{{ p.id }}">
 
                     <!-- Slide 0: card do projeto pai -->
@@ -1883,6 +1883,8 @@
             const track = document.getElementById('cst_' + pid);
             if (!track) return;
             const total = track.querySelectorAll('.csg-slide').length;
+            const initialSlide = parseInt(clip.dataset.initialSlide || '0', 10);
+            csgIdx[pid] = Math.max(0, Math.min(initialSlide, total - 1));
             csgApply(pid, total);
         });
     });

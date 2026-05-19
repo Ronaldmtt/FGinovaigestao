@@ -827,136 +827,106 @@ def projects():
     responsible_filter = request.args.get('responsible_id', type=int)
     status_filter = request.args.get('status')
 
-    # Query base para contar todos os projetos (independente de filtros)
-    # Filtra projetos filhos (parent_id IS NOT NULL) - eles só aparecem no carrossel do pai
-    if current_user.is_admin:
-        base_query = Project.query.filter(Project.parent_id == None)  # noqa
-    else:
-        base_query = Project.query.filter(
-            Project.parent_id == None,  # noqa
+    status_map = {
+        'em_andamento': {'label': 'Em Andamento', 'class': 'status-active'},
+        'em_teste': {'label': 'Em Teste', 'class': 'status-testing'},
+        'concluido': {'label': 'Concluído', 'class': 'status-completed'},
+        'pausado': {'label': 'Pausado', 'class': 'status-paused'},
+        'cancelado': {'label': 'Cancelado', 'class': 'status-delayed'}
+    }
+
+    def user_project_scope(query):
+        """Admin vê tudo; usuário comum vê projetos onde é responsável ou membro da equipe."""
+        if current_user.is_admin:
+            return query
+        return query.filter(
             (Project.responsible_id == current_user.id) |
             (Project.team_members.contains(current_user))
         ).distinct()
 
-    # Contadores de status para os pills
-    status_counts = {
-        'todos': base_query.count(),
-        'em_andamento': base_query.filter_by(status='em_andamento').count(),
-        'em_teste': base_query.filter_by(status='em_teste').count(),
-        'concluido': base_query.filter_by(status='concluido').count(),
-        'pausado': base_query.filter_by(status='pausado').count(),
-    }
+    def apply_page_filters(query):
+        """Aplica filtros à entidade projeto individual, inclusive filhos."""
+        if client_filter:
+            query = query.filter(Project.client_id == client_filter)
+        if responsible_filter:
+            query = query.filter(Project.responsible_id == responsible_filter)
+        if status_filter:
+            if status_filter == 'atrasados':
+                query = query.filter(Project.status != 'concluido', Project.data_fim < datetime.utcnow().date())
+            else:
+                query = query.filter(Project.status == status_filter)
+        return query
 
-    # Query para a listagem (com filtros aplicados)
-    query = base_query
+    def compute_progress(project):
+        tasks = list(project.tasks or [])
+        if tasks:
+            completed_tasks = sum(1 for task in tasks if task.status == 'concluida')
+            return int((completed_tasks / len(tasks)) * 100)
+        return project.progress_percent or 0
 
-    # Aplicar filtros
-    if client_filter:
-        query = query.filter_by(client_id=client_filter)
+    def progress_color(progress):
+        if progress <= 25:
+            return 'progress-danger'
+        if progress <= 75:
+            return 'progress-warning'
+        return 'progress-success'
 
-    if responsible_filter:
-        query = query.filter_by(responsible_id=responsible_filter)
-
-    if status_filter:
-        if status_filter == 'atrasados':
-            query = query.filter(Project.status != 'concluido', Project.data_fim < datetime.utcnow().date())
-        else:
-            query = query.filter_by(status=status_filter)
-
-    # Ordenar por data de entrega (mais próximo primeiro) e depois por nome
-    # Usar eager loading para evitar N+1 queries
-    projects = query.options(
-        joinedload(Project.responsible),
-        joinedload(Project.client),
-        selectinload(Project.tasks)
-    ).order_by(Project.data_fim.asc().nullslast(), Project.nome).all()
-
-    # Preparar dados dos projetos para o template
-    projects_data = []
-    for project in projects:
-        # Calcular progresso baseado em tarefas se disponível
-        if project.tasks:
-            total_tasks = len(project.tasks)
-            completed_tasks = sum(1 for task in project.tasks if task.status == 'concluida')
-            computed_progress = int((completed_tasks / total_tasks) * 100) if total_tasks > 0 else 0
-        else:
-            computed_progress = project.progress_percent or 0
-
-        # Status para label e classe CSS
-        status_map = {
-            'em_andamento': {'label': 'Em Andamento', 'class': 'status-active'},
-            'em_teste': {'label': 'Em Teste', 'class': 'status-testing'},
-            'concluido': {'label': 'Concluído', 'class': 'status-completed'},
-            'pausado': {'label': 'Pausado', 'class': 'status-paused'},
-            'cancelado': {'label': 'Cancelado', 'class': 'status-delayed'}
-        }
-        status_info = status_map.get(project.status, {'label': project.status, 'class': 'status-paused'})
-        latest_status_entry = project.status_history[0] if project.status_history else None
-        status_changed_at = latest_status_entry.changed_at if latest_status_entry else project.created_at
-
-        # Cor da barra de progresso
-        if computed_progress <= 25:
-            progress_color = 'progress-danger'
-        elif computed_progress <= 75:
-            progress_color = 'progress-warning'
-        else:
-            progress_color = 'progress-success'
-
-        # Lógica de Brilho (Glow) baseada no tempo
-        glow_class = ''
+    def glow_for(project):
         if project.status == 'concluido':
-            glow_class = 'glow-complete'
-        elif project.status == 'em_teste':
-            glow_class = 'glow-pink-test'
-        elif project.status == 'pausado':
-             glow_class = '' # Sem brilho se estiver pausado
-        elif project.data_inicio and project.data_fim:
+            return 'glow-complete'
+        if project.status == 'em_teste':
+            return 'glow-pink-test'
+        if project.status == 'pausado':
+            return ''
+        if project.data_inicio and project.data_fim:
             from datetime import date
             today = date.today()
-
-            # Se data inicio for futura, não brilha ou verde? Assumindo verde (inicio do ciclo)
             if today < project.data_inicio:
                 percent_time = 0.0
             elif today > project.data_fim:
-                percent_time = 1.1 # Passou do prazo
+                percent_time = 1.1
             else:
                 total_days = (project.data_fim - project.data_inicio).days
-                if total_days > 0:
-                    elapsed_days = (today - project.data_inicio).days
-                    percent_time = elapsed_days / total_days
-                else:
-                    percent_time = 1.0 # Inicio e fim iguais
-
+                percent_time = (today - project.data_inicio).days / total_days if total_days > 0 else 1.0
             if percent_time < 0.6:
-                glow_class = 'glow-green'
-            elif percent_time < 0.9:
-                glow_class = 'glow-orange'
-            elif percent_time <= 1.0:
-                glow_class = 'glow-red'
-            else:
-                glow_class = 'glow-purple' # Atrasado
+                return 'glow-green'
+            if percent_time < 0.9:
+                return 'glow-orange'
+            if percent_time <= 1.0:
+                return 'glow-red'
+            return 'glow-purple'
+        return ''
 
+    def latest_status(project):
+        latest = project.status_history[0] if project.status_history else None
+        changed_at = latest.changed_at if latest else project.created_at
+        note = (latest.note or '').strip() if latest and latest.note else ''
+        return latest, changed_at, note
+
+    def serialize_project_card(project, parent=None):
+        computed_progress = compute_progress(project)
+        status_info = status_map.get(project.status, {'label': project.status, 'class': 'status-paused'})
+        _latest_status_entry, status_changed_at, latest_status_note = latest_status(project)
         github_alarm = build_github_project_alarm(project, user=current_user)
         github_generated_at = getattr(project, 'github_todos_generated_at', None)
-
-        projects_data.append({
+        return {
             'id': project.id,
             'nome': project.nome,
-            'leader': project.responsible.full_name if project.responsible else '-',
-            'client': project.client.nome if project.client else '-',
+            'status': project.status,
             'status_label': status_info['label'],
             'status_class': status_info['class'],
             'status_changed_at': status_changed_at,
             'status_changed_at_label': status_changed_at.strftime('%d/%m/%Y') if status_changed_at else '-',
             'status_history_count': len(project.status_history),
+            'status_note': latest_status_note,
             'prazo': project.prazo,
             'progress': computed_progress,
-            'progress_color': progress_color,
-            'glow_class': glow_class,
+            'progress_color': progress_color(computed_progress),
+            'glow_class': glow_for(project),
+            'leader': project.responsible.full_name if project.responsible else '-',
+            'client': project.client.nome if project.client else '-',
             'data_inicio': project.data_inicio.strftime('%Y-%m-%d') if project.data_inicio else '',
             'data_fim': project.data_fim.strftime('%Y-%m-%d') if project.data_fim else '',
-            'created_at': project.created_at,
-            'can_edit': current_user.is_admin or current_user.id == project.responsible_id,
             'created_at': project.created_at,
             'can_edit': current_user.is_admin or current_user.id == project.responsible_id,
             'github_alarm_visible': github_alarm['visible'],
@@ -966,120 +936,111 @@ def projects():
             'github_alarm_text': github_alarm['text'],
             'github_latest_commit': github_alarm['latest_commit'],
             'project': project,
+            'parent': parent,
+            'parent_id': project.parent_id,
+            'parent_name': parent.nome if parent else None,
+            'has_github': project.has_github if hasattr(project, 'has_github') else False,
+            'has_env': project.has_env if hasattr(project, 'has_env') else None,
+            'has_backup_db': project.has_backup_db if hasattr(project, 'has_backup_db') else None,
             'rpa_identifier': project.rpa_identifier,
-            'rpa_status': None,
-            'children': [],  # preenchido abaixo
-            'children_count': project.children.count(),
+            # Carregado sob demanda no front; evita travar /projects com chamadas externas em série.
+            'rpa_status': 'loading' if project.rpa_identifier else None,
+        }
+
+    # Contadores: filhos agora contam como projetos independentes.
+    count_query = apply_page_filters(user_project_scope(Project.query))
+    status_count_base = user_project_scope(Project.query)
+    if client_filter:
+        status_count_base = status_count_base.filter(Project.client_id == client_filter)
+    if responsible_filter:
+        status_count_base = status_count_base.filter(Project.responsible_id == responsible_filter)
+    status_counts = {
+        'todos': status_count_base.count(),
+        'em_andamento': status_count_base.filter(Project.status == 'em_andamento').count(),
+        'em_teste': status_count_base.filter(Project.status == 'em_teste').count(),
+        'concluido': status_count_base.filter(Project.status == 'concluido').count(),
+        'pausado': status_count_base.filter(Project.status == 'pausado').count(),
+        'atrasados': status_count_base.filter(Project.status != 'concluido', Project.data_fim < datetime.utcnow().date()).count(),
+    }
+
+    # Primeiro busca os projetos que realmente combinam com os filtros, incluindo filhos.
+    matched_projects = count_query.options(
+        joinedload(Project.responsible),
+        joinedload(Project.client),
+        selectinload(Project.tasks),
+        selectinload(Project.status_history),
+    ).order_by(Project.data_fim.asc().nullslast(), Project.nome).all()
+
+    # A tela continua agrupando visualmente pai + filhos, mas o gatilho de exibição agora pode ser um filho.
+    root_ids = []
+    initial_slide_by_root = {}
+    for project in matched_projects:
+        root_id = project.parent_id or project.id
+        if root_id not in root_ids:
+            root_ids.append(root_id)
+        if project.parent_id and root_id not in initial_slide_by_root:
+            # Slide 0 é o pai; filhos começam em 1 na ordem de created_at.
+            initial_slide_by_root[root_id] = project.id
+        elif root_id not in initial_slide_by_root:
+            initial_slide_by_root[root_id] = project.id
+
+    roots = []
+    if root_ids:
+        roots = Project.query.options(
+            joinedload(Project.responsible),
+            joinedload(Project.client),
+            selectinload(Project.tasks),
+            selectinload(Project.status_history),
+        ).filter(Project.id.in_(root_ids)).all()
+        roots_by_id = {p.id: p for p in roots}
+        roots = [roots_by_id[rid] for rid in root_ids if rid in roots_by_id]
+
+    child_rows = []
+    if root_ids:
+        child_rows = Project.query.options(
+            joinedload(Project.responsible),
+            joinedload(Project.client),
+            selectinload(Project.tasks),
+            selectinload(Project.status_history),
+        ).filter(Project.parent_id.in_(root_ids)).order_by(Project.created_at.asc()).all()
+        if not current_user.is_admin:
+            # Mantém filhos permitidos para usuário comum; se o filho filtrado trouxe o grupo, ele já está em matched_projects.
+            allowed_ids = {p.id for p in matched_projects}
+            child_rows = [c for c in child_rows if c.id in allowed_ids or c.responsible_id == current_user.id or current_user in c.team_members]
+    children_by_parent = {}
+    for child in child_rows:
+        children_by_parent.setdefault(child.parent_id, []).append(child)
+
+    projects_data = []
+    projects_for_modals_by_id = {}
+    for root in roots:
+        parent_data = serialize_project_card(root)
+        children = children_by_parent.get(root.id, [])
+        child_data = [serialize_project_card(child, parent=root) for child in children]
+        initial_project_id = initial_slide_by_root.get(root.id, root.id)
+        initial_slide = 0
+        for idx, child in enumerate(children, start=1):
+            if child.id == initial_project_id:
+                initial_slide = idx
+                break
+        parent_data.update({
+            'children': child_data,
+            'children_count': len(children),
+            'initial_slide': initial_slide,
+            'matched_project_id': initial_project_id,
         })
-
-        # Dados completos dos filhos para o slider
-        children_list = []
-        for c in project.children.order_by(Project.created_at.asc()).all():
-            c_resp = User.query.get(c.responsible_id)
-            c_prog = c.progress_percent or 0
-            c_status_map = {
-                'em_andamento': {'label': 'Em Andamento', 'class': 'status-active'},
-                'em_teste':     {'label': 'Em Teste',     'class': 'status-testing'},
-                'concluido':    {'label': 'Concluído',    'class': 'status-completed'},
-                'pausado':      {'label': 'Pausado',    'class': 'status-paused'},
-                'cancelado':    {'label': 'Cancelado',    'class': 'status-delayed'},
-            }
-            c_si = c_status_map.get(c.status, {'label': c.status, 'class': 'status-paused'})
-            c_latest_status_entry = c.status_history[0] if c.status_history else None
-            c_status_changed_at = c_latest_status_entry.changed_at if c_latest_status_entry else c.created_at
-            c_latest_status_note = (c_latest_status_entry.note or '').strip() if c_latest_status_entry and c_latest_status_entry.note else ''
-            if c_prog <= 25:   c_pc = 'progress-danger'
-            elif c_prog <= 75: c_pc = 'progress-warning'
-            else:              c_pc = 'progress-success'
-            # glow_class do filho (mesma lógica do pai)
-            c_glow = ''
-            if c.status == 'concluido':
-                c_glow = 'glow-complete'
-            elif c.status == 'em_teste':
-                c_glow = 'glow-pink-test'
-            elif c.status == 'pausado':
-                c_glow = ''
-            elif c.data_inicio and c.data_fim:
-                from datetime import date as _date
-                today = _date.today()
-                if today < c.data_inicio:
-                    pct = 0.0
-                elif today > c.data_fim:
-                    pct = 1.1
-                else:
-                    td = (c.data_fim - c.data_inicio).days
-                    pct = (today - c.data_inicio).days / td if td > 0 else 1.0
-                if pct < 0.6:   c_glow = 'glow-green'
-                elif pct < 0.9: c_glow = 'glow-orange'
-                elif pct <= 1.0: c_glow = 'glow-red'
-                else:           c_glow = 'glow-purple'
-            c_github_generated_at = getattr(c, 'github_todos_generated_at', None)
-            c_github_alarm = build_github_project_alarm(c, user=current_user)
-
-            children_list.append({
-                'id':             c.id,
-                'nome':           c.nome,
-                'status':         c.status,
-                'status_label':   c_si['label'],
-                'status_class':   c_si['class'],
-                'status_changed_at': c_status_changed_at,
-                'status_changed_at_label': c_status_changed_at.strftime('%d/%m/%Y') if c_status_changed_at else '-',
-                'status_history_count': len(c.status_history),
-                'progress':       c_prog,
-                'progress_color': c_pc,
-                'glow_class':     c_glow,
-                'leader':         c_resp.full_name if c_resp else '-',
-                'client':         project.client.nome if project.client else '-',
-                'data_inicio':    c.data_inicio.strftime('%d/%m/%Y') if c.data_inicio else '',
-                'data_fim':       c.data_fim.strftime('%d/%m/%Y') if c.data_fim else '',
-                'github_alarm_visible': c_github_alarm['visible'],
-                'github_updated_today': c_github_alarm['updated_today'],
-                'github_generated_at': c_github_generated_at,
-                'github_alarm_state': c_github_alarm['state'],
-                'github_alarm_text': c_github_alarm['text'],
-                'github_latest_commit': c_github_alarm['latest_commit'],
-                # Badges de infra
-                'has_github':     c.has_github if hasattr(c, 'has_github') else False,
-                'has_env':        c.has_env    if hasattr(c, 'has_env')    else None,
-                'has_backup_db':  c.has_backup_db if hasattr(c, 'has_backup_db') else None,
-                'rpa_identifier': c.rpa_identifier if hasattr(c, 'rpa_identifier') else None,
-                'rpa_status':     None,
-                'can_edit':       current_user.is_admin or current_user.id == c.responsible_id,
-            })
-
-        projects_data[-1]['children'] = children_list
-
-        # Buscar status RPA se existir identificador
-        if project.rpa_identifier:
-            try:
-                # Header obrigatório
-                headers = {'X-API-Key': 'bizart-integration-secret-key-2025'}
-                # URL dinâmica via .env (Default: localhost para dev)
-                base_url = os.environ.get('RPA_MONITOR_URL', 'http://localhost:2000').rstrip('/')
-
-                # Timeout curto para não travar
-                resp = requests.get(
-                    f'{base_url}/integration/status/{project.rpa_identifier}',
-                    headers=headers,
-                    timeout=2
-                )
-                if resp.status_code == 200:
-                    projects_data[-1]['rpa_status'] = resp.json().get('display_status', 'offline')
-                else:
-                    projects_data[-1]['rpa_status'] = 'offline'
-            except Exception as e:
-                # Log de erro silencioso para debug se necessário
-                # print(f"DEBUG RPA ERROR: {e}")
-                # Se falhar a conexão, assume offline (vermelho)
-                projects_data[-1]['rpa_status'] = 'offline'
+        projects_data.append(parent_data)
+        projects_for_modals_by_id[root.id] = root
+        for child in children:
+            projects_for_modals_by_id[child.id] = child
 
     form = ProjectForm()
     clients = Client.query.order_by(Client.nome).all()
     users = User.query.filter_by(is_admin=False, ativo=True).order_by(func.lower(User.nome), func.lower(User.sobrenome)).all()
 
     return render_template('projects.html',
-                         projects=projects,  # Manter para modals
-                         projects_data=projects_data,  # Novos dados estruturados
+                         projects=list(projects_for_modals_by_id.values()),
+                         projects_data=projects_data,
                          form=form,
                          clients=clients,
                          users=users,
@@ -2574,11 +2535,10 @@ def kanban():
     client_filter = [int(x) for x in client_filter if x.isdigit()]
     user_filter = [int(x) for x in user_filter if x.isdigit()]
 
-    # Incluir subprojetos (filhos) se o pai for filtrado
-    if project_filter:
-        child_projects = Project.query.filter(Project.parent_id.in_(project_filter)).all()
-        child_ids = [cp.id for cp in child_projects]
-        project_filter.extend(child_ids)
+    # O filtro do Kanban deve refletir exatamente o que o usuário marcou.
+    # Pai e filhos continuam vinculados visualmente nos selects/listas, mas tarefas e contadores
+    # não devem somar projetos relacionados automaticamente.
+    selected_project_ids = list(project_filter)
 
     selected_project_name = None
 
@@ -2697,7 +2657,7 @@ def kanban():
                          relations_data=relations_data,
                          writable_project_ids=writable_project_ids,
                          current_filters={
-                             'project_id': project_filter,
+                             'project_id': selected_project_ids,
                              'client_id': client_filter,
                              'user_id': user_filter
                          },
@@ -3048,7 +3008,7 @@ def api_generate_todos_from_commits(task_id):
 
         existing_todos_text = "\\n".join(existing_todos_text_lines)
 
-        # Chamar serviço OpenAI em lotes menores para reduzir timeout e preservar granularidade.
+        # Chamar serviço de IA em lotes menores para reduzir timeout e preservar granularidade.
         from openai_service import generate_kanban_todos_from_commits
 
         def split_batches(items, size):
@@ -6051,7 +6011,7 @@ def process_single_project_report(project_data):
     if not (contexto and problema and objetivos):
         if transcricao:
             try:
-                # Assuming process_project_transcription is thread-safe (it just calls OpenAI)
+                # Assuming process_project_transcription is thread-safe (it just calls the AI provider)
                 ai_result = process_project_transcription(transcricao)
                 if ai_result:
                     contexto = ai_result.get('descricao_resumida', '')
@@ -6248,7 +6208,7 @@ def generate_pdf():
                 'completed_todos': completed_todos
             })
 
-        # --- Execute OpenAI Calls in Parallel ---
+        # --- Execute AI Calls in Parallel ---
         print(f"DEBUG: Iniciando processamento paralelo para {len(projects_data_list)} projetos...", flush=True)
         start_time = datetime.now()
         results_map = {}
@@ -6713,7 +6673,7 @@ def crm2_test_email():
 @app.route('/api/crm2/generate-pauta', methods=['POST'])
 @login_required
 def crm2_generate_pauta():
-    """Use OpenAI to generate a meeting agenda from the description."""
+    """Use DeepSeek to generate a meeting agenda from the description."""
     if not current_user.is_admin and not current_user.acesso_crm:
         return jsonify({'success': False, 'message': 'Sem permissão'}), 403
 
@@ -6724,12 +6684,11 @@ def crm2_generate_pauta():
         return jsonify({'success': False, 'message': 'Descrição vazia'})
 
     try:
-        from openai import OpenAI
-        import os
-        client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
+        from ai_provider import get_ai_client, get_ai_model
+        client = get_ai_client()
 
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model=get_ai_model(),
             messages=[
                 {"role": "system", "content": "Você é um assistente de negócios especializado em elaborar pautas de reunião profissionais e objetivas. Responda apenas com a pauta, sem introdução ou comentários extras."},
                 {"role": "user", "content": f"Com base na seguinte descrição de reunião, gere uma pauta estruturada com tópicos numerados, subtópicos quando necessário, e tempo estimado para cada item:\n\n{descricao}"}

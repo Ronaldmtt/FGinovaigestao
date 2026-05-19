@@ -1,19 +1,9 @@
 import json
-import os
-from openai import OpenAI
-import httpx
-
-# the newest OpenAI model is "gpt-5" which was released August 7, 2025.
-# do not change this unless explicitly requested by the user
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+from ai_provider import get_ai_client, get_ai_model
 
 # Configurar timeout máximo para processamento completo e detalhado
-openai = OpenAI(
-    api_key=OPENAI_API_KEY,
-    timeout=120.0,  # Timeout de 2 minutos para processamento completo
-    max_retries=0,  # Sem retry para evitar timeout do worker
-    http_client=httpx.Client(timeout=120.0)
-)
+AI_MODEL = get_ai_model()
+openai = get_ai_client(timeout=120.0, max_retries=0)
 
 def process_project_transcription(transcription):
     """
@@ -42,7 +32,7 @@ def process_project_transcription(transcription):
         """
         
         response = openai.chat.completions.create(
-            model="gpt-4o",
+            model=AI_MODEL,
             messages=[{"role": "user", "content": prompt}],
             response_format={"type": "json_object"}
         )
@@ -163,7 +153,7 @@ def generate_tasks_from_transcription(transcription, project_name):
         """
         
         response = openai.chat.completions.create(
-            model="gpt-4o",
+            model=AI_MODEL,
             messages=[{"role": "user", "content": prompt}],
             response_format={"type": "json_object"}
         )
@@ -209,7 +199,7 @@ def generate_project_report_summary(project_name, description, problem, objectiv
         """
         
         response = openai.chat.completions.create(
-            model="gpt-4o",
+            model=AI_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.4
         )
@@ -297,7 +287,7 @@ def generate_client_report_from_tasks(project_name, tasks, completed_todos=None,
         """
         
         response = openai.chat.completions.create(
-            model="gpt-4o",
+            model=AI_MODEL,
             messages=[{"role": "user", "content": prompt}],
             response_format={"type": "json_object"},
             temperature=0.4
@@ -425,7 +415,7 @@ def generate_project_tasks_from_meeting_and_repo(project_name, meeting_context, 
         }}
         """
         response = openai.chat.completions.create(
-            model="gpt-4o",
+            model=AI_MODEL,
             messages=[{"role": "user", "content": prompt}],
             response_format={"type": "json_object"},
             temperature=0.35
@@ -551,7 +541,7 @@ def generate_todo_execution_prompt(project_name, task_title, task_description, t
         - Retorne APENAS o prompt final pronto para copiar, sem JSON e sem comentários fora do prompt.
         """
         response = openai.chat.completions.create(
-            model="gpt-4o",
+            model=AI_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.25
         )
@@ -661,7 +651,7 @@ def generate_kanban_todos_from_commits(commits_text, project_name, existing_todo
         """
         
         response = openai.chat.completions.create(
-            model="gpt-4o",
+            model=AI_MODEL,
             messages=[{"role": "user", "content": prompt}],
             response_format={"type": "json_object"},
             temperature=0.3

@@ -1,20 +1,12 @@
 import json
 import os
 import tempfile
-from openai import OpenAI
-import httpx
+from ai_provider import AI_PROVIDER, get_ai_client, get_ai_model
 
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+client = get_ai_client(timeout=120.0, max_retries=0)
 
-client = OpenAI(
-    api_key=OPENAI_API_KEY,
-    timeout=120.0,
-    max_retries=0,
-    http_client=httpx.Client(timeout=120.0)
-)
-
-MEETING_MODEL = "gpt-4o"
-WHISPER_MODEL = "whisper-1"
+MEETING_MODEL = get_ai_model()
+WHISPER_MODEL = os.environ.get("WHISPER_MODEL", "whisper-1")
 
 
 def detect_meeting_language(text):
@@ -34,6 +26,9 @@ def detect_meeting_language(text):
 
 
 def transcribe_meeting_audio(audio_file, max_file_size_mb=20):
+    if AI_PROVIDER == "deepseek":
+        raise RuntimeError("Transcrição de áudio via OpenAI/Whisper foi desativada. A DeepSeek não oferece endpoint de transcrição de áudio; use o FG Transcritor ou outro serviço de STT configurado.")
+
     temp_file_path = None
     try:
         if hasattr(audio_file, 'seek'):

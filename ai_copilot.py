@@ -2,7 +2,6 @@ import os
 import json
 import logging
 from datetime import datetime
-from openai import OpenAI
 from extensions import db
 from models import AiChatHistory, User, Project, Task, TodoItem, Meeting, Client, Crm2Lead, FinCostCenter, FinAccount, FinTransaction, FinGoal, FinSupplier, ProjectFile, ProjectApiEndpoint, Crm2Meeting
 
@@ -13,10 +12,11 @@ fh = logging.FileHandler("copilot_debug.log", encoding="utf-8")
 fh.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
 logger.addHandler(fh)
 
-# Initialize OpenAI Client
-client = None
-if os.environ.get("OPENAI_API_KEY"):
-    client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+from ai_provider import get_ai_client, get_ai_model, has_ai_api_key, missing_ai_key_message
+
+# Initialize AI Client (DeepSeek por padrão)
+client = get_ai_client() if has_ai_api_key() else None
+AI_MODEL = get_ai_model()
 
 # Define tools (Function Calling schema)
 TOOLS = [
@@ -709,7 +709,7 @@ def chat_stream(user_id, user_message):
     Motor do Copilot:
     1. Grava msg do user
     2. Lê histórico (ultimas 10)
-    3. Chama OpenAI
+    3. Chama DeepSeek
     4. Avalia Tool Calling
     5. Retorna o texto + eventos pro client
     """
@@ -719,7 +719,7 @@ def chat_stream(user_id, user_message):
         return
         
     if not client:
-        yield "data: " + json.dumps({"error": "OPENAI_API_KEY não configurada no .env"}) + "\n\n"
+        yield "data: " + json.dumps({"error": missing_ai_key_message()}) + "\n\n"
         return
 
     # Salva no banco
@@ -743,7 +743,7 @@ def chat_stream(user_id, user_message):
         
         while iteration < max_iterations:
             completion = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=AI_MODEL,
                 messages=messages,
                 tools=TOOLS,
                 tool_choice="auto",
@@ -787,7 +787,7 @@ def chat_stream(user_id, user_message):
                         
                     yield f"data: {json.dumps(payload_frontend)}\n\n"
                     
-                    # Anexa o resultado da tool ao script system prompt pra OpenAI prosseguir
+                    # Anexa o resultado da tool ao script system prompt pra IA prosseguir
                     messages.append({
                         "tool_call_id": tool_call.id,
                         "role": "tool",
